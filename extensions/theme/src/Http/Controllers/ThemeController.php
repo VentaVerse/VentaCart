@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Currency;
 use App\Models\FooterColumn;
-use App\Models\NavMenuItem;
 use App\Models\Setting;
 use App\Services\ThemeService;
 use Illuminate\Http\Request;
@@ -35,7 +34,6 @@ class ThemeController extends Controller
             }
         }
 
-        $navItems = NavMenuItem::orderBy('sort_order')->get();
         $footerColumns = FooterColumn::orderBy('sort_order')->get();
         $currencies = Currency::orderBy('is_default', 'desc')->orderBy('code')->get();
         $categories = Category::whereNull('parent_id')
@@ -53,7 +51,7 @@ class ThemeController extends Controller
         }
 
         return view('theme::index', compact(
-            'settings', 'navItems', 'footerColumns', 'currencies', 'categories',
+            'settings', 'footerColumns', 'currencies', 'categories',
             'installedPresets', 'activePreset',
             'themeSettingsSchema', 'themeSettingValues'
         ) + [

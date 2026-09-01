@@ -50,6 +50,17 @@
                     <span class="v-toggle__track" aria-hidden="true"></span>
                     <span>Active</span>
                 </label>
+                {{-- The menu composer can build anything and could not be
+                     found. This is the one thing nearly every shop wants from
+                     it, said where the category already is. Subcategories come
+                     with it: a category in the menu opens onto its children. --}}
+                <label class="v-toggle">
+                    <input type="hidden" name="in_menu" value="0">
+                    <input type="checkbox" name="in_menu" value="1"
+                           @checked(old('in_menu', $category ? \App\Support\MainMenu::holds($category) : false))>
+                    <span class="v-toggle__track" aria-hidden="true"></span>
+                    <span>Show in main menu</span>
+                </label>
             </div>
         </x-admin.panel>
 

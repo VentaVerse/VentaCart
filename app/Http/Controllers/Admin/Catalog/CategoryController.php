@@ -53,7 +53,11 @@ class CategoryController extends Controller
             ? $validated['slug']
             : $this->generateUniqueSlug($validated['name'], $validated['store_id']);
 
-        Category::create($validated);
+        $inMenu = (bool) ($validated['in_menu'] ?? false);
+        unset($validated['in_menu']);
+
+        $category = Category::create($validated);
+        \App\Support\MainMenu::set($category, $inMenu);
 
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category created successfully.');
@@ -82,7 +86,11 @@ class CategoryController extends Controller
             unset($validated['slug']);
         }
 
+        $inMenu = (bool) ($validated['in_menu'] ?? false);
+        unset($validated['in_menu']);
+
         $category->update($validated);
+        \App\Support\MainMenu::set($category, $inMenu);
 
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category updated successfully.');
@@ -125,6 +133,7 @@ class CategoryController extends Controller
             'image' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
+            'in_menu' => ['boolean'],
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:500'],
             'meta_keywords' => ['nullable', 'string', 'max:255'],

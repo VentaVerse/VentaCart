@@ -39,22 +39,22 @@ class MenuComposerTest extends TestCase
         $this->item(['label' => 'Used', 'parent_id' => $top->id]);
         NavMenu::create(['key' => 'footer', 'name' => 'Footer menu']);
 
-        $this->get(route('admin.layout.menus'))->assertOk()
+        $this->get(route('admin.menus'))->assertOk()
             ->assertSee('Main menu')->assertSee('Footer menu')
             ->assertSee('Guitars', false)->assertSee('Used', false)->assertSee('Add an item');
     }
 
     public function test_a_menu_is_created_with_a_key_of_its_own_and_the_main_one_cannot_go(): void
     {
-        $this->post(route('admin.layout.menus.store'), ['name' => 'Footer links'])->assertRedirect();
-        $this->post(route('admin.layout.menus.store'), ['name' => 'Footer links'])->assertRedirect();
+        $this->post(route('admin.menus.store'), ['name' => 'Footer links'])->assertRedirect();
+        $this->post(route('admin.menus.store'), ['name' => 'Footer links'])->assertRedirect();
         $this->assertSame(['footer-links', 'footer-links-2'], NavMenu::where('key', '!=', 'main')->orderBy('id')->pluck('key')->all());
 
-        $this->delete(route('admin.layout.menus.destroy', $this->main))->assertRedirect()->assertSessionHas('error');
+        $this->delete(route('admin.menus.destroy', $this->main))->assertRedirect()->assertSessionHas('error');
         $this->assertDatabaseHas('nav_menus', ['key' => 'main']);
 
         $footer = NavMenu::where('key', 'footer-links')->sole();
-        $this->delete(route('admin.layout.menus.destroy', $footer))->assertRedirect()->assertSessionHas('success');
+        $this->delete(route('admin.menus.destroy', $footer))->assertRedirect()->assertSessionHas('success');
         $this->assertDatabaseMissing('nav_menus', ['id' => $footer->id]);
     }
 
@@ -62,7 +62,7 @@ class MenuComposerTest extends TestCase
     {
         $cat = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals', 'is_active' => true]);
         $page = Page::create(['store_id' => 1, 'title' => 'About', 'slug' => 'about', 'body' => 'x', 'is_active' => true]);
-        $add = fn (array $data) => $this->post(route('admin.layout.menus.items.store', $this->main), $data);
+        $add = fn (array $data) => $this->post(route('admin.menus.items.store', $this->main), $data);
 
         $add(['type' => 'category', 'label' => 'Pedals', 'category_id' => $cat->id, 'mega' => 'yes', 'brands' => 'yes', 'depth' => 3, 'accent' => '#ff0000', 'banner' => '/banners/p.jpg'])->assertRedirect()->assertSessionHas('success');
         $add(['type' => 'page', 'label' => 'About', 'page_id' => $page->id])->assertRedirect();
@@ -99,7 +99,7 @@ class MenuComposerTest extends TestCase
         $c = $this->item(['label' => 'C']);
         $other = NavMenuItem::create(['menu_id' => NavMenu::create(['key' => 'o', 'name' => 'O'])->id, 'label' => 'Foreign', 'type' => 'custom', 'url' => '/f', 'sort_order' => 1, 'is_enabled' => true]);
 
-        $this->post(route('admin.layout.menus.arrange', $this->main), ['payload' => json_encode(['items' => [
+        $this->post(route('admin.menus.arrange', $this->main), ['payload' => json_encode(['items' => [
             ['id' => $c->id, 'parent_id' => null],
             ['id' => $a->id, 'parent_id' => null],
             ['id' => $b->id, 'parent_id' => $a->id],
@@ -121,9 +121,9 @@ class MenuComposerTest extends TestCase
         $host = $this->item(['label' => 'Host']);
         $item = $this->item(['label' => 'Guest']);
 
-        $this->get(route('admin.layout.menus.items.edit', $item))->assertOk()->assertSee('Guest')->assertSee('Top level');
+        $this->get(route('admin.menus.items.edit', $item))->assertOk()->assertSee('Guest')->assertSee('Top level');
 
-        $this->put(route('admin.layout.menus.items.update', $item), ['type' => 'custom', 'label' => 'Guest renamed', 'url' => '/g', 'parent_id' => $host->id, 'is_enabled' => 0])
+        $this->put(route('admin.menus.items.update', $item), ['type' => 'custom', 'label' => 'Guest renamed', 'url' => '/g', 'parent_id' => $host->id, 'is_enabled' => 0])
             ->assertRedirect()->assertSessionHas('success');
 
         $item->refresh();
@@ -132,10 +132,10 @@ class MenuComposerTest extends TestCase
         $this->assertFalse($item->is_enabled);
 
         // An item cannot be its own parent.
-        $this->put(route('admin.layout.menus.items.update', $host), ['type' => 'custom', 'label' => 'Host', 'url' => '/h', 'parent_id' => $host->id]);
+        $this->put(route('admin.menus.items.update', $host), ['type' => 'custom', 'label' => 'Host', 'url' => '/h', 'parent_id' => $host->id]);
         $this->assertNull($host->fresh()->parent_id);
 
-        $this->delete(route('admin.layout.menus.items.destroy', $host))->assertRedirect();
+        $this->delete(route('admin.menus.items.destroy', $host))->assertRedirect();
         $this->assertDatabaseMissing('nav_menu_items', ['id' => $host->id]);
         $this->assertNull($item->fresh()->parent_id, 'Children of a deleted item move up, they do not vanish.');
     }
@@ -143,6 +143,6 @@ class MenuComposerTest extends TestCase
     public function test_the_composer_is_behind_admin_auth(): void
     {
         auth()->logout();
-        $this->get(route('admin.layout.menus'))->assertRedirect();
+        $this->get(route('admin.menus'))->assertRedirect();
     }
 }

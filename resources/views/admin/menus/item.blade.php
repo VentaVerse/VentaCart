@@ -2,9 +2,9 @@
     <div class="v-head">
         <div class="v-head__body">
             <div class="v-head__trail">
-                <a href="{{ route('admin.layout') }}">Layout</a>
+                <a href="{{ route('admin.menus') }}">Menus</a>
                 <span aria-hidden="true">/</span>
-                <a href="{{ route('admin.layout.menus', ['menu' => $menu->key]) }}">{{ $menu->name }}</a>
+                <a href="{{ route('admin.menus', ['menu' => $menu->key]) }}">{{ $menu->name }}</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $item->label ?: $types[$item->type] }}</span>
             </div>
@@ -12,10 +12,10 @@
         </div>
     </div>
 
-    <x-admin.form :action="route('admin.layout.menus.items.update', $item)" method="PUT" class="v-settle">
+    <x-admin.form :action="route('admin.menus.items.update', $item)" method="PUT" class="v-settle">
         <div x-data="{ kind: @js(old('type', $item->type)) }">
             <x-admin.panel title="Menu item">
-                @include('admin.layout.menus.fields', ['item' => $item, 'categories' => $categories, 'pages' => $pages, 'system' => $system, 'types' => $types])
+                @include('admin.menus.fields', ['item' => $item, 'categories' => $categories, 'pages' => $pages, 'system' => $system, 'types' => $types])
 
                 <div class="v-grid v-grid--2 v-gap">
                     <x-admin.field name="parent_id" label="Under">

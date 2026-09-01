@@ -66,6 +66,11 @@ return [
         'segment' => 'content',
         'items' => [
             ['key' => 'pages', 'label' => 'Pages', 'route' => 'admin.pages.index', 'icon' => 'pages', 'permission' => null, 'keywords' => ['cms', 'static']],
+            // The menus had no entry at all: the only way in was a button on
+            // the theme page, and the breadcrumb from there walked up to
+            // Layout, which does not link back. A page with an entrance and
+            // no address.
+            ['key' => 'menus', 'label' => 'Menus', 'route' => 'admin.menus', 'icon' => 'link', 'permission' => null, 'keywords' => ['nav', 'navigation', 'menu', 'links', 'header']],
             ['key' => 'layout', 'label' => 'Layout', 'route' => 'admin.layout', 'icon' => 'layers', 'permission' => null, 'keywords' => ['design', 'arrange', 'rows', 'regions', 'positions']],
         ],
     ],

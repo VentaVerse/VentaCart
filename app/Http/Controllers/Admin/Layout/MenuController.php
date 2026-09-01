@@ -35,7 +35,7 @@ class MenuController extends Controller
 
         $items = $menu->items()->with(['category', 'page'])->get();
 
-        return view('admin.layout.menus.index', [
+        return view('admin.menus.index', [
             'menus' => $menus,
             'menu' => $menu,
             'tree' => $this->tree($items),
@@ -113,7 +113,7 @@ class MenuController extends Controller
         $menu = NavMenu::create(['key' => $key, 'name' => $data['name']]);
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.layout.menus', ['menu' => $menu->key])->with('success', $menu->name . ' created.');
+        return redirect()->route('admin.menus', ['menu' => $menu->key])->with('success', $menu->name . ' created.');
     }
 
     public function destroyMenu(NavMenu $menu)
@@ -124,7 +124,7 @@ class MenuController extends Controller
         $menu->delete();
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.layout.menus')->with('success', $menu->name . ' deleted.');
+        return redirect()->route('admin.menus')->with('success', $menu->name . ' deleted.');
     }
 
     /** The arrangement: order and nesting for one menu, written as one save. */
@@ -162,12 +162,12 @@ class MenuController extends Controller
         NavMenuItem::create($data);
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.layout.menus', ['menu' => $menu->key])->with('success', ($data['label'] ?: NavMenuItem::TYPES[$data['type']]) . ' added.');
+        return redirect()->route('admin.menus', ['menu' => $menu->key])->with('success', ($data['label'] ?: NavMenuItem::TYPES[$data['type']]) . ' added.');
     }
 
     public function editItem(NavMenuItem $item)
     {
-        return view('admin.layout.menus.item', [
+        return view('admin.menus.item', [
             'item' => $item,
             'menu' => $item->menu,
             'types' => NavMenuItem::TYPES,
@@ -184,7 +184,7 @@ class MenuController extends Controller
         $item->update($data);
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.layout.menus', ['menu' => $item->menu->key])->with('success', ($item->label ?: NavMenuItem::TYPES[$item->type]) . ' updated.');
+        return redirect()->route('admin.menus', ['menu' => $item->menu->key])->with('success', ($item->label ?: NavMenuItem::TYPES[$item->type]) . ' updated.');
     }
 
     public function destroyItem(NavMenuItem $item)
@@ -193,7 +193,7 @@ class MenuController extends Controller
         $item->delete();
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.layout.menus', ['menu' => $menu->key])->with('success', 'Menu item deleted.');
+        return redirect()->route('admin.menus', ['menu' => $menu->key])->with('success', 'Menu item deleted.');
     }
 
     /** One set of rules for adding and editing: a type says which fields count. */

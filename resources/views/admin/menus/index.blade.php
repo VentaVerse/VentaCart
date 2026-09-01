@@ -5,14 +5,12 @@
 
     <div class="v-head">
         <div class="v-head__body">
+            {{-- The trail retraces the one way in. It used to climb back
+                 through Extensions, Themes and Layout, none of which link
+                 here, so every step up was a one way trip away from the page
+                 you were on. --}}
             <div class="v-head__trail">
-                @if (\Illuminate\Support\Facades\Route::has('admin.theme.index'))
-                    <a href="{{ route('admin.extensions.index') }}">Extensions</a>
-                    <span aria-hidden="true">/</span>
-                    <a href="{{ route('admin.theme.index') }}">Themes</a>
-                    <span aria-hidden="true">/</span>
-                @endif
-                <a href="{{ route('admin.layout') }}">Layout</a>
+                <span>Content</span>
                 <span aria-hidden="true">/</span>
                 <span>Menus</span>
             </div>
@@ -28,12 +26,12 @@
         <nav class="v-menus__rail" aria-label="Menus">
             <div class="v-lay__raillbl">Menus</div>
             @foreach ($menus as $vMenu)
-                <a href="{{ route('admin.layout.menus', ['menu' => $vMenu->key]) }}" class="{{ $vMenu->id === $menu->id ? 'is-on' : '' }}">
+                <a href="{{ route('admin.menus', ['menu' => $vMenu->key]) }}" class="{{ $vMenu->id === $menu->id ? 'is-on' : '' }}">
                     <span>{{ $vMenu->name }}</span>
                     <span class="mono">{{ $vMenu->key }}</span>
                 </a>
             @endforeach
-            <form method="POST" action="{{ route('admin.layout.menus.store') }}" class="v-menus__new">
+            <form method="POST" action="{{ route('admin.menus.store') }}" class="v-menus__new">
                 @csrf
                 <input type="text" name="name" required maxlength="120" class="v-control" aria-label="New menu name" placeholder="">
                 <button type="submit" class="v-btn v-btn--sm">New menu</button>
@@ -42,7 +40,7 @@
 
         <div class="v-menus__body">
             {{-- the arrangement: one save scope --}}
-            <x-admin.form :action="route('admin.layout.menus.arrange', $menu)">
+            <x-admin.form :action="route('admin.menus.arrange', $menu)">
                 <div x-data="menuTree(@js($tree))">
                     <input type="hidden" name="payload" :value="payload()">
                     <x-admin.panel :title="$menu->name">
@@ -67,7 +65,7 @@
                                         <button type="button" @click="move(row.id, 1)" :disabled="!canMove(row.id, 1)" aria-label="Move down" title="Move down">&darr;</button>
                                         <button type="button" @click="indent(row.id)" :disabled="!canIndent(row.id)" aria-label="Make a sub-item" title="Make a sub-item">&rarr;</button>
                                         <button type="button" @click="outdent(row.id)" :disabled="row.depth === 0" aria-label="Move up a level" title="Move up a level">&larr;</button>
-                                        <a :href="'{{ route('admin.layout.menus.items.edit', ['item' => '__ID__']) }}'.replace('__ID__', row.id)" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
+                                        <a :href="'{{ route('admin.menus.items.edit', ['item' => '__ID__']) }}'.replace('__ID__', row.id)" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
                                         <button type="button" class="v-row__x" :aria-label="'Delete ' + (row.label || row.kind)" @click="$dispatch('v-confirm', 'delete-item-' + row.id)">
                                             <x-admin.icon name="trash" />
                                         </button>
@@ -83,9 +81,9 @@
 
             {{-- adding an item: its own record --}}
             <x-admin.panel title="Add an item">
-                <form method="POST" action="{{ route('admin.layout.menus.items.store', $menu) }}" x-data="{ kind: @js(old('type', 'category')) }">
+                <form method="POST" action="{{ route('admin.menus.items.store', $menu) }}" x-data="{ kind: @js(old('type', 'category')) }">
                     @csrf
-                    @include('admin.layout.menus.fields', ['item' => null, 'categories' => $categories, 'pages' => $pages, 'system' => $system, 'types' => $types])
+                    @include('admin.menus.fields', ['item' => null, 'categories' => $categories, 'pages' => $pages, 'system' => $system, 'types' => $types])
                     <div class="v-gap v-actrow">
                         <button type="submit" class="v-btn v-btn--primary">Add item</button>
                     </div>
@@ -97,7 +95,7 @@
                     <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="$dispatch('v-confirm', 'delete-menu')">Delete this menu</button>
                     <x-admin.confirm name="delete-menu" :title="'Delete ' . $menu->name . '?'"
                         message="Every item in it goes too. Positions showing it through a Menu widget will show nothing."
-                        confirm="Delete" :action="route('admin.layout.menus.destroy', $menu)" method="DELETE" />
+                        confirm="Delete" :action="route('admin.menus.destroy', $menu)" method="DELETE" />
                 </div>
             @endif
         </div>
@@ -106,7 +104,7 @@
     @foreach ($menu->items as $vItem)
         <x-admin.confirm name="delete-item-{{ $vItem->id }}" :title="'Delete ' . ($vItem->label ?: $types[$vItem->type]) . '?'"
             message="Items under it move up a level."
-            confirm="Delete" :action="route('admin.layout.menus.items.destroy', $vItem)" method="DELETE" />
+            confirm="Delete" :action="route('admin.menus.items.destroy', $vItem)" method="DELETE" />
     @endforeach
 
     @push('scripts')

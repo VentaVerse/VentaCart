@@ -19,14 +19,18 @@ Route::prefix('content/layout')->middleware(\App\Http\Middleware\EditTheme::clas
     Route::post('/templates/export', [LayoutController::class, 'exportTemplate'])->name('layout.templates.export');
     Route::post('/templates/import', [LayoutController::class, 'importTemplate'])->name('layout.templates.import');
     Route::post('/copy', [LayoutController::class, 'copyRegion'])->name('layout.copy');
+});
 
-    // The menu composer: menus as trees, core like the layout.
-    Route::get('/menus', [MenuController::class, 'index'])->name('layout.menus');
-    Route::post('/menus', [MenuController::class, 'storeMenu'])->name('layout.menus.store');
-    Route::delete('/menus/{menu}', [MenuController::class, 'destroyMenu'])->name('layout.menus.destroy');
-    Route::post('/menus/{menu}/arrange', [MenuController::class, 'arrange'])->name('layout.menus.arrange');
-    Route::post('/menus/{menu}/items', [MenuController::class, 'storeItem'])->name('layout.menus.items.store');
-    Route::get('/menus/items/{item}/edit', [MenuController::class, 'editItem'])->name('layout.menus.items.edit');
-    Route::put('/menus/items/{item}', [MenuController::class, 'updateItem'])->name('layout.menus.items.update');
-    Route::delete('/menus/items/{item}', [MenuController::class, 'destroyItem'])->name('layout.menus.items.destroy');
+// The menus. One menu is shared by every theme (nav_menus has no theme
+// column), so it is not a theme's to own, and it is edited as often as the
+// pages beside it. One door, under Content, and no second one anywhere.
+Route::prefix('content/menus')->group(function () {
+    Route::get('/', [MenuController::class, 'index'])->name('menus');
+    Route::post('/', [MenuController::class, 'storeMenu'])->name('menus.store');
+    Route::delete('/{menu}', [MenuController::class, 'destroyMenu'])->name('menus.destroy');
+    Route::post('/{menu}/arrange', [MenuController::class, 'arrange'])->name('menus.arrange');
+    Route::post('/{menu}/items', [MenuController::class, 'storeItem'])->name('menus.items.store');
+    Route::get('/items/{item}/edit', [MenuController::class, 'editItem'])->name('menus.items.edit');
+    Route::put('/items/{item}', [MenuController::class, 'updateItem'])->name('menus.items.update');
+    Route::delete('/items/{item}', [MenuController::class, 'destroyItem'])->name('menus.items.destroy');
 });

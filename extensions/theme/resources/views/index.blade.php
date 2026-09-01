@@ -20,7 +20,7 @@
         // x-show, so an unknown value hid all of them and left a white column
         // with no active nav item, no message and no 404. That is what a stale
         // bookmark, a shared link or a rename produces.
-        $vTabs = ['presets','colors','fonts','badges','header','navigation','footer',
+        $vTabs = ['presets','colors','fonts','badges','header','footer',
                   'product_page','category_page','blog','theme_settings'];
         // The old kebab key, kept so existing links do not break.
         $vAliases = ['theme-settings' => 'theme_settings', 'options' => 'theme_settings', 'homepage' => 'presets'];
@@ -46,7 +46,7 @@
                     // "Structure", not "Layout": the layout editor is a
                     // different thing one item below, and two menu entries a
                     // group apart both called Layout is a trap.
-                    'Structure' => ['header' => ['Header', 'menu'], 'navigation' => ['Navigation', 'link'], 'footer' => ['Footer', 'layers']],
+                    'Structure' => ['header' => ['Header', 'menu'], 'footer' => ['Footer', 'layers']],
                     // The Homepage tab is gone. It was a panel titled "Pages"
                     // holding a sentence and eleven links: a redirect wearing a
                     // tab's clothes. The redirect is now a link, in the menu,
@@ -485,15 +485,6 @@
             message="Reverts BOTH colors and fonts to this theme's defaults. Unsaved edits on those tabs are lost."
             confirm="Revert" :action="route('admin.theme.revert-colors', $editingNonLive ? ['theme' => $editThemeSlug] : [])" method="POST" />
 
-        {{-- ========== NAVIGATION (records) ========== --}}
-        <div x-show="tab === 'navigation'" x-cloak>
-            {{-- The menu composer is core now (Plaza plan, phase 4); this
-                 tab stays as the door merchants already know. --}}
-            <x-admin.panel title="Menus">
-                <p class="v-gap-sm">{{ $navItems->count() }} {{ $navItems->count() === 1 ? 'item' : 'items' }} in the main menu.</p>
-                <a href="{{ route('admin.layout.menus') }}" class="v-btn v-btn--primary v-btn--sm">Open the menu composer</a>
-            </x-admin.panel>
-        </div>
         {{-- ========== HOMEPAGE (records) ========== --}}
         <div x-show="tab === 'footer'" x-cloak>
             <x-admin.panel title="Footer columns">

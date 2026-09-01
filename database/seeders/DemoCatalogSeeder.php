@@ -77,6 +77,7 @@ class DemoCatalogSeeder extends Seeder
             $brands = $this->brands();
             $categories = $this->categories();
             $this->products($brands, $categories);
+            $this->menu($categories);
         });
 
         $this->command?->info(sprintf(
@@ -177,6 +178,41 @@ class DemoCatalogSeeder extends Seeder
         $make('Accessories', 'accessories.jpg', null, 'Hubs, earbuds, keyboards and the cables that connect them.');
 
         return $out;
+    }
+
+    /**
+     * The departments in the main menu.
+     *
+     * A store with categories and an empty menu is a store with no way to
+     * browse it. Only the top level goes in: a category item opens onto its
+     * own children, so Computers arrives with Laptops and Monitors under it.
+     *
+     * @param  array<string, Category>  $categories
+     */
+    private function menu(array $categories): void
+    {
+        $at = 0;
+
+        foreach (['Phones', 'Computers', 'Tablets', 'Accessories'] as $name) {
+            if (! isset($categories[$name])) {
+                continue;
+            }
+
+            \App\Support\MainMenu::set($categories[$name], true);
+
+            // Stated here rather than inherited from the category's own sort
+            // order, which is a catalogue ordering and says nothing about
+            // where a department belongs in a menu bar.
+            \App\Models\NavMenuItem::where('type', 'category')
+                ->where('category_id', $categories[$name]->id)
+                ->update(['sort_order' => $at++]);
+        }
+
+        // Whatever the install already put in the menu (a Blog link) sits
+        // after the departments rather than in the middle of them.
+        \App\Models\NavMenuItem::where('type', '!=', 'category')->update(['sort_order' => $at]);
+
+        \App\Support\NavTree::forget();
     }
 
     /**
