@@ -1431,7 +1431,7 @@
                                             @if (!empty($orderStatuses) && count($orderStatuses) > 0)
                                                 <x-admin.field name="order_status_id" label="Status" required>
                                                     <select name="order_status_id" required class="v-control"
-                                                            @change="notifyCustomer = !!notifyByStatus[$event.target.value]">
+                                                            @change="notifyCustomer = !!notifyByStatus[$event.target.value]; syncChannels($event.target.value)">
                                                         @foreach ($orderStatuses as $orderStatus)
                                                             <option value="{{ $orderStatus->id }}" @selected($orderStatus->id === $manualDefaultStatusId)>{{ $orderStatus->name }}</option>
                                                         @endforeach
@@ -1472,6 +1472,17 @@
                                                            x-model="notifyCustomer">
                                                     Notify customer
                                                 </label>
+                                                {{-- One per registered channel, pre-ticked from the
+                                                     store's policy for whichever status is chosen, and
+                                                     still the packer's to change. Nothing here names a
+                                                     channel: an extension that is off draws nothing. --}}
+                                                @foreach (\App\Services\OrderNotificationService::channels() as $vChannel)
+                                                    <label class="v-check">
+                                                        <input type="checkbox" name="channels[]"
+                                                               value="{{ $vChannel->key() }}" x-model="channelsOn">
+                                                        {{ $vChannel->label() }}
+                                                    </label>
+                                                @endforeach
                                                 <button type="submit" class="v-btn v-btn--primary v-actrow__grow">Update</button>
                                                 <x-admin.help text="Venta contacts no courier and prints no waybill. The order moves to the status chosen above and advances by status from there." />
                                             </div>
@@ -1521,6 +1532,15 @@
                 // Status Mapping rather than twenty times an afternoon here.
                 notifyByStatus: @js($notifyByStatus ?? []),
                 notifyCustomer: @js((bool) ($notifyByStatus[$manualDefaultStatusId] ?? false)),
+                // {channelKey: {statusId: true}} and the keys currently ticked.
+                channelByStatus: @js($channelByStatus ?? []),
+                channelsOn: @js(collect($channelByStatus ?? [])
+                    ->filter(fn ($byStatus) => (bool) ($byStatus[$manualDefaultStatusId] ?? false))
+                    ->keys()->values()->all()),
+                syncChannels(statusId) {
+                    this.channelsOn = Object.keys(this.channelByStatus)
+                        .filter((key) => !!this.channelByStatus[key][statusId]);
+                },
                 // Task T4: SPX-only step-2 state. Fetched LAZILY (never on
                 // page load — see FulfillmentController::index()'s
                 // courierOptions comment for why) so a queue page visit

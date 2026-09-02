@@ -1054,6 +1054,20 @@ class FulfillmentService
             ? (bool) $opts['notify_customer']
             : NotifyMap::notifies(($chosenStatus ?? self::bookedStatus())?->id);
 
+        // The same rule for every registered channel: what the caller ticked,
+        // or the store's policy for this status when the caller said nothing.
+        // An ERP that knows nothing about channels gets the policy, which is
+        // what makes this need no ERP work.
+        $channelKeys = array_key_exists('channels', $opts)
+            ? array_values(array_filter((array) $opts['channels'], 'is_string'))
+            : array_values(array_filter(
+                array_map(
+                    fn ($c) => $c->key(),
+                    OrderNotificationService::channels()
+                ),
+                fn ($key) => NotifyMap::notifiesVia($key, ($chosenStatus ?? self::bookedStatus())?->id)
+            ));
+
         // Built from the courier's own {tracking_number} template, and only
         // when there is a number to put in it — a link to a tracking page with
         // no consignment on it is worse than no link.
@@ -1127,13 +1141,18 @@ class FulfillmentService
         // where it now stood. The tracking rides in the comment now, built by
         // the shared builder, so both screens answer a status change the same
         // way whichever one the packer happened to use.
-        if ($notify && $applied) {
-            OrderNotificationService::statusChanged(
-                $order,
-                OrderStatus::whereKey($preBookingStatusId)->value('name'),
-                $applied->name,
-                OrderNotificationService::withTracking($order, $note),
-            );
+        if ($applied) {
+            $was = OrderStatus::whereKey($preBookingStatusId)->value('name');
+            $said = OrderNotificationService::withTracking($order, $note);
+
+            if ($notify) {
+                OrderNotificationService::statusChanged($order, $was, $applied->name, $said);
+            }
+
+            // Independent of the email, and of each other: a store may text
+            // without emailing. A channel that cannot reach this customer
+            // reports it and changes nothing else.
+            OrderNotificationService::statusChangedVia($channelKeys, $order, $was, $applied->name, $said);
         }
 
         return [

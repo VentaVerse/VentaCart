@@ -334,6 +334,13 @@ class FulfillmentController extends Controller
             // The store's notify policy as {statusId: true}, so the manual
             // form's tick follows whichever status the packer picks.
             'notifyByStatus' => array_fill_keys(\Extensions\CourierFulfillment\NotifyMap::all(), true),
+            // The same, per registered channel, so each tick follows the
+            // status the packer picks without this page knowing what any
+            // channel is.
+            'channelByStatus' => collect(\App\Services\OrderNotificationService::channels())
+                ->mapWithKeys(fn ($c) => [
+                    $c->key() => array_fill_keys(\Extensions\CourierFulfillment\NotifyMap::allFor($c->key()), true),
+                ])->all(),
             // Booking-time origin choice (owner ruling 2026-08-19): step 2
             // ALWAYS names where the parcel leaves from, for every courier
             // and however many addresses the store keeps. "Which address did

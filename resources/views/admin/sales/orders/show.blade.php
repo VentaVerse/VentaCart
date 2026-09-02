@@ -236,6 +236,17 @@
                             <input type="checkbox" name="notify_customer" value="1">
                             Notify customer
                         </label>
+                        {{-- One tick per way of telling a customer that an
+                             extension has registered. Core names none of them:
+                             turn the extension off and its tick is not drawn,
+                             because there is nothing to draw. Each is its own
+                             decision, so emailing never implies texting. --}}
+                        @foreach (\App\Services\OrderNotificationService::channels() as $vChannel)
+                            <label class="v-check">
+                                <input type="checkbox" name="channels[]" value="{{ $vChannel->key() }}">
+                                {{ $vChannel->label() }}
+                            </label>
+                        @endforeach
                         <button type="submit" class="v-btn v-btn--primary v-btn--sm">Update</button>
                     </div>
                 </form>

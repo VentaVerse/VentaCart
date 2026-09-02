@@ -1,0 +1,10 @@
+{
+    "name": "sms-unisms",
+    "title": "UniSMS",
+    "version": "1.0.0",
+    "description": "Send SMS through UniSMS. Philippine gateway, E.164 recipients, registered sender ID.",
+    "provider": "Extensions\\SmsUnisms\\SmsUnismsServiceProvider",
+    "icon": "chat",
+    "type": "feature",
+    "configure_route": "admin.extensions.unisms.index"
+}
