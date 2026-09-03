@@ -156,9 +156,58 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
     public function cancelShipment(string $trackingNumber): array
     {
         $res = $this->client->cancelOrder($trackingNumber);
-        return $res['ok']
-            ? ['success' => true]
-            : ['success' => false, 'error' => $res['error'] ?? 'Cancel failed.'];
+
+        if ($res['ok']) {
+            return ['success' => true];
+        }
+
+        return ['success' => false, 'error' => self::explainCancelFailure($res)];
+    }
+
+    /**
+     * A refused cancel, in words the person holding the parcel can act on.
+     *
+     * QuadX's own message is always kept: it is the courier's account of what
+     * happened and guessing over it would be worse than saying nothing. What
+     * is added is what the operator should DO, because "HTTP 422" tells them
+     * nothing about whether to try again, ring the courier, or let the parcel
+     * run and refuse it on delivery.
+     *
+     * The mapping is by status code plus a phrase match, deliberately loose:
+     * a courier is free to reword its errors, and an unrecognised one must
+     * still arrive intact rather than be flattened into a generic line.
+     *
+     * @param array{ok:bool,status:int,body:array,error:?string} $res
+     */
+    private static function explainCancelFailure(array $res): string
+    {
+        $said = trim((string) ($res['error'] ?? '')) ?: 'QuadX gave no reason.';
+        $status = (int) ($res['status'] ?? 0);
+        $lower = mb_strtolower($said);
+
+        $advice = match (true) {
+            // The network never got there. Nothing was cancelled, and trying
+            // again is safe.
+            $status === 0 => 'QuadX could not be reached, so nothing was cancelled. Try again in a moment.',
+
+            $status === 401 || $status === 403 => 'QuadX rejected our credentials. Check the API key and secret under Fulfillment settings.',
+
+            $status === 404 => 'QuadX does not recognise this tracking number. It may already have been cancelled or removed on their side.',
+
+            str_contains($lower, 'already') && str_contains($lower, 'cancel') => 'It is already cancelled at QuadX. Refresh from couriers to bring this order back in line.',
+
+            str_contains($lower, 'picked up') || str_contains($lower, 'in transit') || str_contains($lower, 'out for delivery') =>
+                'The parcel is already moving, so QuadX will not cancel it. Contact QuadX to recall it, or let it run and refuse the delivery.',
+
+            $status === 409 || $status === 422 =>
+                'QuadX refused to cancel this parcel in its current state. This usually means it has already been picked up. Check the parcel in the QuadX dashboard.',
+
+            $status >= 500 => 'QuadX had a server error, so nothing was cancelled. Try again shortly.',
+
+            default => 'Check the parcel in the QuadX dashboard before trying again.',
+        };
+
+        return $said . ' ' . $advice;
     }
 
     /**
@@ -686,53 +735,32 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
     }
 
     /**
-     * Preference order: courier_meta.tracking_links.delivery, then .pickup
-     * (both refreshed via getTracking()'s poll/refresh path), else whatever
-     * shape QuadX returned at booking time inside booked_response.tracking_links
-     * (string, nested array, or absent — hunted for recursively).
+     * The GoGo Xpress tracker, and nothing else.
+     *
+     * Owner ruling 2026-09-03: app.gogoxpress.com/track/{tracking} only.
+     *
+     * QuadX's API hands back tracking_links pointing at fareye.co, the
+     * logistics platform GoGo Xpress runs on rather than the brand a shopper
+     * bought from. Those were preferred here and in resolveTrackingLink(),
+     * so a live parcel showed a fareye link in the queue while the customer
+     * held a gogoxpress one from an earlier write. Both now build the same
+     * URL from the tracking number, so the queue and the customer's email
+     * cannot disagree, and no link the shopper does not recognise is shown.
+     *
+     * The environment still comes from the booking's own mode, so a sandbox
+     * parcel keeps pointing at the sandbox tracker.
      */
     public function trackingLinks(Order $order): array
     {
-        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
-        if (!is_array($meta)) {
+        $tracking = trim((string) $order->courier_tracking_number);
+        if ($tracking === '') {
             return [];
         }
 
-        $links = [];
-        $metaLinks = $meta['tracking_links'] ?? null;
-        if (is_array($metaLinks)) {
-            foreach (['delivery' => 'Delivery', 'pickup' => 'Pickup'] as $k => $label) {
-                $url = $metaLinks[$k] ?? null;
-                if (is_string($url) && str_starts_with($url, 'http')) {
-                    $links[] = ['label' => $label, 'url' => $url];
-                }
-            }
-        }
+        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+        $url = $this->publicTrackingUrl($tracking, is_array($meta) ? $meta : []);
 
-        if (empty($links)) {
-            $found = self::findFirstUrl($meta['booked_response']['tracking_links'] ?? null);
-            if ($found) {
-                $links[] = ['label' => 'Track', 'url' => $found];
-            }
-        }
-
-        return $links;
-    }
-
-    /** Recursively hunt for the first http(s) URL — booked_response's tracking_links shape varies. */
-    private static function findFirstUrl(mixed $value): ?string
-    {
-        if (is_string($value)) {
-            return str_starts_with($value, 'http') ? $value : null;
-        }
-        if (is_array($value)) {
-            foreach ($value as $v) {
-                if ($found = self::findFirstUrl($v)) {
-                    return $found;
-                }
-            }
-        }
-        return null;
+        return $url ? [['label' => 'Track', 'url' => $url]] : [];
     }
 
     public function testConnection(): array
@@ -849,10 +877,9 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
             // it accepts orders with no parcel object, so we don't collect or send them.
             'payment_provider' => 'other',
             'payment_method'   => $buyerPayment === 'cod' ? 'cod' : 'other',
-            'items'            => $this->items($order),
+            'items'            => $this->items($order, $buyerPayment === 'cod'),
             'currency'         => 'PHP',
             'shipment'         => self::parcelFor($opts),
-            'total'            => (float) $order->total,
             // QuadX insures via declared_value (~1% fee on that amount). Omitting
             // this field entirely makes QuadX silently DEFAULT declared_value to
             // the order total — auto-insuring every booking with an unwanted fee.
@@ -861,6 +888,19 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
             'declared_value'   => self::declaredValue($order, $opts),
             'async_address_validate' => false,
         ];
+
+        // Owner ruling 2026-09-03: money only travels when QuadX needs to
+        // collect it. On a prepaid booking the rider collects nothing, so the
+        // order value has no job to do on the waybill or the QuadX dashboard,
+        // and sending it just discloses what the parcel is worth to everyone
+        // who handles it. SPX already worked this way (cod_amount is written
+        // only when cod_collection is 1); QuadX sent it unconditionally.
+        //
+        // COD is the one case that needs it: the amount QuadX collects is the
+        // order total, so it has to be told.
+        if ($buyerPayment === 'cod') {
+            $payload['total'] = (float) $order->total;
+        }
 
         // Seller's shipping-fee payment. Omit entirely for net-off (deduct/bill).
         $shippingPayment = $opts['shipping_payment'] ?? 'net_off';
@@ -932,20 +972,38 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
         ];
     }
 
-    private function items(Order $order): array
+    /**
+     * What is in the parcel, and what it is worth only when that matters.
+     *
+     * The rider still needs to know what they are carrying and how many, so
+     * description and quantity always travel. `amount` is the item's value,
+     * and on a prepaid booking nobody down the chain has a use for it.
+     *
+     * @param bool $withPrices true only for COD, where QuadX collects money
+     */
+    private function items(Order $order, bool $withPrices): array
     {
         $items = [];
         foreach ($order->products as $p) {
-            $items[] = [
+            $item = [
                 'type'        => 'product',
                 'description' => $p->name ?: 'Item',
-                'amount'      => (float) $p->price,
                 'quantity'    => (int) $p->quantity,
             ];
+            if ($withPrices) {
+                $item['amount'] = (float) $p->price;
+            }
+            $items[] = $item;
         }
+
         if ($items === []) {
-            $items[] = ['type' => 'product', 'description' => 'Order #' . $order->id, 'amount' => (float) $order->total, 'quantity' => 1];
+            $fallback = ['type' => 'product', 'description' => 'Order #' . $order->id, 'quantity' => 1];
+            if ($withPrices) {
+                $fallback['amount'] = (float) $order->total;
+            }
+            $items[] = $fallback;
         }
+
         return $items;
     }
 

@@ -47,17 +47,25 @@
         </div>
     </div>
 
-    <x-admin.form :action="$product ? route('admin.products.update', $product) : route('admin.products.store')"
+    <x-admin.form id="product-form"
+                   :action="$product ? route('admin.products.update', $product) : route('admin.products.store')"
                    :method="$product ? 'PUT' : 'POST'" enctype="multipart/form-data" novalidate class="v-settle">
         <input type="hidden" name="store_id" id="store_id" value="1">
 
         {{-- Teleported into the header, the way the Save it stands beside is.
              It rides this form, so it arms the same dirty state and is written
-             by the same Save; nothing here auto-saves. --}}
+             by the same Save; nothing here auto-saves.
+
+             form="product-form" is what makes that true and must stay. The
+             header is rendered above and outside this form, so a control
+             teleported into it belongs to no form and the browser drops it
+             from the submission entirely. Without this the save still
+             succeeded and reported success, and is_active simply never
+             arrived, so the product could not be taken off sale. --}}
         <template x-teleport=".v-head">
             <label class="v-toggle v-head__live">
-                <input type="hidden" name="is_active" value="0">
-                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $product?->is_active ?? true))>
+                <input type="hidden" name="is_active" value="0" form="product-form">
+                <input type="checkbox" name="is_active" value="1" form="product-form" @checked(old('is_active', $product?->is_active ?? true))>
                 <span class="v-toggle__track" aria-hidden="true"></span>
                 <span>{{ $product ? 'Live' : 'Publish' }}</span>
             </label>

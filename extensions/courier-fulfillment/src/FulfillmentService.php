@@ -518,7 +518,28 @@ class FulfillmentService
 
         $result = $courier->cancelShipment($order->courier_tracking_number);
         if (!$result['success']) {
-            return ['success' => false, 'error' => 'Cancel failed: ' . ($result['error'] ?? 'unknown error')];
+            $why = trim((string) ($result['error'] ?? '')) ?: 'the courier gave no reason';
+
+            // A refused cancel changes nothing else on the order, so without
+            // this the only trace is a toast the operator may not have been
+            // looking at. The attempt belongs on the record: it is the
+            // evidence that someone tried, and it is what the next person
+            // reads when they wonder why the parcel is still booked.
+            OrderHistory::create([
+                'order_id'        => $order->id,
+                'order_status_id' => $order->order_status_id,
+                'comment'         => 'Courier cancel REFUSED for ' . $order->courier_tracking_number
+                    . ' (' . $courier->getName() . '): ' . $why
+                    . ' The booking is still live and the parcel is still with the courier.',
+                'notify_customer' => false,
+            ]);
+
+            return [
+                'success' => false,
+                'error'   => 'Could not cancel ' . $order->courier_tracking_number . ' with '
+                    . $courier->getName() . '. ' . $why
+                    . ' The booking is still live, so cancel it in the courier dashboard if it can still be cancelled there. This attempt is recorded in the order history.',
+            ];
         }
 
         // The courier confirmed — only NOW does the reset happen.
@@ -621,16 +642,23 @@ class FulfillmentService
      */
     public static function resolveTrackingLink(CourierFulfillmentInterface $courier, ?array $links, ?string $tracking, ?string $keep, array $courierMeta = []): ?string
     {
-        foreach ([$links['delivery'] ?? null, $links['pickup'] ?? null] as $u) {
-            if (is_string($u) && str_starts_with($u, 'http')) {
-                return $u;
-            }
-        }
-
+        // Owner ruling 2026-09-03: a courier that runs its own public tracker
+        // wins, ahead of whatever its API hands back per shipment. QuadX
+        // returns links on its logistics platform (fareye.co) rather than its
+        // consumer brand, and those were reaching customers and the queue.
+        // The shopper gets the courier's public tracker or nothing.
         if ($tracking !== null && $tracking !== '' && $courier instanceof ProvidesPublicTrackingUrl) {
             $public = $courier->publicTrackingUrl($tracking, $courierMeta);
             if ($public) {
                 return $public;
+            }
+        }
+
+        // Couriers with no public tracker of their own still rely on the
+        // per-shipment URLs their API returns.
+        foreach ([$links['delivery'] ?? null, $links['pickup'] ?? null] as $u) {
+            if (is_string($u) && str_starts_with($u, 'http')) {
+                return $u;
             }
         }
 
@@ -1054,6 +1082,20 @@ class FulfillmentService
             ? (bool) $opts['notify_customer']
             : NotifyMap::notifies(($chosenStatus ?? self::bookedStatus())?->id);
 
+        // The same rule for every registered channel: what the caller ticked,
+        // or the store's policy for this status when the caller said nothing.
+        // An ERP that knows nothing about channels gets the policy, which is
+        // what makes this need no ERP work.
+        $channelKeys = array_key_exists('channels', $opts)
+            ? array_values(array_filter((array) $opts['channels'], 'is_string'))
+            : array_values(array_filter(
+                array_map(
+                    fn ($c) => $c->key(),
+                    OrderNotificationService::channels()
+                ),
+                fn ($key) => NotifyMap::notifiesVia($key, ($chosenStatus ?? self::bookedStatus())?->id)
+            ));
+
         // Built from the courier's own {tracking_number} template, and only
         // when there is a number to put in it — a link to a tracking page with
         // no consignment on it is worse than no link.
@@ -1127,13 +1169,18 @@ class FulfillmentService
         // where it now stood. The tracking rides in the comment now, built by
         // the shared builder, so both screens answer a status change the same
         // way whichever one the packer happened to use.
-        if ($notify && $applied) {
-            OrderNotificationService::statusChanged(
-                $order,
-                OrderStatus::whereKey($preBookingStatusId)->value('name'),
-                $applied->name,
-                OrderNotificationService::withTracking($order, $note),
-            );
+        if ($applied) {
+            $was = OrderStatus::whereKey($preBookingStatusId)->value('name');
+            $said = OrderNotificationService::withTracking($order, $note);
+
+            if ($notify) {
+                OrderNotificationService::statusChanged($order, $was, $applied->name, $said);
+            }
+
+            // Independent of the email, and of each other: a store may text
+            // without emailing. A channel that cannot reach this customer
+            // reports it and changes nothing else.
+            OrderNotificationService::statusChangedVia($channelKeys, $order, $was, $applied->name, $said);
         }
 
         return [

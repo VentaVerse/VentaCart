@@ -1,4 +1,4 @@
-<x-courier-fulfillment::space title="Courier Settings" active="settings">
+<x-courier-fulfillment::space title="Fulfillment Settings" active="settings">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
@@ -49,8 +49,8 @@
                     <input type="hidden" name="settings[fulfillment_enabled]" value="0">
                     <input type="checkbox" name="settings[fulfillment_enabled]" value="1" @checked(($settings['fulfillment_enabled'] ?? '1') !== '0')>
                     <span class="v-toggle__track" aria-hidden="true"></span>
-                    Fulfillment queue active, shown in the Sales menu
-                    <x-admin.help text="Turning this off hides Fulfillment from the Sales menu and pauses the queue. Bookings triggered by the ERP API keep working, and the extension stays installed." />
+                    Fulfillment queue active, shown in the main menu
+                    <x-admin.help text="Turning this off hides Fulfillment from the main menu and pauses the queue. Bookings triggered by the ERP API keep working, and the extension stays installed." />
                 </label>
 
                 {{-- fulfillment-tabs-v Task 4: the core status a queue

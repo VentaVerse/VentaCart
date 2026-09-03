@@ -114,6 +114,70 @@ Blade views, not the poll command — references a courier by name.
   ->afterResponse()`, return 200), that's a per-courier branch you add the
   same way, not something declared through the interface.
 
+## Tracking links: which URL the shopper and the queue get
+
+**Owner ruling 2026-09-03.** For QuadX / GoGo Xpress the tracker is:
+
+| Mode | URL |
+|---|---|
+| production | `https://app.gogoxpress.com/track/{tracking}` |
+| staging / sandbox | `https://app.staging.gogoxpress.com/track/{tracking}` |
+
+Nothing else. The mode comes from the booking's own `courier_meta.mode`, not
+from whatever the setting says today, so a parcel booked in the sandbox keeps
+pointing at the sandbox tracker after the store goes live, and never the
+other way round. A booking made before the mode was recorded falls back to
+the configured mode, which is the limit of what can be known.
+
+**Why this had to be ruled on.** QuadX's API returns `tracking_links` on
+`fareye.co`, the logistics platform GoGo Xpress runs on rather than the brand
+the shopper bought from, and on a live fulfilment those were opaque tokenised
+URLs on their *dev* tracker (`trackdev.fareye.co`). The code used to prefer
+those links over the URL it builds, in two places and inconsistently, so one
+live parcel showed a fareye link in the fulfilment queue while the customer
+held a gogoxpress one written at an earlier moment. Two addresses for one
+parcel, one of which the shopper would not recognise.
+
+**The rule for any courier, not just QuadX.** Where a courier implements
+`ProvidesPublicTrackingUrl`, its own public tracker WINS over the
+per-shipment links its API hands back. `FulfillmentService::resolveTrackingLink()`
+(the customer's stored `orders.tracking_link`) and the courier's
+`trackingLinks()` (what the queue renders) must build the same URL from the
+same tracking number, so the two surfaces cannot disagree.
+
+A courier that does *not* implement `ProvidesPublicTrackingUrl` still falls
+back to its API's links, then to plain text. That path is unchanged: LBC and
+SPX are unaffected by this ruling.
+
+## What money reaches the courier
+
+**Owner ruling 2026-09-03.** A courier is told an amount only when it has to
+collect one. On a prepaid booking the rider collects nothing, so the order
+value has no job on the waybill or the courier's dashboard, and sending it
+discloses what the parcel is worth to everyone who handles it.
+
+| Booking | `total` | item `amount` |
+|---|---|---|
+| COD | sent | sent |
+| prepaid / non-COD | omitted | omitted |
+
+Item `description` and `quantity` always travel: the rider needs to know what
+they are carrying.
+
+SPX already worked this way (`cod_amount` is written only when
+`cod_collection` is 1). QuadX sent `total` and per-item `amount`
+unconditionally, which is how a prepaid live booking showed its prices on the
+QuadX dashboard. Both adapters now follow the same rule.
+
+Insurance is separate and unaffected: `declared_value` stays 0 unless the
+admin ticks "Insure shipment", and it must always be sent explicitly, because
+omitting it makes QuadX silently default it to the order total and auto-insure
+every booking.
+
+**Verify before trusting this on a new courier.** Some APIs require an amount
+field regardless of payment method. Book a staging order with prices omitted
+and confirm the API accepts it before assuming omission is safe.
+
 ## UAT / staging guidance
 
 - Most couriers offer a staging/sandbox mode with separate credentials — the

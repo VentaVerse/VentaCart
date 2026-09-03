@@ -430,7 +430,7 @@ class FulfillmentTest extends TestCase
         // bouncing the admin away.
         $response->assertOk()
             ->assertSee('Fulfillment is paused')
-            ->assertSee('Go to Courier Settings')
+            ->assertSee('Go to Fulfillment settings')
             ->assertDontSee('To Pack'); // the real queue's filter tabs are absent
     }
 
@@ -524,7 +524,7 @@ class FulfillmentTest extends TestCase
         $this->get($this->queueUrl())
             ->assertOk()
             ->assertSee('Fulfillment is paused')
-            ->assertSee('hidden from the Sales menu');
+            ->assertSee('hidden from the main menu');
     }
 
     // ------------------------------------------------------------------
@@ -853,7 +853,14 @@ class FulfillmentTest extends TestCase
                 // insure not posted -> declared_value must be 0, never default
                 // to the order total (that hazard is called out in buildPayload()).
                 && (int) $body['declared_value'] === 0
-                && (float) $body['total'] === 1100.0
+                // Owner ruling 2026-09-03: money only travels for COD. This
+                // booking is prepaid, so the order value must not reach the
+                // QuadX dashboard or the waybill at all.
+                && !array_key_exists('total', $body)
+                && !array_key_exists('amount', $body['items'][0])
+                // What the rider still needs is untouched.
+                && $body['items'][0]['description'] !== ''
+                && (int) $body['items'][0]['quantity'] >= 1
                 && $body['delivery_address']['line_1'] === '123 Mango St'
                 && $body['delivery_address']['postal_code'] === '6000'
                 && $body['delivery_address']['city'] === 'Cebu City'
@@ -1590,7 +1597,11 @@ class FulfillmentTest extends TestCase
         $active->refresh();
         $this->assertSame('in_transit', $active->courier_status);
         $this->assertSame($shipped->id, $active->order_status_id); // StatusMapper::apply() fired
-        $this->assertSame('https://track.quadx.test/QX-ACTIVE-001', $active->getRawOriginal('tracking_link'));
+        // Owner ruling 2026-09-03: the GoGo Xpress tracker only. The poll's
+        // response carries a tracking_links.delivery above, and it is
+        // deliberately ignored in favour of the public tracker for the mode
+        // this parcel was booked in.
+        $this->assertSame('https://app.staging.gogoxpress.com/track/QX-ACTIVE-001', $active->getRawOriginal('tracking_link'));
         $this->assertDatabaseHas('order_histories', [
             'order_id' => $active->id,
             'comment' => 'QuadX: In transit',

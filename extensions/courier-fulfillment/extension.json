@@ -9,8 +9,7 @@
     "configure_route": "admin.fulfillment.settings",
     "admin_nav": [
         {
-            "group": "Sales",
-            "after": "orders",
+            "after": "dashboard",
             "key": "fulfillment",
             "label": "Fulfillment",
             "route": "admin.fulfillment.index",

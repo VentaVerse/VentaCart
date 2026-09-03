@@ -49,7 +49,7 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         ]);
 
         // Who may configure this module. Same answer FulfillmentController
-        // already computes for its own "Courier settings" affordance (the
+        // already computes for its own "Fulfillment settings" affordance (the
         // manifest nav entry's permission, null meaning any authenticated
         // admin), stated once as an ability so the pickup-address CRUD's
         // controller and its Form Request authorize against the same rule

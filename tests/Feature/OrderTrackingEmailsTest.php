@@ -317,6 +317,103 @@ class OrderTrackingEmailsTest extends TestCase
         $this->assertNull($quadx->publicTrackingUrl('  ', []));
     }
 
+    /**
+     * Owner ruling 2026-09-03: app.gogoxpress.com/track/{tracking} only.
+     *
+     * QuadX returns tracking_links on fareye.co, its logistics platform. The
+     * queue and the customer must both get the GoGo Xpress tracker and never
+     * that, and never two different addresses for one parcel.
+     */
+    public function test_quadx_shows_the_gogoxpress_tracker_and_never_the_api_link(): void
+    {
+        $this->installFulfillment();
+        Setting::create(['group' => 'courier', 'key' => 'quadx_mode', 'value' => 'production']);
+        $quadx = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment();
+
+        $order = new \App\Models\Order();
+        $order->courier_tracking_number = 'GPZZ-FZDV-0KHH';
+        $order->courier_meta = json_encode([
+            'mode' => 'production',
+            // Exactly what QuadX handed back on the live booking.
+            'tracking_links' => [
+                'delivery' => 'https://track.fareye.co/delivery/abc123',
+                'pickup' => 'https://track.fareye.co/pickup/abc123',
+            ],
+            'booked_response' => ['tracking_links' => ['https://track.fareye.co/other/abc123']],
+        ]);
+
+        $links = $quadx->trackingLinks($order);
+
+        $this->assertCount(1, $links, 'One parcel, one address.');
+        $this->assertSame('https://app.gogoxpress.com/track/GPZZ-FZDV-0KHH', $links[0]['url']);
+        $this->assertStringNotContainsString('fareye', json_encode($links));
+    }
+
+    /** The customer's stored link is built the same way, from the same rule. */
+    public function test_the_customers_link_prefers_the_public_tracker_over_the_api_links(): void
+    {
+        $this->installFulfillment();
+        Setting::create(['group' => 'courier', 'key' => 'quadx_mode', 'value' => 'production']);
+        $quadx = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment();
+
+        $resolved = \Extensions\CourierFulfillment\FulfillmentService::resolveTrackingLink(
+            $quadx,
+            ['delivery' => 'https://track.fareye.co/delivery/abc123', 'pickup' => null],
+            'GPZZ-FZDV-0KHH',
+            null,
+            ['mode' => 'production']
+        );
+
+        $this->assertSame('https://app.gogoxpress.com/track/GPZZ-FZDV-0KHH', $resolved);
+    }
+
+    /** A courier with no public tracker of its own still uses its API links. */
+    public function test_a_courier_without_a_public_tracker_still_uses_its_api_links(): void
+    {
+        $this->installFulfillment();
+        $fake = new \Tests\Support\FakeCourierFulfillment();
+
+        $resolved = \Extensions\CourierFulfillment\FulfillmentService::resolveTrackingLink(
+            $fake,
+            ['delivery' => 'https://carrier.test/d/1', 'pickup' => null],
+            'FS-1',
+            null,
+            []
+        );
+
+        $this->assertSame('https://carrier.test/d/1', $resolved);
+    }
+
+    /**
+     * Owner ruling 2026-09-03: for a clean QuadX dashboard, a prepaid booking
+     * carries no prices. SPX already behaved this way (cod_amount is written
+     * only when cod_collection is 1); QuadX sent the total unconditionally.
+     */
+    public function test_quadx_sends_prices_only_when_quadx_collects_the_money(): void
+    {
+        $this->installFulfillment();
+        $quadx = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment();
+        $build = new \ReflectionMethod($quadx, 'buildPayload');
+
+        $order = $this->order($this->placed('to_pack', 'Processing', 2));
+        $order->forceFill(['total' => 1100.00])->save();
+
+        $prepaid = $build->invoke($quadx, $order, ['buyer_payment' => 'prepaid', 'service' => 'next_day', 'parcel' => 'box']);
+        $this->assertArrayNotHasKey('total', $prepaid, 'A prepaid booking must not disclose the order value.');
+        $this->assertSame('other', $prepaid['payment_method']);
+        foreach ($prepaid['items'] as $item) {
+            $this->assertArrayNotHasKey('amount', $item, 'A prepaid booking must not disclose item prices.');
+            // The rider still needs to know what they are carrying.
+            $this->assertArrayHasKey('description', $item);
+            $this->assertArrayHasKey('quantity', $item);
+        }
+
+        $cod = $build->invoke($quadx, $order, ['buyer_payment' => 'cod', 'service' => 'next_day', 'parcel' => 'box']);
+        $this->assertSame(1100.00, $cod['total'], 'COD is the one case QuadX has to be told the amount.');
+        $this->assertSame('cod', $cod['payment_method']);
+        $this->assertArrayHasKey('amount', $cod['items'][0]);
+    }
+
     public function test_a_quadx_booking_records_the_environment_it_used(): void
     {
         $this->installFulfillment();

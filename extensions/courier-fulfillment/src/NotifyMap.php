@@ -28,15 +28,7 @@ class NotifyMap
     /** @return list<int> */
     public static function all(): array
     {
-        $raw = Setting::where('group', self::GROUP)->where('key', self::KEY)->value('value');
-
-        if ($raw === null || $raw === '') {
-            return [];
-        }
-
-        $ids = json_decode((string) $raw, true);
-
-        return is_array($ids) ? array_values(array_unique(array_map('intval', $ids))) : [];
+        return self::read(self::KEY);
     }
 
     /** Does moving an order to this status tell the customer? */
@@ -48,8 +40,60 @@ class NotifyMap
     /** @param  list<int>  $ids */
     public static function put(array $ids): void
     {
+        self::write(self::KEY, $ids);
+    }
+
+    /**
+     * The same policy for a notification channel an extension registered.
+     *
+     * Kept in its own setting per channel rather than folded into one map,
+     * so the email policy above keeps its key and its stored value exactly
+     * as it was, and a channel that is later removed leaves its answer
+     * behind harmlessly instead of corrupting a shared blob.
+     *
+     * @return list<int>
+     */
+    public static function allFor(string $channel): array
+    {
+        return self::read(self::keyFor($channel));
+    }
+
+    public static function notifiesVia(string $channel, ?int $statusId): bool
+    {
+        return $statusId !== null && in_array((int) $statusId, self::allFor($channel), true);
+    }
+
+    /** @param  list<int>  $ids */
+    public static function putFor(string $channel, array $ids): void
+    {
+        self::write(self::keyFor($channel), $ids);
+    }
+
+    /** Channel keys are short and registered in code, never user input. */
+    private static function keyFor(string $channel): string
+    {
+        return self::KEY . '_' . preg_replace('/[^a-z0-9_]/', '', strtolower($channel));
+    }
+
+    /** @return list<int> */
+    private static function read(string $key): array
+    {
+        $raw = Setting::where('group', self::GROUP)->where('key', $key)->value('value');
+
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+
+        $ids = json_decode((string) $raw, true);
+
+        return is_array($ids) ? array_values(array_unique(array_map('intval', $ids))) : [];
+    }
+
+    /** @param  list<int>  $ids */
+    private static function write(string $key, array $ids): void
+    {
         Setting::updateOrCreate(
-            ['group' => self::GROUP, 'key' => self::KEY],
+            ['group' => self::GROUP, 'key' => $key],
             ['value' => json_encode(array_values(array_unique(array_map('intval', $ids))))]
         );
     }

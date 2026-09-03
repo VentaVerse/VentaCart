@@ -335,6 +335,8 @@ class OrderController extends Controller
             'order_status_id' => ['required', 'exists:order_statuses,id'],
             'comment' => ['nullable', 'string'],
             'notify_customer' => ['boolean'],
+            'channels' => ['array'],
+            'channels.*' => ['string', 'max:32'],
             'shipping_courier_id' => ['nullable', 'exists:shipping_couriers,id'],
             'tracking_number' => ['nullable', 'string', 'max:255'],
         ]);
@@ -392,6 +394,18 @@ class OrderController extends Controller
         if ($validated['notify_customer'] && $order->email) {
             OrderNotificationService::statusChanged($order, $oldStatus, $newStatus?->name, $validated['comment'] ?? '');
         }
+
+        // Ticked separately from the email, because they are separate acts:
+        // a store may text without emailing, or email without texting. A
+        // channel that cannot reach this customer says so and changes
+        // nothing else; the order has already moved either way.
+        OrderNotificationService::statusChangedVia(
+            $validated['channels'] ?? [],
+            $order,
+            $oldStatus,
+            $newStatus?->name,
+            $validated['comment'] ?? '',
+        );
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Order updated.');

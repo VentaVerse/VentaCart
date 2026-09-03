@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use Illuminate\Support\Facades\Log;
 
 /**
  * The customer-facing order emails, and the ONE place the tracking
@@ -33,6 +34,85 @@ class OrderNotificationService
      *
      * @return array{carrier_name: string, tracking_number: string, tracking_url: string, tracking_details: string}
      */
+    /**
+     * The extra ways of telling a customer, registered by whatever is
+     * installed. Same socket payments, shipping and couriers use.
+     *
+     * @var list<class-string<\App\Contracts\OrderNotificationChannel>>
+     */
+    private static array $channels = [];
+
+    /** Called by an extension's service provider while it boots. */
+    public static function registerChannel(string $class): void
+    {
+        if (! in_array($class, self::$channels, true)) {
+            self::$channels[] = $class;
+        }
+    }
+
+    /**
+     * The channels that could send right now.
+     *
+     * Both the order page and the fulfilment queue draw their ticks from
+     * this, which is why neither has to know a gateway exists: an extension
+     * that is off registers nothing and its tick is simply not drawn.
+     *
+     * @return list<\App\Contracts\OrderNotificationChannel>
+     */
+    public static function channels(): array
+    {
+        $out = [];
+
+        foreach (self::$channels as $class) {
+            try {
+                $channel = app($class);
+
+                if ($channel->available()) {
+                    $out[] = $channel;
+                }
+            } catch (\Throwable $e) {
+                // A channel that cannot even be built is one the merchant
+                // should not be offered. Never fatal to the page drawing it.
+                Log::warning('Notification channel unavailable', ['class' => $class, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Send a status change through the channels the operator ticked.
+     *
+     * Separate from statusChanged() on purpose: the email tick and each
+     * channel's tick are independent, so a store can text without emailing,
+     * email without texting, or do both, and one failing never touches the
+     * other.
+     *
+     * @param  list<string>  $keys  channel keys the operator ticked
+     * @return array<string, array{sent: bool, reason: string|null}>
+     */
+    public static function statusChangedVia(array $keys, Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null): array
+    {
+        $results = [];
+
+        foreach (self::channels() as $channel) {
+            if (! in_array($channel->key(), $keys, true)) {
+                continue;
+            }
+
+            try {
+                $results[$channel->key()] = $channel->statusChanged($order, $oldStatus, $newStatus, $comment);
+            } catch (\Throwable $e) {
+                // The contract says a channel never throws. This is the belt
+                // for the one that forgets: the order already moved.
+                Log::error('Notification channel threw', ['channel' => $channel->key(), 'error' => $e->getMessage()]);
+                $results[$channel->key()] = ['sent' => false, 'reason' => $e->getMessage()];
+            }
+        }
+
+        return $results;
+    }
+
     /**
      * A status comment with the parcel's tracking on the end of it.
      *
