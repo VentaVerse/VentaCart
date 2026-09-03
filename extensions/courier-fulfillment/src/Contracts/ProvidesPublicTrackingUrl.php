@@ -9,9 +9,16 @@ namespace Extensions\CourierFulfillment\Contracts;
  * Optional, on purpose. The main contract's trackingLinks() carries the
  * per-shipment URLs a courier hands back through its API, and some hand
  * back none: QuadX answered `links: []` on a live refresh of a booked
- * parcel. A courier that also runs a public tracker implements this so the
- * shopper still gets something to click; one that does not simply leaves
- * it unimplemented and the number stays plain text, which is honest.
+ * parcel. A courier that also runs a public tracker implements this; one
+ * that does not simply leaves it unimplemented and falls back to whatever
+ * its API returned, or to plain text, which is honest.
+ *
+ * Owner ruling 2026-09-03: where a courier implements this, its public
+ * tracker WINS over the API's per-shipment links rather than standing in
+ * for them. An API link can point somewhere the shopper does not recognise
+ * (QuadX returns fareye.co, its logistics platform, not GoGo Xpress, the
+ * brand they bought from), and the queue and the customer must never be
+ * shown two different addresses for one parcel.
  */
 interface ProvidesPublicTrackingUrl
 {

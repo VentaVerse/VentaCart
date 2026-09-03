@@ -621,16 +621,23 @@ class FulfillmentService
      */
     public static function resolveTrackingLink(CourierFulfillmentInterface $courier, ?array $links, ?string $tracking, ?string $keep, array $courierMeta = []): ?string
     {
-        foreach ([$links['delivery'] ?? null, $links['pickup'] ?? null] as $u) {
-            if (is_string($u) && str_starts_with($u, 'http')) {
-                return $u;
-            }
-        }
-
+        // Owner ruling 2026-09-03: a courier that runs its own public tracker
+        // wins, ahead of whatever its API hands back per shipment. QuadX
+        // returns links on its logistics platform (fareye.co) rather than its
+        // consumer brand, and those were reaching customers and the queue.
+        // The shopper gets the courier's public tracker or nothing.
         if ($tracking !== null && $tracking !== '' && $courier instanceof ProvidesPublicTrackingUrl) {
             $public = $courier->publicTrackingUrl($tracking, $courierMeta);
             if ($public) {
                 return $public;
+            }
+        }
+
+        // Couriers with no public tracker of their own still rely on the
+        // per-shipment URLs their API returns.
+        foreach ([$links['delivery'] ?? null, $links['pickup'] ?? null] as $u) {
+            if (is_string($u) && str_starts_with($u, 'http')) {
+                return $u;
             }
         }
 
