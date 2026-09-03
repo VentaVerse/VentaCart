@@ -15,7 +15,10 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
 /**
- * Courier settings — self-contained (own encryption, own save). Stores under
+ * Fulfillment settings — self-contained (own encryption, own save). Named to
+ * stay clear of core's own Couriers under Sales, which is an unrelated list of
+ * carrier names and tracking-URL templates for manually shipped orders.
+ * Stores under
  * settings group 'courier'. Credentials are encrypted at rest and masked in
  * the UI. The webhook URL is derived from THIS install's APP_URL so each
  * deployed store shows its own copy-able URL.
@@ -598,7 +601,7 @@ class CourierSettingsController extends Controller
 
         $this->persist($data, []);
 
-        return back()->with('success', 'Courier settings saved.');
+        return back()->with('success', 'Fulfillment settings saved.');
     }
 
     /**

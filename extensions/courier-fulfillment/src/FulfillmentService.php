@@ -518,7 +518,28 @@ class FulfillmentService
 
         $result = $courier->cancelShipment($order->courier_tracking_number);
         if (!$result['success']) {
-            return ['success' => false, 'error' => 'Cancel failed: ' . ($result['error'] ?? 'unknown error')];
+            $why = trim((string) ($result['error'] ?? '')) ?: 'the courier gave no reason';
+
+            // A refused cancel changes nothing else on the order, so without
+            // this the only trace is a toast the operator may not have been
+            // looking at. The attempt belongs on the record: it is the
+            // evidence that someone tried, and it is what the next person
+            // reads when they wonder why the parcel is still booked.
+            OrderHistory::create([
+                'order_id'        => $order->id,
+                'order_status_id' => $order->order_status_id,
+                'comment'         => 'Courier cancel REFUSED for ' . $order->courier_tracking_number
+                    . ' (' . $courier->getName() . '): ' . $why
+                    . ' The booking is still live and the parcel is still with the courier.',
+                'notify_customer' => false,
+            ]);
+
+            return [
+                'success' => false,
+                'error'   => 'Could not cancel ' . $order->courier_tracking_number . ' with '
+                    . $courier->getName() . '. ' . $why
+                    . ' The booking is still live, so cancel it in the courier dashboard if it can still be cancelled there. This attempt is recorded in the order history.',
+            ];
         }
 
         // The courier confirmed — only NOW does the reset happen.

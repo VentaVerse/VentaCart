@@ -36,6 +36,18 @@ class ExtensionNavContributionTest extends TestCase
         app(ExtensionManager::class)->bootEnabled();
     }
 
+    /** The ungrouped block at the top of the sidebar, where Dashboard lives. */
+    protected function topLevelLabels(): array
+    {
+        foreach (AdminNav::groups(User::factory()->create()) as $group) {
+            if (($group['label'] ?? null) === null) {
+                return array_column($group['items'], 'label');
+            }
+        }
+
+        return [];
+    }
+
     protected function salesLabels(): array
     {
         foreach (AdminNav::groups(User::factory()->create()) as $group) {
@@ -54,15 +66,26 @@ class ExtensionNavContributionTest extends TestCase
         $this->assertStringNotContainsString('fulfillment', $flat);
     }
 
-    public function test_enabled_extension_contributes_its_entry_in_declared_position(): void
+    /**
+     * Owner ruling 2026-09-03: Fulfillment stands on its own above Sales.
+     *
+     * It is the queue the store works out of all day, so it is not something
+     * to go looking for behind a collapsed group. It joins the ungrouped
+     * block at the top rather than creating a group of its own, because an
+     * extension never creates groups (AdminNav::registry()).
+     */
+    public function test_enabled_extension_stands_above_sales_not_inside_it(): void
     {
         $this->installAndBoot();
 
-        $labels = $this->salesLabels();
+        $top = $this->topLevelLabels();
 
-        $this->assertContains('Fulfillment', $labels);
-        // 'after: orders' places it directly behind Orders.
-        $this->assertSame('Fulfillment', $labels[array_search('Orders', $labels, true) + 1]);
+        $this->assertContains('Fulfillment', $top);
+        // 'after: dashboard' places it directly beneath Dashboard.
+        $this->assertSame('Fulfillment', $top[array_search('Dashboard', $top, true) + 1]);
+
+        // And it is no longer buried in Sales.
+        $this->assertNotContains('Fulfillment', $this->salesLabels());
     }
 
     public function test_disabled_extension_contributes_nothing(): void
@@ -70,7 +93,7 @@ class ExtensionNavContributionTest extends TestCase
         $this->installAndBoot();
         app(ExtensionManager::class)->disable('courier-fulfillment');
 
-        $this->assertNotContains('Fulfillment', $this->salesLabels());
+        $this->assertNotContains('Fulfillment', $this->topLevelLabels());
     }
 
     public function test_not_installed_extension_contributes_nothing(): void

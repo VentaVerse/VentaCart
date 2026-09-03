@@ -156,9 +156,58 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
     public function cancelShipment(string $trackingNumber): array
     {
         $res = $this->client->cancelOrder($trackingNumber);
-        return $res['ok']
-            ? ['success' => true]
-            : ['success' => false, 'error' => $res['error'] ?? 'Cancel failed.'];
+
+        if ($res['ok']) {
+            return ['success' => true];
+        }
+
+        return ['success' => false, 'error' => self::explainCancelFailure($res)];
+    }
+
+    /**
+     * A refused cancel, in words the person holding the parcel can act on.
+     *
+     * QuadX's own message is always kept: it is the courier's account of what
+     * happened and guessing over it would be worse than saying nothing. What
+     * is added is what the operator should DO, because "HTTP 422" tells them
+     * nothing about whether to try again, ring the courier, or let the parcel
+     * run and refuse it on delivery.
+     *
+     * The mapping is by status code plus a phrase match, deliberately loose:
+     * a courier is free to reword its errors, and an unrecognised one must
+     * still arrive intact rather than be flattened into a generic line.
+     *
+     * @param array{ok:bool,status:int,body:array,error:?string} $res
+     */
+    private static function explainCancelFailure(array $res): string
+    {
+        $said = trim((string) ($res['error'] ?? '')) ?: 'QuadX gave no reason.';
+        $status = (int) ($res['status'] ?? 0);
+        $lower = mb_strtolower($said);
+
+        $advice = match (true) {
+            // The network never got there. Nothing was cancelled, and trying
+            // again is safe.
+            $status === 0 => 'QuadX could not be reached, so nothing was cancelled. Try again in a moment.',
+
+            $status === 401 || $status === 403 => 'QuadX rejected our credentials. Check the API key and secret under Fulfillment settings.',
+
+            $status === 404 => 'QuadX does not recognise this tracking number. It may already have been cancelled or removed on their side.',
+
+            str_contains($lower, 'already') && str_contains($lower, 'cancel') => 'It is already cancelled at QuadX. Refresh from couriers to bring this order back in line.',
+
+            str_contains($lower, 'picked up') || str_contains($lower, 'in transit') || str_contains($lower, 'out for delivery') =>
+                'The parcel is already moving, so QuadX will not cancel it. Contact QuadX to recall it, or let it run and refuse the delivery.',
+
+            $status === 409 || $status === 422 =>
+                'QuadX refused to cancel this parcel in its current state. This usually means it has already been picked up. Check the parcel in the QuadX dashboard.',
+
+            $status >= 500 => 'QuadX had a server error, so nothing was cancelled. Try again shortly.',
+
+            default => 'Check the parcel in the QuadX dashboard before trying again.',
+        };
+
+        return $said . ' ' . $advice;
     }
 
     /**

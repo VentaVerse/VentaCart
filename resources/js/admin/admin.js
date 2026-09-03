@@ -277,7 +277,15 @@ document.addEventListener('alpine:init', () => {
             tone = { good: 'success', bad: 'danger' }[tone] ?? tone;
             const id = ++this.counter;
             this.items.push({ id, message, tone });
-            setTimeout(() => this.dismiss(id), 4500);
+            // A success may fade: the page already shows the result, and the
+            // toast only confirms it. A failure may not. Everything after a
+            // failed action is unchanged, so a message that removes itself
+            // after four seconds is indistinguishable from no message at all,
+            // which is exactly how a refused courier cancel read as silence.
+            // Errors stay until the operator dismisses them.
+            if (tone !== 'danger') {
+                setTimeout(() => this.dismiss(id), 4500);
+            }
         },
         dismiss(id) {
             this.items = this.items.filter((t) => t.id !== id);

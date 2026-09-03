@@ -13,7 +13,7 @@
             <h1 class="v-head__title">Fulfillment</h1>
         </div>
         <div class="v-head__actions">
-            <a href="{{ route('admin.fulfillment.settings') }}" class="v-btn v-btn--secondary">Courier settings</a>
+            <a href="{{ route('admin.fulfillment.settings') }}" class="v-btn v-btn--secondary">Fulfillment settings</a>
             @unless ($paused)
                 <form method="POST" action="{{ route('admin.fulfillment.poll') }}">
                     @csrf
@@ -30,9 +30,9 @@
         <x-admin.panel>
             <div class="v-empty">
                 <p class="v-empty__title">Fulfillment is paused</p>
-                <p class="v-empty__line">The manual booking queue is turned off, so Fulfillment is hidden from the Sales menu and this page lists nothing. Orders booked automatically through the ERP integration (if configured) are unaffected. Switch it back on in Courier Settings.</p>
+                <p class="v-empty__line">The manual booking queue is turned off, so Fulfillment is hidden from the main menu and this page lists nothing. Orders booked automatically through the ERP integration (if configured) are unaffected. Switch it back on in Fulfillment settings.</p>
                 @if ($canConfigureCouriers)
-                    <a href="{{ route('admin.fulfillment.settings') }}" class="v-btn v-btn--secondary v-btn--sm">Go to Courier Settings</a>
+                    <a href="{{ route('admin.fulfillment.settings') }}" class="v-btn v-btn--secondary v-btn--sm">Go to Fulfillment settings</a>
                 @endif
             </div>
         </x-admin.panel>
@@ -1270,6 +1270,7 @@
                                         <div class="v-grid v-grid--2">
                                             <x-admin.field name="service" label="Service" required>
                                                 <select name="service" x-model="service" class="v-control">
+                                                        <option value="">Choose one</option>
                                                     <template x-for="o in current.services" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                                 </select>
                                             </x-admin.field>
@@ -1282,6 +1283,7 @@
                                                  is better than an invented one. --}}
                                             <x-admin.field name="parcel" label="Parcel" required>
                                                 <select name="parcel" x-model="parcel" class="v-control">
+                                                        <option value="">Choose one</option>
                                                     <template x-for="o in current.parcels" :key="o.value"><option :value="o.value" x-text="parcelLabel(o)"></option></template>
                                                 </select>
                                             </x-admin.field>
@@ -1296,6 +1298,7 @@
                                         </div>
                                         <x-admin.field name="shipping_payment" label="You pay shipping" required>
                                             <select name="shipping_payment" x-model="shippingPayment" class="v-control">
+                                                    <option value="">Choose one</option>
                                                 <template x-for="o in current.payments" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                             </select>
                                         </x-admin.field>
@@ -1399,7 +1402,9 @@
 
                                         <div class="v-actrow">
                                             <button type="button" class="v-btn v-btn--ghost" @click="backToCouriers()">Back</button>
-                                            <button type="submit" class="v-btn v-btn--primary v-actrow__grow" :disabled="!courier">Book shipment</button>
+                                            <button type="submit" class="v-btn v-btn--primary v-actrow__grow"
+                                                    :disabled="!bookReady"
+                                                    :title="bookReady ? '' : 'Answer every choice above first'">Book shipment</button>
                                         </div>
                                     </form>
                                 </div>
@@ -1756,6 +1761,23 @@
                 },
                 // Courier-first: the modal always opens on step 1 with no
                 // courier chosen — choosing one is what reveals its form.
+                /**
+                 * Every choice answered deliberately.
+                 *
+                 * Deliberately NOT the HTML `required` attribute: these
+                 * selects live inside a modal held by x-show, which is
+                 * display:none while closed, and the browser refuses to
+                 * submit a form whose invalid control cannot be focused
+                 * without reporting anything (the same trap as the product
+                 * page's Live toggle). A disabled button says the same thing
+                 * where the operator can see it, and the controller still
+                 * validates service, parcel and shipping_payment as required
+                 * because nothing arriving from a browser is trusted.
+                 */
+                get bookReady() {
+                    if (!this.courier) return false;
+                    return this.service !== '' && this.parcel !== '' && this.shippingPayment !== '';
+                },
                 openBooking(order) {
                     this.active = order;
                     this.courier = '';
@@ -1838,10 +1860,21 @@
                     // made "Default service: Same Day Pickup" book Next Day
                     // every time: next_day simply sits first in QuadX's list,
                     // and the setting was never consulted by the form.
-                    const opts = this.options[key] || {};
-                    this.service = this.pickDefault(opts.services, opts.defaultService);
-                    this.parcel = this.pickDefault(opts.parcels, opts.defaultParcel);
-                    this.shippingPayment = ((opts.payments || [{}])[0] || {}).value || '';
+                    // Owner ruling 2026-09-03: nothing is chosen for the
+                    // operator. An admin moving quickly through the queue can
+                    // pass over a select that already holds a plausible value
+                    // and book the wrong service or parcel without ever having
+                    // read it. Every select opens on "Choose one" and Book
+                    // stays disabled until each has been answered deliberately.
+                    //
+                    // This is why the seeding that used to happen here is gone.
+                    // The courier's configured default service and parcel are
+                    // no longer preselected; they are still what the courier
+                    // settings page records, but the booking form no longer
+                    // acts on them.
+                    this.service = '';
+                    this.parcel = '';
+                    this.shippingPayment = '';
                     this.seedRiderQuote();
                     // Task T4: pickup slots are fetched HERE — the moment the
                     // admin actually picks SPX — never during the queue's

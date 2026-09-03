@@ -430,7 +430,7 @@ class FulfillmentTest extends TestCase
         // bouncing the admin away.
         $response->assertOk()
             ->assertSee('Fulfillment is paused')
-            ->assertSee('Go to Courier Settings')
+            ->assertSee('Go to Fulfillment settings')
             ->assertDontSee('To Pack'); // the real queue's filter tabs are absent
     }
 
@@ -524,7 +524,7 @@ class FulfillmentTest extends TestCase
         $this->get($this->queueUrl())
             ->assertOk()
             ->assertSee('Fulfillment is paused')
-            ->assertSee('hidden from the Sales menu');
+            ->assertSee('hidden from the main menu');
     }
 
     // ------------------------------------------------------------------

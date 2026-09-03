@@ -428,7 +428,7 @@ class FulfillmentController extends Controller
     }
 
     /**
-     * Whether the current admin can see the "Go to Courier Settings" link on
+     * Whether the current admin can see the "Go to Fulfillment settings" link on
      * the paused empty-state — same permission the Settings hub itself
      * checks for this page (App\Support\SettingsNav::groups()), so we never
      * point a lower-privileged admin at a link they can't use.
