@@ -151,32 +151,37 @@ SPX are unaffected by this ruling.
 
 ## What money reaches the courier
 
-**Owner ruling 2026-09-03.** A courier is told an amount only when it has to
-collect one. On a prepaid booking the rider collects nothing, so the order
-value has no job on the waybill or the courier's dashboard, and sending it
-discloses what the parcel is worth to everyone who handles it.
+**QuadX requires `total` on every booking, prepaid included.** Its `/orders`
+endpoint answers 422 with `parameters.total: "The total field is required."`
+when it is missing, whatever the payment type. Per-item `amount` travels with
+it.
 
-| Booking | `total` | item `amount` |
+| Courier | What carries the money | When |
 |---|---|---|
-| COD | sent | sent |
-| prepaid / non-COD | omitted | omitted |
+| QuadX | `total` + per-item `amount` | always |
+| SPX | `cod_amount` | only when `cod_collection` is 1 |
 
-Item `description` and `quantity` always travel: the rider needs to know what
-they are carrying.
+The two differ because the APIs differ, not because the adapters disagree.
 
-SPX already worked this way (`cod_amount` is written only when
-`cod_collection` is 1). QuadX sent `total` and per-item `amount`
-unconditionally, which is how a prepaid live booking showed its prices on the
-QuadX dashboard. Both adapters now follow the same rule.
+**A cautionary tale, kept deliberately.** On 2026-09-03 QuadX was changed to
+send money only on COD, so a prepaid parcel would not show its value on the
+courier's dashboard to everyone handling it. That is a sound instinct, and SPX
+genuinely works that way. But the change shipped on an assumption its own
+commit note flagged as unverified against the live API, and the live API
+refuses it: every prepaid order (HitPay, bank transfer, GCash) failed to book
+while COD kept working, because only COD still carried a total. Restored in
+`33adec6f`.
+
+So: **a courier's API decides what it will accept, and the only way to know is
+to ask it.** Before removing a field from any courier payload on privacy or
+tidiness grounds, book a staging order without it and confirm the courier
+accepts it. A test that fakes the response proves only that we build the
+payload we meant to, never that the courier will take it.
 
 Insurance is separate and unaffected: `declared_value` stays 0 unless the
 admin ticks "Insure shipment", and it must always be sent explicitly, because
 omitting it makes QuadX silently default it to the order total and auto-insure
 every booking.
-
-**Verify before trusting this on a new courier.** Some APIs require an amount
-field regardless of payment method. Book a staging order with prices omitted
-and confirm the API accepts it before assuming omission is safe.
 
 ## UAT / staging guidance
 

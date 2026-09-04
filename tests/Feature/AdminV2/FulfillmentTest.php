@@ -853,12 +853,12 @@ class FulfillmentTest extends TestCase
                 // insure not posted -> declared_value must be 0, never default
                 // to the order total (that hazard is called out in buildPayload()).
                 && (int) $body['declared_value'] === 0
-                // Owner ruling 2026-09-03: money only travels for COD. This
-                // booking is prepaid, so the order value must not reach the
-                // QuadX dashboard or the waybill at all.
-                && !array_key_exists('total', $body)
-                && !array_key_exists('amount', $body['items'][0])
-                // What the rider still needs is untouched.
+                // QuadX requires `total` on every booking, prepaid included:
+                // omitting it for non-COD (d781db9d) made the live API answer
+                // 422 "The total field is required" and no prepaid order could
+                // be booked. Restored in 33adec6f.
+                && (float) $body['total'] === 1100.0
+                && array_key_exists('amount', $body['items'][0])
                 && $body['items'][0]['description'] !== ''
                 && (int) $body['items'][0]['quantity'] >= 1
                 && $body['delivery_address']['line_1'] === '123 Mango St'
