@@ -53,8 +53,13 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
     public function getServiceTypes(): array
     {
         return [
-            ['value' => 'next_day',        'label' => 'Next Day'],
+            // Owner ruling 2026-09-03: same day sits first because it is the
+            // one with a cut-off to catch, and both are named "Pickup" so the
+            // two read as one pair rather than two unrelated things.
+            // The VALUES are QuadX's own and never change: bookings, the
+            // default-service setting and every stored order reference them.
             ['value' => 'same_day_pickup', 'label' => 'Same Day Pickup'],
+            ['value' => 'next_day',        'label' => 'Next Day Pickup'],
         ];
     }
 
@@ -677,17 +682,21 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
             ],
             [
                 'key'     => 'quadx_default_service',
-                'label'   => 'Default service',
+                'label'   => 'Default schedule',
                 'type'    => 'select',
                 'options' => $this->getServiceTypes(),
-                'help'    => 'Pre-selected service on the booking form.',
+                // Not "pre-selected on the booking form" any more: since
+                // 2026-09-03 that form asks every time and pre-selects
+                // nothing. This is the fallback for a booking that arrives
+                // without a schedule, which is the ERP API's path.
+                'help'    => 'Used when a booking arrives without one, such as from the ERP API. The booking form asks every time.',
             ],
             [
                 'key'     => 'quadx_default_parcel',
                 'label'   => 'Default parcel',
                 'type'    => 'select',
                 'options' => $this->getParcelOptions(),
-                'help'    => 'Pre-selected parcel category on the booking form.',
+                'help'    => 'Used when a booking arrives without one, such as from the ERP API. The booking form asks every time.',
             ],
         ];
     }

@@ -609,45 +609,59 @@ class FulfillmentController extends Controller
 
     public function book(Request $request, Order $order)
     {
-        $data = $request->validate([
-            'courier'          => 'required|string',
-            'service'          => 'required|string',
-            'parcel'           => 'required|string',
-            'shipping_payment' => 'required|string',
-            'insure'           => 'sometimes|boolean',
-            // Task T4: SPX's step-2 escape hatches — the base QuadX field
-            // set above is completely unchanged (still the only fields it
-            // submits), these are purely additive/optional so an SPX
-            // booking can pass its custom-dims parcel + chosen pickup slot
-            // through to SpxFulfillment::createShipment()'s existing
-            // $opts['length_cm'|'width_cm'|'height_cm'|'weight_kg'|
-            // 'pickup_slot'] reads (see resolveParcelDims()/
-            // fulfillmentInfo() — both already handled these keys since
-            // T2, they just never had a way to arrive from this form).
-            //
-            // Review fix (Critical): the browser ALWAYS submits
-            // pickup_slot (pre-selected "Drop off myself", value="") even
-            // when SPX isn't the chosen courier at all (the field lives in
-            // the shared form's DOM whenever it exists — see the
-            // x-if-not-x-show fix's own docblock). Laravel's
-            // ConvertEmptyStringsToNull middleware turns that "" into null
-            // BEFORE validation runs, so `sometimes|string` (present but
-            // not a string) rejected EVERY booking with a 422 — this was
-            // never exercised by a test because every test posted the key
-            // as absent, not as "". `nullable` is required alongside
-            // `sometimes` so a present-but-null value passes.
-            'length_cm'        => 'sometimes|nullable|numeric|min:0.01',
-            'width_cm'         => 'sometimes|nullable|numeric|min:0.01',
-            'height_cm'        => 'sometimes|nullable|numeric|min:0.01',
-            'weight_kg'        => 'sometimes|nullable|numeric|min:0.01',
-            'pickup_slot'      => 'sometimes|nullable|string',
-            // Which of the store's pickup addresses this parcel leaves from.
-            // Absent (one address on file, so the picker never rendered)
-            // means "the default": PickupAddress::resolveFor() decides that,
-            // once, for every courier. `nullable` alongside `sometimes` for
-            // the same ConvertEmptyStringsToNull reason documented above.
-            'pickup_address_id' => 'sometimes|nullable|integer|exists:courier_fulfillment_pickup_addresses,id',
-        ]);
+        try {
+            $data = $request->validate([
+                'courier'          => 'required|string',
+                'service'          => 'required|string',
+                'parcel'           => 'required|string',
+                'shipping_payment' => 'required|string',
+                'insure'           => 'sometimes|boolean',
+                // Task T4: SPX's step-2 escape hatches — the base QuadX field
+                // set above is completely unchanged (still the only fields it
+                // submits), these are purely additive/optional so an SPX
+                // booking can pass its custom-dims parcel + chosen pickup slot
+                // through to SpxFulfillment::createShipment()'s existing
+                // $opts['length_cm'|'width_cm'|'height_cm'|'weight_kg'|
+                // 'pickup_slot'] reads (see resolveParcelDims()/
+                // fulfillmentInfo() — both already handled these keys since
+                // T2, they just never had a way to arrive from this form).
+                //
+                // Review fix (Critical): the browser ALWAYS submits
+                // pickup_slot (pre-selected "Drop off myself", value="") even
+                // when SPX isn't the chosen courier at all (the field lives in
+                // the shared form's DOM whenever it exists — see the
+                // x-if-not-x-show fix's own docblock). Laravel's
+                // ConvertEmptyStringsToNull middleware turns that "" into null
+                // BEFORE validation runs, so `sometimes|string` (present but
+                // not a string) rejected EVERY booking with a 422 — this was
+                // never exercised by a test because every test posted the key
+                // as absent, not as "". `nullable` is required alongside
+                // `sometimes` so a present-but-null value passes.
+                'length_cm'        => 'sometimes|nullable|numeric|min:0.01',
+                'width_cm'         => 'sometimes|nullable|numeric|min:0.01',
+                'height_cm'        => 'sometimes|nullable|numeric|min:0.01',
+                'weight_kg'        => 'sometimes|nullable|numeric|min:0.01',
+                'pickup_slot'      => 'sometimes|nullable|string',
+                // Which of the store's pickup addresses this parcel leaves from.
+                // Absent (one address on file, so the picker never rendered)
+                // means "the default": PickupAddress::resolveFor() decides that,
+                // once, for every courier. `nullable` alongside `sometimes` for
+                // the same ConvertEmptyStringsToNull reason documented above.
+                'pickup_address_id' => 'sometimes|nullable|integer|exists:courier_fulfillment_pickup_addresses,id',
+            ], [
+                // Since the three choices open on "Choose one" (2026-09-03),
+                // an unanswered one is something the operator can fix. Name
+                // it: "The given data failed to pass validation" names nothing.
+                'service.required'          => 'Choose a schedule before booking.',
+                'parcel.required'           => 'Choose a parcel before booking.',
+                'shipping_payment.required' => 'Choose who pays the shipping before booking.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // This page reports through the toast channel only, so letting the
+            // exception redirect would flash $errors that nothing here renders
+            // and Book would look like it did nothing at all.
+            return back()->with('error', 'Booking failed: ' . implode(' ', $e->validator->errors()->all()));
+        }
 
         // Review fix (Critical): drop any of the optional keys above that
         // validated as present-but-null (the blank "Drop off myself" /
@@ -770,9 +784,16 @@ class FulfillmentController extends Controller
         // FormData(bookForm), so it 422'd identically.
         $data = $request->validate([
             'courier'          => 'required|string',
-            'service'          => 'sometimes|string',
-            'parcel'           => 'sometimes|string',
-            'shipping_payment' => 'sometimes|string',
+            // `nullable` for the same ConvertEmptyStringsToNull reason as
+            // pickup_slot above, and load-bearing for a second reason since
+            // 2026-09-03: these three selects open on "Choose one" with an
+            // empty value, so the estimate legitimately runs BEFORE the
+            // operator has answered them. "" arrives as null, and an
+            // unanswered choice is a quote we cannot give yet, never a
+            // request to refuse with a validation error nobody caused.
+            'service'          => 'sometimes|nullable|string',
+            'parcel'           => 'sometimes|nullable|string',
+            'shipping_payment' => 'sometimes|nullable|string',
             'insure'           => 'sometimes|boolean',
             'length_cm'        => 'sometimes|nullable|numeric|min:0.01',
             'width_cm'         => 'sometimes|nullable|numeric|min:0.01',

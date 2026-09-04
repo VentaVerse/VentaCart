@@ -1268,7 +1268,7 @@
                                         @endif
 
                                         <div class="v-grid v-grid--2">
-                                            <x-admin.field name="service" label="Service" required>
+                                            <x-admin.field name="service" label="Schedule" required>
                                                 <select name="service" x-model="service" class="v-control">
                                                         <option value="">Choose one</option>
                                                     <template x-for="o in current.services" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
@@ -1298,7 +1298,6 @@
                                         </div>
                                         <x-admin.field name="shipping_payment" label="You pay shipping" required>
                                             <select name="shipping_payment" x-model="shippingPayment" class="v-control">
-                                                    <option value="">Choose one</option>
                                                 <template x-for="o in current.payments" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                             </select>
                                         </x-admin.field>
@@ -1776,7 +1775,9 @@
                  */
                 get bookReady() {
                     if (!this.courier) return false;
-                    return this.service !== '' && this.parcel !== '' && this.shippingPayment !== '';
+                    // Only the choices that open unanswered gate the button.
+                    // shipping_payment carries the courier's own default.
+                    return this.service !== '' && this.parcel !== '';
                 },
                 openBooking(order) {
                     this.active = order;
@@ -1874,7 +1875,15 @@
                     // acts on them.
                     this.service = '';
                     this.parcel = '';
-                    this.shippingPayment = '';
+                    const opts = this.options[key] || {};
+                    // Owner ruling 2026-09-03: who pays shipping keeps a real
+                    // default (the courier's first option, cash on pickup) and
+                    // offers no "Choose one". It is the store's own standing
+                    // arrangement with the courier rather than a per-parcel
+                    // decision, so making it a deliberate choice every time
+                    // was friction without a matching risk. Schedule and
+                    // parcel stay unanswered: those DO change per parcel.
+                    this.shippingPayment = ((opts.payments || [{}])[0] || {}).value || '';
                     this.seedRiderQuote();
                     // Task T4: pickup slots are fetched HERE — the moment the
                     // admin actually picks SPX — never during the queue's
