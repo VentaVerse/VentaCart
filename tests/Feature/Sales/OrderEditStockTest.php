@@ -219,6 +219,64 @@ class OrderEditStockTest extends TestCase
     }
 
     /**
+     * The owner's own worked example, pinned verbatim.
+     *
+     *   Product X = 4   (X-1 = 2, X-2 = 2)
+     *   Product Y = 6   (Y-1 = 3, Y-2 = 3)
+     *
+     * Order one X-1, then edit the order to one Y-2 instead. X and X-1 must
+     * both come back; Y and Y-2 must both go out. The untouched siblings must
+     * not move at all, and each parent must still equal the sum of its own
+     * variants at every step.
+     */
+    public function test_the_worked_example_swapping_one_variant_for_another_products(): void
+    {
+        $x = $this->product('X', 4);
+        $x1 = ProductVariant::create(['product_id' => $x->id, 'sku' => 'X-1', 'price' => 100, 'quantity' => 2, 'cost' => 0]);
+        $x2 = ProductVariant::create(['product_id' => $x->id, 'sku' => 'X-2', 'price' => 100, 'quantity' => 2, 'cost' => 0]);
+        $x->update(['has_variants' => true]);
+
+        $y = $this->product('Y', 6);
+        $y1 = ProductVariant::create(['product_id' => $y->id, 'sku' => 'Y-1', 'price' => 100, 'quantity' => 3, 'cost' => 0]);
+        $y2 = ProductVariant::create(['product_id' => $y->id, 'sku' => 'Y-2', 'price' => 100, 'quantity' => 3, 'cost' => 0]);
+        $y->update(['has_variants' => true]);
+
+        // Order one X-1.
+        $order = $this->orderFor($x, 1, $x1);
+        StockService::adjustForStatusChange($order, $this->deducting);
+
+        $this->assertSame(3, $x->fresh()->quantity, 'X = 3');
+        $this->assertSame(1, $x1->fresh()->quantity, 'X-1 = 1');
+        $this->assertSame(2, $x2->fresh()->quantity, 'X-2 untouched at 2');
+
+        // Change it to one Y-2.
+        $old = $order->fresh()->products->load('product', 'productVariant');
+        OrderProduct::where('order_id', $order->id)->delete();
+        OrderProduct::create([
+            'order_id' => $order->id, 'product_id' => $y->id, 'product_variant_id' => $y2->id,
+            'name' => 'Y', 'quantity' => 1, 'price' => 100, 'total' => 100,
+        ]);
+
+        StockService::reconcileLines($order->fresh(), $old);
+
+        $this->assertSame(4, $x->fresh()->quantity, 'X reverted to 4');
+        $this->assertSame(2, $x1->fresh()->quantity, 'X-1 reverted to 2');
+        $this->assertSame(2, $x2->fresh()->quantity, 'X-2 never moved');
+
+        $this->assertSame(5, $y->fresh()->quantity, 'Y = 5');
+        $this->assertSame(2, $y2->fresh()->quantity, 'Y-2 = 2');
+        $this->assertSame(3, $y1->fresh()->quantity, 'Y-1 never moved');
+
+        foreach ([$x, $y] as $parent) {
+            $this->assertSame(
+                (int) $parent->fresh()->variants()->sum('quantity'),
+                (int) $parent->fresh()->quantity,
+                "{$parent->name}: parent must equal the sum of its variants."
+            );
+        }
+    }
+
+    /**
      * track_stock off means Venta does not manage this product's inventory.
      * The variant branch used to ignore that and move variants anyway, which
      * broke the parent-equals-sum invariant in the other direction.
