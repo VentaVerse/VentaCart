@@ -54,31 +54,89 @@ class StockService
         });
     }
 
+    /**
+     * Keep stock honest when an order's LINES change rather than its status.
+     *
+     * stock_adjusted says "this order's current lines are out of inventory".
+     * Rewriting the lines while it is up silently makes that a lie: the flag
+     * then describes a list that no longer exists, and the eventual return
+     * walks the new list, handing back units never taken and never returning
+     * the ones still out. Swapping 2 of X for 3 of Y and cancelling used to
+     * leave X permanently down 2 and Y permanently up 3.
+     *
+     * So an edit reconciles: put the old lines back, take the new lines out.
+     * When nothing is out yet the flag is down and this does nothing at all,
+     * because there is no deduction to correct.
+     *
+     * Call it AFTER the new lines are saved, with the lines as they were
+     * before. When a save changes lines AND status, call this first: it
+     * settles the stock against the new lines under the old flag, leaving
+     * adjustForStatusChange() to do exactly what it always does.
+     *
+     * @param  \Illuminate\Support\Collection|iterable  $oldLines  the order's lines before the edit
+     */
+    public static function reconcileLines(Order $order, iterable $oldLines): void
+    {
+        DB::transaction(function () use ($order, $oldLines) {
+            $fresh = Order::lockForUpdate()->find($order->id);
+
+            // Nothing is out, so there is nothing to correct. The status
+            // change that eventually deducts will read the new lines.
+            if (! $fresh || ! $fresh->stock_adjusted) {
+                return;
+            }
+
+            self::moveLines($oldLines, +1);
+
+            $fresh->load('products');
+            self::moveLines($fresh->products, -1);
+        });
+    }
+
+    /**
+     * Move every line by $sign units.
+     *
+     * A variant line moves the variant AND its parent, because a parent with
+     * variants carries the sum of them (ProductController::
+     * syncQuantityFromVariants). Moving one without the other is what makes a
+     * parent drift from its own children.
+     *
+     * @param  \Illuminate\Support\Collection|iterable  $lines
+     */
+    private static function moveLines(iterable $lines, int $sign): void
+    {
+        foreach ($lines as $item) {
+            $product = $item->product;
+
+            // track_stock off means the merchant does not want Venta managing
+            // this product's inventory. That has to cover its variants too:
+            // moving a variant while its parent stays put breaks the
+            // parent-equals-sum rule just as surely as the reverse.
+            if (! $product || ! $product->track_stock) {
+                continue;
+            }
+
+            $units = $sign * (int) $item->quantity;
+
+            if ($item->product_id) {
+                $product->increment('quantity', $units);
+            }
+
+            if ($item->product_variant_id && $item->productVariant) {
+                $item->productVariant->increment('quantity', $units);
+            }
+        }
+    }
+
     private static function decrementStock(Order $order): void
     {
         $order->loadMissing('products');
-
-        foreach ($order->products as $item) {
-            if ($item->product_id && $item->product?->track_stock) {
-                $item->product->decrement('quantity', $item->quantity);
-            }
-            if ($item->product_variant_id && $item->productVariant) {
-                $item->productVariant->decrement('quantity', $item->quantity);
-            }
-        }
+        self::moveLines($order->products, -1);
     }
 
     private static function incrementStock(Order $order): void
     {
         $order->loadMissing('products');
-
-        foreach ($order->products as $item) {
-            if ($item->product_id && $item->product?->track_stock) {
-                $item->product->increment('quantity', $item->quantity);
-            }
-            if ($item->product_variant_id && $item->productVariant) {
-                $item->productVariant->increment('quantity', $item->quantity);
-            }
-        }
+        self::moveLines($order->products, +1);
     }
 }

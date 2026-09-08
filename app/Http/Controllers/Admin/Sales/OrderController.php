@@ -294,6 +294,12 @@ class OrderController extends Controller
             // Detect if products changed before sync
             $oldProducts = $order->products->map(fn($p) => $p->product_id . '-' . $p->product_variant_id . '-' . $p->quantity . '-' . $p->price)->sort()->values()->toJson();
 
+            // The lines themselves, not just their fingerprint: if they change
+            // while this order's units are out of inventory, stock has to be
+            // settled against what was actually deducted. Loaded here because
+            // syncProducts() deletes the rows.
+            $oldLines = $order->products->load('product', 'productVariant');
+
             $order->update($validated);
 
             $this->syncProducts($order, $request);
@@ -303,11 +309,31 @@ class OrderController extends Controller
             $newProducts = $order->products->map(fn($p) => $p->product_id . '-' . $p->product_variant_id . '-' . $p->quantity . '-' . $p->price)->sort()->values()->toJson();
             $productsChanged = $oldProducts !== $newProducts;
 
+            // Order matters: settle the lines FIRST, under the flag as it
+            // stands, so stock reflects the new lines. Only then does the
+            // status change apply its own rule, which reads those same new
+            // lines. Doing it the other way round would deduct or return a
+            // list that was about to be replaced.
+            if ($productsChanged) {
+                StockService::reconcileLines($order, $oldLines);
+            }
+
             if ($statusChanged) {
                 $newStatus = OrderStatus::find($validated['order_status_id']);
                 if ($newStatus) {
                     StockService::adjustForStatusChange($order, $newStatus);
                 }
+            }
+
+            // Stock moving with nothing to show for it is how this went
+            // unnoticed for so long. If units moved, the order says so.
+            if ($productsChanged && $order->fresh()->stock_adjusted) {
+                \App\Models\OrderHistory::create([
+                    'order_id'        => $order->id,
+                    'order_status_id' => $order->order_status_id,
+                    'comment'         => 'Products edited while stock was deducted. Inventory reconciled: the previous items were returned and the current items taken out.',
+                    'notify_customer' => false,
+                ]);
             }
         });
 
@@ -788,8 +814,12 @@ class OrderController extends Controller
             $qty = (int) ($item['quantity'] ?? 1);
 
             $order->products()->create([
-                'product_id' => $item['product_id'] ?: null,
-                'product_variant_id' => $item['product_variant_id'] ?: null,
+                // ?? before ?:, because neither key is required by the
+                // validation rules above: a client that posts a line without
+                // them (the ERP, a script, a form that omits the hidden
+                // input) used to raise "Undefined array key" and 500 the save.
+                'product_id' => ($item['product_id'] ?? null) ?: null,
+                'product_variant_id' => ($item['product_variant_id'] ?? null) ?: null,
                 'name' => $item['name'],
                 'sku' => $item['sku'] ?? null,
                 'variant_label' => $item['variant_label'] ?? null,
