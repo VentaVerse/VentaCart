@@ -569,6 +569,12 @@ class FulfillmentService
             'courier_tracking_number' => null,
             // booking_history is the ONE key that persists through the reset.
             'courier_meta'            => json_encode(['booking_history' => $history]),
+            // The cost described the shipment just cancelled. Left behind it
+            // reports a charge for a parcel nobody is carrying, and on an
+            // order that is never rebooked it would sit in the margin for
+            // good. The figure is preserved in booking_history above, which
+            // is where a cancelled shipment's facts belong.
+            'shipping_cost_actual'    => null,
         ];
         // Core snapshot columns: cleared IF they still point at the shipment
         // just cancelled — a customer must never be shown a voided AWB.
@@ -931,9 +937,14 @@ class FulfillmentService
 
         // forceFill bypasses mass-assignment: courier_* columns are extension-owned
         // and not in core Order::$fillable; courier_meta has no cast so encode it.
-        $order->forceFill(array_filter([
+        $order->forceFill([
+            // Always written, including as null. Only setting it when the
+            // courier answered would let a rebooking inherit the PREVIOUS
+            // courier's figure: cancel a QuadX booking, rebook with one that
+            // reports nothing, and the old 77.00 would stand in for a
+            // shipment it has nothing to do with. This column describes the
+            // current booking or it describes nothing.
             'shipping_cost_actual'    => $cost,
-        ], fn ($v) => $v !== null) + [
             'courier_provider'        => $courier->getKey(),
             'courier_tracking_number' => $result['tracking_number'] ?? null,
             'courier_status'          => $result['status'] ?? null,

@@ -153,6 +153,101 @@ class ShippingCostTest extends TestCase
             ->assertDontSee('Net after fees');
     }
 
+    /**
+     * A cancelled booking takes its cost with it.
+     *
+     * The figure describes a shipment that no longer exists. Left behind it
+     * reports a charge for a parcel nobody is carrying, and if the order is
+     * never rebooked it sits in the margin forever.
+     */
+    public function test_cancelling_a_booking_clears_its_cost(): void
+    {
+        [$order, $booked] = $this->bookedOrder();
+        $this->assertSame(77.0, (float) $order->fresh()->shipping_cost_actual);
+
+        Http::fake(['*/cancel' => Http::response(['ok' => true], 200)]);
+        \Extensions\CourierFulfillment\FulfillmentService::cancelBooking($order->fresh(), null);
+
+        $this->assertNull($order->fresh()->shipping_cost_actual, 'the cancelled shipment took its cost with it');
+    }
+
+    /**
+     * Rebooking with a courier that reports nothing must not inherit the
+     * previous courier's figure.
+     */
+    public function test_rebooking_never_inherits_the_previous_cost(): void
+    {
+        $pending = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1]);
+        $booked = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2]);
+        PlacementMap::put($pending->id, 'to_pack');
+        PlacementMap::put($booked->id, 'to_handover');
+        Setting::create(['group' => 'courier', 'key' => 'booked_order_status_id', 'value' => (string) $booked->id]);
+        Setting::create(['group' => 'courier', 'key' => 'unbooked_order_status_id', 'value' => (string) $pending->id]);
+
+        $order = Order::create([
+            'store_id' => 1, 'first_name' => 'A', 'last_name' => 'Buyer',
+            'email' => 'buyer@example.test', 'order_status_id' => $pending->id, 'total' => 4715.00,
+        ]);
+
+        // ONE fake, with a sequence. Calling Http::fake() again merges rather
+        // than replaces, and the first stub registered for a pattern keeps
+        // answering — which is what made an earlier version of this test read
+        // the first booking's response on the second booking and "prove" a
+        // bug that was not there.
+        Http::fake([
+            '*orders/*/cancel' => Http::response(['ok' => true], 200),
+            '*/orders' => Http::sequence()
+                ->push(['tracking_number' => 'QX-COST-001', 'status' => 'for_pickup', 'id' => 9,
+                        'shipping_fee' => '80.00', 'fees_adjustment' => ['shipping_fee' => '77']], 200)
+                ->push(['tracking_number' => 'QX-COST-002', 'status' => 'for_pickup', 'id' => 10], 200),
+        ]);
+
+        $service = app(\Extensions\CourierFulfillment\FulfillmentService::class);
+
+        $first = $service->book($order, ['courier' => 'quadx', 'service' => 'next_day', 'parcel' => 'box']);
+        $this->assertTrue($first['success'], json_encode($first));
+        $this->assertSame(77.0, (float) $order->fresh()->shipping_cost_actual);
+
+        \Extensions\CourierFulfillment\FulfillmentService::cancelBooking($order->fresh(), null);
+        $this->assertNull($order->fresh()->shipping_cost_actual, 'cancel clears it');
+
+        $again = $service->book($order->fresh(), ['courier' => 'quadx', 'service' => 'next_day', 'parcel' => 'box']);
+        $this->assertTrue($again['success'], json_encode($again));
+
+        $this->assertSame('QX-COST-002', $order->fresh()->courier_tracking_number, 'the second booking really happened');
+        $this->assertNull(
+            $order->fresh()->shipping_cost_actual,
+            'the new booking reported no fee, so the old one must not stand in for it'
+        );
+    }
+
+    /** Shared setup: an order booked with QuadX at a known cost. */
+    private function bookedOrder(): array
+    {
+        $pending = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1]);
+        $booked = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2]);
+        PlacementMap::put($pending->id, 'to_pack');
+        PlacementMap::put($booked->id, 'to_handover');
+        Setting::create(['group' => 'courier', 'key' => 'booked_order_status_id', 'value' => (string) $booked->id]);
+        Setting::create(['group' => 'courier', 'key' => 'unbooked_order_status_id', 'value' => (string) $pending->id]);
+
+        $order = Order::create([
+            'store_id' => 1, 'first_name' => 'A', 'last_name' => 'Buyer',
+            'email' => 'buyer@example.test', 'order_status_id' => $pending->id, 'total' => 4715.00,
+        ]);
+
+        Http::fake(['*/orders' => Http::response([
+            'tracking_number' => 'QX-COST-001', 'status' => 'for_pickup', 'id' => 9,
+            'shipping_fee' => '80.00', 'fees_adjustment' => ['shipping_fee' => '77'],
+        ], 200)]);
+
+        $r = app(\Extensions\CourierFulfillment\FulfillmentService::class)
+            ->book($order, ['courier' => 'quadx', 'service' => 'next_day', 'parcel' => 'box']);
+        $this->assertTrue($r['success'], json_encode($r));
+
+        return [$order, $booked];
+    }
+
     /** Null and zero say different things, and the order page relies on it. */
     public function test_an_unbooked_order_has_no_cost_rather_than_a_zero(): void
     {
