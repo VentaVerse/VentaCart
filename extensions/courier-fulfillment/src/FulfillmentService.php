@@ -1058,7 +1058,7 @@ class FulfillmentService
             ];
         }
 
-        // Optional since card #135. With none named this is a plain status
+        // Optional since card VENT-35. With none named this is a plain status
         // update: the order moves, tracking and comment are saved, and no
         // courier is recorded as carrying it. A courier id that was given but
         // is not an active courier is still an error, since that is a wrong

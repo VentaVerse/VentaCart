@@ -814,7 +814,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
      *
      * Left out on purpose: for_release and claimed (never seen), the
      * claims/lost/damaged/disposal chain (waits on the returns process,
-     * board #52), and the four ops-system events (dws_update,
+     * board VENT-18), and the four ops-system events (dws_update,
      * runsheet_closure, rcd_*). The map page appends any status this store
      * has actually received that is not listed here, so nothing can strand
      * an order silently again.

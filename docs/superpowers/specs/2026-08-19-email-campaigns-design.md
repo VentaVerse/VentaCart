@@ -13,7 +13,7 @@ practice to write to a handful of people in a specific customer group
 Everything that exists only to make thousand-recipient sends survivable was cut
 deliberately: per-recipient result rows, resumable batching, retry-failed, an
 enforced compliance footer, `List-Unsubscribe` headers, opt-out reconciliation
-screens. Real bulk sending is card #126 and goes through a third-party provider
+screens. Real bulk sending is card VENT-31 and goes through a third-party provider
 when it is picked up.
 
 ## Evidence that drove the design
@@ -25,7 +25,7 @@ Gathered against `ngdadm_dev` on 2026-08-19.
   consent field is not new work.
 - It is already written from three places: the storefront registration form,
   the account profile page, and the admin customer form. Checkout is the only
-  gap, and that gap belongs to card #126.
+  gap, and that gap belongs to card VENT-31.
 - No unsubscribe mechanism of any kind exists: no route, no token, no link.
 - `EmailTemplate::replacePlaceholders()` already substitutes `{key}` tokens;
   the shipped order confirmation body reads `Hi {customer_name}` and
@@ -272,7 +272,7 @@ Feature tests, written first:
 
 - No per-recipient result table. A saved campaign row records what was sent and
   to how many; a failed address goes to the log. Reinstate only if bulk sending
-  ever becomes real, which is card #126's problem.
+  ever becomes real, which is card VENT-31's problem.
 - No scheduling. Send now or save a draft.
 - No open or click tracking. It needs pixel and redirect infrastructure and the
   owner has no use for it.
@@ -281,7 +281,7 @@ Feature tests, written first:
   wanted, `body` becomes a JSON block list and the renderer changes; nothing
   else in this design moves.
 
-## Relationship to card #126
+## Relationship to card VENT-31
 
 #126 is the third-party provider integration (Mailchimp, Mailjet, Brevo, Resend)
 plus the checkout consent tickbox. This spec deliberately leaves a single send

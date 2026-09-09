@@ -39,7 +39,7 @@ class ManualShipmentRequest extends FormRequest
     {
         return [
             // Optional, and the select defaults to "Select courier..."
-            // (card #135). This form mirrors "Update order" on the core order
+            // (card VENT-35). This form mirrors "Update order" on the core order
             // page, so submitting with no courier is a plain status update:
             // the order moves, tracking and comment are saved, nobody is
             // recorded as carrying it. Requiring a courier meant an operator
@@ -63,7 +63,7 @@ class ManualShipmentRequest extends FormRequest
             // like any other, so the operator states which one rather than
             // having the module decide for them.
             //
-            // Required since card #135, which mirrors this form on the core
+            // Required since card VENT-35, which mirrors this form on the core
             // order page's "Update order" panel. It used to be nullable, with
             // absence meaning the module's own To-Handover-placed status. That
             // default cannot survive courier becoming optional: a submission

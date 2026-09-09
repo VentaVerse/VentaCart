@@ -127,4 +127,4 @@ Wave-based, same machine as Plans 1–4, behavior-frozen throughout (the full Ad
 
 ## Out of scope
 
-Route-name renaming; storefront hook/slot system, marketplace, extension scaffolding CLI (developer-platform card #19); auto-updater integration (card #17); moving core features into extensions.
+Route-name renaming; storefront hook/slot system, marketplace, extension scaffolding CLI (developer-platform card VENT-12); auto-updater integration (card VENT-10); moving core features into extensions.

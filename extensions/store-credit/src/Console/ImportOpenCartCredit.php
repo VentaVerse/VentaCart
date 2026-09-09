@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 /**
- * One-time legacy import (card #23): pulls OpenCart's
+ * One-time legacy import (card VENT-16): pulls OpenCart's
  * customer_transaction ledger into customer_transactions, preserving
  * signed amounts, descriptions, and dates. Customers are matched by
  * legacy_oc_id first (the migration's own mapping), email as fallback.
