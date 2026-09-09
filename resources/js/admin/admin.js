@@ -126,6 +126,113 @@ function vFocusable(root) {
 
 import { registerV } from '../admin/register';
 
+/**
+ * A required field on a tab you are not looking at blocks the save, and the
+ * browser says nothing at all.
+ *
+ * When constraint validation fails the browser focuses the offending control
+ * to show its bubble. A control on an inactive tab is display:none, cannot be
+ * focused, and the browser abandons the submit reporting only
+ * "An invalid form control with name='x' is not focusable" to the console.
+ * Nothing saves, no error appears, and the record looks saved.
+ *
+ * The hook is `invalid`, NOT `submit`: when validation fails the submit event
+ * is never dispatched at all, so a submit listener can never see this. The
+ * invalid event does fire, once per offending control, and it does not bubble
+ * so it has to be caught in the capture phase.
+ *
+ * Tabs are found by role rather than by any one form's markup, because every
+ * tabbed screen here keeps its own state under its own name and they do not
+ * agree. Clicking through them is cheap and idempotent; the first that reveals
+ * the field wins. If none does, the field is hidden for some other reason and
+ * the operator is still told, by name, rather than left with a dead button.
+ */
+function vIsShown(el) {
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+}
+
+function vFieldName(el) {
+    const label = el.closest('.v-field')?.querySelector('label, .v-field__label');
+    const text = label?.textContent?.trim().replace(/\s*\*?\s*Required\s*$/i, '').trim();
+    return text || el.getAttribute('aria-label') || el.name || 'A required field';
+}
+
+let vRevealing = false;
+
+document.addEventListener('invalid', (event) => {
+    const field = event.target;
+
+    // Visible and invalid is the browser's own job, and it does it well.
+    if (!(field instanceof HTMLElement) || vIsShown(field)) {
+        return;
+    }
+
+    // Suppress the bubble the browser cannot show anyway.
+    event.preventDefault();
+
+    // Validation reports every invalid control; only the first needs finding,
+    // and the flag is held for the whole walk so the others do not start
+    // their own and fight over which tab is showing.
+    if (vRevealing) {
+        return;
+    }
+    vRevealing = true;
+
+    vRevealTab(field).finally(() => { vRevealing = false; });
+}, true);
+
+/**
+ * Bring the tab holding this field forward, then let the browser speak.
+ *
+ * Asynchronous because the tabs here are driven by Alpine's x-show, which
+ * applies on the next frame: checking visibility in the same tick as the
+ * click always reads the old state, walks past the right tab, and leaves the
+ * operator on whichever tab happened to be last.
+ *
+ * If no tab reveals it, the field is hidden for some other reason. Put the
+ * operator back where they were rather than stranding them somewhere they
+ * did not choose, and say what is wrong by name.
+ */
+async function vBecomesVisible(el, within = 250) {
+    const deadline = performance.now() + within;
+
+    while (performance.now() < deadline) {
+        await new Promise(requestAnimationFrame);
+
+        if (vIsShown(el)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+async function vRevealTab(field) {
+    const tabs = [...document.querySelectorAll('[role="tab"]')];
+    const wasOn = tabs.find((t) => t.getAttribute('aria-selected') === 'true');
+
+    for (const tab of tabs) {
+        tab.click();
+
+        // A panel does not gain size the instant its tab is clicked: Alpine
+        // applies x-show on the next frame and .v-settle animates in after
+        // that. One frame reads the old state, walks past the right tab, and
+        // ends up reporting nothing.
+        if (await vBecomesVisible(field)) {
+            field.focus();
+            field.reportValidity();
+            return;
+        }
+    }
+
+    wasOn?.click();
+
+    window.Alpine?.store('toasts')?.push(
+        vFieldName(field) + ' is required, and it is on a part of this form that is not currently shown.',
+        'danger',
+    );
+}
+
 document.addEventListener('alpine:init', () => {
     // The migrated v pages now render inside this classic shell (owner
     // ruling 2026-08-17: one admin, one chrome), so their save-doctrine
