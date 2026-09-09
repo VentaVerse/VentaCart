@@ -227,8 +227,14 @@ class FulfillmentLbcSettingsTest extends TestCase
         $this->assertSame([], $lbc->trackingLinks($order));
         $this->assertSame([], $lbc->getPickupSlots($order));
         $this->assertSame([], $lbc->getServiceTypes());
-        $this->assertSame([], $lbc->getParcelOptions());
         $this->assertSame([], $lbc->getShippingPaymentOptions());
+
+        // Parcels are the ONE thing that is built: the packaging list was
+        // settled with the owner ahead of booking, so it is real here while
+        // everything around it still refuses. Its own contract lives in
+        // LbcParcelOptionsTest; this only asserts it is no longer empty, so
+        // the two do not restate each other.
+        $this->assertNotSame([], $lbc->getParcelOptions());
         $this->assertSame([], $lbc->terminalStatuses());
         $this->assertSame([], $lbc->cancelableStatuses());
         $this->assertSame([], $lbc->mappableStatuses());
