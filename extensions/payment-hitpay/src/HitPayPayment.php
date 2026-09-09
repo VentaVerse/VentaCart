@@ -126,6 +126,74 @@ class HitPayPayment implements PaymentMethodInterface
         return hash_equals($computed, $hmac);
     }
 
+    /**
+     * What HitPay kept from this payment, or null when they did not say.
+     *
+     * Their webhook carries no fee at all, so it has to be asked for. The
+     * payment request answers with a list of payment attempts, and only the
+     * one that succeeded carries the charge worth recording: a failed attempt
+     * can carry a figure of its own, and reading the first entry would bill
+     * the store for a payment that never happened.
+     *
+     * Null on anything unclear — HitPay unreachable, a request with nothing
+     * succeeded yet, a malformed answer — because the order page and the ERP
+     * both read null as "not known yet". Returning 0 would report the payment
+     * as free and quietly overstate the margin.
+     */
+    public function fetchFee(string $paymentRequestId): ?float
+    {
+        $mode = $this->getSetting('hitpay_mode', 'sandbox');
+        $apiKey = $this->getDecryptedSetting("hitpay_{$mode}_api_key");
+
+        if (! $apiKey || $paymentRequestId === '') {
+            return null;
+        }
+
+        $base = $mode === 'production' ? self::PRODUCTION_URL : self::SANDBOX_URL;
+
+        try {
+            $response = Http::withHeaders(['X-BUSINESS-API-KEY' => $apiKey])
+                ->timeout(20)
+                ->get($base . '/' . rawurlencode($paymentRequestId));
+
+            if (! $response->successful()) {
+                Log::warning('HitPay: could not read the fee', [
+                    'payment_request' => $paymentRequestId, 'status' => $response->status(),
+                ]);
+
+                return null;
+            }
+
+            $succeeded = collect($response->json('payments') ?? [])
+                ->firstWhere('status', 'succeeded');
+
+            $fee = $succeeded['fees'] ?? null;
+
+            return is_numeric($fee) ? (float) $fee : null;
+        } catch (\Throwable $e) {
+            Log::warning('HitPay: fee lookup failed', [
+                'payment_request' => $paymentRequestId, 'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Put the fee on the order, beside the total and never inside it.
+     *
+     * A fee that could not be read leaves the column alone rather than
+     * writing a zero, so a later attempt can still fill it in.
+     */
+    public function recordFee(Order $order, string $paymentRequestId): void
+    {
+        $fee = $this->fetchFee($paymentRequestId);
+
+        if ($fee !== null) {
+            $order->forceFill(['payment_fee' => $fee])->save();
+        }
+    }
+
     private function getSetting(string $key, ?string $default = null): ?string
     {
         $value = Setting::where('group', 'payment')->where('key', $key)->value('value');

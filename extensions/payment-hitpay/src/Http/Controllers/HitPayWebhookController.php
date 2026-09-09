@@ -96,6 +96,20 @@ class HitPayWebhookController extends Controller
 
     private function handleCompleted(Order $order): void
     {
+        // What HitPay kept. Asked for here because their webhook does not
+        // carry it, and asked for BEFORE the idempotency check below: a
+        // retried webhook is exactly when a fee that could not be read the
+        // first time gets a second chance, and skipping early would strand
+        // the order without one forever.
+        //
+        // Never fatal. A fee that cannot be read leaves the column null, and
+        // the payment still completes: the customer has paid either way, and
+        // refusing to confirm that over a bookkeeping figure would be worse
+        // than not knowing the figure.
+        if ($order->payment_fee === null && $order->payment_reference) {
+            (new \Extensions\PaymentHitpay\HitPayPayment())->recordFee($order, (string) $order->payment_reference);
+        }
+
         $successStatusId = Setting::where('group', 'payment')
             ->where('key', 'hitpay_success_status_id')
             ->value('value');
