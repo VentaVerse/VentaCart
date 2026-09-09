@@ -163,6 +163,54 @@
                         @endforeach
                         <dt class="v-facts__sum">Total</dt>
                         <dd class="v-facts__sum v-mono">{{ $currency }}{{ number_format($order->total, 2) }}</dd>
+
+                        {{-- Fees and charges (owner ruling 2026-09-09). NOT
+                             "cost of sale": that includes the cost of the
+                             goods, which VentaCart does not hold, so the name
+                             would promise a figure it cannot produce.
+
+                             Below the total and never inside it. The ERP reads
+                             the total to know what the customer owed and works
+                             out margin from these separately, so subtracting
+                             here would corrupt the number it depends on.
+
+                             null and 0.00 mean different things: null is "not
+                             known yet" (a payment fee before settlement, a
+                             courier's charge before booking) and 0.00 is
+                             genuinely nothing to pay. --}}
+                        @php
+                            $hasFees = $order->payment_fee !== null || $order->shipping_cost_actual !== null;
+                            $knownFees = (float) ($order->payment_fee ?? 0) + (float) ($order->shipping_cost_actual ?? 0);
+                            $allFeesIn = $order->payment_fee !== null && $order->shipping_cost_actual !== null;
+                        @endphp
+                        @if ($hasFees)
+                            {{-- Spans both columns, so it must NOT be followed
+                                 by a <dd>: the empty cell pushed every label
+                                 and amount after it one place along and swapped
+                                 the two columns for the rest of the block. --}}
+                            <dt class="v-ledger__cap">Fees and charges</dt>
+                            <dt>Payment fee</dt>
+                            <dd class="v-mono">
+                                @if ($order->payment_fee !== null)
+                                    -{{ $currency }}{{ number_format($order->payment_fee, 2) }}
+                                @else
+                                    <span class="v-cell-quiet">awaiting settlement</span>
+                                @endif
+                            </dd>
+                            <dt>Shipping cost @if ($order->shipping_courier_name)({{ $order->shipping_courier_name }})@endif</dt>
+                            <dd class="v-mono">
+                                @if ($order->shipping_cost_actual !== null)
+                                    -{{ $currency }}{{ number_format($order->shipping_cost_actual, 2) }}
+                                @else
+                                    <span class="v-cell-quiet">awaiting booking</span>
+                                @endif
+                            </dd>
+                            {{-- "Net so far" while a figure is still missing:
+                                 calling it "after fees" would state something
+                                 untrue about a number nobody has yet. --}}
+                            <dt class="v-ledger__net">{{ $allFeesIn ? 'Net after fees' : 'Net so far' }}</dt>
+                            <dd class="v-ledger__net v-mono">{{ $currency }}{{ number_format($order->total - $knownFees, 2) }}</dd>
+                        @endif
                     </dl>
                 </div>
                 @if ($order->comment || $order->courier_comment)

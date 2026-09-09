@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl;
+use Extensions\CourierFulfillment\Contracts\ReportsShippingCost;
 
 /**
  * Shared booking core, used by BOTH the admin Fulfillment page and the ERP API
@@ -914,9 +915,25 @@ class FulfillmentService
             $meta['booking_history'] = $previousMeta['booking_history'];
         }
 
+        // What the shipment cost the STORE, from a courier willing to say.
+        // Read from the meta this booking just produced, never from the
+        // column, which still holds the previous booking at this point.
+        //
+        // Recorded beside the total and never inside it. The customer's
+        // shipping charge (orders.shipping_cost) and the courier's charge to
+        // us are different numbers that happen to sit close together, and
+        // conflating them is how a margin report starts lying. A courier that
+        // reports nothing leaves the column null, which reads as "not known"
+        // rather than as free.
+        $cost = $courier instanceof ReportsShippingCost
+            ? $courier->actualShippingCost(is_array($meta) ? $meta : [])
+            : null;
+
         // forceFill bypasses mass-assignment: courier_* columns are extension-owned
         // and not in core Order::$fillable; courier_meta has no cast so encode it.
-        $order->forceFill([
+        $order->forceFill(array_filter([
+            'shipping_cost_actual'    => $cost,
+        ], fn ($v) => $v !== null) + [
             'courier_provider'        => $courier->getKey(),
             'courier_tracking_number' => $result['tracking_number'] ?? null,
             'courier_status'          => $result['status'] ?? null,

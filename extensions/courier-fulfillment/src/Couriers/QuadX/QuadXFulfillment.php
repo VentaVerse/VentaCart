@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl;
+use Extensions\CourierFulfillment\Contracts\ReportsShippingCost;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Extensions\CourierFulfillment\ServiceabilityService;
 use Extensions\CourierFulfillment\Support\PickupCountry;
@@ -18,7 +19,7 @@ use Extensions\CourierFulfillment\Support\ServiceabilityVerdict;
  * lives here + QuadXClient: auth, parcel categories, services, the
  * seller_payment_method field, and name-based address resolution.
  */
-class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTrackingUrl
+class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTrackingUrl, ReportsShippingCost
 {
     public function __construct(
         private ?QuadXClient $client = null,
@@ -726,6 +727,33 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
         $host = $mode === 'production' ? 'https://app.gogoxpress.com' : 'https://app.staging.gogoxpress.com';
 
         return $host . '/track/' . rawurlencode($trackingNumber);
+    }
+
+    /**
+     * What QuadX charged the store for this shipment.
+     *
+     * The booking response answers twice, the same way the rate endpoint does
+     * (see feesFrom()): `shipping_fee` is the list price and
+     * `fees_adjustment.shipping_fee` is the same figure after QuadX's own
+     * campaigns and surcharges. A real booking came back 80.00 list against
+     * 77.00 adjusted, being a 10% price drop and a 5.00 fuel surcharge. The
+     * store pays the adjusted one, so that is what is recorded.
+     *
+     * Null, never zero, when QuadX said nothing: an absent figure means the
+     * cost is not known, and reporting it as free would be a lie the margin
+     * is then computed from.
+     */
+    public function actualShippingCost(array $courierMeta): ?float
+    {
+        $booked = $courierMeta['booked_response'] ?? null;
+
+        if (! is_array($booked)) {
+            return null;
+        }
+
+        $fee = $booked['fees_adjustment']['shipping_fee'] ?? $booked['shipping_fee'] ?? null;
+
+        return is_numeric($fee) ? (float) $fee : null;
     }
 
     public function parseWebhook(array $payload): array

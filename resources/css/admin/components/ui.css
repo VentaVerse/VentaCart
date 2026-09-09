@@ -1338,6 +1338,33 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
     color: var(--v-ink);
 }
 
+/* Fees and charges: what the order cost the store, below the total and
+   visibly not part of it. The dashed rule is the whole point — it says these
+   figures sit outside the sum above rather than adding to it, which is what
+   stops anyone reading the net as the order's value. */
+.v-ledger dt.v-ledger__cap {
+    grid-column: 1 / -1;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 2px dashed var(--v-line-2);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--v-ink-3);
+}
+
+.v-ledger dt.v-ledger__net,
+.v-ledger dd.v-ledger__net {
+    padding-top: 8px;
+    border-top: 1px solid var(--v-line);
+    font-weight: 600;
+}
+
+.v-ledger dd.v-ledger__net {
+    color: var(--v-good);
+}
+
 .v-ledger__notes {
     padding: 14px 18px;
     border-top: 1px solid var(--v-line);

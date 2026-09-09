@@ -142,8 +142,29 @@ class ErpOrderController extends Controller
             }),
             'totals' => [
                 'subtotal' => $order->subtotal,
+                // What the CUSTOMER was charged for shipping. Not the same
+                // number as fees.shipping_cost, which is what the courier
+                // charged the store, and the two must never be conflated.
                 'shipping' => $order->shipping_cost,
                 'total' => $order->total,
+            ],
+            // What the order cost the store. Deliberately outside `totals`:
+            // the total is what the customer owed and these do not reduce it.
+            // The ERP computes margin from them itself.
+            //
+            // null means NOT KNOWN YET, not zero. A payment fee arrives at
+            // settlement and a courier's charge at booking, so an order can
+            // legitimately have neither. Reading null as 0 would report an
+            // unbooked parcel as free and overstate the margin.
+            'fees' => [
+                'payment_fee' => $order->payment_fee,
+                'shipping_cost' => $order->shipping_cost_actual,
+                // Derived, never stored, so it cannot drift from its inputs.
+                // Only offered once BOTH are known: a partial subtraction
+                // would look like a finished figure and read too high.
+                'net_after_fees' => ($order->payment_fee !== null && $order->shipping_cost_actual !== null)
+                    ? round((float) $order->total - (float) $order->payment_fee - (float) $order->shipping_cost_actual, 2)
+                    : null,
             ],
             'payment_method' => $order->payment_method_label,
             'payment_method_key' => $order->payment_method,
