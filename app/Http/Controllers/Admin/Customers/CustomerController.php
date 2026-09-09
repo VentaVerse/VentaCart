@@ -30,14 +30,10 @@ class CustomerController extends Controller
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
-            $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%")
-                  // Full-name search: "John Doe" matches first+last together.
-                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
-            });
+            // Every typed word must appear in the name, so a middle name
+            // between "Paolo" and "Reyes" no longer hides the customer.
+            // Email and phone are matched whole: they are single tokens.
+            \App\Support\NameSearch::apply($query, $search, ['email', 'phone']);
         }
 
         $customers = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();

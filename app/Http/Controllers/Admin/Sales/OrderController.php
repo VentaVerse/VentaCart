@@ -55,16 +55,14 @@ class OrderController extends Controller
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
+            // Same name rule as the customers list. An order number and a
+            // tracking number are matched whole, and a numeric search still
+            // finds the order by id.
             $query->where(function ($q) use ($search) {
                 if (is_numeric($search)) {
                     $q->orWhere('id', (int) $search);
                 }
-                $q->orWhere('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('tracking_number', 'like', "%{$search}%")
-                  // Full-name search: "John Doe" matches first+last together.
-                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+                $q->orWhere(fn ($n) => \App\Support\NameSearch::apply($n, $search, ['email', 'tracking_number']));
             });
         }
 
@@ -572,11 +570,9 @@ class OrderController extends Controller
 
         $customers = Customer::where('store_id', $request->input('store_id'))
             ->where('is_active', true)
-            ->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            })
+            // The picker searches names the same way the lists do, so a
+            // customer findable in one screen is findable in all three.
+            ->where(fn ($q) => \App\Support\NameSearch::apply($q, $search, ['email']))
             ->with(['addresses', 'customerGroup'])
             ->limit(10)
             ->get()
