@@ -20,7 +20,6 @@ Route::prefix('settings')->group(function () {
     Route::post('/test-mail', [SettingController::class, 'testMail'])->name('settings.test-mail');
     Route::post('/reveal-secret', [SettingController::class, 'revealSecret'])->name('settings.reveal-secret');
     Route::post('/test-dhl', [SettingController::class, 'testDhl'])->name('settings.test-dhl');
-    Route::post('/generate-erp-token', [SettingController::class, 'generateErpToken'])->name('settings.generate-erp-token');
     Route::post('/upload-gsc-credentials', [SettingController::class, 'uploadGscCredentials'])->name('settings.upload-gsc-credentials');
 
     // The store's name and marks. Its own endpoint rather than the shared

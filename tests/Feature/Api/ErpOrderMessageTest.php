@@ -26,7 +26,7 @@ class ErpOrderMessageTest extends TestCase
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
         app(\App\Services\ExtensionManager::class)->install('erp-sync');
         app(\App\Services\ExtensionManager::class)->bootEnabled();
-        Setting::create(['group' => 'api', 'key' => 'erp_token', 'value' => Crypt::encryptString('erp-test-token')]);
+        $this->apiKey('erp-test-token');
     }
 
     private function order(?string $comment): Order

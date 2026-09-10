@@ -94,41 +94,19 @@ class SettingsSectionTest extends TestCase
         $this->assertFileDoesNotExist(resource_path('views/admin/settings/index.blade.php'));
     }
 
-    public function test_api_section_renders_new_erp_token_flash_with_copy_control(): void
+    /**
+     * The API section moved to the extension's own page, and the single
+     * shared token it used to mint was replaced by named keys with
+     * permissions. What is asserted here is only that the old address still
+     * leads somewhere: the keys themselves are covered by
+     * ApiKeyPermissionTest and ErpApiKeyScreenTest.
+     */
+    public function test_the_api_section_redirects_to_the_extension_page(): void
     {
-        // The whole API section is ERP Sync configuration, so it lives at
-        // the extension's own page now (owner ruling: module config never
-        // in Settings); settings/api 301s there.
         app(\App\Services\ExtensionManager::class)->install('erp-sync');
         $this->actingAs(User::factory()->create());
 
         $this->get(route('admin.settings.section', 'api'))->assertStatus(301);
-
-        $this->withSession(['new_erp_token' => 'plaintext-erp-token-abc123'])
-            ->get(route('admin.erp-sync.settings'))
-            ->assertOk()
-            ->assertSee('New token generated', false)
-            ->assertSee('plaintext-erp-token-abc123', false)
-            ->assertSee('Copy', false);
-    }
-
-    public function test_api_section_masks_plaintext_erp_token_on_decrypt_failure(): void
-    {
-        $this->actingAs(User::factory()->create());
-
-        \App\Models\Setting::updateOrCreate(
-            ['group' => 'api', 'key' => 'erp_token'],
-            ['value' => 'plaintext-erp-token-abc123']
-        );
-
-        app(\App\Services\ExtensionManager::class)->install('erp-sync');
-        app(\App\Services\ExtensionManager::class)->bootEnabled();
-
-        $expectedMask = str_repeat('•', strlen('plaintext-erp-token-abc123') - 4).'c123';
-
-        $this->get(route('admin.erp-sync.settings'))
-            ->assertOk()
-            ->assertSee($expectedMask, false); // masked fallback keeps the last 4 chars, not a bare bullet placeholder
     }
 
     public function test_mail_section_driver_options_match_supported_set(): void

@@ -164,10 +164,7 @@ class NotifyPolicyTest extends TestCase
     private function erpHeaders(): array
     {
         $token = 'erp-test-token';
-        \App\Models\Setting::updateOrCreate(
-            ['group' => 'api', 'key' => 'erp_token'],
-            ['value' => \Illuminate\Support\Facades\Crypt::encryptString($token)]
-        );
+        $this->apiKey($token);
 
         return ['Authorization' => 'Bearer ' . $token];
     }

@@ -213,10 +213,11 @@ class FulfillmentTest extends TestCase
         ], $overrides));
     }
 
-    /** Stores an encrypted ERP token under settings(group=api,key=erp_token) — the exact row App\Http\Middleware\ErpApiAuth reads — and returns the plaintext for the Bearer header. */
+    /** An API key permitted everything, returning the secret for the Bearer header. */
     private function makeErpToken(string $token = 'erp-test-token-abc123'): string
     {
-        Setting::create(['group' => 'api', 'key' => 'erp_token', 'value' => Crypt::encryptString($token)]);
+        $this->apiKey($token);
+
         return $token;
     }
 

@@ -57,11 +57,7 @@ class ErpProductImagePushTest extends TestCase
         app(\App\Services\ExtensionManager::class)->bootEnabled();
         Storage::fake('public');
 
-        Setting::create([
-            'group' => 'api',
-            'key' => 'erp_token',
-            'value' => Crypt::encryptString('erp-test-token'),
-        ]);
+        $this->apiKey('erp-test-token');
 
         Http::preventStrayRequests();
         Http::fake([

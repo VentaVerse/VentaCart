@@ -35,7 +35,7 @@ class ErpFulfillmentContractTest extends TestCase
         $manager->install('courier-fulfillment');
         $manager->bootEnabled();
 
-        Setting::create(['group' => 'api', 'key' => 'erp_token', 'value' => Crypt::encryptString('erp-test-token')]);
+        $this->apiKey('erp-test-token');
         Setting::create(['group' => 'courier', 'key' => 'fulfillment_enabled', 'value' => '1']);
 
         // No call may reach a real courier.

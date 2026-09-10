@@ -28,11 +28,7 @@ class ErpOrderCustomerGroupTest extends TestCase
         app(\App\Services\ExtensionManager::class)->install('erp-sync');
         app(\App\Services\ExtensionManager::class)->bootEnabled();
 
-        Setting::create([
-            'group' => 'api',
-            'key' => 'erp_token',
-            'value' => Crypt::encryptString('erp-test-token'),
-        ]);
+        $this->apiKey('erp-test-token');
     }
 
     private function group(string $name, bool $default = false): CustomerGroup

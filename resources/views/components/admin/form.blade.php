@@ -1,4 +1,4 @@
-@props(['action', 'method' => 'POST', 'headerSave' => true, 'saveOnlyWhenDirty' => false, 'guard' => true])
+@props(['action', 'method' => 'POST', 'headerSave' => true, 'saveOnlyWhenDirty' => false, 'guard' => true, 'saveLabel' => 'Save'])
 @php
     $spoof = strtoupper($method) !== 'POST' && strtoupper($method) !== 'GET';
     // Unique PER FORM, never per action: several forms on one page can
@@ -33,7 +33,7 @@
              Alpine keeps teleported markup in this component's scope, so
              dirty and saving still drive it from here. --}}
         <template x-teleport=".v-head">
-            <x-admin.form-acts :form-id="$formId" :only-when-dirty="$saveOnlyWhenDirty" />
+            <x-admin.form-acts :form-id="$formId" :only-when-dirty="$saveOnlyWhenDirty" :label="$saveLabel" />
         </template>
     @endif
 
@@ -44,7 +44,7 @@
          scope, and two Saves up there would not say which is which. --}}
     @unless ($headerSave)
         <div class="v-gap">
-            <x-admin.form-acts :form-id="$formId" :only-when-dirty="$saveOnlyWhenDirty" />
+            <x-admin.form-acts :form-id="$formId" :only-when-dirty="$saveOnlyWhenDirty" :label="$saveLabel" />
         </div>
     @endunless
 </form>

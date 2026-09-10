@@ -428,7 +428,7 @@ class ProductHardDeleteTest extends TestCase
 
     private function erpHeaders(): array
     {
-        Setting::create(['group' => 'api', 'key' => 'erp_token', 'value' => Crypt::encryptString('erp-test-token')]);
+        $this->apiKey('erp-test-token');
 
         return ['Authorization' => 'Bearer erp-test-token', 'Accept' => 'application/json'];
     }
