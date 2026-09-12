@@ -829,13 +829,19 @@ class OrderController extends Controller
         }
     }
 
+    /**
+     * Every deduction the order carries, not just the coupon. Store credit is
+     * spent from the customer's balance at checkout and never handed back, so
+     * a recompute that dropped it billed the customer again for money they had
+     * already paid in credit.
+     */
     protected function recalculateTotals(Order $order): void
     {
-        $subtotal = $order->products()->sum('total');
-        $couponDiscount = (float) ($order->coupon_discount ?? 0);
+        $subtotal = (float) $order->products()->sum('total');
+        $adjustments = array_sum(array_column($order->adjustmentLines(), 'amount'));
         $order->update([
             'subtotal' => $subtotal,
-            'total' => max(0, $subtotal + ($order->shipping_cost ?? 0) - $couponDiscount),
+            'total' => max(0, round($subtotal + (float) ($order->shipping_cost ?? 0) + $adjustments, 2)),
         ]);
     }
 }
