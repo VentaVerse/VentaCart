@@ -147,6 +147,18 @@ class ErpOrderController extends Controller
                 // charged the store, and the two must never be conflated.
                 'shipping' => $order->shipping_cost,
                 'total' => $order->total,
+                // Every line between the subtotal and the total (coupon,
+                // store credit, any later total extension), signed, so
+                // subtotal + shipping + the lines adds up to the total.
+                // Empty on an order with nothing in between, and on the
+                // migrated OpenCart orders, whose lines were never copied.
+                'lines' => array_map(function (array $line) {
+                    return [
+                        'code' => $line['code'],
+                        'label' => $line['label'],
+                        'amount' => number_format($line['amount'], 2, '.', ''),
+                    ];
+                }, $order->adjustmentLines()),
             ],
             // What the order cost the store. Deliberately outside `totals`:
             // the total is what the customer owed and these do not reduce it.
