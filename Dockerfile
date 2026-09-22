@@ -102,7 +102,15 @@ COPY --from=node-build /app/public/build ./public/build
 # from the database. There is no database while an image is built, so the hook
 # failed the build. Laravel writes the package manifest itself on the first
 # real boot, when the container's database is there.
-RUN composer dump-autoload --optimize --no-dev --classmap-authoritative --no-scripts
+# Three steps, in this order. The cleanup task deletes the Google API
+# services this store does not use (composer.json lists SearchConsole, the
+# only one; the package ships 640 of them, 184 MB). It is a Composer script,
+# so it needs an autoloader to be loadable and --no-scripts keeps it from
+# running on its own. The authoritative classmap is written last, once the
+# files it maps are final.
+RUN composer dump-autoload --no-scripts \
+    && composer run-script pre-autoload-dump --no-interaction \
+    && composer dump-autoload --optimize --no-dev --classmap-authoritative --no-scripts
 
 # Container-specific configs
 COPY docker/nginx.conf            /etc/nginx/nginx.conf
