@@ -96,8 +96,13 @@ COPY . .
 COPY --from=composer-deps /app/vendor ./vendor
 COPY --from=node-build /app/public/build ./public/build
 
-# Regenerate optimized autoloader now that source + vendor coexist
-RUN composer dump-autoload --optimize --no-dev --classmap-authoritative
+# Regenerate optimized autoloader now that source + vendor coexist.
+# --no-scripts: Composer's post-autoload hook runs `artisan package:discover`,
+# which boots the whole application, and booting reads the extension registry
+# from the database. There is no database while an image is built, so the hook
+# failed the build. Laravel writes the package manifest itself on the first
+# real boot, when the container's database is there.
+RUN composer dump-autoload --optimize --no-dev --classmap-authoritative --no-scripts
 
 # Container-specific configs
 COPY docker/nginx.conf            /etc/nginx/nginx.conf
