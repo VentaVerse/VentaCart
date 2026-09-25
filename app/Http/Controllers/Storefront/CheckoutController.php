@@ -266,18 +266,14 @@ class CheckoutController extends Controller
             ->where('key', 'hitpay_success_status_id')->value('value');
 
         if ($successStatusId && (int) $order->order_status_id !== (int) $successStatusId) {
-            $newStatus = \App\Models\OrderStatus::find($successStatusId);
-            $order->update(['order_status_id' => $successStatusId]);
-
-            \App\Models\OrderHistory::create([
-                'order_id' => $order->id,
-                'order_status_id' => $successStatusId,
-                'comment' => 'Payment confirmed via HitPay (return URL).',
-            ]);
-
-            if ($newStatus) {
-                \App\Services\StockService::adjustForStatusChange($order, $newStatus);
-            }
+            \App\Services\OrderStatusChanger::apply(
+                $order,
+                (int) $successStatusId,
+                'Payment confirmed via HitPay (return URL).',
+                // The confirmation email below is this path's own; channels
+                // still follow the store's ticks.
+                \App\Support\NotifyChoice::emailHandledElsewhere(),
+            );
 
             $order->load('products', 'status');
             \App\Services\CheckoutService::sendOrderConfirmationEmail($order);

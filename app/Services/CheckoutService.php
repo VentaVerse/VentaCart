@@ -6,7 +6,6 @@ use App\Models\Cart;
 use App\Models\Customer;
 use App\Models\CustomerAddress;
 use App\Models\Order;
-use App\Models\OrderHistory;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
 use App\Services\PaymentMethods\PaymentMethodInterface;
@@ -14,6 +13,7 @@ use App\Services\PaymentMethods\PaymentResult;
 use App\Services\ActivityLogger;
 use App\Services\PaymentRestrictionService;
 use App\Mail\OrderConfirmationMail;
+use App\Support\NotifyChoice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -321,18 +321,18 @@ class CheckoutService
             ->first();
 
         if ($status) {
-            $order->update(['order_status_id' => $status->id]);
-
-            OrderHistory::create([
-                'order_id' => $order->id,
-                'order_status_id' => $status->id,
-                'comment' => 'Order confirmed.',
-                // Written for the customer: the account page shows a history
-                // comment only when the customer was meant to read it.
-                'notify_customer' => true,
-            ]);
-
-            StockService::adjustForStatusChange($order, $status);
+            OrderStatusChanger::apply(
+                $order,
+                $status->id,
+                'Order confirmed.',
+                // The confirmation email below is this method's own; a
+                // status email would say the same thing twice in the same
+                // second. Channels still follow the store's ticks, so a
+                // store that texts on its first status does. apply() stamps
+                // notify_customer true regardless, because this email IS
+                // how the customer was told.
+                NotifyChoice::emailHandledElsewhere(),
+            );
         }
 
         $order->load('products', 'status');

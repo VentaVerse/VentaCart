@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Mail\OrderConfirmationMail;
 use App\Models\Order;
 use App\Models\OrderHistory;
-use App\Models\OrderStatus;
 use App\Models\Setting;
+use App\Services\OrderStatusChanger;
+use App\Support\NotifyChoice;
 use Extensions\PaymentHitpay\HitPayPayment;
-use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
@@ -120,18 +120,14 @@ class HitPayWebhookController extends Controller
         }
 
         if ($successStatusId) {
-            $newStatus = OrderStatus::find($successStatusId);
-            $order->update(['order_status_id' => $successStatusId]);
-
-            OrderHistory::create([
-                'order_id' => $order->id,
-                'order_status_id' => $successStatusId,
-                'comment' => 'Payment confirmed via HitPay.',
-            ]);
-
-            if ($newStatus) {
-                StockService::adjustForStatusChange($order, $newStatus);
-            }
+            OrderStatusChanger::apply(
+                $order,
+                (int) $successStatusId,
+                'Payment confirmed via HitPay.',
+                // The confirmation email below is this path's own; channels
+                // still follow the store's ticks.
+                NotifyChoice::emailHandledElsewhere(),
+            );
         }
 
         // Clear customer cart
