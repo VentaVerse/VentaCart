@@ -11,11 +11,13 @@ use App\Support\NotifyChoice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\RecordingChannel;
+use Tests\Support\ResetsNotificationChannels;
 use Tests\TestCase;
 
 class AnnouncementTest extends TestCase
 {
     use RefreshDatabase;
+    use ResetsNotificationChannels;
 
     private OrderStatus $shipped;
 
@@ -31,18 +33,9 @@ class AnnouncementTest extends TestCase
         Mail::fake();
     }
 
-    /**
-     * OrderNotificationService::$channels is a static registry with no
-     * unregister call, so a channel this test registers would otherwise
-     * outlive it and leak into whichever other suite runs next in the same
-     * process (NotificationChannelTest, in either order). Wiping it back to
-     * empty is this test's own cleanup, not a change to the class under test.
-     */
     protected function tearDown(): void
     {
-        $property = new \ReflectionProperty(OrderNotificationService::class, 'channels');
-        $property->setAccessible(true);
-        $property->setValue(null, []);
+        $this->resetNotificationChannels();
 
         parent::tearDown();
     }
