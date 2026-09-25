@@ -70,4 +70,50 @@ class CourierFetchNotificationTest extends TestCase
         $this->assertSame($this->shipped->id, $order->fresh()->order_status_id);
         $this->assertSame(1, RecordingChannel::$sends);
     }
+
+    /**
+     * M4: the owner's reported bug, driven through the real SMS channel. A
+     * status ticked in UniSMS's own list, a courier status map row, the
+     * gateway faked at the HTTP layer: exactly one message leaves, and even
+     * with a template that pulls in the comment and the tracking number of
+     * an order whose tracking link is on file, it carries no URL.
+     */
+    public function test_the_real_sms_channel_sends_one_text_without_a_url(): void
+    {
+        $this->resetNotificationChannels();
+        app(\App\Services\ExtensionManager::class)->install('sms-unisms');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+        Setting::updateOrCreate(['group' => 'sms', 'key' => \Extensions\SmsUnisms\UniSms::KEY_ENABLED], ['value' => '1']);
+        Setting::updateOrCreate(['group' => 'sms', 'key' => \Extensions\SmsUnisms\UniSms::KEY_API], ['value' => \Illuminate\Support\Facades\Crypt::encryptString('dummy-key')]);
+        Setting::updateOrCreate(['group' => 'sms', 'key' => \Extensions\SmsUnisms\UniSms::KEY_SENDER], ['value' => 'DUMMY']);
+        Setting::updateOrCreate(['group' => 'sms', 'key' => \Extensions\SmsUnisms\UniSms::KEY_TEMPLATE], ['value' => '{store_name}: Order #{order_id} is now {order_status}. {comment} {tracking_number}']);
+        \Extensions\SmsUnisms\SmsStatusMap::put([$this->shipped->id]);
+        \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response(['data' => ['reference_id' => 'msg_1']], 200)]);
+
+        $order = Order::create([
+            'store_id' => 1, 'first_name' => 'A', 'last_name' => 'Buyer',
+            'email' => 'buyer@example.test', 'phone' => '+639171234567',
+            'order_status_id' => $this->packing->id,
+            'tracking_number' => 'GGX123',
+            'tracking_link' => 'https://gogoxpress.com/track/GGX123',
+        ]);
+        $order->forceFill(['courier_provider' => 'quadx'])->save();
+        Setting::create([
+            'group' => 'courier',
+            'key' => 'quadx_status_map',
+            'value' => json_encode([
+                'picked_up' => ['order_status_id' => $this->shipped->id, 'notify' => false],
+            ]),
+        ]);
+
+        StatusMapper::apply($order, 'picked_up');
+
+        $posts = \Illuminate\Support\Facades\Http::recorded(fn ($request) => $request->method() === 'POST');
+        $this->assertCount(1, $posts, 'Exactly one text for one status change.');
+        $content = (string) $posts[0][0]->data()['content'];
+        $this->assertStringContainsString('is now Shipped', $content);
+        $this->assertStringContainsString('GGX123', $content, 'The number survives; only the link goes.');
+        $this->assertDoesNotMatchRegularExpression('~https?://|www\\.|gogoxpress\\.com|/track~i', $content);
+        $this->assertTrue($order->histories()->latest('id')->first()->notifications['sms']['sent']);
+    }
 }
