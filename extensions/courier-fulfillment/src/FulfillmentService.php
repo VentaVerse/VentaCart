@@ -470,18 +470,29 @@ class FulfillmentService
             return null;
         }
 
-        $comment = ($comment ?? ('Courier booking confirmed'
+        // $customerComment is what a human (or the customer, if they ever
+        // read raw history) wrote about what actually happened; the audit
+        // line below is for the record, not for their inbox, so it is
+        // appended only to the history row's own comment.
+        $customerComment = $comment ?? ('Courier booking confirmed'
             . ($courierName ? ' with ' . $courierName : '')
             . ($tracking ? ' (' . $tracking . ')' : '')
-            . '.'))
-            . ' Order status set to ' . $status->name . ' by fulfillment.';
+            . '.');
+
+        // A period between the two sentences whatever $customerComment
+        // happens to end with (already a period, or a tracking anchor's
+        // closing tag) - a bare space left them reading as one run-on
+        // clause.
+        $trimmed = rtrim($customerComment);
+        $historyComment = ($trimmed !== '' && !str_ends_with($trimmed, '.')) ? $trimmed . '.' : $trimmed;
+        $historyComment .= ' Order status set to ' . $status->name . ' by fulfillment.';
 
         $notify ??= NotifyChoice::silent();
 
         // History row + status update + stock adjustment either all land or
         // none do, same as every other status change in the app.
-        DB::transaction(function () use ($order, $status, $comment, $notify) {
-            OrderStatusChanger::apply($order, $status->id, $comment, $notify, Auth::id());
+        DB::transaction(function () use ($order, $status, $historyComment, $customerComment, $notify) {
+            OrderStatusChanger::apply($order, $status->id, $historyComment, $notify, Auth::id(), $customerComment);
         });
 
         return $status;

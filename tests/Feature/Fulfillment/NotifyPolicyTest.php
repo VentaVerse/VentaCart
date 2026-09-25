@@ -202,6 +202,30 @@ class NotifyPolicyTest extends TestCase
         });
     }
 
+    /**
+     * applyBookedStatus() appends an audit line to the HISTORY row ("Order
+     * status set to X by fulfillment"), which is for the record, not for the
+     * customer. The two must not be the same string any more.
+     */
+    public function test_the_customer_email_does_not_carry_the_fulfillment_audit_line(): void
+    {
+        NotifyMap::put([$this->handover->id]);
+        $order = $this->order();
+
+        app(FulfillmentService::class)->bookManual($order, [
+            'order_status_id' => $this->handover->id,
+            'comment'         => 'Left with the guard',
+        ]);
+
+        Mail::assertSent(\App\Mail\TemplateMail::class, fn ($m) => ! str_contains($m->renderedBody, 'by fulfillment'));
+
+        $this->assertStringContainsString(
+            'by fulfillment',
+            \App\Models\OrderHistory::where('order_id', $order->id)->latest('id')->value('comment'),
+            'The audit line still belongs on the record.'
+        );
+    }
+
     /** And with no number, the same email without a tracking tail. */
     public function test_a_status_move_with_no_parcel_still_sends_one_plain_email(): void
     {
