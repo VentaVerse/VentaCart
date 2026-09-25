@@ -98,7 +98,18 @@ class OrderController extends Controller
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
 
-        return view('admin.sales.orders.show', compact('order', 'statuses', 'couriers'));
+        // Each channel's own answer for every status, so the page can
+        // pre-tick a channel's box from the channel's list exactly as it
+        // pre-ticks the email box from the status's emails_customer tick.
+        $notifyChannels = OrderNotificationService::channels();
+        $channelWantsByStatus = [];
+        foreach ($notifyChannels as $channel) {
+            foreach ($statuses as $status) {
+                $channelWantsByStatus[$channel->key()][$status->id] = $channel->wantsStatus($status->id);
+            }
+        }
+
+        return view('admin.sales.orders.show', compact('order', 'statuses', 'couriers', 'notifyChannels', 'channelWantsByStatus'));
     }
 
     public function store(Request $request)

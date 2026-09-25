@@ -251,7 +251,7 @@
                  the verb and the save bar stays out of it. --}}
             <x-admin.panel title="Update order">
                 <form method="POST" action="{{ route('admin.orders.history.store', $order) }}"
-                      x-data="{ statusId: {{ (int) $order->order_status_id }}, emailsByStatus: @js($statuses->pluck('emails_customer', 'id')) }">
+                      x-data="{ statusId: {{ (int) $order->order_status_id }}, current: {{ (int) $order->order_status_id }}, emailsByStatus: @js($statuses->pluck('emails_customer', 'id')), channelWants: @js($channelWantsByStatus) }">
                     @csrf
                     <x-admin.field name="order_status_id" label="Status" required>
                         <select name="order_status_id" required class="v-control" x-model.number="statusId">
@@ -280,10 +280,14 @@
                             <input type="text" name="comment" class="v-control">
                         </x-admin.field>
                     </div>
+                    {{-- Every box starts from the store's own answer for the chosen
+                         status (the email tick on the status, each channel's own
+                         list), and only while the status is actually changing: a
+                         note on an order that stays put tells nobody by default. --}}
                     <div class="v-gap v-actrow">
                         <label class="v-check">
                             <input type="checkbox" name="notify_customer" value="1"
-                                   x-bind:checked="emailsByStatus[statusId] ?? false"
+                                   x-bind:checked="statusId !== current && (emailsByStatus[statusId] ?? false)"
                                    aria-label="Email the customer about this change">
                             Notify customer
                         </label>
@@ -292,9 +296,10 @@
                              turn the extension off and its tick is not drawn,
                              because there is nothing to draw. Each is its own
                              decision, so emailing never implies texting. --}}
-                        @foreach (\App\Services\OrderNotificationService::channels() as $vChannel)
+                        @foreach ($notifyChannels as $vChannel)
                             <label class="v-check">
-                                <input type="checkbox" name="channels[]" value="{{ $vChannel->key() }}">
+                                <input type="checkbox" name="channels[]" value="{{ $vChannel->key() }}"
+                                       x-bind:checked="statusId !== current && (channelWants[@js($vChannel->key())]?.[statusId] ?? false)">
                                 {{ $vChannel->label() }}
                             </label>
                         @endforeach
