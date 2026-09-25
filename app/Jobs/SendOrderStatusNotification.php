@@ -6,7 +6,7 @@ use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Services\OrderNotificationService;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
@@ -28,8 +28,16 @@ use Illuminate\Support\Facades\Log;
  * covers infrastructure failures the queue worker itself detects (the
  * worker dying mid-job, a lost database connection), never a gateway that
  * answered "no".
+ *
+ * Implements ShouldQueueAfterCommit rather than the plain ShouldQueue: a
+ * caller may dispatch this from inside a DB transaction (the HitPay paths
+ * now claim the order under a row lock before calling apply()), and this
+ * job's handle() reads the history row by id to record its result against.
+ * Without deferring to the commit, the sync queue driver would run this
+ * job, and its lookup of $this->historyId, before that row's insert had
+ * committed. When no transaction is open, dispatch is immediate as before.
  */
-class SendOrderStatusNotification implements ShouldQueue
+class SendOrderStatusNotification implements ShouldQueueAfterCommit
 {
     use Dispatchable;
     use InteractsWithQueue;

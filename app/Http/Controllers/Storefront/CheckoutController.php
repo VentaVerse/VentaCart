@@ -261,12 +261,21 @@ class CheckoutController extends Controller
             $cart->items()->delete();
         }
 
-        // If webhook hasn't processed yet, update status and send emails now
+        // If webhook hasn't processed yet, update status and send emails now.
+        // This path and the webhook can both land here for the same order at
+        // nearly the same instant, each having read $order before either
+        // wrote. claimStatus() re-checks under a row lock rather than
+        // against $order's own (possibly stale) order_status_id, which is
+        // what stops both requests from passing the idempotency check
+        // together: the loser sees the winner's already-applied status and
+        // does nothing.
         $successStatusId = \App\Models\Setting::where('group', 'payment')
             ->where('key', 'hitpay_success_status_id')->value('value');
 
-        if ($successStatusId && (int) $order->order_status_id !== (int) $successStatusId) {
-            \App\Services\OrderStatusChanger::apply(
+        $applied = false;
+
+        if ($successStatusId) {
+            $applied = \App\Services\OrderStatusChanger::claimStatus(
                 $order,
                 (int) $successStatusId,
                 'Payment confirmed via HitPay (return URL).',
@@ -274,8 +283,11 @@ class CheckoutController extends Controller
                 // still follow the store's ticks.
                 \App\Support\NotifyChoice::emailHandledElsewhere(),
             );
+        }
 
-            $order->load('products', 'status');
+        // Only the winner of the race emails; the loser applied nothing.
+        if ($applied) {
+            $order->refresh()->load('products', 'status');
             \App\Services\CheckoutService::sendOrderConfirmationEmail($order);
             \App\Services\CheckoutService::sendAdminOrderNotification($order);
         }

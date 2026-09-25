@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Support\NotifyChoice;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The ONE place an order's status is changed with its bookkeeping: history
@@ -90,5 +91,39 @@ class OrderStatusChanger
         }
 
         return $newStatus;
+    }
+
+    /**
+     * Claim an order for a target status when two independent requests can
+     * both reach the same "confirm this payment" moment at nearly the same
+     * instant, each having read the order before either wrote (HitPay's
+     * webhook and the checkout return-URL fallback, both told the same
+     * payment succeeded).
+     *
+     * $order may be stale: it was very likely fetched before this call,
+     * possibly before the OTHER caller wrote. The guard below deliberately
+     * never reads $order's own order_status_id for that reason; it re-reads
+     * the row locked for the length of this transaction and decides against
+     * THAT. The loser of the race, whichever caller's transaction acquires
+     * the lock second, sees the winner's already-committed status and
+     * applies nothing, the same outcome a genuine duplicate webhook gets.
+     *
+     * @return bool true if this call applied the status (the winner, or the
+     *   only caller); false if the order already held it (the loser, or a
+     *   plain repeat) or the order no longer exists.
+     */
+    public static function claimStatus(Order $order, int $orderStatusId, ?string $comment = null, ?NotifyChoice $notify = null): bool
+    {
+        return DB::transaction(function () use ($order, $orderStatusId, $comment, $notify) {
+            $locked = Order::whereKey($order->getKey())->lockForUpdate()->first();
+
+            if (! $locked || (int) $locked->order_status_id === $orderStatusId) {
+                return false;
+            }
+
+            self::apply($locked, $orderStatusId, $comment, $notify);
+
+            return true;
+        });
     }
 }

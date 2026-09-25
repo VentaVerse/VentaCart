@@ -114,20 +114,27 @@ class HitPayWebhookController extends Controller
             ->where('key', 'hitpay_success_status_id')
             ->value('value');
 
-        // Idempotency: skip if already confirmed at target status
-        if ($successStatusId && $order->order_status_id !== null && (int) $order->order_status_id === (int) $successStatusId) {
-            return;
-        }
-
-        if ($successStatusId) {
-            OrderStatusChanger::apply(
+        // Claim the order before writing: this webhook and the checkout
+        // return-URL fallback can both land for the same order at nearly
+        // the same instant, each having read the order before either
+        // wrote. claimStatus() re-checks under a row lock rather than
+        // against $order's own (possibly stale) order_status_id, which is
+        // what stops both from passing the idempotency check together: the
+        // loser sees the winner's already-applied status and does nothing
+        // further, exactly as a genuine duplicate webhook would.
+        $alreadyOnTarget = $successStatusId
+            ? ! OrderStatusChanger::claimStatus(
                 $order,
                 (int) $successStatusId,
                 'Payment confirmed via HitPay.',
                 // The confirmation email below is this path's own; channels
                 // still follow the store's ticks.
                 NotifyChoice::emailHandledElsewhere(),
-            );
+            )
+            : false;
+
+        if ($alreadyOnTarget) {
+            return;
         }
 
         // Clear customer cart
@@ -136,8 +143,12 @@ class HitPayWebhookController extends Controller
             $cart->items()->delete();
         }
 
-        // Send confirmation + admin notification
-        $order->load('products', 'status');
+        // Send confirmation + admin notification. apply() wrote the new
+        // status onto $locked, a separate instance from $order, so $order's
+        // own order_status_id column is stale in memory until refreshed;
+        // without it the status relation below would resolve against the
+        // OLD status and the confirmation email would name the wrong one.
+        $order->refresh()->load('products', 'status');
         \App\Services\CheckoutService::sendOrderConfirmationEmail($order);
         \App\Services\CheckoutService::sendAdminOrderNotification($order);
     }
