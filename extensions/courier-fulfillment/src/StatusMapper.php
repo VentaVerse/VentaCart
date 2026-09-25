@@ -1,7 +1,6 @@
 <?php
 namespace Extensions\CourierFulfillment;
 
-use App\Models\OrderHistory;
 use App\Models\Setting;
 
 /**
@@ -55,30 +54,24 @@ class StatusMapper
             return false;
         }
 
-        $oldStatus = \App\Models\OrderStatus::find($order->order_status_id)?->name ?? 'Unknown';
-
         // What the history row says, and what the customer reads when the
-        // mapping notifies them: the courier's name and the status in the
+        // status announces: the courier's name and the status in the
         // courier's own words ("QuadX: Out for delivery"), never the raw
         // code. The code itself lives on courier_status for the admin.
         $comment = CourierStatusLabel::sentence($order, (string) $courierStatus);
 
-        $order->update(['order_status_id' => $newStatus->id]);
-        \App\Services\StockService::adjustForStatusChange($order, $newStatus);
-
-        OrderHistory::create([
-            'order_id'         => $order->id,
-            'order_status_id'  => $newStatus->id,
-            'comment'          => $comment,
-            'notify_customer'  => $target['notify'],
-        ]);
-
-        // Through the shared sender, so the email names the courier and links
-        // the tracking number this order has carried since booking. It used
-        // to send the bare status pair and nothing to click.
-        if ($target['notify']) {
-            \App\Services\OrderNotificationService::statusChanged($order, $oldStatus, $newStatus->name, $comment);
-        }
+        // The doorway does the write (history row, order_status_id update,
+        // stock adjustment) and the announcing. The map's own per-courier
+        // "notify" flag is no longer consulted here: the core status's own
+        // tick is the single answer, through NotifyChoice::follow(), so a
+        // channel ticked for Shipped fires no matter which door moved the
+        // order there. The flag itself retires from the map in pass 2.
+        \App\Services\OrderStatusChanger::apply(
+            $order,
+            $newStatus->id,
+            $comment,
+            \App\Support\NotifyChoice::follow(),
+        );
 
         return true;
     }
