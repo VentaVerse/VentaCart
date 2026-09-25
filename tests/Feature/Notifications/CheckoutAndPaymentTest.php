@@ -2,13 +2,19 @@
 
 namespace Tests\Feature\Notifications;
 
+use App\Mail\TemplateMail;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\OrderProduct;
 use App\Models\OrderStatus;
+use App\Models\Product;
 use App\Models\Setting;
 use App\Models\Store;
 use App\Services\CheckoutService;
 use App\Services\OrderNotificationService;
+use App\Services\OrderStatusChanger;
+use App\Support\NotifyChoice;
+use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -35,6 +41,10 @@ class CheckoutAndPaymentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // TemplateMailService::send() finds no active template and quietly
+        // returns false without this, so a test asserting the confirmation
+        // email was actually sent would pass whether or not it fired.
+        $this->seed(EmailTemplateSeeder::class);
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
         $this->pending = OrderStatus::create([
             'store_id' => 1, 'name' => 'Pending', 'sort_order' => 1,
@@ -61,7 +71,7 @@ class CheckoutAndPaymentTest extends TestCase
     }
 
     // -----------------------------------------------------------------
-    // CheckoutService::confirmOrder() — the order's first status
+    // CheckoutService::confirmOrder(): the order's first status
     // -----------------------------------------------------------------
 
     public function test_a_placed_order_texts_when_its_first_status_is_ticked(): void
@@ -75,18 +85,22 @@ class CheckoutAndPaymentTest extends TestCase
 
     /**
      * confirmOrder() sends its own order confirmation; the status change
-     * must not queue a second email saying the same thing. Counting
-     * Mail::sent() would depend on which templates happen to be seeded (no
-     * EmailTemplateSeeder runs in this test), so the seam checked here is
-     * the actual outcome: no status email was queued on the history row
-     * while the channel, which follows the store's ticks independently of
-     * the email, did send.
+     * must not queue a second email saying the same thing. Counting a bare
+     * Mail::sent() would not tell the two apart if it somehow doubled, so
+     * this proves both halves: exactly one TemplateMail went out, and it
+     * is the confirmation (not, say, a status email that slipped through),
+     * while the history row shows no status email was ever queued and the
+     * channel, which follows the store's ticks independently of the email,
+     * still sent.
      */
     public function test_the_status_email_does_not_duplicate_the_confirmation(): void
     {
         $order = $this->order();
 
         app(CheckoutService::class)->confirmOrder($order);
+
+        Mail::assertSent(TemplateMail::class, 1);
+        Mail::assertSent(TemplateMail::class, fn (TemplateMail $m) => str_contains($m->renderedSubject, 'Confirmed'));
 
         $history = $order->fresh()->histories()->latest('id')->first();
         $this->assertArrayNotHasKey('email', $history->notifications ?? [], 'No status email queued on top of the confirmation.');
@@ -113,9 +127,19 @@ class CheckoutAndPaymentTest extends TestCase
         $this->assertTrue((bool) $history->notify_customer, 'The confirmation email told the customer; the row must say so.');
     }
 
-    public function test_confirming_writes_the_pending_status_and_adjusts_stock_bookkeeping(): void
+    public function test_confirming_writes_the_pending_status_and_deducts_stock(): void
     {
+        $this->pending->update(['deducts_stock' => true]);
+        $product = Product::create([
+            'store_id' => 1, 'name' => 'Tube Screamer', 'slug' => 'tube-screamer-' . uniqid(),
+            'price' => 1000, 'quantity' => 10, 'track_stock' => true, 'is_active' => true,
+        ]);
+
         $order = $this->order();
+        OrderProduct::create([
+            'order_id' => $order->id, 'product_id' => $product->id, 'name' => $product->name,
+            'price' => 500, 'quantity' => 2, 'total' => 1000,
+        ]);
 
         app(CheckoutService::class)->confirmOrder($order);
 
@@ -126,10 +150,12 @@ class CheckoutAndPaymentTest extends TestCase
             'order_status_id' => $this->pending->id,
             'comment' => 'Order confirmed.',
         ]);
+        $this->assertSame(8, (int) $product->fresh()->quantity, 'The doorway still runs StockService, same as the manual write it replaced.');
+        $this->assertTrue((bool) $order->stock_adjusted);
     }
 
     // -----------------------------------------------------------------
-    // CheckoutController::hitpayReturn() — the return-URL fallback path
+    // CheckoutController::hitpayReturn(): the return-URL fallback path
     // -----------------------------------------------------------------
 
     private function customer(): Customer
@@ -164,7 +190,14 @@ class CheckoutAndPaymentTest extends TestCase
         $this->assertArrayNotHasKey('email', $history->notifications ?? [], 'The confirmation email is this path\'s own.');
     }
 
-    /** Both HitPay paths already guard against re-applying a status the order holds; the doorway guards again. */
+    /**
+     * A single repeated hit: the order already holds the target status
+     * when this request reads it, so apply() is never even called. A true
+     * race against the webhook, where both requests read the order before
+     * either writes, is a different guard entirely: see
+     * test_the_return_path_and_the_webhook_racing_only_tells_the_customer_once
+     * below.
+     */
     public function test_the_hitpay_return_path_is_idempotent(): void
     {
         $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
@@ -186,7 +219,7 @@ class CheckoutAndPaymentTest extends TestCase
     }
 
     // -----------------------------------------------------------------
-    // HitPayWebhookController — the authoritative confirmation
+    // HitPayWebhookController: the authoritative confirmation
     // -----------------------------------------------------------------
 
     private function hitpaySalt(string $salt = 'test-salt', string $mode = 'sandbox'): void
@@ -276,5 +309,144 @@ class CheckoutAndPaymentTest extends TestCase
 
         $this->assertSame(0, RecordingChannel::$sends, 'Already on the success status: nothing new to tell.');
         $this->assertDatabaseCount('order_histories', 0);
+    }
+
+    // -----------------------------------------------------------------
+    // The return URL and the webhook racing each other
+    // -----------------------------------------------------------------
+
+    /**
+     * A single PHP test process cannot make two requests genuinely
+     * overlap; both HTTP calls below run fully sequentially, and each
+     * controller re-fetches the order fresh at its own start regardless
+     * of the race fix, so this alone does not exercise the actual
+     * vulnerability (see test_a_stale_read_still_loses_the_race below for
+     * that). What it does prove end to end, through the real routes: the
+     * second path to arrive, however soon after, finds the order already
+     * claimed and does nothing more, no second history row, no second
+     * confirmation, no second text.
+     */
+    public function test_the_webhook_then_the_return_path_racing_only_tells_the_customer_once(): void
+    {
+        app(\App\Services\ExtensionManager::class)->install('payment-hitpay');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+        $this->hitpaySalt();
+
+        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        Setting::create(['group' => 'payment', 'key' => 'hitpay_success_status_id', 'value' => (string) $success->id]);
+
+        $customer = $this->customer();
+        $order = $this->order([
+            'customer_id' => $customer->id,
+            'payment_reference' => 'pr_race_1',
+            'total' => 100,
+        ]);
+
+        Http::fake(['*/payment-requests/pr_race_1' => Http::response([
+            'id' => 'pr_race_1', 'status' => 'completed',
+            'payments' => [['id' => 'p_ok', 'status' => 'succeeded', 'fees' => '1.00']],
+        ], 200)]);
+
+        $payload = $this->signedPayload([
+            'reference_number' => (string) $order->id,
+            'payment_request_id' => 'pr_race_1',
+            'status' => 'completed',
+            'amount' => '100.00',
+        ]);
+
+        // HitPay's own webhook is first to confirm the payment.
+        $this->post(route('hitpay.webhook'), $payload)->assertOk();
+
+        // The customer's browser, redirected before the webhook landed,
+        // arrives moments later: the loser of the race.
+        $this->actingAs($customer, 'customer')
+            ->get(route('checkout.hitpay.return', ['reference' => 'pr_race_1', 'status' => 'completed']))
+            ->assertRedirect(route('checkout.confirmation', $order));
+
+        $this->assertSame($success->id, $order->fresh()->order_status_id);
+        $this->assertSame(1, RecordingChannel::$sends, 'Only the winner texts.');
+        $this->assertSame(1, $order->fresh()->histories()->count(), 'One history row total, whichever path wrote it.');
+        Mail::assertSent(TemplateMail::class, 1);
+        Mail::assertSent(TemplateMail::class, fn (TemplateMail $m) => str_contains($m->renderedSubject, 'Confirmed'));
+    }
+
+    /** The same race, the other way round. */
+    public function test_the_return_path_then_the_webhook_racing_only_tells_the_customer_once(): void
+    {
+        app(\App\Services\ExtensionManager::class)->install('payment-hitpay');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+        $this->hitpaySalt();
+
+        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        Setting::create(['group' => 'payment', 'key' => 'hitpay_success_status_id', 'value' => (string) $success->id]);
+
+        $customer = $this->customer();
+        $order = $this->order([
+            'customer_id' => $customer->id,
+            'payment_reference' => 'pr_race_2',
+            'total' => 100,
+        ]);
+
+        // handleCompleted() looks up the fee unconditionally, so the
+        // webhook leg of this race needs the same fake as any other
+        // webhook test, even though it is the loser here.
+        Http::fake(['*/payment-requests/pr_race_2' => Http::response([
+            'id' => 'pr_race_2', 'status' => 'completed',
+            'payments' => [['id' => 'p_ok', 'status' => 'succeeded', 'fees' => '1.00']],
+        ], 200)]);
+
+        // The customer's browser reaches the return URL first.
+        $this->actingAs($customer, 'customer')
+            ->get(route('checkout.hitpay.return', ['reference' => 'pr_race_2', 'status' => 'completed']))
+            ->assertRedirect(route('checkout.confirmation', $order));
+
+        // HitPay's webhook, delayed on their end, arrives after: the loser.
+        $payload = $this->signedPayload([
+            'reference_number' => (string) $order->id,
+            'payment_request_id' => 'pr_race_2',
+            'status' => 'completed',
+            'amount' => '100.00',
+        ]);
+        $this->post(route('hitpay.webhook'), $payload)->assertOk();
+
+        $this->assertSame($success->id, $order->fresh()->order_status_id);
+        $this->assertSame(1, RecordingChannel::$sends, 'Only the winner texts.');
+        $this->assertSame(1, $order->fresh()->histories()->count(), 'One history row total, whichever path wrote it.');
+        Mail::assertSent(TemplateMail::class, 1);
+        Mail::assertSent(TemplateMail::class, fn (TemplateMail $m) => str_contains($m->renderedSubject, 'Confirmed'));
+    }
+
+    /**
+     * The actual vulnerability the two HTTP tests above cannot reach: two
+     * requests that BOTH read the order before EITHER wrote. Two separate
+     * Order instances stand in for the webhook's and the return URL's own
+     * fetch, taken here at the same moment, before anything changes. The
+     * first claim writes the status; the second is handed the SAME stale
+     * instance, its in-memory order_status_id still null, exactly as it
+     * would be had the two requests actually overlapped. OrderStatusChanger
+     * ::claimStatus() must decide from a fresh lockForUpdate() read, not
+     * from that stale attribute, or this second call would re-apply
+     * everything: a naive `if ($order->order_status_id !== $target)` guard
+     * (what both paths used to write inline) would fail this exact test,
+     * because $order->order_status_id really is null on both instances.
+     */
+    public function test_a_stale_read_still_loses_the_race(): void
+    {
+        $shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        $order = $this->order();
+
+        // Both "requests" read the order before either writes.
+        $readByWebhook = Order::find($order->id);
+        $readByReturnUrl = Order::find($order->id);
+        $this->assertNull($readByReturnUrl->order_status_id, 'Confirms the second read really is stale, not already updated.');
+
+        $winner = OrderStatusChanger::claimStatus($readByWebhook, $shipped->id, 'Payment confirmed via HitPay.', NotifyChoice::emailHandledElsewhere());
+        $loser = OrderStatusChanger::claimStatus($readByReturnUrl, $shipped->id, 'Payment confirmed via HitPay (return URL).', NotifyChoice::emailHandledElsewhere());
+
+        $this->assertTrue($winner);
+        $this->assertFalse($loser, 'The stale in-memory read must not fool the guard.');
+        $this->assertSame($shipped->id, $order->fresh()->order_status_id);
+        $this->assertSame(1, $order->fresh()->histories()->count());
+        $this->assertSame(1, RecordingChannel::$sends);
     }
 }
