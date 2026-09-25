@@ -134,7 +134,32 @@ class OrderNotificationService
         ?string $comment,
         NotifyChoice $choice,
         ?int $historyId = null,
+        ?array $plan = null,
     ): array {
+        $plan ??= self::plan($newStatus, $choice);
+
+        foreach ($plan['email'] ? ['email'] : [] as $target) {
+            SendOrderStatusNotification::dispatch($order->id, $target, $oldStatusName, $newStatus?->name, $comment, $historyId);
+        }
+
+        foreach ($plan['channels'] as $key) {
+            SendOrderStatusNotification::dispatch($order->id, $key, $oldStatusName, $newStatus?->name, $comment, $historyId);
+        }
+
+        return $plan;
+    }
+
+    /**
+     * Who would be told about a move to this status, without telling them.
+     *
+     * Split from announce() so the doorway can write the history row with
+     * the answer already in hand (notify_customer is true when anything at
+     * all is queued), then queue exactly what it wrote down.
+     *
+     * @return array{email: bool, channels: list<string>}
+     */
+    public static function plan(?OrderStatus $newStatus, NotifyChoice $choice): array
+    {
         $email = $choice->email ?? (bool) ($newStatus?->emails_customer);
 
         $keys = [];
@@ -146,14 +171,6 @@ class OrderNotificationService
             if ($wanted) {
                 $keys[] = $channel->key();
             }
-        }
-
-        foreach ($email ? ['email'] : [] as $target) {
-            SendOrderStatusNotification::dispatch($order->id, $target, $oldStatusName, $newStatus?->name, $comment, $historyId);
-        }
-
-        foreach ($keys as $key) {
-            SendOrderStatusNotification::dispatch($order->id, $key, $oldStatusName, $newStatus?->name, $comment, $historyId);
         }
 
         return ['email' => $email, 'channels' => $keys];

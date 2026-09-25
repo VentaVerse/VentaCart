@@ -41,56 +41,89 @@ class OrderStatusChanger
     {
         $choice = $notify ?? NotifyChoice::follow();
 
-        $oldStatusId = (int) $order->order_status_id;
-        $oldStatusName = OrderStatus::find($oldStatusId)?->name;
-        $newStatus = OrderStatus::find($orderStatusId);
+        // One transaction for the whole change, so the history row, the
+        // status and the stock move land together or not at all. Nested in
+        // a caller's own transaction (claimStatus(), bookManual()) it is a
+        // savepoint. Lock order is the order row first, then products inside
+        // StockService, the same order every other path takes, so two
+        // changes to one order queue behind each other rather than deadlock.
+        return DB::transaction(function () use ($order, $orderStatusId, $comment, $choice, $createdBy, $customerComment) {
+            // The old status comes from the row as it stands, locked, never
+            // from $order: a courier webhook and a poll can each hold a copy
+            // read before the other wrote, and deciding against a stale copy
+            // is how both passed the unchanged-status guard and texted twice.
+            $locked = Order::whereKey($order->getKey())->lockForUpdate()->first(['id', 'order_status_id']);
+            $oldStatusId = (int) ($locked?->order_status_id ?? $order->order_status_id);
+            $oldStatusName = OrderStatus::find($oldStatusId)?->name;
+            $newStatus = OrderStatus::find($orderStatusId);
 
-        // Resolved before the row is written, so the row can say what was
-        // decided rather than being updated a second time.
-        $emails = $choice->email ?? (bool) ($newStatus?->emails_customer);
+            // The status moving is one reason to announce. A caller who took
+            // an explicit position on CHANNELS is the other: an operator
+            // ticking Notify (or a channel) while recording a tracking number
+            // on an order that is already on its target status still means
+            // to tell the customer, and that decision only ever comes from a
+            // human with the order open (NotifyChoice::explicit()) or one
+            // deliberately silencing everything (NotifyChoice::silent()).
+            // Every other choice, including emailHandledElsewhere(), stays
+            // behind the status-moved guard on an unchanged status, which is
+            // what stops the ERP setting Shipped and the courier poll mapping
+            // to Shipped ten minutes later from telling the customer twice
+            // about the same move, and what stops a retried HitPay webhook
+            // that finds the order already on the success status from
+            // re-announcing it.
+            $announces = $oldStatusId !== $orderStatusId || $choice->isExplicit();
 
-        // notify_customer means "the customer was told", not "the status
-        // email was sent". A caller that sends its own email instead (the
-        // order confirmation, HitPay's payment confirmation) still told
-        // them, so the row must still read as customer-visible even though
-        // the status email itself is suppressed.
-        $notifyCustomer = $emails || $choice->toldCustomerElsewhere();
+            // Resolved before the row is written, so the row can say what
+            // was decided rather than being updated a second time.
+            $plan = $announces
+                ? OrderNotificationService::plan($newStatus, $choice)
+                : ['email' => false, 'channels' => []];
 
-        $history = $order->histories()->create([
-            'order_status_id' => $orderStatusId,
-            'comment'         => $comment,
-            'notify_customer' => $notifyCustomer,
-            'created_by'      => $createdBy,
-        ]);
-        $order->update(['order_status_id' => $orderStatusId]);
-        // The status relation (if it was loaded) now describes the OLD status.
-        // Anything reading $order->status right after a change would get a
-        // stale answer, in the order page's own header as much as anywhere
-        // else. Dropping the loaded relation makes the next read re-resolve.
-        $order->unsetRelation('status');
+            // notify_customer means "the customer was told", not "the status
+            // email was sent". A text alone told them; so did a caller that
+            // sends its own email instead (the order confirmation, HitPay's
+            // payment confirmation), even though the status email itself is
+            // suppressed. The account page shows the comment only when true.
+            $notifyCustomer = $plan['email'] || $plan['channels'] !== [] || $choice->toldCustomerElsewhere();
 
-        if ($newStatus) {
-            StockService::adjustForStatusChange($order, $newStatus);
-        }
+            $history = $order->histories()->create([
+                'order_status_id'  => $orderStatusId,
+                'comment'          => $comment,
+                // Stored only when it differs, so the account page can show
+                // the line written for the customer rather than the record's.
+                'customer_comment' => ($customerComment !== null && $customerComment !== $comment) ? $customerComment : null,
+                'notify_customer'  => $notifyCustomer,
+                'created_by'       => $createdBy,
+            ]);
+            // $order may be a stale copy. Aligning it with the row just read
+            // makes the update below compare against what the database
+            // holds, so it writes whenever the database differs, even when
+            // the stale copy happened to already carry the target id.
+            if ($locked) {
+                $order->setAttribute('order_status_id', $locked->order_status_id);
+                $order->syncOriginalAttribute('order_status_id');
+            }
+            $order->update(['order_status_id' => $orderStatusId]);
+            // The status relation (if it was loaded) now describes the OLD
+            // status. Anything reading $order->status right after a change
+            // would get a stale answer, in the order page's own header as
+            // much as anywhere else. Dropping the loaded relation makes the
+            // next read re-resolve.
+            $order->unsetRelation('status');
 
-        // The status moving is one reason to announce. A caller who took an
-        // explicit position on CHANNELS is the other: an operator ticking
-        // Notify (or a channel) while recording a tracking number on an
-        // order that is already on its target status still means to tell
-        // the customer, and that decision only ever comes from a human with
-        // the order open (NotifyChoice::explicit()) or one deliberately
-        // silencing everything (NotifyChoice::silent()). Every other choice,
-        // including emailHandledElsewhere(), stays behind the status-moved
-        // guard on an unchanged status, which is what stops the ERP setting
-        // Shipped and the courier poll mapping to Shipped ten minutes later
-        // from telling the customer twice about the same move, and what
-        // stops a retried HitPay webhook that finds the order already on
-        // the success status from re-announcing it.
-        if ($oldStatusId !== $orderStatusId || $choice->isExplicit()) {
-            OrderNotificationService::announce($order, $newStatus, $oldStatusName, $customerComment ?? $comment, $choice, $history->id);
-        }
+            if ($newStatus) {
+                StockService::adjustForStatusChange($order, $newStatus);
+            }
 
-        return $newStatus;
+            // Jobs implement ShouldQueueAfterCommit, so nothing is handed to
+            // the queue until this transaction (and any caller's around it)
+            // has committed.
+            if ($announces) {
+                OrderNotificationService::announce($order, $newStatus, $oldStatusName, $customerComment ?? $comment, $choice, $history->id, $plan);
+            }
+
+            return $newStatus;
+        });
     }
 
     /**
