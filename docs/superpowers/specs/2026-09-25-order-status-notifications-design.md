@@ -1,0 +1,181 @@
+# One doorway for order status changes
+
+**Date:** 2026-09-25
+**Status:** approved design, not yet built
+
+## The problem
+
+A customer hears about their order only if the code path that moved the order
+happens to remember to tell them. Each path decides for itself, so the paths
+written before a channel existed say nothing through it.
+
+Measured in the codebase today:
+
+| Path | Moves status via | Email | SMS | Stock |
+|---|---|---|---|---|
+| Admin order page | `OrderStatusChanger` | tick | tick | yes |
+| Fulfillment booking / manual shipment | `OrderStatusChanger` | fulfillment's list | fulfillment's list | yes |
+| Courier fetch (poll + webhook) | direct write | courier map's flag | **never** | yes |
+| Checkout, initial status | direct write | order confirmation | **never** | yes |
+| Payment success (HitPay webhook, checkout success) | direct write | **never** | **never** | yes |
+| Customer cancels | `OrderStatusChanger` | always | **never** | yes |
+| ERP API status update | direct write | **never** | **never** | **never** |
+
+Two consequences the owner reported:
+
+- A QuadX parcel was picked up, the courier fetch moved the order to Shipped,
+  and no SMS was sent even though Shipped is ticked to text. The tick is real;
+  that path has no reader for it.
+- Customers say they never received an email after an ERP status update. That
+  endpoint writes the status by hand with `notify_customer` hardcoded false,
+  and it is the path the business uses most. The same bypass means it never
+  adjusts stock either.
+
+The deeper cause: the answer to "does this status tell the customer" lives in
+the courier-fulfillment extension (`NotifyMap`, plus a per-courier-status
+notify flag), so anything outside that extension cannot consult it, and a store
+that does not use fulfillment has no automation at all.
+
+## The design
+
+**One doorway.** Every status change goes through `OrderStatusChanger`, which
+already writes history and adjusts stock. It announces each change. Whoever
+moved the order - a human, fulfillment, the ERP, a payment webhook, checkout -
+passes through the same door, and every listener hears the same announcement.
+
+**Each channel owns its own answer.**
+
+- **Email** ticks live on the core order status, edited on Sales, Order
+  Statuses, beside `deducts_stock`, `counts_as_revenue`, `customer_can_cancel`
+  and `tone`. "Does the customer hear about this" is the same kind of fact
+  about a status.
+- **SMS** ticks live in the UniSMS extension's own settings, because SMS costs
+  money per message and the list of statuses worth paying for belongs beside
+  the account that pays.
+
+No extension depends on another. Fulfillment, erp-sync and sms-unisms each
+depend only on core.
+
+**The admin page keeps its override.** The Notify box arrives pre-ticked when
+the target status is ticked, and unticking it suppresses that one message. An
+explicit choice on the page wins for that action. This preserves the OpenCart
+habit (a human with the order open may have a reason not to write) while making
+the store's standing answer the default rather than something to remember.
+
+**Nothing is sent when nothing changed.** Applying the status an order already
+has produces no announcement. This is what stops the ERP setting Shipped and
+the courier poll mapping to Shipped ten minutes later from speaking twice.
+
+**Two ticked statuses mean two messages.** Deliberately. An order created at
+Pending and paid into Processing sends two texts when both are ticked, and the
+merchant's remedy is to tick one. No delay, no supersede rule, no code deciding
+what the customer "really" needed.
+
+**Sending rides the queue.** The announcement records what should go; the
+worker sends it. Not for batching or delay, but because the same work now
+happens inside a courier webhook (couriers expect an acknowledgement in about
+three seconds) and inside the ERP's API call. A slow gateway must not hold
+either open, and a failed send should retry rather than vanish.
+
+## What changes, file by file
+
+### Core
+
+- `OrderStatusChanger::apply()` gains the announcement and an explicit-choice
+  argument (null means "follow the store's ticks"). It already writes history
+  and calls `StockService::adjustForStatusChange`.
+- A new event carries: order, old status, new status, comment, and the caller's
+  explicit choice when there was one.
+- A listener per channel. Email's listener reads the status tick; it replaces
+  the four hardcoded decisions scattered across callers.
+- `order_statuses` gains `emails_customer` (boolean, default false), with the
+  tick added to the Order Statuses form and table. Named for the channel it
+  governs: SMS keeps its own list in UniSMS, and a future core channel would
+  get its own column rather than overloading this one.
+- `OrderNotificationChannel` gains a way for a channel to answer "do you want
+  this status", so a channel declines by its own policy rather than every
+  caller knowing about ticks.
+- The order history row records what each channel did: sent or not, the reason
+  when not, and the gateway's message id when there is one. We record that we
+  sent and that the gateway accepted. We never claim delivery.
+
+### Paths routed through the doorway
+
+- `StatusMapper::apply()` (courier fetch: poll and webhook).
+- `CheckoutService` initial status, and `CheckoutController`'s success status.
+- `HitPayWebhookController` payment success.
+- `ErpOrderController::updateStatus()`, which also starts adjusting stock as a
+  consequence.
+
+### sms-unisms
+
+- Per-status ticks in its own settings, with the statuses listed from core.
+- The message never contains a URL. The tracking comment's anchor becomes its
+  text (the tracking number), not its href, and the send layer strips anything
+  URL-shaped as a backstop. Philippine telcos drop messages carrying links, so
+  a link does not merely annoy, it loses the message.
+- An editable template, seeded as:
+  `{store_name}: Order #{order_id} is now {order_status}`
+  Placeholders: `{store_name}`, `{order_id}`, `{order_status}`,
+  `{customer_name}`, `{tracking_number}`, `{courier_name}`, `{comment}`.
+  None of them ever yields a URL.
+- Manifest type becomes `notification`, so SMS gateways group in the extension
+  list the way payment methods and shipping rates do.
+
+### courier-fulfillment
+
+- `NotifyMap` and the Notify column on Status Placement retire.
+- The per-courier-status notify flag in the courier status map retires. It was
+  a second answer to the same question; its only extra power was emailing on
+  "picked up" but not "in transit" when both map to Shipped. If that is wanted
+  later, the honest answer is a separate core status.
+- Existing ticks are not migrated. The owner re-ticks; it is a handful of
+  boxes.
+
+## Order of work
+
+**Pass 1, the reported bugs.** Doorway and announcement; the four paths routed
+through it; ERP stock; the unchanged-status guard; queued sending; SMS ticks in
+UniSMS; no URLs; the seeded template. After this: the ERP notifies and moves
+stock, QuadX pickups text, payment success speaks.
+
+**Pass 2, the tidy-up.** Email tick onto the core status; fulfillment's list
+and courier flag retired; the manifest type.
+
+Pass 2 only moves where a tick is stored. Nothing in it is urgent.
+
+## Testing
+
+Test-first throughout. Per path: the status change announces, the listeners
+send according to the ticks, and an explicit choice on the admin page wins.
+Specifically:
+
+- ERP status update: sends per the ticks, moves stock, and applying the same
+  status twice speaks once.
+- Courier fetch: a mapped status that is ticked for SMS sends one text.
+- Payment success: the status change announces.
+- Checkout: an initial status ticked for SMS sends one text; the order
+  confirmation email is unaffected.
+- Customer cancellation: follows the ticks, and Cancelled unticked sends
+  nothing.
+- No message composed by the SMS channel contains a URL, including when the
+  comment carries a tracking link and when a merchant types one into the
+  template.
+- A channel that cannot reach the customer (no number, no gateway) reports it
+  and changes nothing else.
+
+The paths that touch checkout and payment webhooks are where a mistake costs
+real orders, so those get a manual end-to-end run on the dev store as well,
+before either pass is committed.
+
+## Out of scope
+
+- Delivery confirmation. UniSMS accepting a message is not the handset
+  receiving it. If their API exposes a delivery-status endpoint, that is a
+  later change.
+- Notifications for changes that are not a status change, such as adding a
+  tracking number to an order that is already Shipped.
+- Moving the SMS gateway itself into core. UniSMS stays an extension behind the
+  channel contract, which keeps the option of a second gateway cheap.
+- Any per-call override from the ERP. The store's ticks decide, so staff cannot
+  silence a customer by accident.
