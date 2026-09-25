@@ -43,4 +43,13 @@ interface OrderNotificationChannel
      * @return array{sent: bool, reason: string|null}
      */
     public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null): array;
+
+    /**
+     * Does this channel want to speak about this status?
+     *
+     * The channel answers from its own settings, so no caller has to know
+     * that a channel has settings at all. A channel with no policy of its
+     * own answers true and lets the ticked/unticked caller decide.
+     */
+    public function wantsStatus(?int $orderStatusId): bool;
 }

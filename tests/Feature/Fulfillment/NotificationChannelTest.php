@@ -49,6 +49,22 @@ class NotificationChannelTest extends TestCase
         Mail::fake();
     }
 
+    /**
+     * OrderNotificationService::$channels is a static registry with no
+     * unregister call, so SpyChannel would otherwise outlive this test and
+     * leak into whichever other suite runs next in the same process
+     * (AnnouncementTest, in either order). Wiping it back to empty is this
+     * test's own cleanup, not a change to the class under test.
+     */
+    protected function tearDown(): void
+    {
+        $property = new \ReflectionProperty(OrderNotificationService::class, 'channels');
+        $property->setAccessible(true);
+        $property->setValue(null, []);
+
+        parent::tearDown();
+    }
+
     private function order(): Order
     {
         return Order::create([
@@ -172,12 +188,15 @@ class SpyChannel implements OrderNotificationChannel
 
     public static bool $throw = false;
 
+    public static bool $wants = true;
+
     public static function reset(): void
     {
         self::$calls = 0;
         self::$lastNew = null;
         self::$available = true;
         self::$throw = false;
+        self::$wants = true;
     }
 
     public function key(): string
@@ -193,6 +212,11 @@ class SpyChannel implements OrderNotificationChannel
     public function available(): bool
     {
         return self::$available;
+    }
+
+    public function wantsStatus(?int $orderStatusId): bool
+    {
+        return self::$wants;
     }
 
     public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null): array

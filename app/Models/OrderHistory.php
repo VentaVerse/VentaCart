@@ -9,13 +9,14 @@ class OrderHistory extends Model
 {
     protected $fillable = [
         'order_id', 'order_status_id', 'created_by',
-        'comment', 'notify_customer',
+        'comment', 'notify_customer', 'notifications',
     ];
 
     protected function casts(): array
     {
         return [
             'notify_customer' => 'boolean',
+            'notifications' => 'array',
         ];
     }
 
