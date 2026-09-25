@@ -66,16 +66,24 @@ final class NotifyChoice
     }
 
     /**
-     * Did a caller actually decide something, rather than defer to the
-     * store's own ticks? Every factory but follow() answers yes: it is the
-     * one that leaves $email null. Used to decide whether a status change
-     * that did not move the status still deserves an announcement, such as
-     * an operator ticking Notify while recording tracking on an order that
-     * is already on its target status.
+     * Did the caller take a position on CHANNELS, rather than deferring to
+     * each channel's own wantsStatus()? Only explicit() and silent() state
+     * a channels list, even an empty one; follow(), emailAlways() and
+     * emailHandledElsewhere() all leave $channels null and defer.
+     *
+     * Used to decide whether a status change that did not move the status
+     * still deserves an announcement, such as an operator ticking Notify
+     * (or a channel) while recording tracking on an order that is already
+     * on its target status: that decision only ever comes from a human
+     * with the order open (explicit()), or from a caller deliberately
+     * silencing everything (silent()). emailHandledElsewhere() answers a
+     * different question (this caller emails on its own) and must NOT
+     * count as explicit here, or a HitPay webhook retry landing on an
+     * order already at the target status would announce all over again.
      */
     public function isExplicit(): bool
     {
-        return $this->email !== null;
+        return $this->channels !== null;
     }
 
     /**

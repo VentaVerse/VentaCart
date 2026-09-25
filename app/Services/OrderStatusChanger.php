@@ -72,15 +72,19 @@ class OrderStatusChanger
             StockService::adjustForStatusChange($order, $newStatus);
         }
 
-        // The status moving is one reason to announce. A caller who made an
-        // explicit decision is the other: an operator ticking Notify (or a
-        // channel) while recording a tracking number on an order that is
-        // already on its target status still means to tell the customer,
-        // and that decision only ever comes from a human with the order
-        // open. NotifyChoice::follow() on an unchanged status stays silent
-        // either way, which is what stops the ERP setting Shipped and the
-        // courier poll mapping to Shipped ten minutes later from telling the
-        // customer twice about the same move.
+        // The status moving is one reason to announce. A caller who took an
+        // explicit position on CHANNELS is the other: an operator ticking
+        // Notify (or a channel) while recording a tracking number on an
+        // order that is already on its target status still means to tell
+        // the customer, and that decision only ever comes from a human with
+        // the order open (NotifyChoice::explicit()) or one deliberately
+        // silencing everything (NotifyChoice::silent()). Every other choice,
+        // including emailHandledElsewhere(), stays behind the status-moved
+        // guard on an unchanged status, which is what stops the ERP setting
+        // Shipped and the courier poll mapping to Shipped ten minutes later
+        // from telling the customer twice about the same move, and what
+        // stops a retried HitPay webhook that finds the order already on
+        // the success status from re-announcing it.
         if ($oldStatusId !== $orderStatusId || $choice->isExplicit()) {
             OrderNotificationService::announce($order, $newStatus, $oldStatusName, $customerComment ?? $comment, $choice, $history->id);
         }

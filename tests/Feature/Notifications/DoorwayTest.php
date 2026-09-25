@@ -110,4 +110,22 @@ class DoorwayTest extends TestCase
         Mail::assertNothingSent();
         $this->assertArrayNotHasKey('email', $history->notifications ?? [], 'No status email was queued on top of the confirmation.');
     }
+
+    /**
+     * emailHandledElsewhere() defers on channels the same way follow() does
+     * (isExplicit() reads $channels, not $email): a HitPay webhook retry
+     * that lands on an order already at the target status must announce
+     * nothing, the same as the ERP/courier race test_applying_the_same_
+     * status_again_says_nothing above.
+     */
+    public function test_email_handled_elsewhere_on_an_unchanged_status_announces_nothing(): void
+    {
+        $order = $this->order();
+        $order->update(['order_status_id' => $this->shipped->id]);
+
+        OrderStatusChanger::apply($order->fresh(), $this->shipped->id, 'Payment confirmed via HitPay.', NotifyChoice::emailHandledElsewhere());
+
+        $this->assertSame(0, RecordingChannel::$sends, 'The status did not move: nothing new to tell.');
+        Mail::assertNothingSent();
+    }
 }
