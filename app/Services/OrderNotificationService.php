@@ -192,7 +192,10 @@ class OrderNotificationService
     public static function withTracking(Order $order, ?string $comment = null): string
     {
         $tracking = self::trackingPlaceholders($order);
-        $number = trim((string) $tracking['tracking_number']);
+        // The raw number, never $tracking['tracking_number']: that one is a
+        // finished anchor already, and escaping it inside the anchor below
+        // printed "&lt;a href=..." to the customer.
+        $number = trim((string) $order->tracking_number);
         $comment = trim((string) $comment);
 
         if ($number === '') {
