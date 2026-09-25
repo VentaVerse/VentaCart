@@ -10,6 +10,7 @@ use App\Services\ExtensionManager;
 use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 /**
@@ -89,5 +90,40 @@ class ErpStatusNotificationTest extends TestCase
             ->assertOk();
 
         Mail::assertNothingSent();
+    }
+
+    /**
+     * M2: the fallback wording is for the record. Without a comment from the
+     * ERP the customer's email {comment} is empty, and the account page
+     * shows no "Status updated via ERP API".
+     */
+    public function test_the_fallback_wording_stays_on_the_record(): void
+    {
+        Queue::fake();
+        $order = $this->order();
+
+        $this->withToken('erp-test-token')
+            ->putJson('/api/v1/orders/' . $order->id . '/status', ['status_id' => $this->shipped->id])
+            ->assertOk();
+
+        $history = $order->histories()->latest('id')->first();
+        $this->assertSame('Status updated via ERP API', $history->comment);
+        $this->assertSame('', $history->customerFacingComment());
+        Queue::assertPushed(\App\Jobs\SendOrderStatusNotification::class, fn ($job) => $job->target === 'email' && $job->comment === '');
+    }
+
+    public function test_a_comment_from_the_erp_reaches_the_customer(): void
+    {
+        Queue::fake();
+        $order = $this->order();
+
+        $this->withToken('erp-test-token')
+            ->putJson('/api/v1/orders/' . $order->id . '/status', ['status_id' => $this->shipped->id, 'comment' => 'Packed with care'])
+            ->assertOk();
+
+        $history = $order->histories()->latest('id')->first();
+        $this->assertSame('Packed with care', $history->comment);
+        $this->assertSame('Packed with care', $history->customerFacingComment());
+        Queue::assertPushed(\App\Jobs\SendOrderStatusNotification::class, fn ($job) => $job->target === 'email' && $job->comment === 'Packed with care');
     }
 }

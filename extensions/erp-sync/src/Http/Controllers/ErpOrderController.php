@@ -255,6 +255,10 @@ class ErpOrderController extends Controller
             // The store's ticks decide. The ERP deliberately cannot silence a
             // customer: staff should not be able to do that by accident.
             NotifyChoice::follow(),
+            null,
+            // The fallback wording above is for the record. The customer
+            // reads only what the ERP actually wrote, which may be nothing.
+            $validated['comment'] ?? '',
         );
 
         $data = [
