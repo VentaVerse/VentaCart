@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The ONE place an order's status is changed with its bookkeeping: history
- * row + order_status_id update + StockService adjustment, in that order —
+ * row + order_status_id update + StockService adjustment, in that order,
  * extracted (fulfillment-tabs-v Task 4 fix round) from
  * OrderController::addHistory(), whose mechanics the fulfillment queue's
  * Cancel order action had duplicated. Both now call this for the core write;
@@ -32,7 +32,7 @@ class OrderStatusChanger
      *   that belongs on the record but not in the customer's inbox).
      *   Defaults to $comment.
      * @return OrderStatus|null the status row actually applied (null only if
-     *   $orderStatusId doesn't resolve — the history row and order update
+     *   $orderStatusId doesn't resolve: the history row and order update
      *   still happen, matching addHistory()'s pre-extraction behavior, but
      *   no stock adjustment runs without a status row to read deducts_stock
      *   from).

@@ -81,7 +81,7 @@ class CheckoutController extends Controller
                 $couponDiscount = $couponResult->discount;
                 $couponFreeShipping = $couponResult->freeShipping;
             } else {
-                // Coupon no longer valid — clear it from cart
+                // Coupon no longer valid: clear it from cart
                 $cart->update(['coupon_code' => null]);
                 $couponError = $couponResult->message;
             }
@@ -249,13 +249,13 @@ class CheckoutController extends Controller
             return redirect()->route('account.orders');
         }
 
-        // Customer didn't complete payment — send back to checkout
+        // Customer didn't complete payment: send back to checkout
         if ($status !== 'completed') {
             return redirect()->route('checkout.index')
                 ->with('error', 'Payment was not completed. Your cart has been preserved, please try again.');
         }
 
-        // Payment completed — clear cart (webhook may not have fired yet)
+        // Payment completed: clear cart (webhook may not have fired yet)
         $cart = $customer->cart;
         if ($cart) {
             $cart->items()->delete();
