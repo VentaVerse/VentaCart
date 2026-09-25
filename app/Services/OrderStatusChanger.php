@@ -13,7 +13,7 @@ use App\Support\NotifyChoice;
  * OrderController::addHistory(), whose mechanics the fulfillment queue's
  * Cancel order action had duplicated. Both now call this for the core write;
  * everything layered on top (courier/tracking side effects, comment
- * building) stays with each caller — this method never sends anything
+ * building) stays with each caller. This method never sends anything
  * itself: it announces, and the queue sends.
  */
 class OrderStatusChanger
