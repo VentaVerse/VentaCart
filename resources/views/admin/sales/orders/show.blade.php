@@ -250,10 +250,11 @@
             {{-- Every submit here CREATES a history entry, so the button is
                  the verb and the save bar stays out of it. --}}
             <x-admin.panel title="Update order">
-                <form method="POST" action="{{ route('admin.orders.history.store', $order) }}">
+                <form method="POST" action="{{ route('admin.orders.history.store', $order) }}"
+                      x-data="{ statusId: {{ (int) $order->order_status_id }}, emailsByStatus: @js($statuses->pluck('emails_customer', 'id')) }">
                     @csrf
                     <x-admin.field name="order_status_id" label="Status" required>
-                        <select name="order_status_id" required class="v-control">
+                        <select name="order_status_id" required class="v-control" x-model.number="statusId">
                             @foreach ($statuses as $status)
                                 <option value="{{ $status->id }}" @selected($order->order_status_id == $status->id)>{{ $status->name }}</option>
                             @endforeach
@@ -281,7 +282,9 @@
                     </div>
                     <div class="v-gap v-actrow">
                         <label class="v-check">
-                            <input type="checkbox" name="notify_customer" value="1">
+                            <input type="checkbox" name="notify_customer" value="1"
+                                   x-bind:checked="emailsByStatus[statusId] ?? false"
+                                   aria-label="Email the customer about this change">
                             Notify customer
                         </label>
                         {{-- One tick per way of telling a customer that an

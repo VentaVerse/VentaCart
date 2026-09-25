@@ -14,6 +14,8 @@ use App\Models\ShippingCourier;
 use Illuminate\Http\Request;
 use App\Services\OrderStatusChanger;
 use App\Services\StockService;
+use App\Support\NotifyChoice;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -298,7 +300,12 @@ class OrderController extends Controller
             // syncProducts() deletes the rows.
             $oldLines = $order->products->load('product', 'productVariant');
 
-            $order->update($validated);
+            // order_status_id is excluded here and applied below, through the
+            // one doorway every other status change uses: a mass update that
+            // set it early would make OrderStatusChanger::apply() read the
+            // order as already on its new status and skip the history row,
+            // the stock adjustment and the announcement entirely.
+            $order->update(Arr::except($validated, ['order_status_id']));
 
             $this->syncProducts($order, $request);
             $this->recalculateTotals($order);
@@ -317,10 +324,18 @@ class OrderController extends Controller
             }
 
             if ($statusChanged) {
-                $newStatus = OrderStatus::find($validated['order_status_id']);
-                if ($newStatus) {
-                    StockService::adjustForStatusChange($order, $newStatus);
-                }
+                // Same doorway every other status change uses: history row +
+                // status update + stock adjustment + the one announcement.
+                // This form carries no per-change notify tick, so the
+                // store's own ticks on the target status decide, exactly as
+                // an ERP call or a courier poll landing here would.
+                OrderStatusChanger::apply(
+                    $order,
+                    (int) $validated['order_status_id'],
+                    null,
+                    NotifyChoice::follow(),
+                    Auth::id(),
+                );
             }
 
             // Stock moving with nothing to show for it is how this went
@@ -365,7 +380,6 @@ class OrderController extends Controller
             'tracking_number' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $oldStatus = $order->order_status_name ?? 'Unknown';
         $validated['created_by'] = Auth::id();
         $validated['notify_customer'] = $request->has('notify_customer');
 
@@ -395,40 +409,19 @@ class OrderController extends Controller
         $validated['comment'] = $comment ?: null;
 
         // Shared status-change core (history row + status update + stock
-        // adjustment) — the same mechanics the fulfillment queue's Cancel
-        // order action applies (App\Services\OrderStatusChanger). The
-        // notification email below stays at THIS layer.
-        $newStatus = OrderStatusChanger::apply(
+        // adjustment + the one announcement) — the same mechanics the
+        // fulfillment queue's Cancel order action applies
+        // (App\Services\OrderStatusChanger). The operator's own ticks on
+        // this page are the explicit choice; the doorway sends, once.
+        OrderStatusChanger::apply(
             $order,
             (int) $validated['order_status_id'],
             $validated['comment'],
-            (bool) $validated['notify_customer'],
+            NotifyChoice::explicit(
+                (bool) $validated['notify_customer'],
+                $validated['channels'] ?? [],
+            ),
             $validated['created_by'],
-        );
-
-        // After the write. The status email carries the tracking placeholders
-        // whenever the order has a number; a tracking number recorded in this
-        // same submission also earns the shipping email, as it always has.
-        // One update, one email. The comment built above already carries the
-        // courier and a clickable tracking number when one was given, so the
-        // status email says everything a second shipping email would have,
-        // and the customer is told once instead of twice. Recording a courier
-        // on an order that already had a number used to send the shipping
-        // mail again as well, announcing a despatch that had not happened.
-        if ($validated['notify_customer'] && $order->email) {
-            OrderNotificationService::statusChanged($order, $oldStatus, $newStatus?->name, $validated['comment'] ?? '');
-        }
-
-        // Ticked separately from the email, because they are separate acts:
-        // a store may text without emailing, or email without texting. A
-        // channel that cannot reach this customer says so and changes
-        // nothing else; the order has already moved either way.
-        OrderNotificationService::statusChangedVia(
-            $validated['channels'] ?? [],
-            $order,
-            $oldStatus,
-            $newStatus?->name,
-            $validated['comment'] ?? '',
         );
 
         return redirect()->route('admin.orders.show', $order)

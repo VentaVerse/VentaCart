@@ -19,31 +19,21 @@ use App\Support\NotifyChoice;
 class OrderStatusChanger
 {
     /**
-     * @param  NotifyChoice|bool|null  $notify  null follows the store's
-     *   ticks (NotifyChoice::follow()). The bool form is transitional: it is
-     *   read as NotifyChoice::explicit($notify, []), so the history row still
-     *   records exactly what the caller decided, but the doorway does NOT
-     *   also announce for it. The three callers still passing a bool
-     *   (OrderController, CustomerOrderCancellation, FulfillmentService)
-     *   already send their own customer email/channel messages after calling
-     *   apply(); if the doorway announced too, every one of those calls would
-     *   tell the customer twice. Task 5 migrates each of them to pass a real
-     *   NotifyChoice, deletes their own duplicate send, and removes this bool
-     *   form entirely, at which point the doorway starts announcing for them.
+     * @param  NotifyChoice|null  $notify  null follows the store's ticks
+     *   (NotifyChoice::follow()). Every caller now passes a real NotifyChoice
+     *   (or nothing, to follow); the transitional bool form (Task 4's shim,
+     *   read as NotifyChoice::explicit($notify, []) and never announced) is
+     *   gone as of Task 5, which moved every caller onto NotifyChoice and
+     *   deleted the duplicate sends they used to do for themselves.
      * @return OrderStatus|null the status row actually applied (null only if
      *   $orderStatusId doesn't resolve — the history row and order update
      *   still happen, matching addHistory()'s pre-extraction behavior, but
      *   no stock adjustment runs without a status row to read deducts_stock
      *   from).
      */
-    public static function apply(Order $order, int $orderStatusId, ?string $comment = null, NotifyChoice|bool|null $notify = null, ?int $createdBy = null): ?OrderStatus
+    public static function apply(Order $order, int $orderStatusId, ?string $comment = null, ?NotifyChoice $notify = null, ?int $createdBy = null): ?OrderStatus
     {
-        $isLegacyBool = is_bool($notify);
-        $choice = match (true) {
-            $notify instanceof NotifyChoice => $notify,
-            $isLegacyBool => NotifyChoice::explicit($notify, []),
-            default => NotifyChoice::follow(),
-        };
+        $choice = $notify ?? NotifyChoice::follow();
 
         $oldStatusId = (int) $order->order_status_id;
         $oldStatusName = OrderStatus::find($oldStatusId)?->name;
@@ -73,14 +63,7 @@ class OrderStatusChanger
         // Nothing moved, so there is nothing to announce. This is what stops
         // the ERP setting Shipped and the courier poll mapping to Shipped ten
         // minutes later from telling the customer twice.
-        //
-        // A legacy bool caller is skipped too, on purpose: it already sends
-        // its own customer email/channel messages right after this call
-        // returns, a habit from when this method's contract was "never sends
-        // mail". Announcing here as well would tell the customer twice,
-        // which is exactly what this method exists to prevent. See the
-        // $notify param doc.
-        if ($oldStatusId !== $orderStatusId && ! $isLegacyBool) {
+        if ($oldStatusId !== $orderStatusId) {
             OrderNotificationService::announce($order, $newStatus, $oldStatusName, $comment, $choice, $history->id);
         }
 
