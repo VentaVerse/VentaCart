@@ -63,4 +63,17 @@ final class NotifyChoice
     {
         return new self(false, []);
     }
+
+    /**
+     * Did a caller actually decide something, rather than defer to the
+     * store's own ticks? Every factory but follow() answers yes: it is the
+     * one that leaves $email null. Used to decide whether a status change
+     * that did not move the status still deserves an announcement, such as
+     * an operator ticking Notify while recording tracking on an order that
+     * is already on its target status.
+     */
+    public function isExplicit(): bool
+    {
+        return $this->email !== null;
+    }
 }

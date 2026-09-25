@@ -25,13 +25,18 @@ class OrderStatusChanger
      *   read as NotifyChoice::explicit($notify, []) and never announced) is
      *   gone as of Task 5, which moved every caller onto NotifyChoice and
      *   deleted the duplicate sends they used to do for themselves.
+     * @param  ?string  $customerComment  what the announcement carries, when
+     *   it differs from the history row's own comment (for example, a
+     *   fulfilment audit line like "Order status set to X by fulfillment"
+     *   that belongs on the record but not in the customer's inbox).
+     *   Defaults to $comment.
      * @return OrderStatus|null the status row actually applied (null only if
      *   $orderStatusId doesn't resolve — the history row and order update
      *   still happen, matching addHistory()'s pre-extraction behavior, but
      *   no stock adjustment runs without a status row to read deducts_stock
      *   from).
      */
-    public static function apply(Order $order, int $orderStatusId, ?string $comment = null, ?NotifyChoice $notify = null, ?int $createdBy = null): ?OrderStatus
+    public static function apply(Order $order, int $orderStatusId, ?string $comment = null, ?NotifyChoice $notify = null, ?int $createdBy = null, ?string $customerComment = null): ?OrderStatus
     {
         $choice = $notify ?? NotifyChoice::follow();
 
@@ -60,11 +65,17 @@ class OrderStatusChanger
             StockService::adjustForStatusChange($order, $newStatus);
         }
 
-        // Nothing moved, so there is nothing to announce. This is what stops
-        // the ERP setting Shipped and the courier poll mapping to Shipped ten
-        // minutes later from telling the customer twice.
-        if ($oldStatusId !== $orderStatusId) {
-            OrderNotificationService::announce($order, $newStatus, $oldStatusName, $comment, $choice, $history->id);
+        // The status moving is one reason to announce. A caller who made an
+        // explicit decision is the other: an operator ticking Notify (or a
+        // channel) while recording a tracking number on an order that is
+        // already on its target status still means to tell the customer,
+        // and that decision only ever comes from a human with the order
+        // open. NotifyChoice::follow() on an unchanged status stays silent
+        // either way, which is what stops the ERP setting Shipped and the
+        // courier poll mapping to Shipped ten minutes later from telling the
+        // customer twice about the same move.
+        if ($oldStatusId !== $orderStatusId || $choice->isExplicit()) {
+            OrderNotificationService::announce($order, $newStatus, $oldStatusName, $customerComment ?? $comment, $choice, $history->id);
         }
 
         return $newStatus;

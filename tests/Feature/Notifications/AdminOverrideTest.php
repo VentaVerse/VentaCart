@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Notifications;
 
+use App\Mail\TemplateMail;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\OrderNotificationService;
+use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\RecordingChannel;
@@ -25,6 +27,10 @@ class AdminOverrideTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // TemplateMailService::send() finds no active template and quietly
+        // returns false without this, so Mail::assertSent() would pass
+        // whether or not the email path actually fired.
+        $this->seed(EmailTemplateSeeder::class);
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
         $this->packing = OrderStatus::create(['store_id' => 1, 'name' => 'Packing', 'sort_order' => 1]);
         $this->shipped = OrderStatus::create([
@@ -78,6 +84,36 @@ class AdminOverrideTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $this->assertSame(1, RecordingChannel::$sends, 'Exactly once: the page must not send and then announce as well.');
+
+        // Ticking Notify has to genuinely produce the status email, not only
+        // a channel send; a template-less test would let this pass either way.
+        Mail::assertSent(TemplateMail::class, 1);
+        Mail::assertSent(TemplateMail::class, fn (TemplateMail $m) => str_contains($m->renderedBody, 'On its way'));
+    }
+
+    /**
+     * The everyday flow: a parcel already on Shipped gets its tracking
+     * number added, the operator ticks Notify and a channel, and the status
+     * itself does not move. apply() used to announce only when the status
+     * changed, so this sent nothing at all while the history row still
+     * claimed notify_customer = true.
+     */
+    public function test_adding_tracking_while_already_on_the_target_status_still_tells_the_customer(): void
+    {
+        $order = $this->order();
+        $order->update(['order_status_id' => $this->shipped->id]);
+
+        $this->post(route('admin.orders.history.store', $order), [
+            'order_status_id' => $this->shipped->id,
+            'tracking_number' => 'TRK1',
+            'comment' => 'Adding the tracking number',
+            'notify_customer' => '1',
+            'channels' => ['recorder'],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame($this->shipped->id, $order->fresh()->order_status_id, 'The status genuinely did not move.');
+        Mail::assertSent(TemplateMail::class, 1);
+        $this->assertSame(1, RecordingChannel::$sends);
     }
 
     /**
