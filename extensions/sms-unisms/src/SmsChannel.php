@@ -54,6 +54,12 @@ class SmsChannel implements OrderNotificationChannel
 
         $result = UniSms::send($number, $this->compose($order, $newStatus, $comment));
 
+        // 429 is UniSMS saying "one request every two seconds", not "no":
+        // the job goes back on the queue rather than recording a failure.
+        if (($result['status'] ?? null) === 429) {
+            return ['sent' => false, 'reason' => $result['error'], 'retry' => true, 'retry_after' => UniSms::SECONDS_PER_REQUEST];
+        }
+
         return ['sent' => $result['ok'], 'reason' => $result['error']];
     }
 

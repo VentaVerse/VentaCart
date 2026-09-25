@@ -9,6 +9,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Jobs\SyncJob;
+use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -24,10 +26,21 @@ use Illuminate\Support\Facades\Log;
  * recorded, never rethrown, so those application-level failures are told
  * once and not retried: under the sync queue this test suite runs on, a
  * rethrow would bubble a dead gateway straight into the status change
- * itself, which nothing here is allowed to touch. $tries therefore only
- * covers infrastructure failures the queue worker itself detects (the
+ * itself, which nothing here is allowed to touch. $maxExceptions therefore
+ * only covers infrastructure failures the queue worker itself detects (the
  * worker dying mid-job, a lost database connection), never a gateway that
  * answered "no".
+ *
+ * The one "no" that is not final is "not yet": a gateway that rate limits
+ * (UniSMS allows one request every two seconds) answers a burst with
+ * refusals that mean "come back shortly". Two things handle it. The job
+ * asks for a limiter named after its target (order-notification:sms), which
+ * the gateway's own extension defines, so core never names a gateway and a
+ * target with no limiter defined passes straight through. And a channel
+ * that still hears "slow down" says so with `retry`, and the job goes back
+ * on the queue instead of writing a failure. Because every release uses up
+ * an attempt, the job retries until a deadline (retryUntil) rather than for
+ * a count, or a long burst would run out of tries while merely waiting.
  *
  * Implements ShouldQueueAfterCommit rather than the plain ShouldQueue: a
  * caller may dispatch this from inside a DB transaction (the HitPay paths
@@ -44,7 +57,14 @@ class SendOrderStatusNotification implements ShouldQueueAfterCommit
     use Queueable;
     use SerializesModels;
 
-    public int $tries = 3;
+    /** Crashes (not refusals, not waits) tolerated before giving up. */
+    public int $maxExceptions = 3;
+
+    /** How long a text may wait its turn before it is no longer worth sending. */
+    public const RETRY_WINDOW_MINUTES = 60;
+
+    /** Used when a channel asks to retry without saying how soon. */
+    public const DEFAULT_RETRY_SECONDS = 10;
 
     public function __construct(
         public int $orderId,
@@ -54,6 +74,29 @@ class SendOrderStatusNotification implements ShouldQueueAfterCommit
         public ?string $comment,
         public ?int $historyId = null,
     ) {
+    }
+
+    public function retryUntil(): \DateTimeInterface
+    {
+        return now()->addMinutes(self::RETRY_WINDOW_MINUTES);
+    }
+
+    /**
+     * A limiter per target, defined (or not) by whoever owns that target.
+     *
+     * Not under the sync queue: there is no queue to wait on, and a
+     * throttled sync job would simply be dropped. A store without a worker
+     * sends immediately, as it always did, and a refusal is recorded.
+     *
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        if ($this->job instanceof SyncJob) {
+            return [];
+        }
+
+        return [new RateLimited('order-notification:' . $this->target)];
     }
 
     public function handle(): void
@@ -68,7 +111,16 @@ class SendOrderStatusNotification implements ShouldQueueAfterCommit
             ? $this->sendEmail($order)
             : $this->sendChannel($order);
 
-        $this->record($result);
+        // "Not yet" is not "no": back on the queue, and nothing recorded
+        // until the message is really sent or really refused. Only when a
+        // real queue can bring it back; a sync run records the refusal.
+        if (($result['retry'] ?? false) === true && $this->job !== null && ! $this->job instanceof SyncJob) {
+            $this->release((int) ($result['retry_after'] ?? self::DEFAULT_RETRY_SECONDS));
+
+            return;
+        }
+
+        $this->record(['sent' => (bool) $result['sent'], 'reason' => $result['reason'] ?? null]);
     }
 
     /** @return array{sent: bool, reason: string|null} */
@@ -83,7 +135,7 @@ class SendOrderStatusNotification implements ShouldQueueAfterCommit
         return ['sent' => $sent, 'reason' => $sent ? null : 'The mailer refused the message.'];
     }
 
-    /** @return array{sent: bool, reason: string|null} */
+    /** @return array{sent: bool, reason: string|null, retry?: bool, retry_after?: int} */
     private function sendChannel(Order $order): array
     {
         foreach (OrderNotificationService::channels() as $channel) {

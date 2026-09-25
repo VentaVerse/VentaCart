@@ -40,7 +40,13 @@ interface OrderNotificationChannel
      * Never throws. A gateway being down must not roll back a status change
      * or stop the email: the order moved whatever the network did.
      *
-     * @return array{sent: bool, reason: string|null}
+     * A gateway that answered "not yet" (a rate limit) returns retry true,
+     * optionally with retry_after in seconds, and the queued job tries again
+     * instead of recording a failure. A channel that throttles can also
+     * define a limiter named "order-notification:{key}" with Laravel's
+     * RateLimiter::for(), which the job honours before sending at all.
+     *
+     * @return array{sent: bool, reason: string|null, retry?: bool, retry_after?: int}
      */
     public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null): array;
 

@@ -45,6 +45,9 @@ class UniSms
     /** The owner's sentence, used until a merchant writes their own. */
     public const DEFAULT_TEMPLATE = '{store_name}: Order #{order_id} is now {order_status}';
 
+    /** The API's own pace: one request every this many seconds. */
+    public const SECONDS_PER_REQUEST = 2;
+
     /** The API's own ceiling on one message. */
     public const MAX_LENGTH = 670;
 
@@ -281,7 +284,7 @@ class UniSms
         return match (true) {
             $status === 401 || $status === 403 => 'UniSMS rejected the API key.' . ($said ? ' ' . $said : ''),
             $status === 422 => 'UniSMS refused the request.' . ($said ? ' ' . $said : ''),
-            $status === 429 => 'Rate limited by UniSMS. It allows one request every two seconds.',
+            $status === 429 => 'Rate limited by UniSMS. It allows one request every ' . self::SECONDS_PER_REQUEST . ' seconds.',
             $status >= 500 => 'UniSMS is having trouble (HTTP ' . $status . '). Try again shortly.',
             default => $said !== '' ? $said : 'UniSMS returned HTTP ' . $status . '.',
         };
