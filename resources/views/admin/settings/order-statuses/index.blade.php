@@ -21,6 +21,7 @@
                                 <th><span class="v-namerow">Deducts stock <x-admin.help text="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned." /></span></th>
                                 <th><span class="v-namerow">Counts as revenue <x-admin.help text="Orders with no status never count, whatever this is set to." /></span></th>
                                 <th><span class="v-namerow">Customer may cancel <x-admin.help text="A customer can cancel their own order from their account while it sits on this status. Tick the statuses that mean not paid yet." /></span></th>
+                                <th><span class="v-namerow">Emails customer <x-admin.help text="Sends the customer an email when an order reaches this status." /></span></th>
                                 <th><span class="v-namerow">Tone <x-admin.help text="The colour of this status in the customer's account: Attention for not paid yet, In progress while it moves, Done when it is over, Stopped when it went wrong." /></span></th>
                                 <th>Sort</th>
                                 <th>Default</th>
@@ -55,6 +56,14 @@
                                             <input type="hidden" name="rows[{{ $status->id }}][customer_can_cancel]" value="0">
                                             <input type="checkbox" name="rows[{{ $status->id }}][customer_can_cancel]" value="1" @checked(old('rows.'.$status->id.'.customer_can_cancel', $status->customer_can_cancel))
                                                    aria-label="{{ $status->name }} customer may cancel">
+                                            <span class="v-toggle__track" aria-hidden="true"></span>
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <label class="v-toggle">
+                                            <input type="hidden" name="rows[{{ $status->id }}][emails_customer]" value="0">
+                                            <input type="checkbox" name="rows[{{ $status->id }}][emails_customer]" value="1" @checked(old('rows.'.$status->id.'.emails_customer', $status->emails_customer))
+                                                   aria-label="Email the customer when an order reaches {{ $status->name }}">
                                             <span class="v-toggle__track" aria-hidden="true"></span>
                                         </label>
                                     </td>
