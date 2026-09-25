@@ -38,14 +38,10 @@ class SmsChannel implements OrderNotificationChannel
         return UniSms::enabled() && UniSms::readiness()['ready'];
     }
 
-    /**
-     * SMS carries no status policy of its own yet, so every status is wanted
-     * and the ticked/unticked caller (the store's settings, or an explicit
-     * choice) decides instead.
-     */
+    /** The store's own list, kept in this extension's settings. */
     public function wantsStatus(?int $orderStatusId): bool
     {
-        return true;
+        return SmsStatusMap::texts($orderStatusId);
     }
 
     public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null): array

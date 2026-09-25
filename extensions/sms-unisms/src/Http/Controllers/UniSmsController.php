@@ -3,10 +3,13 @@
 namespace Extensions\SmsUnisms\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\OrderStatus;
 use App\Models\Setting;
+use Extensions\SmsUnisms\SmsStatusMap;
 use Extensions\SmsUnisms\UniSms;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Validation\Rule;
 
 class UniSmsController extends Controller
 {
@@ -23,6 +26,8 @@ class UniSmsController extends Controller
             'enabled' => UniSms::enabled(),
             'baseUrl' => UniSms::baseUrl(),
             'readiness' => UniSms::readiness(),
+            'statuses' => $this->statuses(),
+            'texted' => SmsStatusMap::all(),
         ]);
     }
 
@@ -33,6 +38,11 @@ class UniSmsController extends Controller
             'sender_id' => ['nullable', 'string', 'max:32'],
             'base_url' => ['nullable', 'url', 'max:255'],
             'enabled' => ['nullable'],
+            'status_ids' => ['nullable', 'array'],
+            'status_ids.*' => [
+                'integer',
+                Rule::exists('order_statuses', 'id')->where('store_id', (int) config('app.store_id', 1)),
+            ],
         ]);
 
         // Blank means "leave the saved one alone", so opening the page and
@@ -49,8 +59,22 @@ class UniSmsController extends Controller
         $base = rtrim(trim((string) ($data['base_url'] ?? '')), '/');
         $this->put(UniSms::KEY_BASE, $base !== '' ? $base : UniSms::DEFAULT_BASE);
 
+        SmsStatusMap::put(array_map('intval', $data['status_ids'] ?? []));
+
         return redirect()->route('admin.extensions.unisms.index')
             ->with('success', 'UniSMS settings saved.');
+    }
+
+    /**
+     * This store's statuses, in the same order the Order Statuses screen
+     * shows them, so the tick list reads the same way in both places.
+     */
+    private function statuses()
+    {
+        return OrderStatus::where('store_id', (int) config('app.store_id', 1))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
     }
 
     /**

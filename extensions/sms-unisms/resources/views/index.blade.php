@@ -54,6 +54,27 @@
                     </label>
                 </div>
             </x-admin.panel>
+
+            <x-admin.panel title="Statuses worth texting about" note="A text costs money to send, so nothing texts until it is ticked here.">
+                @error('status_ids')
+                    <p class="v-field__error">{{ $message }}</p>
+                @enderror
+                @error('status_ids.*')
+                    <p class="v-field__error">{{ $message }}</p>
+                @enderror
+
+                <div class="v-gap">
+                    @forelse ($statuses as $status)
+                        <label class="v-check">
+                            <input type="checkbox" name="status_ids[]" value="{{ $status->id }}"
+                                   @checked(in_array($status->id, $texted, true))>
+                            {{ $status->name }}
+                        </label>
+                    @empty
+                        <p class="v-field__hint">No order statuses yet.</p>
+                    @endforelse
+                </div>
+            </x-admin.panel>
         </x-admin.form>
 
         {{-- An action, not a record edit, so it posts through vPost like every
