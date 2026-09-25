@@ -52,7 +52,7 @@ class SmsChannel implements OrderNotificationChannel
             return ['sent' => false, 'reason' => 'No mobile number on this order that could be dialled.'];
         }
 
-        $result = UniSms::send($number, $this->message($order, $newStatus, $comment));
+        $result = UniSms::send($number, $this->compose($order, $newStatus, $comment));
 
         return ['sent' => $result['ok'], 'reason' => $result['error']];
     }
@@ -82,23 +82,36 @@ class SmsChannel implements OrderNotificationChannel
     /**
      * What the text says.
      *
-     * A text is not an email. No greeting, no signature, no marketing: the
-     * store, the order, the state it is now in, and the one link worth
-     * tapping. The comment arrives as email HTML, so its tracking anchor is
-     * flattened to a bare URL that a phone will make tappable on its own.
+     * A text is not an email. No greeting, no signature, no marketing, and
+     * never a link: the store, the order, the state it is now in, and the
+     * tracking number if there is one.
      */
-    private function message(Order $order, ?string $newStatus, ?string $comment): string
+    public function compose(Order $order, ?string $newStatus, ?string $comment): string
     {
-        $store = (string) config('app.name');
-        $line = trim($store . ': order #' . $order->id . ' is now ' . ($newStatus ?: 'updated') . '.');
+        $tracking = \App\Services\OrderNotificationService::trackingPlaceholders($order);
+        $template = UniSms::template();
+        $commentText = $this->plain((string) $comment);
 
-        $tail = $this->plain((string) $comment);
+        $text = strtr($template, [
+            '{store_name}' => (string) config('app.name'),
+            '{order_id}' => (string) $order->id,
+            '{order_status}' => $newStatus ?: 'updated',
+            '{customer_name}' => trim((string) $order->full_name),
+            '{tracking_number}' => trim(strip_tags((string) $tracking['tracking_number'])),
+            '{courier_name}' => trim((string) $tracking['carrier_name']),
+            '{comment}' => $commentText,
+        ]);
 
-        if ($tail !== '') {
-            $line .= ' ' . $tail;
+        // A template that never mentions {comment} still gets the courier's
+        // note, appended, so a merchant who kept the default template is not
+        // silently missing what came with this status change. A template
+        // that already placed {comment} somewhere is left alone, so it is
+        // never said twice.
+        if ($commentText !== '' && ! str_contains($template, '{comment}')) {
+            $text = trim($text) . ' ' . $commentText;
         }
 
-        return mb_substr($line, 0, UniSms::MAX_LENGTH);
+        return mb_substr(UniSms::stripUrls($text), 0, UniSms::MAX_LENGTH);
     }
 
     /** Email HTML as something readable on a handset. */
@@ -108,9 +121,10 @@ class SmsChannel implements OrderNotificationChannel
             return '';
         }
 
-        // An anchor becomes its destination: the phone linkifies a bare URL,
-        // and "TRK123" with no address is not something anyone can tap.
-        $text = preg_replace('/<a[^>]*href="([^"]*)"[^>]*>.*?<\/a>/is', '$1', $html) ?? $html;
+        // An anchor becomes what it said, not where it pointed: the tracking
+        // number is what a customer can give the courier, and a link would
+        // stop the message reaching them at all.
+        $text = preg_replace('/<a[^>]*>(.*?)<\/a>/is', '$1', $html) ?? $html;
 
         return trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string) $text))) ?? '');
     }

@@ -25,6 +25,7 @@ class UniSmsController extends Controller
             'senderId' => UniSms::senderId(),
             'enabled' => UniSms::enabled(),
             'baseUrl' => UniSms::baseUrl(),
+            'template' => UniSms::template(),
             'readiness' => UniSms::readiness(),
             'statuses' => $this->statuses(),
             'texted' => SmsStatusMap::all(),
@@ -37,6 +38,7 @@ class UniSmsController extends Controller
             'api_key' => ['nullable', 'string', 'max:500'],
             'sender_id' => ['nullable', 'string', 'max:32'],
             'base_url' => ['nullable', 'url', 'max:255'],
+            'template' => ['nullable', 'string', 'max:500'],
             'enabled' => ['nullable'],
             'status_ids' => ['nullable', 'array'],
             'status_ids.*' => [
@@ -58,6 +60,11 @@ class UniSmsController extends Controller
 
         $base = rtrim(trim((string) ($data['base_url'] ?? '')), '/');
         $this->put(UniSms::KEY_BASE, $base !== '' ? $base : UniSms::DEFAULT_BASE);
+
+        // Blank falls back to the seeded default rather than leaving the
+        // previous custom sentence in place: UniSms::template() already
+        // treats an empty saved value as "use the default".
+        $this->put(UniSms::KEY_TEMPLATE, trim((string) ($data['template'] ?? '')));
 
         SmsStatusMap::put(array_map('intval', $data['status_ids'] ?? []));
 

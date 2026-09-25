@@ -55,6 +55,17 @@
                 </div>
             </x-admin.panel>
 
+            <x-admin.panel title="Message">
+                <x-admin.field name="template" label="Template">
+                    <input type="text" name="template" maxlength="500" class="v-control v-mono"
+                           value="{{ old('template', $template) }}"
+                           placeholder="{{ \Extensions\SmsUnisms\UniSms::DEFAULT_TEMPLATE }}">
+                    <x-slot:help>
+                        {store_name}, {order_id}, {order_status}, {customer_name}, {tracking_number}, {courier_name}, {comment}. Never a link: Philippine telcos drop texts that carry one.
+                    </x-slot:help>
+                </x-admin.field>
+            </x-admin.panel>
+
             <x-admin.panel title="Statuses worth texting about" note="A text costs money to send, so nothing texts until it is ticked here.">
                 @error('status_ids')
                     <p class="v-field__error">{{ $message }}</p>

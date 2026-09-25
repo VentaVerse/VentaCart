@@ -40,8 +40,37 @@ class UniSms
 
     public const DEFAULT_BASE = 'https://unismsapi.com/api';
 
+    public const KEY_TEMPLATE = 'unisms_template';
+
+    /** The owner's sentence, used until a merchant writes their own. */
+    public const DEFAULT_TEMPLATE = '{store_name}: Order #{order_id} is now {order_status}';
+
     /** The API's own ceiling on one message. */
     public const MAX_LENGTH = 670;
+
+    public static function template(): string
+    {
+        $saved = trim((string) Setting::where('group', self::GROUP)->where('key', self::KEY_TEMPLATE)->value('value'));
+
+        return $saved !== '' ? $saved : self::DEFAULT_TEMPLATE;
+    }
+
+    /**
+     * A text message carries no links.
+     *
+     * Philippine telcos drop messages containing a URL, so a link does not
+     * merely annoy: it loses the message. The guard sits at the send layer as
+     * well as in the composer, so a merchant typing a link into the template,
+     * the admin test message, or any future caller cannot put a link on a
+     * handset.
+     */
+    public static function stripUrls(string $text): string
+    {
+        $text = preg_replace('~\b(?:https?://|www\.)\S+~i', '', $text) ?? $text;
+        $text = preg_replace('~\b[a-z0-9-]+\.(?:com|net|org|ph|io|co)(?:/\S*)?~i', '', $text) ?? $text;
+
+        return trim(preg_replace('/\s{2,}/', ' ', $text) ?? $text);
+    }
 
     public static function enabled(): bool
     {
@@ -147,7 +176,7 @@ class UniSms
                 'error' => 'Recipient must be in E.164 form, starting with + and the country code.'];
         }
 
-        $content = trim($content);
+        $content = self::stripUrls(trim($content));
 
         if ($content === '') {
             return ['ok' => false, 'status' => null, 'body' => null, 'error' => 'Nothing to send.'];
