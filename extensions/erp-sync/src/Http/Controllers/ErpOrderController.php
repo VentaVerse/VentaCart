@@ -4,7 +4,8 @@ namespace Extensions\ErpSync\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\OrderHistory;
+use App\Services\OrderStatusChanger;
+use App\Support\NotifyChoice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -247,14 +248,14 @@ class ErpOrderController extends Controller
             'comment' => 'nullable|string|max:1000',
         ]);
 
-        $order->update(['order_status_id' => $validated['status_id']]);
-
-        OrderHistory::create([
-            'order_id' => $order->id,
-            'order_status_id' => $validated['status_id'],
-            'comment' => $validated['comment'] ?? 'Status updated via ERP API',
-            'notify_customer' => false,
-        ]);
+        OrderStatusChanger::apply(
+            $order,
+            (int) $validated['status_id'],
+            $validated['comment'] ?? 'Status updated via ERP API',
+            // The store's ticks decide. The ERP deliberately cannot silence a
+            // customer: staff should not be able to do that by accident.
+            NotifyChoice::follow(),
+        );
 
         $data = [
             'id' => $order->id,
