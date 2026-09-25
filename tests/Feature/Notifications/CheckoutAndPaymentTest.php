@@ -218,6 +218,39 @@ class CheckoutAndPaymentTest extends TestCase
         $this->assertDatabaseCount('order_histories', 0);
     }
 
+    /**
+     * I6: the customer bookmarks or reloads the return URL days later. The
+     * order was paid and has since shipped; the return path must not drag
+     * it back to Paid, and nobody is told anything.
+     */
+    public function test_revisiting_the_return_url_never_reverts_a_later_status(): void
+    {
+        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        $shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 3, 'emails_customer' => true]);
+        Setting::create(['group' => 'payment', 'key' => 'hitpay_success_status_id', 'value' => (string) $success->id]);
+
+        $customer = $this->customer();
+        $order = $this->order([
+            'customer_id' => $customer->id,
+            'payment_reference' => 'pr_return_3',
+        ]);
+        $url = route('checkout.hitpay.return', ['reference' => 'pr_return_3', 'status' => 'completed']);
+
+        $this->actingAs($customer, 'customer')->get($url)->assertRedirect(route('checkout.confirmation', $order));
+        OrderStatusChanger::apply($order->fresh(), $shipped->id, 'On its way');
+        $sendsBefore = RecordingChannel::$sends;
+        $historiesBefore = $order->histories()->count();
+        $mailsBefore = count(Mail::sent(TemplateMail::class));
+        $this->assertGreaterThan(0, $mailsBefore, 'The first visit sent its confirmation, so the count below means something.');
+
+        $this->actingAs($customer, 'customer')->get($url)->assertRedirect(route('checkout.confirmation', $order));
+
+        $this->assertSame($shipped->id, $order->fresh()->order_status_id, 'Paid once already: the return URL has nothing left to confirm.');
+        $this->assertSame($sendsBefore, RecordingChannel::$sends);
+        $this->assertSame($historiesBefore, $order->histories()->count());
+        $this->assertCount($mailsBefore, Mail::sent(TemplateMail::class), 'No second confirmation email.');
+    }
+
     // -----------------------------------------------------------------
     // HitPayWebhookController: the authoritative confirmation
     // -----------------------------------------------------------------

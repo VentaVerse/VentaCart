@@ -142,8 +142,9 @@ class OrderStatusChanger
      * applies nothing, the same outcome a genuine duplicate webhook gets.
      *
      * @return bool true if this call applied the status (the winner, or the
-     *   only caller); false if the order already held it (the loser, or a
-     *   plain repeat) or the order no longer exists.
+     *   only caller); false if the order holds it now or ever held it (the
+     *   loser, a plain repeat, or a revisit after the order moved on) or the
+     *   order no longer exists.
      */
     public static function claimStatus(Order $order, int $orderStatusId, ?string $comment = null, ?NotifyChoice $notify = null): bool
     {
@@ -151,6 +152,14 @@ class OrderStatusChanger
             $locked = Order::whereKey($order->getKey())->lockForUpdate()->first();
 
             if (! $locked || (int) $locked->order_status_id === $orderStatusId) {
+                return false;
+            }
+
+            // Held it once, so this moment has already happened: a reload of
+            // HitPay's return URL days later, after the order has shipped,
+            // must not drag it back to Paid. The history is the memory; the
+            // current status alone forgets as soon as the order moves on.
+            if ($locked->histories()->where('order_status_id', $orderStatusId)->exists()) {
                 return false;
             }
 
