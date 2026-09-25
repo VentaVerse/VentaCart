@@ -449,8 +449,8 @@ class FulfillmentService
      * (book() below and PollCourierStatus's async resolution) pass nothing,
      * because the customer is told about a shipment by the status map's own
      * notify flag or the order page, never by this internal move. bookManual()
-     * below is the one caller that passes its own choice, built from the
-     * fulfilment queue's NotifyMap policy (or an explicit operator tick).
+     * below is the one caller that passes its own choice: the packer's
+     * ticks, or NotifyChoice::follow() when the caller stated nothing.
      *
      * $comment replaces only the FIRST sentence (what happened); the status
      * move is always appended by this method, so every history row still ends
@@ -1124,27 +1124,36 @@ class FulfillmentService
 
         $tracking = trim((string) ($opts['tracking_number'] ?? '')) ?: null;
         $note     = trim((string) ($opts['comment'] ?? $opts['note'] ?? '')) ?: null;
-        // Who decides whether the customer hears about this. When the caller
-        // says nothing, the store's own policy answers: the packer records a
-        // parcel and the status settles the rest. An explicit value still
-        // wins, so a form or an ERP call can override the policy per order.
-        $notify = array_key_exists('notify_customer', $opts)
-            ? (bool) $opts['notify_customer']
-            : NotifyMap::notifies(($chosenStatus ?? self::bookedStatus())?->id);
+        // Who decides whether the customer hears about this. A caller that
+        // says nothing at all (an ERP call with neither field) gets the
+        // store's own answer through the doorway: the status's
+        // emails_customer tick and each channel's own list. Fulfillment's
+        // NotifyMap is retiring and is no longer read here. The queue form
+        // always states both halves (a hidden notify_customer=0 and a
+        // hidden channels[] sentinel), so a packer unticking everything
+        // has said no rather than nothing.
+        $saysEmail = array_key_exists('notify_customer', $opts);
+        $saysChannels = array_key_exists('channels', $opts);
+        $targetStatusId = ($chosenStatus ?? self::bookedStatus())?->id;
 
-        // The same rule for every registered channel: what the caller ticked,
-        // or the store's policy for this status when the caller said nothing.
-        // An ERP that knows nothing about channels gets the policy, which is
-        // what makes this need no ERP work.
-        $channelKeys = array_key_exists('channels', $opts)
-            ? array_values(array_filter((array) $opts['channels'], 'is_string'))
-            : array_values(array_filter(
-                array_map(
+        if (!$saysEmail && !$saysChannels) {
+            $choice = NotifyChoice::follow();
+        } else {
+            // A stated half is the caller's own and stays explicit; the half
+            // it left out is answered from the same homes follow() reads.
+            $notify = $saysEmail
+                ? (bool) $opts['notify_customer']
+                : (bool) OrderStatus::whereKey($targetStatusId)->value('emails_customer');
+
+            $channelKeys = $saysChannels
+                ? array_values(array_filter((array) $opts['channels'], fn ($key) => is_string($key) && $key !== ''))
+                : array_values(array_map(
                     fn ($c) => $c->key(),
-                    OrderNotificationService::channels()
-                ),
-                fn ($key) => NotifyMap::notifiesVia($key, ($chosenStatus ?? self::bookedStatus())?->id)
-            ));
+                    array_filter(OrderNotificationService::channels(), fn ($c) => $c->wantsStatus($targetStatusId))
+                ));
+
+            $choice = NotifyChoice::explicit($notify, $channelKeys);
+        }
 
         // Built from the courier's own {tracking_number} template, and only
         // when there is a number to put in it — a link to a tracking page with
@@ -1175,13 +1184,6 @@ class FulfillmentService
         if ($meta['booking_history'] === []) {
             unset($meta['booking_history']);
         }
-
-        // Exactly what the packer or the ERP decided, carried into the
-        // doorway: an explicit answer wins, the store's own NotifyMap policy
-        // answers when nobody said anything. Same computation as before,
-        // just handed to OrderStatusChanger::apply() now instead of driving
-        // a second, duplicate send after the fact.
-        $choice = NotifyChoice::explicit($notify, $channelKeys);
 
         // The write and the status move either both land or neither does: an
         // order carrying a courier name while still sitting in To Pack would

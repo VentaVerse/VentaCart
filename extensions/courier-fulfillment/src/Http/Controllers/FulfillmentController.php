@@ -332,15 +332,23 @@ class FulfillmentController extends Controller
                 ->orderBy('sort_order')
                 ->get(['id', 'name']),
             'manualDefaultStatusId' => FulfillmentService::bookedStatus()?->id,
-            // The store's notify policy as {statusId: true}, so the manual
-            // form's tick follows whichever status the packer picks.
-            'notifyByStatus' => array_fill_keys(\Extensions\CourierFulfillment\NotifyMap::all(), true),
-            // The same, per registered channel, so each tick follows the
-            // status the packer picks without this page knowing what any
-            // channel is.
+            // The store's own answer as {statusId: bool}, so the manual
+            // form's tick follows whichever status the packer picks. Read
+            // from the status's emails_customer tick, the same home every
+            // other path reads; fulfillment's NotifyMap is retiring.
+            'notifyByStatus' => OrderStatus::where('store_id', (int) config('app.store_id', 1))
+                ->pluck('emails_customer', 'id')
+                ->map(fn ($emails) => (bool) $emails)
+                ->all(),
+            // The same, per registered channel, from each channel's own list
+            // (wantsStatus), so each tick follows the status the packer
+            // picks without this page knowing what any channel is.
             'channelByStatus' => collect(\App\Services\OrderNotificationService::channels())
                 ->mapWithKeys(fn ($c) => [
-                    $c->key() => array_fill_keys(\Extensions\CourierFulfillment\NotifyMap::allFor($c->key()), true),
+                    $c->key() => OrderStatus::where('store_id', (int) config('app.store_id', 1))
+                        ->pluck('id')
+                        ->mapWithKeys(fn ($id) => [$id => $c->wantsStatus((int) $id)])
+                        ->all(),
                 ])->all(),
             // Booking-time origin choice (owner ruling 2026-08-19): step 2
             // ALWAYS names where the parcel leaves from, for every courier
