@@ -958,11 +958,11 @@ class FulfillmentController extends Controller
      * identically. Offered on Unpaid rows (their only action) and To Pack
      * rows (alongside Book). Never touches any courier: an order with an
      * ACTIVE booking (or one mid-async-create) is refused with a friendly
-     * message — cancel the booking first.
+     * message: cancel the booking first.
      *
      * Unlike an internal booking move, this genuinely is a customer-facing
-     * event — the order is actually cancelled — so it follows the store's
-     * own tick on the cancel status rather than being hardcoded silent.
+     * event: the order is actually cancelled, so it follows the store's own
+     * tick on the cancel status rather than being hardcoded silent.
      */
     public function cancelOrder(Order $order)
     {

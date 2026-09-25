@@ -409,7 +409,7 @@ class OrderController extends Controller
         $validated['comment'] = $comment ?: null;
 
         // Shared status-change core (history row + status update + stock
-        // adjustment + the one announcement) — the same mechanics the
+        // adjustment + the one announcement), the same mechanics the
         // fulfillment queue's Cancel order action applies
         // (App\Services\OrderStatusChanger). The operator's own ticks on
         // this page are the explicit choice; the doorway sends, once.
