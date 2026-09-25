@@ -48,6 +48,18 @@ class UniSms
     /** The API's own ceiling on one message. */
     public const MAX_LENGTH = 670;
 
+    /**
+     * Generic domain endings common enough that a merchant might type one
+     * with no country code attached. Named and listed rather than inferred,
+     * so the set the guard treats as a link is visible and deliberate, not
+     * an implicit side effect of a regex.
+     */
+    private const GENERIC_ENDINGS = [
+        'com', 'net', 'org', 'info', 'biz', 'shop', 'store', 'online', 'site',
+        'xyz', 'app', 'dev', 'link', 'click', 'top', 'live', 'page', 'tech',
+        'blog', 'news', 'club', 'website', 'space', 'email', 'asia',
+    ];
+
     public static function template(): string
     {
         $saved = trim((string) Setting::where('group', self::GROUP)->where('key', self::KEY_TEMPLATE)->value('value'));
@@ -64,24 +76,35 @@ class UniSms
      * the admin test message, or any future caller cannot put a link on a
      * handset.
      *
-     * This matches shape, not a list of endings: an allowlist of TLDs lets a
-     * shortener like bit.ly or an unlisted ending like .shop straight
-     * through. Working token by token (whitespace-delimited) and dropping a
-     * whole token, rather than trimming a matched substring out of it, also
-     * means a host with an extra label such as newgearday.com.ph/track/ABC123
-     * or an email address such as happy@newgearday.com disappears whole,
-     * with no leftover path or local-part fragment.
+     * This matches shape, not a list of endings alone: an allowlist of TLDs
+     * lets a shortener like bit.ly or an unlisted ending like .shop straight
+     * through, and matching "any two-or-more-letter ending" is too wide, as
+     * it catches a title glued to a name with no space, such as "Mr.Reyes"
+     * or the Philippine "Ma.Cristina". Working token by token
+     * (whitespace-delimited) and dropping a whole token, rather than
+     * trimming a matched substring out of it, also means a host with an
+     * extra label such as newgearday.com.ph/track/ABC123 or an email
+     * address such as happy@newgearday.com disappears whole, with no
+     * leftover path or local-part fragment.
      *
      * A token is dropped when it:
      *   (a) contains a scheme, http:// or https://, in any letter case;
-     *   (b) starts with www. in any letter case; or
-     *   (c) contains a host shape: one or more label(s) of letters, digits
-     *       or hyphens joined by dots, ending in a label of two or more
-     *       letters, optionally followed by a path.
+     *   (b) starts with www. in any letter case;
+     *   (c) contains a dotted host followed by a path, meaning labels
+     *       joined by dots and then a slash (bit.ly/xyz123,
+     *       newgearday.com.ph/track/ABC123): whatever the ending, a slash
+     *       after a dotted token is a strong link signal on its own; or
+     *   (d) contains a bare dotted host with no path, whose last label is
+     *       either exactly two letters (a country code: .ly, .ph, .io,
+     *       .co, .me and the rest) or one of GENERIC_ENDINGS. A name like
+     *       "Mr.Reyes" fails both: five letters is not a country code, and
+     *       "reyes" is not on the list, so it is left alone.
      */
     public static function stripUrls(string $text): string
     {
-        $text = preg_replace_callback('/\S+/', function (array $match): string {
+        $endings = implode('|', self::GENERIC_ENDINGS);
+
+        $text = preg_replace_callback('/\S+/', function (array $match) use ($endings): string {
             $token = $match[0];
 
             if (preg_match('~https?://~i', $token) === 1) {
@@ -92,7 +115,11 @@ class UniSms
                 return '';
             }
 
-            if (preg_match('~[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}~i', $token) === 1) {
+            if (preg_match('~[a-z0-9-]+(?:\.[a-z0-9-]+)+/~i', $token) === 1) {
+                return '';
+            }
+
+            if (preg_match('~\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:' . $endings . '|[a-z]{2})\b~i', $token) === 1) {
                 return '';
             }
 

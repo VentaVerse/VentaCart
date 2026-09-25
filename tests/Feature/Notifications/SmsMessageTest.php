@@ -132,13 +132,21 @@ class SmsMessageTest extends TestCase
     /**
      * The guard must not be trigger-happy: an order number, an amount, a
      * sentence full stop, and a name with a dot are not URLs and must reach
-     * the handset untouched.
+     * the handset untouched. Round 2's finding: a title glued to a name with
+     * no space, as is routine in Philippine usage ("Ma.Cristina"), is not a
+     * host either, because its last label is neither a country code nor one
+     * of the listed generic endings.
      */
     public function test_ordinary_punctuated_text_survives_the_url_guard(): void
     {
         $text = 'Order #29876 confirmed. Total 1,299.00 paid. Ask for J. Reyes at pickup.';
 
         $this->assertSame($text, UniSms::stripUrls($text));
+
+        $this->assertSame('Ask Mr.Reyes to confirm.', UniSms::stripUrls('Ask Mr.Reyes to confirm.'));
+        $this->assertSame('For Ma.Cristina, please call.', UniSms::stripUrls('For Ma.Cristina, please call.'));
+        $this->assertSame('See Dr.Santos at the clinic.', UniSms::stripUrls('See Dr.Santos at the clinic.'));
+        $this->assertSame('Meet at St.Paul church.', UniSms::stripUrls('Meet at St.Paul church.'));
     }
 
     /**
@@ -146,13 +154,16 @@ class SmsMessageTest extends TestCase
      * unlisted ending straight through, and a multi-label host left its path
      * behind as a fragment. The guard matches shape, not a list, and drops
      * the whole token, so none of these bypasses survive and none leave a
-     * leftover fragment.
+     * leftover fragment. Round 2 narrowed the bare-host rule (no path) to a
+     * country code or a named generic ending, so these bypasses must keep
+     * failing under the narrower rule too.
      */
     public function test_the_url_guard_catches_shape_based_bypasses(): void
     {
         $this->assertSame('Track at', trim(UniSms::stripUrls('Track at bit.ly/xyz123')));
         $this->assertSame('Shop at', trim(UniSms::stripUrls('Shop at EXAMPLE.SHOP')));
         $this->assertSame('Track at', trim(UniSms::stripUrls('Track at https://Bit.Ly/abc')));
+        $this->assertSame('Visit today', UniSms::stripUrls('Visit example.com today'));
 
         $stripped = UniSms::stripUrls('Track at newgearday.com.ph/track/ABC123 now');
         $this->assertSame('Track at now', $stripped);
@@ -160,6 +171,9 @@ class SmsMessageTest extends TestCase
         $this->assertStringNotContainsString('/track', $stripped, 'No leftover path fragment.');
 
         $this->assertSame('Reply to for help', UniSms::stripUrls('Reply to happy@newgearday.com for help'));
+
+        $this->assertSame('See', trim(UniSms::stripUrls('See (bit.ly/abc)')));
+        $this->assertSame('See', trim(UniSms::stripUrls('See bit.ly/abc,')));
     }
 
     /**
