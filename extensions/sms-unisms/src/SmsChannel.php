@@ -82,34 +82,25 @@ class SmsChannel implements OrderNotificationChannel
     /**
      * What the text says.
      *
-     * A text is not an email. No greeting, no signature, no marketing, and
-     * never a link: the store, the order, the state it is now in, and the
-     * tracking number if there is one.
+     * The merchant's template is authoritative: a placeholder the template
+     * does not mention does not appear, whatever the order carries. Under
+     * the seeded default there is no {comment}, so a status change with a
+     * comment still reads exactly "{store_name}: Order #{order_id} is now
+     * {order_status}" filled in. Nothing is appended on top of it.
      */
     public function compose(Order $order, ?string $newStatus, ?string $comment): string
     {
         $tracking = \App\Services\OrderNotificationService::trackingPlaceholders($order);
-        $template = UniSms::template();
-        $commentText = $this->plain((string) $comment);
 
-        $text = strtr($template, [
+        $text = strtr(UniSms::template(), [
             '{store_name}' => (string) config('app.name'),
             '{order_id}' => (string) $order->id,
             '{order_status}' => $newStatus ?: 'updated',
             '{customer_name}' => trim((string) $order->full_name),
             '{tracking_number}' => trim(strip_tags((string) $tracking['tracking_number'])),
             '{courier_name}' => trim((string) $tracking['carrier_name']),
-            '{comment}' => $commentText,
+            '{comment}' => $this->plain((string) $comment),
         ]);
-
-        // A template that never mentions {comment} still gets the courier's
-        // note, appended, so a merchant who kept the default template is not
-        // silently missing what came with this status change. A template
-        // that already placed {comment} somewhere is left alone, so it is
-        // never said twice.
-        if ($commentText !== '' && ! str_contains($template, '{comment}')) {
-            $text = trim($text) . ' ' . $commentText;
-        }
 
         return mb_substr(UniSms::stripUrls($text), 0, UniSms::MAX_LENGTH);
     }

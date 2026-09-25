@@ -63,11 +63,41 @@ class UniSms
      * well as in the composer, so a merchant typing a link into the template,
      * the admin test message, or any future caller cannot put a link on a
      * handset.
+     *
+     * This matches shape, not a list of endings: an allowlist of TLDs lets a
+     * shortener like bit.ly or an unlisted ending like .shop straight
+     * through. Working token by token (whitespace-delimited) and dropping a
+     * whole token, rather than trimming a matched substring out of it, also
+     * means a host with an extra label such as newgearday.com.ph/track/ABC123
+     * or an email address such as happy@newgearday.com disappears whole,
+     * with no leftover path or local-part fragment.
+     *
+     * A token is dropped when it:
+     *   (a) contains a scheme, http:// or https://, in any letter case;
+     *   (b) starts with www. in any letter case; or
+     *   (c) contains a host shape: one or more label(s) of letters, digits
+     *       or hyphens joined by dots, ending in a label of two or more
+     *       letters, optionally followed by a path.
      */
     public static function stripUrls(string $text): string
     {
-        $text = preg_replace('~\b(?:https?://|www\.)\S+~i', '', $text) ?? $text;
-        $text = preg_replace('~\b[a-z0-9-]+\.(?:com|net|org|ph|io|co)(?:/\S*)?~i', '', $text) ?? $text;
+        $text = preg_replace_callback('/\S+/', function (array $match): string {
+            $token = $match[0];
+
+            if (preg_match('~https?://~i', $token) === 1) {
+                return '';
+            }
+
+            if (preg_match('~^www\.~i', $token) === 1) {
+                return '';
+            }
+
+            if (preg_match('~[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}~i', $token) === 1) {
+                return '';
+            }
+
+            return $token;
+        }, $text) ?? $text;
 
         return trim(preg_replace('/\s{2,}/', ' ', $text) ?? $text);
     }
