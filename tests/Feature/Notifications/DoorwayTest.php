@@ -91,4 +91,23 @@ class DoorwayTest extends TestCase
         $this->assertTrue((bool) $history->notify_customer, 'The status emails, so the row says the customer was written to.');
         $this->assertTrue($history->notifications['recorder']['sent']);
     }
+
+    /**
+     * emailHandledElsewhere() suppresses the STATUS email because the
+     * caller (checkout, HitPay) sends its own confirmation instead. That
+     * caller still told the customer, so the history row must still read
+     * as customer-visible, or the account page hides a comment ("Order
+     * confirmed.") that was written precisely for the customer to see.
+     */
+    public function test_email_handled_elsewhere_still_marks_the_row_customer_visible(): void
+    {
+        $order = $this->order();
+
+        OrderStatusChanger::apply($order, $this->shipped->id, 'Order confirmed.', NotifyChoice::emailHandledElsewhere());
+
+        $history = $order->fresh()->histories()->latest('id')->first();
+        $this->assertTrue((bool) $history->notify_customer, 'The caller told the customer itself, through its own email.');
+        Mail::assertNothingSent();
+        $this->assertArrayNotHasKey('email', $history->notifications ?? [], 'No status email was queued on top of the confirmation.');
+    }
 }

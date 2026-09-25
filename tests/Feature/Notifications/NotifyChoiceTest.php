@@ -34,4 +34,20 @@ class NotifyChoiceTest extends TestCase
         $this->assertFalse(NotifyChoice::silent()->email);
         $this->assertSame([], NotifyChoice::silent()->channels);
     }
+
+    /**
+     * emailHandledElsewhere() suppresses the status email because the
+     * caller sends its own (checkout's order confirmation, HitPay's payment
+     * confirmation). That caller still told the customer, and apply() needs
+     * to know that to stamp notify_customer correctly on the history row.
+     */
+    public function test_only_email_handled_elsewhere_says_the_customer_was_told_some_other_way(): void
+    {
+        $this->assertTrue(NotifyChoice::emailHandledElsewhere()->toldCustomerElsewhere());
+
+        $this->assertFalse(NotifyChoice::follow()->toldCustomerElsewhere());
+        $this->assertFalse(NotifyChoice::explicit(true, ['sms'])->toldCustomerElsewhere());
+        $this->assertFalse(NotifyChoice::emailAlways()->toldCustomerElsewhere());
+        $this->assertFalse(NotifyChoice::silent()->toldCustomerElsewhere());
+    }
 }

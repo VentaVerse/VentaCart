@@ -16,6 +16,7 @@ final class NotifyChoice
     private function __construct(
         public readonly ?bool $email,
         public readonly ?array $channels,
+        private readonly bool $toldElsewhere = false,
     ) {
     }
 
@@ -55,7 +56,7 @@ final class NotifyChoice
      */
     public static function emailHandledElsewhere(): self
     {
-        return new self(false, null);
+        return new self(false, null, true);
     }
 
     /** Tell nobody: an internal move the customer has no business hearing. */
@@ -75,5 +76,21 @@ final class NotifyChoice
     public function isExplicit(): bool
     {
         return $this->email !== null;
+    }
+
+    /**
+     * Did the caller already tell the customer some other way, even though
+     * the status email itself is suppressed?
+     *
+     * Only emailHandledElsewhere() sets this. Checkout and the HitPay paths
+     * send their own confirmation email instead of a status email, but the
+     * customer was still told: a history row written under this choice
+     * should still read as customer-visible (notify_customer), which is
+     * what the account page's history list keys off, separately from
+     * whether the STATUS email itself went out.
+     */
+    public function toldCustomerElsewhere(): bool
+    {
+        return $this->toldElsewhere;
     }
 }

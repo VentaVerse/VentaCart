@@ -48,10 +48,17 @@ class OrderStatusChanger
         // decided rather than being updated a second time.
         $emails = $choice->email ?? (bool) ($newStatus?->emails_customer);
 
+        // notify_customer means "the customer was told", not "the status
+        // email was sent". A caller that sends its own email instead (the
+        // order confirmation, HitPay's payment confirmation) still told
+        // them, so the row must still read as customer-visible even though
+        // the status email itself is suppressed.
+        $notifyCustomer = $emails || $choice->toldCustomerElsewhere();
+
         $history = $order->histories()->create([
             'order_status_id' => $orderStatusId,
             'comment'         => $comment,
-            'notify_customer' => $emails,
+            'notify_customer' => $notifyCustomer,
             'created_by'      => $createdBy,
         ]);
         $order->update(['order_status_id' => $orderStatusId]);
