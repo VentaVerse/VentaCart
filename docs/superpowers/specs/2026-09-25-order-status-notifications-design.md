@@ -200,6 +200,19 @@ were not spelled out here at all:
   a matched substring, is what keeps a title glued to a name ("Mr.Reyes",
   "Ma.Cristina") from being treated as a host.
 
+- A customer cancelling their own order is always emailed that it worked
+  (`NotifyChoice::emailAlways()`), whatever the Cancelled status's email
+  tick says; SMS follows the store's ticks like every other path.
+- A history row can carry a `customer_comment` beside its `comment`. When a
+  caller passes a customer-facing line that differs from the record's (the
+  ERP's "Status updated via ERP API" fallback, fulfillment's "Order status
+  set to X by fulfillment" suffix), the customer's email and account page
+  show only the customer line, and the record keeps its own.
+- Queued texts are throttled at the gateway's pace. The job asks for a
+  limiter named `order-notification:{target}`, which only the UniSMS
+  extension defines, and a 429 puts the job back on the queue rather than
+  recording a failure.
+
 ## Testing
 
 Test-first throughout. Per path: the status change announces, the listeners
@@ -212,8 +225,9 @@ Specifically:
 - Payment success: the status change announces.
 - Checkout: an initial status ticked for SMS sends one text; the order
   confirmation email is unaffected.
-- Customer cancellation: follows the ticks, and Cancelled unticked sends
-  nothing.
+- Customer cancellation: the customer is always emailed that it worked,
+  and SMS follows the store's ticks, so Cancelled unticked for SMS sends no
+  text.
 - No message composed by the SMS channel contains a URL, including when the
   comment carries a tracking link and when a merchant types one into the
   template.
