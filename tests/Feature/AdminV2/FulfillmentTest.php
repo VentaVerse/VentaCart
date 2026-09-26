@@ -558,11 +558,11 @@ class FulfillmentTest extends TestCase
         ])]);
 
         $this->assertSame(
-            ['order_status_id' => $delivered->id, 'notify' => false],
+            ['order_status_id' => $delivered->id],
             StatusMapper::resolve(StatusMapper::currentMap('fake'), 'delivered')
         );
         $this->assertSame(
-            ['order_status_id' => $pending->id, 'notify' => false],
+            ['order_status_id' => $pending->id],
             StatusMapper::resolve(StatusMapper::currentMap('quadx'), 'delivered')
         );
         $this->assertSame([], StatusMapper::currentMap('unregistered-courier'));

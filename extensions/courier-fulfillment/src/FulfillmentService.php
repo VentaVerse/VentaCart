@@ -1126,9 +1126,8 @@ class FulfillmentService
         $note     = trim((string) ($opts['comment'] ?? $opts['note'] ?? '')) ?: null;
         // Who decides whether the customer hears about this. A caller that
         // says nothing at all (an ERP call with neither field) gets the
-        // store's own answer through the doorway: the status's
-        // emails_customer tick and each channel's own list. Fulfillment's
-        // NotifyMap is retiring and is no longer read here. The queue form
+        // store's own answer through the doorway: this extension's email
+        // list on Status Mapping and each channel's own list. The queue form
         // always states both halves (a hidden notify_customer=0 and a
         // hidden channels[] sentinel), so a packer unticking everything
         // has said no rather than nothing.
@@ -1143,7 +1142,7 @@ class FulfillmentService
             // it left out is answered from the same homes follow() reads.
             $notify = $saysEmail
                 ? (bool) $opts['notify_customer']
-                : (bool) OrderStatus::whereKey($targetStatusId)->value('emails_customer');
+                : ($targetStatusId !== null && NotifyMap::notifies((int) $targetStatusId));
 
             $channelKeys = $saysChannels
                 ? array_values(array_filter((array) $opts['channels'], fn ($key) => is_string($key) && $key !== ''))

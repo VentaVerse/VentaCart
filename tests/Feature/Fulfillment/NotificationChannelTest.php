@@ -139,11 +139,10 @@ class NotificationChannelTest extends TestCase
         $this->assertSame(1, SpyChannel::$calls, 'The channel wants this status, so it ran.');
 
         SpyChannel::$wants = false;
-        NotifyMap::putFor('spy', [$this->handover->id]);
         app(FulfillmentService::class)->bookManual($this->order(), [
             'order_status_id' => $this->handover->id,
         ]);
-        $this->assertSame(1, SpyChannel::$calls, 'The retiring list no longer answers for the channel.');
+        $this->assertSame(1, SpyChannel::$calls, 'The channel does not want it now, so it did not run.');
     }
 
     public function test_an_explicit_tick_beats_the_channels_list_in_both_directions(): void
@@ -217,12 +216,11 @@ class NotificationChannelTest extends TestCase
         $this->assertSame(1, SpyChannel::$calls);
     }
 
-    /** The queue page pre-ticks from the new homes, not the retiring list. */
-    public function test_the_queue_page_pre_ticks_from_the_status_and_the_channel(): void
+    /** The queue page pre-ticks email from Status Mapping, each channel from its own list. */
+    public function test_the_queue_page_pre_ticks_from_status_mapping_and_the_channel(): void
     {
         OrderNotificationService::registerChannel(SpyChannel::class);
-        $this->handover->update(['emails_customer' => true]);
-        NotifyMap::put([$this->packing->id]);
+        NotifyMap::put([$this->handover->id]);
         // The manual form is drawn only when the store keeps a courier.
         \App\Models\ShippingCourier::create(['store_id' => 1, 'name' => 'LBC Express', 'is_active' => true, 'sort_order' => 1]);
 
@@ -230,7 +228,7 @@ class NotificationChannelTest extends TestCase
 
         $notifyByStatus = $view->viewData('notifyByStatus');
         $this->assertTrue($notifyByStatus[$this->handover->id] ?? false);
-        $this->assertFalse($notifyByStatus[$this->packing->id] ?? false, 'NotifyMap no longer pre-ticks.');
+        $this->assertFalse($notifyByStatus[$this->packing->id] ?? false, 'An unticked status starts unticked.');
         $this->assertTrue($view->viewData('channelByStatus')['spy'][$this->handover->id] ?? false);
         $view->assertSee('name="channels[]" value=""', false);
     }

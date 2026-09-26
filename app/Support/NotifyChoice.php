@@ -6,9 +6,10 @@ namespace App\Support;
  * What the caller of a status change wants said, if anything.
  *
  * Each half is answered separately, because they are separate acts: a store
- * may email without texting. Null means "the store already answered this on
- * the status, or in the channel's own settings", which is the normal case.
- * An explicit value is one person deciding for one order, and it wins.
+ * may email without texting. Null means "the store's automatic settings
+ * answer this" (the bound email policy, each channel's own list), which is
+ * the normal case. An explicit value is one person, or one API caller,
+ * deciding for one order, and it wins.
  */
 final class NotifyChoice
 {

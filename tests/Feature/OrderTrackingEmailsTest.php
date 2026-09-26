@@ -166,9 +166,9 @@ class OrderTrackingEmailsTest extends TestCase
     {
         $this->installFulfillment();
         $delivered = $this->orderStatus('Delivered', 5);
-        // The email now answers from the core status's own tick, not the
-        // map's "notify" flag, which the doorway no longer consults.
-        $delivered->update(['emails_customer' => true]);
+        // The email answers from the store's list on Status Mapping, not the
+        // courier map's per-row "notify" flag, which is ignored.
+        \Extensions\CourierFulfillment\NotifyMap::put([...\Extensions\CourierFulfillment\NotifyMap::all(), $delivered->id]);
         Setting::create(['group' => 'courier', 'key' => 'fake_status_map', 'value' => json_encode([
             'delivered' => ['order_status_id' => $delivered->id, 'notify' => false],
         ])]);

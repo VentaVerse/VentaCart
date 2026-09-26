@@ -99,8 +99,8 @@ class OrderController extends Controller
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
 
         // Each channel's own answer for every status, so the page can
-        // pre-tick a channel's box from the channel's list exactly as it
-        // pre-ticks the email box from the status's emails_customer tick.
+        // pre-tick a channel's box from the channel's own list. The email
+        // box is never pre-ticked here: by hand, the person decides.
         $notifyChannels = OrderNotificationService::channels();
         $channelWantsByStatus = [];
         foreach ($notifyChannels as $channel) {

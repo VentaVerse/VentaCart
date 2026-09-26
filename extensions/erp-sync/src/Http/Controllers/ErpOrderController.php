@@ -246,15 +246,15 @@ class ErpOrderController extends Controller
         $validated = $request->validate([
             'status_id' => 'required|integer|exists:order_statuses,id',
             'comment' => 'nullable|string|max:1000',
+            'notify' => 'sometimes|boolean',
+            'notify_sms' => 'sometimes|boolean',
         ]);
 
         OrderStatusChanger::apply(
             $order,
             (int) $validated['status_id'],
             $validated['comment'] ?? 'Status updated via ERP API',
-            // The store's ticks decide. The ERP deliberately cannot silence a
-            // customer: staff should not be able to do that by accident.
-            NotifyChoice::follow(),
+            $this->notifyChoice($validated),
             null,
             // The fallback wording above is for the record. The customer
             // reads only what the ERP actually wrote, which may be nothing.
@@ -269,5 +269,45 @@ class ErpOrderController extends Controller
         ];
 
         return $this->logAndRespond($request, $data);
+    }
+
+    /**
+     * Who hears about this change.
+     *
+     * The caller moving the order may say, like a person ticking the boxes
+     * on the order page: notify for the email, notify_sms for a text. A half
+     * it leaves out follows the store's automatic settings (the email list
+     * and each channel's own list), and a call that says neither follows
+     * them entirely, which is how every call behaved before these fields.
+     * A text needs a messaging extension that is on and has a message for
+     * the status; asking for one where there is none sends nothing.
+     *
+     * @param  array{status_id: int, notify?: bool, notify_sms?: bool}  $validated
+     */
+    private function notifyChoice(array $validated): NotifyChoice
+    {
+        $saysEmail = array_key_exists('notify', $validated);
+        $saysSms = array_key_exists('notify_sms', $validated);
+
+        if (! $saysEmail && ! $saysSms) {
+            return NotifyChoice::follow();
+        }
+
+        $automatic = \App\Services\OrderNotificationService::plan(
+            \App\Models\OrderStatus::find((int) $validated['status_id']),
+            NotifyChoice::follow(),
+        );
+
+        $email = $saysEmail ? (bool) $validated['notify'] : $automatic['email'];
+
+        $channels = $automatic['channels'];
+        if ($saysSms) {
+            $channels = array_values(array_diff($channels, ['sms']));
+            if ($validated['notify_sms']) {
+                $channels[] = 'sms';
+            }
+        }
+
+        return NotifyChoice::explicit($email, $channels);
     }
 }

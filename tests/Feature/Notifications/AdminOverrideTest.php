@@ -34,8 +34,8 @@ class AdminOverrideTest extends TestCase
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
         $this->packing = OrderStatus::create(['store_id' => 1, 'name' => 'Packing', 'sort_order' => 1]);
         $this->shipped = OrderStatus::create([
-            'store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2, 'emails_customer' => true,
-        ]);
+            'store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($this->shipped->id);
         RecordingChannel::reset();
         OrderNotificationService::registerChannel(RecordingChannel::class);
         Mail::fake();

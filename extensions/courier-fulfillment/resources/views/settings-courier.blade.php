@@ -201,13 +201,12 @@
                                     <tr>
                                         <th>{{ $courier->getName() }} status</th>
                                         <th>Venta order status</th>
-                                        <th>Notify customer</th>
                                     </tr>
                                 </thead>
                                 @foreach ($courierStatusGroups as $groupLabel => $groupStatuses)
                                 <tbody>
                                     @if ($groupLabel !== '')
-                                        <tr class="v-table__group"><th colspan="3" scope="colgroup">{{ $groupLabel }}</th></tr>
+                                        <tr class="v-table__group"><th colspan="2" scope="colgroup">{{ $groupLabel }}</th></tr>
                                     @endif
                                     @foreach ($groupStatuses as $statusKey => $label)
                                         <tr>
@@ -225,14 +224,6 @@
                                                         <option value="{{ $id }}" {{ (string) ($statusMap[$statusKey]['order_status_id'] ?? '') === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
                                                     @endforeach
                                                 </select>
-                                            </td>
-                                            <td>
-                                                <input type="hidden" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="0">
-                                                <label class="v-check">
-                                                    <input type="checkbox" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="1"
-                                                        aria-label="Notify the customer on {{ $label }}"
-                                                        {{ !empty($statusMap[$statusKey]['notify']) ? 'checked' : '' }}>
-                                                </label>
                                             </td>
                                         </tr>
                                     @endforeach

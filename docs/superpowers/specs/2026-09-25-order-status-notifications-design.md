@@ -213,6 +213,25 @@ were not spelled out here at all:
   extension defines, and a 429 puts the job back on the queue rather than
   recording a failure.
 
+- **Owner ruling 2026-09-26: the automatic email list moved back to
+  fulfillment.** Core emails a customer about a status change only when
+  someone asks: Notify on the order page (which now always starts
+  unticked, as in OpenCart) or `notify` on the API. The list of statuses
+  that email by themselves, for changes nobody is watching (fulfilment
+  bookings, courier updates, payments, API calls that do not say), is the
+  "Email customer" column on fulfillment's Status Mapping page
+  (`NotifyMap`), plugged into core through the `OrderEmailPolicy`
+  contract. With no such extension on, nothing emails automatically.
+  `order_statuses.emails_customer` is dropped. Status Mapping's
+  per-channel columns and the courier map's per-row notify flag are
+  removed; texts stay with the SMS extension's templates.
+- **The ERP status endpoint takes `notify` and `notify_sms`**, both
+  optional booleans. A half the caller states is theirs, and speaks even
+  when the status did not move; a half left out follows the store's
+  automatic settings; a call with neither behaves exactly as before. This
+  replaces the "no per-call override from the ERP" line under Out of
+  scope.
+
 ## Testing
 
 Test-first throughout. Per path: the status change announces, the listeners
@@ -247,5 +266,3 @@ before either pass is committed.
   tracking number to an order that is already Shipped.
 - Moving the SMS gateway itself into core. UniSMS stays an extension behind the
   channel contract, which keeps the option of a second gateway cheap.
-- Any per-call override from the ERP. The store's ticks decide, so staff cannot
-  silence a customer by accident.

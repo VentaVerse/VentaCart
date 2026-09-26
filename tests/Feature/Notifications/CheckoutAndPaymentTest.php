@@ -48,8 +48,8 @@ class CheckoutAndPaymentTest extends TestCase
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
         $this->pending = OrderStatus::create([
             'store_id' => 1, 'name' => 'Pending', 'sort_order' => 1,
-            'is_default' => true, 'emails_customer' => true,
-        ]);
+            'is_default' => true]);
+        $this->emailAutomaticallyOn($this->pending->id);
         RecordingChannel::reset();
         OrderNotificationService::registerChannel(RecordingChannel::class);
         Mail::fake();
@@ -192,7 +192,8 @@ class CheckoutAndPaymentTest extends TestCase
 
     public function test_the_hitpay_return_path_texts_on_the_success_status(): void
     {
-        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($success->id);
         Setting::create(['group' => 'payment', 'key' => 'hitpay_success_status_id', 'value' => (string) $success->id]);
 
         $customer = $this->customer();
@@ -225,7 +226,8 @@ class CheckoutAndPaymentTest extends TestCase
      */
     public function test_the_hitpay_return_path_is_idempotent(): void
     {
-        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($success->id);
         Setting::create(['group' => 'payment', 'key' => 'hitpay_success_status_id', 'value' => (string) $success->id]);
 
         $customer = $this->customer();
@@ -251,8 +253,10 @@ class CheckoutAndPaymentTest extends TestCase
      */
     public function test_revisiting_the_return_url_never_reverts_a_later_status(): void
     {
-        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
-        $shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 3, 'emails_customer' => true]);
+        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($success->id);
+        $shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 3]);
+        $this->emailAutomaticallyOn($shipped->id);
         Setting::create(['group' => 'payment', 'key' => 'hitpay_success_status_id', 'value' => (string) $success->id]);
 
         $customer = $this->customer();
@@ -308,7 +312,8 @@ class CheckoutAndPaymentTest extends TestCase
         app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->hitpaySalt();
 
-        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($success->id);
         Setting::create(['group' => 'payment', 'key' => 'hitpay_success_status_id', 'value' => (string) $success->id]);
 
         $order = $this->order(['payment_reference' => 'pr_webhook_1', 'total' => 100]);
@@ -342,7 +347,8 @@ class CheckoutAndPaymentTest extends TestCase
         app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->hitpaySalt();
 
-        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($success->id);
         Setting::create(['group' => 'payment', 'key' => 'hitpay_success_status_id', 'value' => (string) $success->id]);
 
         $order = $this->order([
@@ -392,7 +398,8 @@ class CheckoutAndPaymentTest extends TestCase
         app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->hitpaySalt();
 
-        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($success->id);
         Setting::create(['group' => 'payment', 'key' => 'hitpay_success_status_id', 'value' => (string) $success->id]);
 
         $customer = $this->customer();
@@ -433,7 +440,8 @@ class CheckoutAndPaymentTest extends TestCase
         app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->hitpaySalt();
 
-        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        $success = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($success->id);
         Setting::create(['group' => 'payment', 'key' => 'hitpay_success_status_id', 'value' => (string) $success->id]);
 
         $customer = $this->customer();
@@ -485,7 +493,8 @@ class CheckoutAndPaymentTest extends TestCase
      */
     public function test_a_stale_read_still_loses_the_race(): void
     {
-        $shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2, 'emails_customer' => true]);
+        $shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Paid', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($shipped->id);
         $order = $this->order();
 
         // Both "requests" read the order before either writes.

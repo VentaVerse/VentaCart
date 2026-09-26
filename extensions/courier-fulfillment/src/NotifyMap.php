@@ -5,19 +5,16 @@ namespace Extensions\CourierFulfillment;
 use App\Models\Setting;
 
 /**
- * Which order statuses tell the customer, decided once by the merchant
- * instead of every time by whoever is packing.
+ * Which order statuses email the customer by themselves.
  *
- * The core order page keeps its unticked box: moving a status there is a
- * deliberate act by someone who has the order open and may have a reason not
- * to write. Fulfilment is the opposite. A packer records twenty parcels an
- * afternoon and should not be deciding, twenty times, whether "Shipped" is
- * the kind of status a customer hears about. That is a policy the store
- * settles once, on this page, and it is the same answer every time.
+ * A merchant decides this once, on Status Mapping, instead of a packer
+ * deciding it twenty times an afternoon. It is the store's automatic email
+ * list (owner ruling 2026-09-26): fulfilment bookings, courier updates,
+ * payments and API calls that do not say all follow it, through
+ * FulfillmentEmailPolicy. The core order page keeps its unticked box: a
+ * person changing a status by hand decides whether to write.
  *
- * Integrated couriers are unaffected: their own status map already carries a
- * notify flag per courier status, which is a finer-grained answer to the same
- * question and stays the one that wins on their path.
+ * Texts are not decided here. The SMS extension keeps its own templates.
  */
 class NotifyMap
 {
@@ -41,38 +38,6 @@ class NotifyMap
     public static function put(array $ids): void
     {
         self::write(self::KEY, $ids);
-    }
-
-    /**
-     * The same policy for a notification channel an extension registered.
-     *
-     * Kept in its own setting per channel rather than folded into one map,
-     * so the email policy above keeps its key and its stored value exactly
-     * as it was, and a channel that is later removed leaves its answer
-     * behind harmlessly instead of corrupting a shared blob.
-     *
-     * @return list<int>
-     */
-    public static function allFor(string $channel): array
-    {
-        return self::read(self::keyFor($channel));
-    }
-
-    public static function notifiesVia(string $channel, ?int $statusId): bool
-    {
-        return $statusId !== null && in_array((int) $statusId, self::allFor($channel), true);
-    }
-
-    /** @param  list<int>  $ids */
-    public static function putFor(string $channel, array $ids): void
-    {
-        self::write(self::keyFor($channel), $ids);
-    }
-
-    /** Channel keys are short and registered in code, never user input. */
-    private static function keyFor(string $channel): string
-    {
-        return self::KEY . '_' . preg_replace('/[^a-z0-9_]/', '', strtolower($channel));
     }
 
     /** @return list<int> */

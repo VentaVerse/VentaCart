@@ -26,8 +26,8 @@ class AnnouncementTest extends TestCase
         parent::setUp();
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
         $this->shipped = OrderStatus::create([
-            'store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2, 'emails_customer' => true,
-        ]);
+            'store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($this->shipped->id);
         RecordingChannel::reset();
         OrderNotificationService::registerChannel(RecordingChannel::class);
         Mail::fake();

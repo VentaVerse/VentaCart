@@ -13,10 +13,11 @@ use Tests\Support\ResetsNotificationChannels;
 use Tests\TestCase;
 
 /**
- * The order page's "Update order" boxes start from the store's own answer
- * for the status being chosen, email and every channel alike, and only when
- * the status is actually changing: a note added to an order that is staying
- * put must not email or text the customer by default.
+ * The order page's "Update order" boxes. The email box starts unticked, as
+ * in OpenCart: by hand, the person decides (owner ruling 2026-09-26). Each
+ * channel's box starts from that channel's own list, and only while the
+ * status is actually changing: a note added to an order that is staying put
+ * must not text the customer by default.
  */
 class OrderPagePreTickTest extends TestCase
 {
@@ -32,9 +33,10 @@ class OrderPagePreTickTest extends TestCase
         parent::setUp();
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
         $this->packing = OrderStatus::create(['store_id' => 1, 'name' => 'Packing', 'sort_order' => 1]);
-        $this->shipped = OrderStatus::create([
-            'store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2, 'emails_customer' => true,
-        ]);
+        $this->shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2]);
+        // Shipped emails by itself for automated changes. It must still not
+        // pre-tick the box on the order page.
+        $this->emailAutomaticallyOn($this->shipped->id);
         RecordingChannel::reset();
         OrderNotificationService::registerChannel(RecordingChannel::class);
         $this->actingAs(User::factory()->create());
@@ -77,22 +79,27 @@ class OrderPagePreTickTest extends TestCase
     }
 
     /**
-     * I3: the order sits at an emailing status. Its current status is the
-     * select's starting value, so a guard on "the status is changing" keeps
-     * both boxes clear until the admin actually picks another one.
+     * The order sits at a status another path would text about. Its current
+     * status is the select's starting value, so a guard on "the status is
+     * changing" keeps every channel box clear until the admin picks another.
      */
-    public function test_nothing_is_pre_ticked_while_the_status_stays_put(): void
+    public function test_no_channel_is_pre_ticked_while_the_status_stays_put(): void
     {
-        $order = $this->order();
-
-        $page = $this->get(route('admin.orders.show', $order))->assertOk();
+        $page = $this->get(route('admin.orders.show', $this->order()))->assertOk();
 
         $page->assertSee('current: ' . $this->shipped->id, false);
-        $guard = 'statusId !== current && ';
         $this->assertSame(
-            1 + count(OrderNotificationService::channels()),
-            substr_count($page->getContent(), $guard),
-            'The email box and every channel box carry the status-is-changing guard.'
+            count(OrderNotificationService::channels()),
+            substr_count($page->getContent(), 'statusId !== current && '),
+            'Every channel box carries the status-is-changing guard.'
         );
+    }
+
+    public function test_the_email_box_is_never_pre_ticked(): void
+    {
+        $html = $this->get(route('admin.orders.show', $this->order()))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('~<input type="checkbox" name="notify_customer" value="1"\s+aria-label~', $html,
+            'The email box carries no checked binding, whatever the automatic list says.');
     }
 }

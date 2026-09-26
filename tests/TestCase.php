@@ -30,5 +30,24 @@ abstract class TestCase extends BaseTestCase
         ]);
     }
 
-    //
+    /**
+     * Stand in for the extension that owns the automatic email list, so a
+     * test about the doorway need not install fulfillment. Bound in the
+     * container, which each test rebuilds, so it never outlives the test.
+     */
+    protected function emailAutomaticallyOn(int ...$orderStatusIds): void
+    {
+        $this->app->instance(\App\Contracts\OrderEmailPolicy::class, new class($orderStatusIds) implements \App\Contracts\OrderEmailPolicy
+        {
+            /** @param list<int> $ids */
+            public function __construct(private array $ids)
+            {
+            }
+
+            public function emailsOn(int $orderStatusId): bool
+            {
+                return in_array($orderStatusId, $this->ids, true);
+            }
+        });
+    }
 }

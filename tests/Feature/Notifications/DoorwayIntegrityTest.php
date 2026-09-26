@@ -40,8 +40,8 @@ class DoorwayIntegrityTest extends TestCase
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
         $this->packing = OrderStatus::create(['store_id' => 1, 'name' => 'Packing', 'sort_order' => 1]);
         $this->shipped = OrderStatus::create([
-            'store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2, 'emails_customer' => true,
-        ]);
+            'store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2]);
+        $this->emailAutomaticallyOn($this->shipped->id);
         RecordingChannel::reset();
         OrderNotificationService::registerChannel(RecordingChannel::class);
         Mail::fake();
@@ -110,7 +110,7 @@ class DoorwayIntegrityTest extends TestCase
     /** M3: a text alone still told the customer, so they may read the comment. */
     public function test_a_row_where_only_a_channel_was_queued_reads_as_customer_visible(): void
     {
-        $quiet = OrderStatus::create(['store_id' => 1, 'name' => 'Out for delivery', 'sort_order' => 3, 'emails_customer' => false]);
+        $quiet = OrderStatus::create(['store_id' => 1, 'name' => 'Out for delivery', 'sort_order' => 3]);
 
         OrderStatusChanger::apply($this->order(), $quiet->id, 'Rider is on the way');
 
@@ -122,7 +122,7 @@ class DoorwayIntegrityTest extends TestCase
     public function test_a_row_where_nothing_was_queued_stays_internal(): void
     {
         RecordingChannel::$wants = false;
-        $quiet = OrderStatus::create(['store_id' => 1, 'name' => 'Out for delivery', 'sort_order' => 3, 'emails_customer' => false]);
+        $quiet = OrderStatus::create(['store_id' => 1, 'name' => 'Out for delivery', 'sort_order' => 3]);
 
         OrderStatusChanger::apply($this->order(), $quiet->id, 'Internal note');
 

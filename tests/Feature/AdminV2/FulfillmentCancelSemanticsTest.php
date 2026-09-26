@@ -23,8 +23,8 @@ use Tests\TestCase;
  *      status to the module setting `cancel_order_status_id` (default: the
  *      status named "Canceled") through the same doorway the admin order
  *      page uses (OrderStatusChanger::apply() with NotifyChoice::follow():
- *      the customer hears about it only if the cancel status's own
- *      emails_customer tick, or a channel's own list, says so). Offered on
+ *      the customer hears about it only if Status Mapping's email list,
+ *      or a channel's own list, says so). Offered on
  *      Unpaid rows (their ONLY action) and on To Pack rows (alongside Book).
  *      Refused while an active courier booking exists.
  *  (b) CANCEL BOOKING - when the courier confirms an admin-initiated cancel,
@@ -220,8 +220,8 @@ class FulfillmentCancelSemanticsTest extends TestCase
         $this->assertSame($canceled->id, $order->order_status_id);
 
         // History entry through the same doorway the order page uses. The
-        // store's ticks decide: this fixture's cancel status has no
-        // emails_customer tick and no channel is registered, so nothing was
+        // store's lists decide: this fixture's cancel status is not on
+        // Status Mapping's email list and no channel is registered, so nothing was
         // queued and the row reads notify_customer false.
         $this->assertDatabaseHas('order_histories', [
             'order_id' => $order->id,

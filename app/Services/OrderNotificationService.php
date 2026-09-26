@@ -120,8 +120,9 @@ class OrderNotificationService
      * Tell whoever should be told that this order moved.
      *
      * The one place that resolves the question. Email answers from the
-     * status's own tick, each channel from its own settings, and an explicit
-     * choice from a person with the order open beats both. Nothing is sent
+     * bound OrderEmailPolicy (no automatic email when none is bound), each
+     * channel from its own settings, and an explicit choice from a person
+     * with the order open, or an API caller that says, beats both. Nothing is sent
      * here: a job per message is queued, so a slow gateway never holds open
      * a courier's webhook or the ERP's API call.
      *
@@ -150,6 +151,20 @@ class OrderNotificationService
     }
 
     /**
+     * The automatic answer for email: whatever the bound OrderEmailPolicy
+     * says, and no when nothing is bound. A store without an extension that
+     * automates order handling emails only when someone asks.
+     */
+    public static function emailsAutomatically(?int $orderStatusId): bool
+    {
+        if ($orderStatusId === null || ! app()->bound(\App\Contracts\OrderEmailPolicy::class)) {
+            return false;
+        }
+
+        return app(\App\Contracts\OrderEmailPolicy::class)->emailsOn($orderStatusId);
+    }
+
+    /**
      * Who would be told about a move to this status, without telling them.
      *
      * Split from announce() so the doorway can write the history row with
@@ -160,7 +175,7 @@ class OrderNotificationService
      */
     public static function plan(?OrderStatus $newStatus, NotifyChoice $choice): array
     {
-        $email = $choice->email ?? (bool) ($newStatus?->emails_customer);
+        $email = $choice->email ?? self::emailsAutomatically($newStatus?->id);
 
         $keys = [];
         foreach (self::channels() as $channel) {

@@ -334,11 +334,11 @@ class FulfillmentController extends Controller
             'manualDefaultStatusId' => FulfillmentService::bookedStatus()?->id,
             // The store's own answer as {statusId: bool}, so the manual
             // form's tick follows whichever status the packer picks. Read
-            // from the status's emails_customer tick, the same home every
-            // other path reads; fulfillment's NotifyMap is retiring.
+            // from this extension's email list on Status Mapping, the same
+            // list every automatic change follows.
             'notifyByStatus' => OrderStatus::where('store_id', (int) config('app.store_id', 1))
-                ->pluck('emails_customer', 'id')
-                ->map(fn ($emails) => (bool) $emails)
+                ->pluck('id')
+                ->mapWithKeys(fn ($id) => [$id => \Extensions\CourierFulfillment\NotifyMap::notifies((int) $id)])
                 ->all(),
             // The same, per registered channel, from each channel's own list
             // (wantsStatus), so each tick follows the status the packer
@@ -993,7 +993,7 @@ class FulfillmentController extends Controller
             // Shared status-change core — the exact mechanics the order
             // page's addHistory() applies (history row + status update +
             // stock adjustment + the one announcement), following the
-            // cancel status's own emails_customer tick.
+            // store's email list on Status Mapping for the cancel status.
             \App\Services\OrderStatusChanger::apply(
                 $order,
                 $status->id,

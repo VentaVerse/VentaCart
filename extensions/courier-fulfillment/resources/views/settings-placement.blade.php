@@ -43,12 +43,7 @@
                             <tr>
                                 <th>Order status</th>
                                 <th>Tab</th>
-                                <th>Notify customer</th>
-                                {{-- A column per registered channel. Named by
-                                     the channel, so this page never says SMS. --}}
-                                @foreach ($channels as $vChannel)
-                                    <th>{{ $vChannel->label() }}</th>
-                                @endforeach
+                                <th><span class="v-namerow">Email customer <x-admin.help text="An order reaching this status emails the customer by itself: from fulfilment, courier updates, payments, and API calls that do not say. By hand on the order page, you decide." /></span></th>
                                 <th class="v-cell-num">Orders</th>
                             </tr>
                         </thead>
@@ -67,25 +62,12 @@
                                         </select>
                                     </td>
                                     <td>
-                                        {{-- Ticked here, the packer never
-                                             decides: recording a shipment into
-                                             this status tells the customer
-                                             every time. --}}
                                         <label class="v-check">
                                             <input type="checkbox" name="notify[{{ $row['id'] }}]" value="1"
                                                    @checked($row['notifies'])
-                                                   aria-label="Notify the customer when an order moves to {{ $row['name'] }}">
+                                                   aria-label="Email the customer when an order moves to {{ $row['name'] }}">
                                         </label>
                                     </td>
-                                    @foreach ($channels as $vChannel)
-                                        <td>
-                                            <label class="v-check">
-                                                <input type="checkbox" name="channel[{{ $vChannel->key() }}][{{ $row['id'] }}]" value="1"
-                                                       @checked($row['channels'][$vChannel->key()] ?? false)
-                                                       aria-label="{{ $vChannel->label() }} when an order moves to {{ $row['name'] }}">
-                                            </label>
-                                        </td>
-                                    @endforeach
                                     <td class="v-cell-num v-mono">{{ number_format($row['orders']) }}</td>
                                 </tr>
                             @endforeach
@@ -105,12 +87,7 @@
                             <tr>
                                 <th>Order status</th>
                                 <th>Tab</th>
-                                <th>Notify customer</th>
-                                {{-- A column per registered channel. Named by
-                                     the channel, so this page never says SMS. --}}
-                                @foreach ($channels as $vChannel)
-                                    <th>{{ $vChannel->label() }}</th>
-                                @endforeach
+                                <th><span class="v-namerow">Email customer <x-admin.help text="An order reaching this status emails the customer by itself: from fulfilment, courier updates, payments, and API calls that do not say. By hand on the order page, you decide." /></span></th>
                                 <th class="v-cell-num">Orders</th>
                             </tr>
                         </thead>
@@ -128,25 +105,12 @@
                                         </select>
                                     </td>
                                     <td>
-                                        {{-- Ticked here, the packer never
-                                             decides: recording a shipment into
-                                             this status tells the customer
-                                             every time. --}}
                                         <label class="v-check">
                                             <input type="checkbox" name="notify[{{ $row['id'] }}]" value="1"
                                                    @checked($row['notifies'])
-                                                   aria-label="Notify the customer when an order moves to {{ $row['name'] }}">
+                                                   aria-label="Email the customer when an order moves to {{ $row['name'] }}">
                                         </label>
                                     </td>
-                                    @foreach ($channels as $vChannel)
-                                        <td>
-                                            <label class="v-check">
-                                                <input type="checkbox" name="channel[{{ $vChannel->key() }}][{{ $row['id'] }}]" value="1"
-                                                       @checked($row['channels'][$vChannel->key()] ?? false)
-                                                       aria-label="{{ $vChannel->label() }} when an order moves to {{ $row['name'] }}">
-                                            </label>
-                                        </td>
-                                    @endforeach
                                     <td class="v-cell-num v-mono">{{ number_format($row['orders']) }}</td>
                                 </tr>
                             @endforeach

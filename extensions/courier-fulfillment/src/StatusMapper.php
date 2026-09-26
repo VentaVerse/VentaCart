@@ -28,7 +28,6 @@ class StatusMapper
         }
         return [
             'order_status_id' => (int) $row['order_status_id'],
-            'notify'          => (bool) ($row['notify'] ?? false),
         ];
     }
 
@@ -61,11 +60,11 @@ class StatusMapper
         $comment = CourierStatusLabel::sentence($order, (string) $courierStatus);
 
         // The doorway does the write (history row, order_status_id update,
-        // stock adjustment) and the announcing. The map's own per-courier
-        // "notify" flag is no longer consulted here: the core status's own
-        // tick is the single answer, through NotifyChoice::follow(), so a
-        // channel ticked for Shipped fires no matter which door moved the
-        // order there. The flag itself retires from the map in pass 2.
+        // stock adjustment) and the announcing, through NotifyChoice::follow():
+        // email follows the store's list on Status Mapping and each channel
+        // its own list, whichever door moved the order there. Maps saved
+        // before 2026-09-26 may still carry a per-row "notify" flag; it is
+        // ignored.
         \App\Services\OrderStatusChanger::apply(
             $order,
             $newStatus->id,

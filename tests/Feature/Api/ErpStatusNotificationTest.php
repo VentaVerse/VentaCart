@@ -11,6 +11,8 @@ use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Tests\Support\ResetsNotificationChannels;
+use Tests\Support\SmsRecordingChannel;
 use Tests\TestCase;
 
 /**
@@ -19,6 +21,7 @@ use Tests\TestCase;
 class ErpStatusNotificationTest extends TestCase
 {
     use RefreshDatabase;
+    use ResetsNotificationChannels;
 
     private OrderStatus $packing;
 
@@ -37,9 +40,8 @@ class ErpStatusNotificationTest extends TestCase
         $this->apiKey('erp-test-token');
         $this->packing = OrderStatus::create(['store_id' => 1, 'name' => 'Packing', 'sort_order' => 1]);
         $this->shipped = OrderStatus::create([
-            'store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2,
-            'emails_customer' => true, 'deducts_stock' => true,
-        ]);
+            'store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2, 'deducts_stock' => true]);
+        $this->emailAutomaticallyOn($this->shipped->id);
         Mail::fake();
     }
 
@@ -125,5 +127,99 @@ class ErpStatusNotificationTest extends TestCase
         $this->assertSame('Packed with care', $history->comment);
         $this->assertSame('Packed with care', $history->customerFacingComment());
         Queue::assertPushed(\App\Jobs\SendOrderStatusNotification::class, fn ($job) => $job->target === 'email' && $job->comment === 'Packed with care');
+    }
+
+    protected function tearDown(): void
+    {
+        $this->resetNotificationChannels();
+        parent::tearDown();
+    }
+
+    /** @return list<string> the targets queued for this request, email and channels alike */
+    private function queuedTargets(): array
+    {
+        return Queue::pushed(\App\Jobs\SendOrderStatusNotification::class)
+            ->map(fn ($job) => $job->target)->sort()->values()->all();
+    }
+
+    private function moveToShipped(Order $order, array $body): void
+    {
+        $this->withToken('erp-test-token')
+            ->putJson('/api/v1/orders/' . $order->id . '/status', ['status_id' => $this->shipped->id] + $body)
+            ->assertOk();
+    }
+
+    /** The caller may ask for the email on a status the store does not email about. */
+    public function test_notify_true_emails_on_a_status_off_the_automatic_list(): void
+    {
+        Queue::fake();
+        $this->emailAutomaticallyOn();
+
+        $this->moveToShipped($this->order(), ['notify' => true]);
+
+        $this->assertSame(['email'], $this->queuedTargets());
+    }
+
+    public function test_notify_false_keeps_a_listed_status_quiet(): void
+    {
+        Queue::fake();
+
+        $this->moveToShipped($this->order(), ['notify' => false]);
+
+        $this->assertSame([], $this->queuedTargets());
+    }
+
+    /** Asking is deliberate: it speaks even when the status did not move. */
+    public function test_notify_true_emails_even_on_the_status_it_already_has(): void
+    {
+        Queue::fake();
+        $order = $this->order();
+        $order->update(['order_status_id' => $this->shipped->id]);
+
+        $this->moveToShipped($order, ['notify' => true]);
+
+        $this->assertSame(['email'], $this->queuedTargets());
+    }
+
+    public function test_notify_sms_true_texts_and_email_follows_the_list(): void
+    {
+        Queue::fake();
+        SmsRecordingChannel::reset();
+        SmsRecordingChannel::$wants = false;
+        \App\Services\OrderNotificationService::registerChannel(SmsRecordingChannel::class);
+
+        $this->moveToShipped($this->order(), ['notify_sms' => true]);
+
+        $this->assertSame(['email', 'sms'], $this->queuedTargets());
+    }
+
+    public function test_notify_sms_false_stops_the_text_and_leaves_the_email(): void
+    {
+        Queue::fake();
+        SmsRecordingChannel::reset();
+        \App\Services\OrderNotificationService::registerChannel(SmsRecordingChannel::class);
+
+        $this->moveToShipped($this->order(), ['notify_sms' => false]);
+
+        $this->assertSame(['email'], $this->queuedTargets());
+    }
+
+    public function test_saying_neither_follows_the_store_for_both(): void
+    {
+        Queue::fake();
+        SmsRecordingChannel::reset();
+        \App\Services\OrderNotificationService::registerChannel(SmsRecordingChannel::class);
+
+        $this->moveToShipped($this->order(), []);
+
+        $this->assertSame(['email', 'sms'], $this->queuedTargets());
+    }
+
+    public function test_notify_must_be_a_yes_or_no(): void
+    {
+        $this->withToken('erp-test-token')
+            ->putJson('/api/v1/orders/' . $this->order()->id . '/status', ['status_id' => $this->shipped->id, 'notify' => 'loudly'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('notify');
     }
 }
