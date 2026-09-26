@@ -4,46 +4,168 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
+use App\Support\NotifyChoice;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The ONE place an order's status is changed with its bookkeeping: history
- * row + order_status_id update + StockService adjustment, in that order —
+ * row + order_status_id update + StockService adjustment, in that order,
  * extracted (fulfillment-tabs-v Task 4 fix round) from
  * OrderController::addHistory(), whose mechanics the fulfillment queue's
  * Cancel order action had duplicated. Both now call this for the core write;
- * everything layered on top (customer notification emails, courier/tracking
- * side effects, comment building) stays with each caller — this method never
- * sends mail.
+ * everything layered on top (courier/tracking side effects, comment
+ * building) stays with each caller. This method never sends anything
+ * itself: it announces, and the queue sends.
  */
 class OrderStatusChanger
 {
     /**
+     * @param  NotifyChoice|null  $notify  null follows the store's ticks
+     *   (NotifyChoice::follow()). Every caller now passes a real NotifyChoice
+     *   (or nothing, to follow); the transitional bool form (Task 4's shim,
+     *   read as NotifyChoice::explicit($notify, []) and never announced) is
+     *   gone as of Task 5, which moved every caller onto NotifyChoice and
+     *   deleted the duplicate sends they used to do for themselves.
+     * @param  ?string  $customerComment  what the announcement carries, when
+     *   it differs from the history row's own comment (for example, a
+     *   fulfilment audit line like "Order status set to X by fulfillment"
+     *   that belongs on the record but not in the customer's inbox).
+     *   Defaults to $comment.
      * @return OrderStatus|null the status row actually applied (null only if
-     *   $orderStatusId doesn't resolve — the history row and order update
+     *   $orderStatusId doesn't resolve: the history row and order update
      *   still happen, matching addHistory()'s pre-extraction behavior, but
      *   no stock adjustment runs without a status row to read deducts_stock
      *   from).
      */
-    public static function apply(Order $order, int $orderStatusId, ?string $comment = null, bool $notifyCustomer = false, ?int $createdBy = null): ?OrderStatus
+    public static function apply(Order $order, int $orderStatusId, ?string $comment = null, ?NotifyChoice $notify = null, ?int $createdBy = null, ?string $customerComment = null): ?OrderStatus
     {
-        $order->histories()->create([
-            'order_status_id' => $orderStatusId,
-            'comment'         => $comment,
-            'notify_customer' => $notifyCustomer,
-            'created_by'      => $createdBy,
-        ]);
-        $order->update(['order_status_id' => $orderStatusId]);
-        // The status relation (if it was loaded) now describes the OLD status.
-        // Anything reading $order->status right after a change would get a
-        // stale answer, in the order page's own header as much as anywhere
-        // else. Dropping the loaded relation makes the next read re-resolve.
-        $order->unsetRelation('status');
+        $choice = $notify ?? NotifyChoice::follow();
 
-        $newStatus = OrderStatus::find($orderStatusId);
-        if ($newStatus) {
-            StockService::adjustForStatusChange($order, $newStatus);
-        }
+        // One transaction for the whole change, so the history row, the
+        // status and the stock move land together or not at all. Nested in
+        // a caller's own transaction (claimStatus(), bookManual()) it is a
+        // savepoint. Lock order is the order row first, then products inside
+        // StockService, the same order every other path takes, so two
+        // changes to one order queue behind each other rather than deadlock.
+        return DB::transaction(function () use ($order, $orderStatusId, $comment, $choice, $createdBy, $customerComment) {
+            // The old status comes from the row as it stands, locked, never
+            // from $order: a courier webhook and a poll can each hold a copy
+            // read before the other wrote, and deciding against a stale copy
+            // is how both passed the unchanged-status guard and texted twice.
+            $locked = Order::whereKey($order->getKey())->lockForUpdate()->first(['id', 'order_status_id']);
+            $oldStatusId = (int) ($locked?->order_status_id ?? $order->order_status_id);
+            $oldStatusName = OrderStatus::find($oldStatusId)?->name;
+            $newStatus = OrderStatus::find($orderStatusId);
 
-        return $newStatus;
+            // The status moving is one reason to announce. A caller who took
+            // an explicit position on CHANNELS is the other: an operator
+            // ticking Notify (or a channel) while recording a tracking number
+            // on an order that is already on its target status still means
+            // to tell the customer, and that decision only ever comes from a
+            // human with the order open (NotifyChoice::explicit()) or one
+            // deliberately silencing everything (NotifyChoice::silent()).
+            // Every other choice, including emailHandledElsewhere(), stays
+            // behind the status-moved guard on an unchanged status, which is
+            // what stops the ERP setting Shipped and the courier poll mapping
+            // to Shipped ten minutes later from telling the customer twice
+            // about the same move, and what stops a retried HitPay webhook
+            // that finds the order already on the success status from
+            // re-announcing it.
+            $announces = $oldStatusId !== $orderStatusId || $choice->isExplicit();
+
+            // Resolved before the row is written, so the row can say what
+            // was decided rather than being updated a second time.
+            $plan = $announces
+                ? OrderNotificationService::plan($newStatus, $choice)
+                : ['email' => false, 'channels' => []];
+
+            // notify_customer means "the customer was told", not "the status
+            // email was sent". A text alone told them; so did a caller that
+            // sends its own email instead (the order confirmation, HitPay's
+            // payment confirmation), even though the status email itself is
+            // suppressed. The account page shows the comment only when true.
+            $notifyCustomer = $plan['email'] || $plan['channels'] !== [] || $choice->toldCustomerElsewhere();
+
+            $history = $order->histories()->create([
+                'order_status_id'  => $orderStatusId,
+                'comment'          => $comment,
+                // Stored only when it differs, so the account page can show
+                // the line written for the customer rather than the record's.
+                'customer_comment' => ($customerComment !== null && $customerComment !== $comment) ? $customerComment : null,
+                'notify_customer'  => $notifyCustomer,
+                'created_by'       => $createdBy,
+            ]);
+            // $order may be a stale copy. Aligning it with the row just read
+            // makes the update below compare against what the database
+            // holds, so it writes whenever the database differs, even when
+            // the stale copy happened to already carry the target id.
+            if ($locked) {
+                $order->setAttribute('order_status_id', $locked->order_status_id);
+                $order->syncOriginalAttribute('order_status_id');
+            }
+            $order->update(['order_status_id' => $orderStatusId]);
+            // The status relation (if it was loaded) now describes the OLD
+            // status. Anything reading $order->status right after a change
+            // would get a stale answer, in the order page's own header as
+            // much as anywhere else. Dropping the loaded relation makes the
+            // next read re-resolve.
+            $order->unsetRelation('status');
+
+            if ($newStatus) {
+                StockService::adjustForStatusChange($order, $newStatus);
+            }
+
+            // Jobs implement ShouldQueueAfterCommit, so nothing is handed to
+            // the queue until this transaction (and any caller's around it)
+            // has committed.
+            if ($announces) {
+                OrderNotificationService::announce($order, $newStatus, $oldStatusName, $customerComment ?? $comment, $choice, $history->id, $plan);
+            }
+
+            return $newStatus;
+        });
+    }
+
+    /**
+     * Claim an order for a target status when two independent requests can
+     * both reach the same "confirm this payment" moment at nearly the same
+     * instant, each having read the order before either wrote (HitPay's
+     * webhook and the checkout return-URL fallback, both told the same
+     * payment succeeded).
+     *
+     * $order may be stale: it was very likely fetched before this call,
+     * possibly before the OTHER caller wrote. The guard below deliberately
+     * never reads $order's own order_status_id for that reason; it re-reads
+     * the row locked for the length of this transaction and decides against
+     * THAT. The loser of the race, whichever caller's transaction acquires
+     * the lock second, sees the winner's already-committed status and
+     * applies nothing, the same outcome a genuine duplicate webhook gets.
+     *
+     * @return bool true if this call applied the status (the winner, or the
+     *   only caller); false if the order holds it now or ever held it (the
+     *   loser, a plain repeat, or a revisit after the order moved on) or the
+     *   order no longer exists.
+     */
+    public static function claimStatus(Order $order, int $orderStatusId, ?string $comment = null, ?NotifyChoice $notify = null): bool
+    {
+        return DB::transaction(function () use ($order, $orderStatusId, $comment, $notify) {
+            $locked = Order::whereKey($order->getKey())->lockForUpdate()->first();
+
+            if (! $locked || (int) $locked->order_status_id === $orderStatusId) {
+                return false;
+            }
+
+            // Held it once, so this moment has already happened: a reload of
+            // HitPay's return URL days later, after the order has shipped,
+            // must not drag it back to Paid. The history is the memory; the
+            // current status alone forgets as soon as the order moves on.
+            if ($locked->histories()->where('order_status_id', $orderStatusId)->exists()) {
+                return false;
+            }
+
+            self::apply($locked, $orderStatusId, $comment, $notify);
+
+            return true;
+        });
     }
 }

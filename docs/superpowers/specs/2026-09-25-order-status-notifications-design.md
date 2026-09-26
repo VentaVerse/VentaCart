@@ -1,7 +1,7 @@
 # One doorway for order status changes
 
 **Date:** 2026-09-25
-**Status:** approved design, not yet built
+**Status:** pass 1 built 2026-09-25, pass 2 outstanding
 
 ## The problem
 
@@ -144,6 +144,75 @@ and courier flag retired; the manifest type.
 
 Pass 2 only moves where a tick is stored. Nothing in it is urgent.
 
+## Differences from the design
+
+A handful of things landed differently than this document first described, or
+were not spelled out here at all:
+
+- The `emails_customer` tick moved onto the core order status in pass 1, not
+  pass 2 as this document originally planned. Pass 1 promises that an ERP
+  status update emails the customer, and there was nothing for that path to
+  read without the tick already existing, so Task 1 brought it forward. What
+  is left for pass 2 is only deletion, listed above.
+- There is no committed carry-over migration for a live store's existing
+  fulfillment ticks (`NotifyMap`, the courier map's own notify flag). The
+  owner re-ticks the handful of boxes by hand on each live install instead,
+  per the standing rule against shipping one-off, install-specific data
+  migrations in this codebase.
+- `NotifyChoice::isExplicit()` does not mean "an email tick was chosen". It
+  means the caller took a position on CHANNELS specifically: only
+  `explicit()` and `silent()` set a channels list (even an empty one).
+  `follow()`, `emailAlways()` and `emailHandledElsewhere()` all leave it null
+  and defer to each channel's own `wantsStatus()`.
+- An unchanged status still announces when the caller's choice is explicit.
+  `OrderStatusChanger::apply()` normally only announces when the status
+  actually moved, but an operator ticking Notify (or a channel) while
+  recording a tracking number on an order already on its target status still
+  means to tell the customer. That decision only ever comes from a human
+  with the order open, or a caller deliberately silencing everything.
+- A caller may pass a `$customerComment` separate from the history row's own
+  `$comment`, for a line that belongs on the record but not in the
+  customer's inbox (a fulfilment audit line, for instance).
+- `NotifyChoice::toldCustomerElsewhere()` answers a third question, distinct
+  from `isExplicit()`: did this caller already tell the customer some other
+  way even though the status email itself is suppressed. Only
+  `emailHandledElsewhere()` sets it, and it is what keeps checkout's and
+  HitPay's own confirmation emails reading as customer-visible
+  (`notify_customer`) on the history row even though no status email went
+  out for that change.
+- HitPay's two payment-success paths (the webhook and the return-URL
+  fallback) claim the order under a row lock before calling `apply()`, so
+  two requests that both read the order before either wrote it cannot both
+  announce. `SendOrderStatusNotification` implements
+  `ShouldQueueAfterCommit` rather than plain `ShouldQueue` for the same
+  reason: a caller may dispatch it from inside that transaction, and the
+  job's `handle()` reads the history row by id to record its result against,
+  so it must not run before that row's insert has committed.
+- The SMS link guard matches shape, not a fixed list of endings. A token is
+  dropped when it carries an `http://` or `https://` scheme, starts with
+  `www.`, is a dotted host followed by a path (`bit.ly/xyz`,
+  `newgearday.com.ph/track/ABC123`), or is a bare dotted host whose last
+  label is a two-letter country code or one of a named set of generic
+  endings (`com`, `net`, `org`, `info`, `biz`, `shop`, `store`, `online`,
+  `site`, `xyz`, `app`, `dev`, `link`, `click`, `top`, `live`, `page`,
+  `tech`, `blog`, `news`, `club`, `website`, `space`, `email`, `asia`).
+  Working token by token and dropping the whole token, rather than trimming
+  a matched substring, is what keeps a title glued to a name ("Mr.Reyes",
+  "Ma.Cristina") from being treated as a host.
+
+- A customer cancelling their own order is always emailed that it worked
+  (`NotifyChoice::emailAlways()`), whatever the Cancelled status's email
+  tick says; SMS follows the store's ticks like every other path.
+- A history row can carry a `customer_comment` beside its `comment`. When a
+  caller passes a customer-facing line that differs from the record's (the
+  ERP's "Status updated via ERP API" fallback, fulfillment's "Order status
+  set to X by fulfillment" suffix), the customer's email and account page
+  show only the customer line, and the record keeps its own.
+- Queued texts are throttled at the gateway's pace. The job asks for a
+  limiter named `order-notification:{target}`, which only the UniSMS
+  extension defines, and a 429 puts the job back on the queue rather than
+  recording a failure.
+
 ## Testing
 
 Test-first throughout. Per path: the status change announces, the listeners
@@ -156,8 +225,9 @@ Specifically:
 - Payment success: the status change announces.
 - Checkout: an initial status ticked for SMS sends one text; the order
   confirmation email is unaffected.
-- Customer cancellation: follows the ticks, and Cancelled unticked sends
-  nothing.
+- Customer cancellation: the customer is always emailed that it worked,
+  and SMS follows the store's ticks, so Cancelled unticked for SMS sends no
+  text.
 - No message composed by the SMS channel contains a URL, including when the
   comment carries a tracking link and when a merchant types one into the
   template.

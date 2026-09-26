@@ -8,6 +8,7 @@ use App\Models\OrderHistory;
 use App\Models\OrderStatus;
 use App\Models\Setting;
 use App\Models\ShippingCourier;
+use App\Support\NotifyChoice;
 use App\Support\SettingsNav;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
@@ -331,15 +332,23 @@ class FulfillmentController extends Controller
                 ->orderBy('sort_order')
                 ->get(['id', 'name']),
             'manualDefaultStatusId' => FulfillmentService::bookedStatus()?->id,
-            // The store's notify policy as {statusId: true}, so the manual
-            // form's tick follows whichever status the packer picks.
-            'notifyByStatus' => array_fill_keys(\Extensions\CourierFulfillment\NotifyMap::all(), true),
-            // The same, per registered channel, so each tick follows the
-            // status the packer picks without this page knowing what any
-            // channel is.
+            // The store's own answer as {statusId: bool}, so the manual
+            // form's tick follows whichever status the packer picks. Read
+            // from the status's emails_customer tick, the same home every
+            // other path reads; fulfillment's NotifyMap is retiring.
+            'notifyByStatus' => OrderStatus::where('store_id', (int) config('app.store_id', 1))
+                ->pluck('emails_customer', 'id')
+                ->map(fn ($emails) => (bool) $emails)
+                ->all(),
+            // The same, per registered channel, from each channel's own list
+            // (wantsStatus), so each tick follows the status the packer
+            // picks without this page knowing what any channel is.
             'channelByStatus' => collect(\App\Services\OrderNotificationService::channels())
                 ->mapWithKeys(fn ($c) => [
-                    $c->key() => array_fill_keys(\Extensions\CourierFulfillment\NotifyMap::allFor($c->key()), true),
+                    $c->key() => OrderStatus::where('store_id', (int) config('app.store_id', 1))
+                        ->pluck('id')
+                        ->mapWithKeys(fn ($id) => [$id => $c->wantsStatus((int) $id)])
+                        ->all(),
                 ])->all(),
             // Booking-time origin choice (owner ruling 2026-08-19): step 2
             // ALWAYS names where the parcel leaves from, for every courier
@@ -953,11 +962,15 @@ class FulfillmentController extends Controller
      * the status named "Canceled"; configurable on the fulfillment settings
      * hub) through the SAME status-change path the admin order page uses
      * (OrderController::addHistory(): history entry + order_status_id update
-     * + StockService::adjustForStatusChange(), notify OFF here), so stock
-     * and history behave identically. Offered on Unpaid rows (their only
-     * action) and To Pack rows (alongside Book). Never touches any courier:
-     * an order with an ACTIVE booking (or one mid-async-create) is refused
-     * with a friendly message — cancel the booking first.
+     * + StockService::adjustForStatusChange()), so stock and history behave
+     * identically. Offered on Unpaid rows (their only action) and To Pack
+     * rows (alongside Book). Never touches any courier: an order with an
+     * ACTIVE booking (or one mid-async-create) is refused with a friendly
+     * message: cancel the booking first.
+     *
+     * Unlike an internal booking move, this genuinely is a customer-facing
+     * event: the order is actually cancelled, so it follows the store's own
+     * tick on the cancel status rather than being hardcoded silent.
      */
     public function cancelOrder(Order $order)
     {
@@ -979,12 +992,13 @@ class FulfillmentController extends Controller
         \Illuminate\Support\Facades\DB::transaction(function () use ($order, $status) {
             // Shared status-change core — the exact mechanics the order
             // page's addHistory() applies (history row + status update +
-            // stock adjustment), notify OFF: no customer email from here.
+            // stock adjustment + the one announcement), following the
+            // cancel status's own emails_customer tick.
             \App\Services\OrderStatusChanger::apply(
                 $order,
                 $status->id,
                 'Order cancelled from the fulfillment queue.',
-                false,
+                NotifyChoice::follow(),
                 Auth::id(),
             );
         });

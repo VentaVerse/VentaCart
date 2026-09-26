@@ -93,10 +93,10 @@ class NotifyPolicyTest extends TestCase
         $this->assertFalse(NotifyMap::notifies(null));
     }
 
-    /** A caller that says nothing gets the store's answer. */
+    /** A caller that says nothing gets the store's answer: the status's own tick. */
     public function test_a_manual_record_with_no_opinion_follows_the_policy(): void
     {
-        NotifyMap::put([$this->shipped->id]);
+        $this->shipped->update(['emails_customer' => true]);
         $service = app(FulfillmentService::class);
 
         $notified = $service->bookManual($this->order(), ['order_status_id' => $this->shipped->id]);
@@ -118,7 +118,7 @@ class NotifyPolicyTest extends TestCase
      */
     public function test_an_explicit_choice_overrides_the_policy(): void
     {
-        NotifyMap::put([$this->shipped->id]);
+        $this->shipped->update(['emails_customer' => true]);
 
         app(FulfillmentService::class)->bookManual($this->order(), [
             'order_status_id' => $this->shipped->id,
@@ -131,7 +131,7 @@ class NotifyPolicyTest extends TestCase
 
     public function test_an_explicit_yes_beats_a_status_the_policy_stays_quiet_about(): void
     {
-        NotifyMap::put([]);
+        // Nothing ticked anywhere.
 
         app(FulfillmentService::class)->bookManual($this->order(), [
             'order_status_id' => $this->handover->id,
@@ -148,7 +148,7 @@ class NotifyPolicyTest extends TestCase
      */
     public function test_the_erp_follows_the_policy_when_it_says_nothing(): void
     {
-        NotifyMap::put([$this->shipped->id]);
+        $this->shipped->update(['emails_customer' => true]);
         $order = $this->order();
 
         $this->postJson(route('erp.orders.book-manual', ['id' => $order->id]), [
@@ -158,6 +158,22 @@ class NotifyPolicyTest extends TestCase
         $this->assertTrue((bool) \DB::table('order_histories')
             ->where('order_id', $order->id)->where('order_status_id', $this->shipped->id)
             ->value('notify_customer'));
+    }
+
+    /**
+     * I4: fulfillment's own list is retiring, and the store is told to tick
+     * the new homes (the status's emails_customer tick, each channel's own
+     * list). A manual shipment with no opinion reads those, never NotifyMap.
+     */
+    public function test_a_manual_record_with_no_opinion_ignores_the_retiring_list(): void
+    {
+        NotifyMap::put([$this->shipped->id]);
+
+        app(FulfillmentService::class)->bookManual($this->order(), ['order_status_id' => $this->shipped->id]);
+
+        Mail::assertNothingSent();
+        $this->assertFalse((bool) \DB::table('order_histories')
+            ->where('order_status_id', $this->shipped->id)->value('notify_customer'));
     }
 
     /** @return array<string, string> */
@@ -176,7 +192,7 @@ class NotifyPolicyTest extends TestCase
      */
     public function test_a_recorded_parcel_sends_one_status_email_carrying_the_tracking(): void
     {
-        NotifyMap::put([$this->handover->id]);
+        $this->handover->update(['emails_customer' => true]);
 
         $courier = \App\Models\ShippingCourier::create([
             'store_id' => 1, 'name' => 'Test Courier', 'is_active' => true,
@@ -202,10 +218,34 @@ class NotifyPolicyTest extends TestCase
         });
     }
 
+    /**
+     * applyBookedStatus() appends an audit line to the HISTORY row ("Order
+     * status set to X by fulfillment"), which is for the record, not for the
+     * customer. The two must not be the same string any more.
+     */
+    public function test_the_customer_email_does_not_carry_the_fulfillment_audit_line(): void
+    {
+        $this->handover->update(['emails_customer' => true]);
+        $order = $this->order();
+
+        app(FulfillmentService::class)->bookManual($order, [
+            'order_status_id' => $this->handover->id,
+            'comment'         => 'Left with the guard',
+        ]);
+
+        Mail::assertSent(\App\Mail\TemplateMail::class, fn ($m) => ! str_contains($m->renderedBody, 'by fulfillment'));
+
+        $this->assertStringContainsString(
+            'by fulfillment',
+            \App\Models\OrderHistory::where('order_id', $order->id)->latest('id')->value('comment'),
+            'The audit line still belongs on the record.'
+        );
+    }
+
     /** And with no number, the same email without a tracking tail. */
     public function test_a_status_move_with_no_parcel_still_sends_one_plain_email(): void
     {
-        NotifyMap::put([$this->handover->id]);
+        $this->handover->update(['emails_customer' => true]);
 
         app(FulfillmentService::class)->bookManual($this->order(), [
             'order_status_id' => $this->handover->id,

@@ -40,7 +40,26 @@ interface OrderNotificationChannel
      * Never throws. A gateway being down must not roll back a status change
      * or stop the email: the order moved whatever the network did.
      *
-     * @return array{sent: bool, reason: string|null}
+     * A gateway that answered "not yet" (a rate limit) returns retry true,
+     * optionally with retry_after in seconds, and the queued job tries again
+     * instead of recording a failure. A channel that throttles can also
+     * define a limiter named "order-notification:{key}" with Laravel's
+     * RateLimiter::for(), which the job honours before sending at all.
+     *
+     * $newStatusId names the status the order moved to, so a channel can
+     * answer per status (a message per status, say) without looking the
+     * status up by its display name. Null for a caller that has only a name.
+     *
+     * @return array{sent: bool, reason: string|null, retry?: bool, retry_after?: int}
      */
-    public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null): array;
+    public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null, ?int $newStatusId = null): array;
+
+    /**
+     * Does this channel want to speak about this status?
+     *
+     * The channel answers from its own settings, so no caller has to know
+     * that a channel has settings at all. A channel with no policy of its
+     * own answers true and lets the ticked/unticked caller decide.
+     */
+    public function wantsStatus(?int $orderStatusId): bool;
 }

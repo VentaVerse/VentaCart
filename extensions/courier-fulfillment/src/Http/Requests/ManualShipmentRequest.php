@@ -55,9 +55,12 @@ class ManualShipmentRequest extends FormRequest
             'notify_customer' => ['sometimes', 'boolean'],
             // Which registered channels the packer left ticked. Names are
             // never validated against a list here: the service asks the
-            // registry, so an unknown key is simply not matched.
+            // registry, so an unknown key is simply not matched. The form
+            // always sends one empty entry (a hidden sentinel), so every box
+            // unticked still arrives as "no channels" rather than as no
+            // answer at all; the service drops the empty entry.
             'channels'        => ['sometimes', 'array'],
-            'channels.*'      => ['string', 'max:32'],
+            'channels.*'      => ['nullable', 'string', 'max:32'],
             // Owner directive (2026-08-12): "Add in manual booking the order
             // status change." Recording a manual shipment IS a status change
             // like any other, so the operator states which one rather than

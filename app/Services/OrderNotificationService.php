@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Jobs\SendOrderStatusNotification;
 use App\Models\Order;
+use App\Models\OrderStatus;
+use App\Support\NotifyChoice;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -114,6 +117,66 @@ class OrderNotificationService
     }
 
     /**
+     * Tell whoever should be told that this order moved.
+     *
+     * The one place that resolves the question. Email answers from the
+     * status's own tick, each channel from its own settings, and an explicit
+     * choice from a person with the order open beats both. Nothing is sent
+     * here: a job per message is queued, so a slow gateway never holds open
+     * a courier's webhook or the ERP's API call.
+     *
+     * @return array{email: bool, channels: list<string>} what was queued
+     */
+    public static function announce(
+        Order $order,
+        ?OrderStatus $newStatus,
+        ?string $oldStatusName,
+        ?string $comment,
+        NotifyChoice $choice,
+        ?int $historyId = null,
+        ?array $plan = null,
+    ): array {
+        $plan ??= self::plan($newStatus, $choice);
+
+        foreach ($plan['email'] ? ['email'] : [] as $target) {
+            SendOrderStatusNotification::dispatch($order->id, $target, $oldStatusName, $newStatus?->name, $comment, $historyId, $newStatus?->id);
+        }
+
+        foreach ($plan['channels'] as $key) {
+            SendOrderStatusNotification::dispatch($order->id, $key, $oldStatusName, $newStatus?->name, $comment, $historyId, $newStatus?->id);
+        }
+
+        return $plan;
+    }
+
+    /**
+     * Who would be told about a move to this status, without telling them.
+     *
+     * Split from announce() so the doorway can write the history row with
+     * the answer already in hand (notify_customer is true when anything at
+     * all is queued), then queue exactly what it wrote down.
+     *
+     * @return array{email: bool, channels: list<string>}
+     */
+    public static function plan(?OrderStatus $newStatus, NotifyChoice $choice): array
+    {
+        $email = $choice->email ?? (bool) ($newStatus?->emails_customer);
+
+        $keys = [];
+        foreach (self::channels() as $channel) {
+            $wanted = $choice->channels === null
+                ? $channel->wantsStatus($newStatus?->id)
+                : in_array($channel->key(), $choice->channels, true);
+
+            if ($wanted) {
+                $keys[] = $channel->key();
+            }
+        }
+
+        return ['email' => $email, 'channels' => $keys];
+    }
+
+    /**
      * A status comment with the parcel's tracking on the end of it.
      *
      * The order page and the fulfilment queue both tell a customer the same
@@ -129,7 +192,10 @@ class OrderNotificationService
     public static function withTracking(Order $order, ?string $comment = null): string
     {
         $tracking = self::trackingPlaceholders($order);
-        $number = trim((string) $tracking['tracking_number']);
+        // The raw number, never $tracking['tracking_number']: that one is a
+        // finished anchor already, and escaping it inside the anchor below
+        // printed "&lt;a href=..." to the customer.
+        $number = trim((string) $order->tracking_number);
         $comment = trim((string) $comment);
 
         if ($number === '') {

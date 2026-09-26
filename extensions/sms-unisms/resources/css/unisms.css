@@ -1,0 +1,154 @@
+/* UniSMS: the SMS template book (a list of templates beside the one open). */
+
+.v-smsbook {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    overflow: hidden;
+}
+
+.v-smsbook__list {
+    display: flex;
+    align-self: stretch;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    background: var(--v-sunken);
+    border-right: 1px solid var(--v-line);
+}
+
+.v-smsbook__item {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid transparent;
+    border-radius: var(--v-r-sm);
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background var(--v-fast), border-color var(--v-fast);
+}
+.v-smsbook__item:hover { background: var(--v-hover); }
+.v-smsbook__item[aria-selected="true"] {
+    background: var(--v-surface);
+    border-color: var(--v-act-edge);
+    box-shadow: inset 3px 0 0 var(--v-act-fill);
+}
+.v-smsbook__item:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 1px; }
+.v-smsbook__item.is-invalid { border-color: var(--v-bad); }
+
+.v-smsbook__title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--v-ink);
+    overflow-wrap: anywhere;
+}
+.v-smsbook__title.is-untitled { color: var(--v-ink-3); font-style: italic; font-weight: 500; }
+.v-smsbook__statuses {
+    font-size: 12px;
+    color: var(--v-ink-3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.v-smsbook__detail { min-width: 0; padding: 18px 20px 20px; }
+.v-smsbook__editor { display: grid; gap: 18px; }
+.v-smsbook__top { display: flex; align-items: flex-end; gap: 12px; }
+.v-smsbook__titlefield { flex: 1; min-width: 0; margin: 0; }
+.v-smsbook__delete { color: var(--v-bad); flex: none; }
+.v-smsbook__delete:hover { background: var(--v-bad-wash); }
+
+.v-smsbook__compose {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 20px;
+    align-items: start;
+}
+
+.v-smsbook__empty {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 36px 16px;
+    color: var(--v-ink-3);
+}
+.v-smsbook__empty p { margin: 0; }
+
+/* A status another template already holds: visible, not pickable. */
+.v-statuspick__item.is-claimed { opacity: .62; cursor: not-allowed; }
+.v-statuspick__owner {
+    margin-left: auto;
+    padding-left: 8px;
+    font-size: 11.5px;
+    color: var(--v-ink-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 50%;
+}
+
+/* The preview: a handset's message, spaces and line breaks as sent. */
+.v-smsphone {
+    margin: 0;
+    padding: 14px 12px 12px;
+    border: 1px solid var(--v-line-2);
+    border-radius: 22px;
+    background: var(--v-surface);
+}
+.v-smsphone__from { display: grid; justify-items: center; margin-bottom: 10px; font-size: 11.5px; color: var(--v-ink-3); }
+.v-smsphone__from strong { font-size: 12.5px; color: var(--v-ink); }
+.v-smsphone__bubble {
+    min-height: 40px;
+    padding: 9px 12px;
+    border-radius: 16px 16px 16px 4px;
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line);
+    color: var(--v-ink);
+    font-size: 13.5px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    transition: opacity var(--v-fast);
+}
+.v-smsphone__bubble.is-busy { opacity: .6; }
+.v-smsphone__meter {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--v-ink-3);
+}
+.v-smsphone__meter strong { font-family: var(--v-font-mono); font-weight: 500; color: var(--v-ink); font-variant-numeric: tabular-nums; }
+.v-smsphone__meter .is-over, .v-smsphone__meter .is-over strong { color: var(--v-warn); }
+.v-smsphone__unicode {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--v-warn-wash);
+    color: var(--v-warn);
+    font: 500 10.5px/1.4 var(--v-font-mono);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+@media (max-width: 1100px) {
+    .v-smsbook__compose { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+    .v-smsbook { grid-template-columns: minmax(0, 1fr); }
+    .v-smsbook__list { border-right: 0; border-bottom: 1px solid var(--v-line); max-height: 240px; overflow-y: auto; }
+    .v-smsbook__detail { padding: 16px 14px; }
+    .v-smsbook__top { flex-wrap: wrap; }
+    .v-smsbook__titlefield { flex-basis: 100%; }
+}
+@media (pointer: coarse) {
+    .v-smsbook__item { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .v-smsbook__item, .v-smsphone__bubble { transition: none; }
+}

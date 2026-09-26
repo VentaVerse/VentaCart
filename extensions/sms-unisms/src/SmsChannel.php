@@ -4,6 +4,7 @@ namespace Extensions\SmsUnisms;
 
 use App\Contracts\OrderNotificationChannel;
 use App\Models\Order;
+use App\Models\OrderStatus;
 use App\Support\Phone;
 
 /**
@@ -38,17 +39,53 @@ class SmsChannel implements OrderNotificationChannel
         return UniSms::enabled() && UniSms::readiness()['ready'];
     }
 
-    public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null): array
+    /** The store's own list, kept in this extension's settings. */
+    public function wantsStatus(?int $orderStatusId): bool
     {
+        return SmsStatusMap::texts($orderStatusId);
+    }
+
+    public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null, ?int $newStatusId = null): array
+    {
+        $template = SmsStatusMap::messageFor($newStatusId ?? $this->statusIdNamed($newStatus));
+
+        // Normally unreachable: wantsStatus() already said no. It still
+        // guards an explicit tick on the order page for a status the
+        // merchant never wrote a message for, which has nothing to send.
+        if ($template === null) {
+            return ['sent' => false, 'reason' => 'No SMS template covers this status.'];
+        }
+
         $number = $this->numberFor($order);
 
         if ($number === null) {
             return ['sent' => false, 'reason' => 'No mobile number on this order that could be dialled.'];
         }
 
-        $result = UniSms::send($number, $this->message($order, $newStatus, $comment));
+        $result = UniSms::send($number, $this->compose($template, $order, $newStatus, $comment));
+
+        // 429 is UniSMS saying "one request every two seconds", not "no":
+        // the job goes back on the queue rather than recording a failure.
+        if (($result['status'] ?? null) === 429) {
+            return ['sent' => false, 'reason' => $result['error'], 'retry' => true, 'retry_after' => UniSms::SECONDS_PER_REQUEST];
+        }
 
         return ['sent' => $result['ok'], 'reason' => $result['error']];
+    }
+
+    /**
+     * For a caller that knows the status only by name. Names are what the
+     * customer reads, so a store does not give two statuses the same one.
+     */
+    private function statusIdNamed(?string $name): ?int
+    {
+        if ($name === null || $name === '') {
+            return null;
+        }
+
+        $id = OrderStatus::where('store_id', (int) config('app.store_id', 1))->where('name', $name)->value('id');
+
+        return $id === null ? null : (int) $id;
     }
 
     /**
@@ -76,23 +113,23 @@ class SmsChannel implements OrderNotificationChannel
     /**
      * What the text says.
      *
-     * A text is not an email. No greeting, no signature, no marketing: the
-     * store, the order, the state it is now in, and the one link worth
-     * tapping. The comment arrives as email HTML, so its tracking anchor is
-     * flattened to a bare URL that a phone will make tappable on its own.
+     * The merchant's template is authoritative: a placeholder the template
+     * does not mention does not appear, whatever the order carries, and
+     * nothing is appended on top of it.
      */
-    private function message(Order $order, ?string $newStatus, ?string $comment): string
+    public function compose(string $template, Order $order, ?string $newStatus, ?string $comment): string
     {
-        $store = (string) config('app.name');
-        $line = trim($store . ': order #' . $order->id . ' is now ' . ($newStatus ?: 'updated') . '.');
+        $tracking = \App\Services\OrderNotificationService::trackingPlaceholders($order);
 
-        $tail = $this->plain((string) $comment);
-
-        if ($tail !== '') {
-            $line .= ' ' . $tail;
-        }
-
-        return mb_substr($line, 0, UniSms::MAX_LENGTH);
+        return UniSms::render($template, [
+            'store_name' => (string) config('app.name'),
+            'order_id' => (string) $order->id,
+            'order_status' => $newStatus ?: 'updated',
+            'customer_name' => (string) $order->full_name,
+            'tracking_number' => strip_tags((string) $tracking['tracking_number']),
+            'courier_name' => (string) $tracking['carrier_name'],
+            'comment' => $this->plain((string) $comment),
+        ]);
     }
 
     /** Email HTML as something readable on a handset. */
@@ -102,9 +139,10 @@ class SmsChannel implements OrderNotificationChannel
             return '';
         }
 
-        // An anchor becomes its destination: the phone linkifies a bare URL,
-        // and "TRK123" with no address is not something anyone can tap.
-        $text = preg_replace('/<a[^>]*href="([^"]*)"[^>]*>.*?<\/a>/is', '$1', $html) ?? $html;
+        // An anchor becomes what it said, not where it pointed: the tracking
+        // number is what a customer can give the courier, and a link would
+        // stop the message reaching them at all.
+        $text = preg_replace('/<a[^>]*>(.*?)<\/a>/is', '$1', $html) ?? $html;
 
         return trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string) $text))) ?? '');
     }

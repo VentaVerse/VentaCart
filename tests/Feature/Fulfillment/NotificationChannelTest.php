@@ -14,6 +14,7 @@ use Extensions\CourierFulfillment\NotifyMap;
 use Extensions\CourierFulfillment\PlacementMap;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Tests\Support\ResetsNotificationChannels;
 use Tests\TestCase;
 
 /**
@@ -27,6 +28,7 @@ use Tests\TestCase;
 class NotificationChannelTest extends TestCase
 {
     use RefreshDatabase;
+    use ResetsNotificationChannels;
 
     private OrderStatus $packing;
 
@@ -47,6 +49,13 @@ class NotificationChannelTest extends TestCase
 
         SpyChannel::reset();
         Mail::fake();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->resetNotificationChannels();
+
+        parent::tearDown();
     }
 
     private function order(): Order
@@ -115,38 +124,115 @@ class NotificationChannelTest extends TestCase
         $this->assertNotNull($results['spy']['reason']);
     }
 
-    /** A packer who says nothing gets the store's answer, same as the email. */
-    public function test_fulfilment_falls_back_to_the_policy_for_a_channel(): void
+    /**
+     * A packer who says nothing gets the store's answer, which for a channel
+     * is the channel's own list (wantsStatus), not fulfillment's retiring
+     * NotifyMap.
+     */
+    public function test_fulfilment_falls_back_to_the_channels_own_list(): void
     {
         OrderNotificationService::registerChannel(SpyChannel::class);
-        NotifyMap::putFor('spy', [$this->handover->id]);
 
         app(FulfillmentService::class)->bookManual($this->order(), [
             'order_status_id' => $this->handover->id,
         ]);
+        $this->assertSame(1, SpyChannel::$calls, 'The channel wants this status, so it ran.');
 
-        $this->assertSame(1, SpyChannel::$calls, 'The status is in the policy, so the channel ran.');
+        SpyChannel::$wants = false;
+        NotifyMap::putFor('spy', [$this->handover->id]);
+        app(FulfillmentService::class)->bookManual($this->order(), [
+            'order_status_id' => $this->handover->id,
+        ]);
+        $this->assertSame(1, SpyChannel::$calls, 'The retiring list no longer answers for the channel.');
     }
 
-    public function test_an_explicit_tick_beats_the_policy_in_both_directions(): void
+    public function test_an_explicit_tick_beats_the_channels_list_in_both_directions(): void
     {
         OrderNotificationService::registerChannel(SpyChannel::class);
-        NotifyMap::putFor('spy', [$this->handover->id]);
 
-        // Policy says yes, the packer says no.
+        // The channel says yes, the packer says no.
         app(FulfillmentService::class)->bookManual($this->order(), [
             'order_status_id' => $this->handover->id,
             'channels' => [],
         ]);
         $this->assertSame(0, SpyChannel::$calls);
 
-        // Policy says nothing about Packing, the packer asks for it anyway.
-        NotifyMap::putFor('spy', []);
+        // The channel says no, the packer asks for it anyway.
+        SpyChannel::$wants = false;
         app(FulfillmentService::class)->bookManual($this->order(), [
             'order_status_id' => $this->handover->id,
             'channels' => ['spy'],
         ]);
         $this->assertSame(1, SpyChannel::$calls);
+    }
+
+    /**
+     * Only the email half given: it stays the caller's answer, and the
+     * channel half is still the channel's own list.
+     */
+    public function test_one_half_given_leaves_the_other_to_the_store(): void
+    {
+        OrderNotificationService::registerChannel(SpyChannel::class);
+
+        app(FulfillmentService::class)->bookManual($this->order(), [
+            'order_status_id' => $this->handover->id,
+            'notify_customer' => false,
+        ]);
+
+        $this->assertSame(1, SpyChannel::$calls);
+        Mail::assertNothingSent();
+    }
+
+    /**
+     * I4: the queue form sends a hidden channels[] sentinel, so a packer who
+     * unticks every channel box has said "no channels", not "no opinion".
+     */
+    public function test_the_queue_form_with_every_box_unticked_sends_nothing(): void
+    {
+        OrderNotificationService::registerChannel(SpyChannel::class);
+        $order = $this->order();
+
+        $this->post('/' . config('admin.prefix', 'admin') . '/extensions/courier-fulfillment/' . $order->id . '/book-manual', [
+            'order_status_id' => $this->handover->id,
+            'notify_customer' => '0',
+            'channels' => [''],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame($this->handover->id, $order->fresh()->order_status_id);
+        $this->assertSame(0, SpyChannel::$calls, 'Every box unticked means no channels.');
+    }
+
+    public function test_the_queue_form_with_a_box_ticked_sends_it(): void
+    {
+        OrderNotificationService::registerChannel(SpyChannel::class);
+        SpyChannel::$wants = false;
+        $order = $this->order();
+
+        $this->post('/' . config('admin.prefix', 'admin') . '/extensions/courier-fulfillment/' . $order->id . '/book-manual', [
+            'order_status_id' => $this->handover->id,
+            'notify_customer' => '0',
+            'channels' => ['', 'spy'],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(1, SpyChannel::$calls);
+    }
+
+    /** The queue page pre-ticks from the new homes, not the retiring list. */
+    public function test_the_queue_page_pre_ticks_from_the_status_and_the_channel(): void
+    {
+        OrderNotificationService::registerChannel(SpyChannel::class);
+        $this->handover->update(['emails_customer' => true]);
+        NotifyMap::put([$this->packing->id]);
+        // The manual form is drawn only when the store keeps a courier.
+        \App\Models\ShippingCourier::create(['store_id' => 1, 'name' => 'LBC Express', 'is_active' => true, 'sort_order' => 1]);
+
+        $view = $this->get('/' . config('admin.prefix', 'admin') . '/extensions/courier-fulfillment')->assertOk();
+
+        $notifyByStatus = $view->viewData('notifyByStatus');
+        $this->assertTrue($notifyByStatus[$this->handover->id] ?? false);
+        $this->assertFalse($notifyByStatus[$this->packing->id] ?? false, 'NotifyMap no longer pre-ticks.');
+        $this->assertTrue($view->viewData('channelByStatus')['spy'][$this->handover->id] ?? false);
+        $view->assertSee('name="channels[]" value=""', false);
     }
 
     /** Numbers are stored as typed, so the channel gets a whole one or nothing. */
@@ -172,12 +258,15 @@ class SpyChannel implements OrderNotificationChannel
 
     public static bool $throw = false;
 
+    public static bool $wants = true;
+
     public static function reset(): void
     {
         self::$calls = 0;
         self::$lastNew = null;
         self::$available = true;
         self::$throw = false;
+        self::$wants = true;
     }
 
     public function key(): string
@@ -195,7 +284,12 @@ class SpyChannel implements OrderNotificationChannel
         return self::$available;
     }
 
-    public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null): array
+    public function wantsStatus(?int $orderStatusId): bool
+    {
+        return self::$wants;
+    }
+
+    public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null, ?int $newStatusId = null): array
     {
         if (self::$throw) {
             throw new \RuntimeException('the gateway fell over');

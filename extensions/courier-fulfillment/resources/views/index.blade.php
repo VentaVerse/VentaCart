@@ -1477,9 +1477,13 @@
                                                     Notify customer
                                                 </label>
                                                 {{-- One per registered channel, pre-ticked from the
-                                                     store's policy for whichever status is chosen, and
-                                                     still the packer's to change. Nothing here names a
-                                                     channel: an extension that is off draws nothing. --}}
+                                                     channel's own list for whichever status is chosen,
+                                                     and still the packer's to change. Nothing here names
+                                                     a channel: an extension that is off draws nothing.
+                                                     The hidden empty entry does for the channels what the
+                                                     hidden 0 does for the email: every box unticked still
+                                                     says "no channels" rather than nothing. --}}
+                                                <input type="hidden" name="channels[]" value="">
                                                 @foreach (\App\Services\OrderNotificationService::channels() as $vChannel)
                                                     <label class="v-check">
                                                         <input type="checkbox" name="channels[]"

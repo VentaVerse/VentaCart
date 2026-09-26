@@ -179,9 +179,11 @@
                                         @endif
                                         {{-- A comment reaches the customer only when it was written for
                                              them (notify_customer): the store's own notes and the courier
-                                             feed's raw vocabulary stay in the admin. --}}
-                                        @if ($history->comment && $history->notify_customer)
-                                            <p class="text-[var(--color-text)] mt-1">{{ strip_tags($history->comment) }}</p>
+                                             feed's raw vocabulary stay in the admin. The line written
+                                             for them wins over the record's own (customerFacingComment),
+                                             so an ERP fallback or an audit suffix never shows here. --}}
+                                        @if ($history->notify_customer && $history->customerFacingComment() !== '')
+                                            <p class="text-[var(--color-text)] mt-1">{{ strip_tags($history->customerFacingComment()) }}</p>
                                         @endif
                                     </div>
                                 </div>
