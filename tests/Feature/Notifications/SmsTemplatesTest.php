@@ -43,12 +43,9 @@ class SmsTemplatesTest extends TestCase
         $this->shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2]);
     }
 
-    private function template(string $title, string $message, array $statusIds): SmsTemplate
+    private function template(string $title, string $message, int $statusId): SmsTemplate
     {
-        $template = SmsTemplate::create(['title' => $title, 'message' => $message]);
-        $template->statuses()->sync($statusIds);
-
-        return $template;
+        return SmsTemplate::create(['order_status_id' => $statusId, 'title' => $title, 'message' => $message]);
     }
 
     private function readyToSend(): void
@@ -83,7 +80,7 @@ class SmsTemplatesTest extends TestCase
 
     public function test_a_template_makes_its_statuses_text(): void
     {
-        $this->template('Shipped', 'Order #{order_id} shipped', [$this->shipped->id]);
+        $this->template('Shipped', 'Order #{order_id} shipped', $this->shipped->id);
 
         $this->assertTrue((new SmsChannel())->wantsStatus($this->shipped->id));
         $this->assertFalse((new SmsChannel())->wantsStatus($this->pending->id));
@@ -93,8 +90,8 @@ class SmsTemplatesTest extends TestCase
     public function test_each_status_sends_its_own_templates_message(): void
     {
         $this->readyToSend();
-        $this->template('Received', '{store_name}: We got order #{order_id}.', [$this->pending->id]);
-        $this->template('Shipped', '{store_name}: Order #{order_id} shipped. Tracking no. {tracking_number}', [$this->shipped->id]);
+        $this->template('Received', '{store_name}: We got order #{order_id}.', $this->pending->id);
+        $this->template('Shipped', '{store_name}: Order #{order_id} shipped. Tracking no. {tracking_number}', $this->shipped->id);
         $order = $this->order($this->pending);
 
         (new SmsChannel())->statusChanged($order, null, 'Pending', null, $this->pending->id);
@@ -105,7 +102,7 @@ class SmsTemplatesTest extends TestCase
     public function test_line_breaks_in_a_template_reach_the_handset(): void
     {
         $this->readyToSend();
-        $this->template('Shipped', "{store_name}\nOrder #{order_id} shipped.\n\nThank you!", [$this->shipped->id]);
+        $this->template('Shipped', "{store_name}\nOrder #{order_id} shipped.\n\nThank you!", $this->shipped->id);
         $order = $this->order($this->shipped);
 
         (new SmsChannel())->statusChanged($order, 'Pending', 'Shipped', null, $this->shipped->id);
@@ -116,7 +113,7 @@ class SmsTemplatesTest extends TestCase
     public function test_a_caller_with_only_the_status_name_still_finds_the_template(): void
     {
         $this->readyToSend();
-        $this->template('Shipped', 'Shipped #{order_id}', [$this->shipped->id]);
+        $this->template('Shipped', 'Shipped #{order_id}', $this->shipped->id);
         $order = $this->order($this->shipped);
 
         (new SmsChannel())->statusChanged($order, 'Pending', 'Shipped');
@@ -159,7 +156,7 @@ class SmsTemplatesTest extends TestCase
         $this->post(route('admin.extensions.unisms.update'), [
             'sender_id' => 'TEST',
             'templates' => [
-                ['title' => 'Shipped', 'message' => "Line one\r\nLine two", 'status_ids' => [$this->shipped->id]],
+                ['title' => 'Shipped', 'message' => "Line one\r\nLine two", 'status_id' => $this->shipped->id],
             ],
         ])->assertSessionHasNoErrors();
 
@@ -172,25 +169,26 @@ class SmsTemplatesTest extends TestCase
     public function test_the_page_edits_and_deletes_templates(): void
     {
         $this->actingAs(User::factory()->create());
-        $keep = $this->template('Old title', 'Old', [$this->pending->id]);
-        $this->template('Gone', 'Bye', [$this->shipped->id]);
+        $keep = $this->template('Old title', 'Old', $this->pending->id);
+        $this->template('Gone', 'Bye', $this->shipped->id);
 
         $this->post(route('admin.extensions.unisms.update'), [
             'sender_id' => 'TEST',
             'templates' => [
-                ['id' => $keep->id, 'title' => 'New title', 'message' => 'New', 'status_ids' => [$this->pending->id, $this->shipped->id]],
+                ['id' => $keep->id, 'title' => 'New title', 'message' => 'New', 'status_id' => $this->shipped->id],
             ],
         ])->assertSessionHasNoErrors();
 
         $this->assertSame(1, SmsTemplate::count());
         $this->assertSame('New title', $keep->fresh()->title);
         $this->assertSame('New', SmsStatusMap::messageFor($this->shipped->id), 'The status moved over in the same save.');
+        $this->assertNull(SmsStatusMap::messageFor($this->pending->id), 'The status it left no longer texts.');
     }
 
     public function test_saving_with_no_templates_stops_every_text(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->template('Shipped', 'x', [$this->shipped->id]);
+        $this->template('Shipped', 'x', $this->shipped->id);
 
         $this->post(route('admin.extensions.unisms.update'), ['sender_id' => 'TEST'])->assertSessionHasNoErrors();
 
@@ -198,17 +196,17 @@ class SmsTemplatesTest extends TestCase
         $this->assertSame([], SmsStatusMap::all());
     }
 
-    public function test_a_status_cannot_belong_to_two_templates(): void
+    public function test_a_status_cannot_have_two_templates(): void
     {
         $this->actingAs(User::factory()->create());
 
         $this->post(route('admin.extensions.unisms.update'), [
             'sender_id' => 'TEST',
             'templates' => [
-                ['title' => 'A', 'message' => 'a', 'status_ids' => [$this->shipped->id]],
-                ['title' => 'B', 'message' => 'b', 'status_ids' => [$this->shipped->id]],
+                ['title' => 'A', 'message' => 'a', 'status_id' => $this->shipped->id],
+                ['title' => 'B', 'message' => 'b', 'status_id' => $this->shipped->id],
             ],
-        ])->assertSessionHasErrors('templates.1.status_ids.0');
+        ])->assertSessionHasErrors('templates.1.status_id');
 
         $this->assertSame(0, SmsTemplate::count());
     }
@@ -219,8 +217,8 @@ class SmsTemplatesTest extends TestCase
 
         $this->post(route('admin.extensions.unisms.update'), [
             'sender_id' => 'TEST',
-            'templates' => [['title' => '', 'message' => '', 'status_ids' => []]],
-        ])->assertSessionHasErrors(['templates.0.title', 'templates.0.message', 'templates.0.status_ids']);
+            'templates' => [['title' => '', 'message' => '', 'status_id' => '']],
+        ])->assertSessionHasErrors(['templates.0.title', 'templates.0.message', 'templates.0.status_id']);
     }
 
     public function test_an_unknown_status_id_is_rejected(): void
@@ -229,8 +227,8 @@ class SmsTemplatesTest extends TestCase
 
         $this->post(route('admin.extensions.unisms.update'), [
             'sender_id' => 'TEST',
-            'templates' => [['title' => 'A', 'message' => 'a', 'status_ids' => [999999]]],
-        ])->assertSessionHasErrors('templates.0.status_ids.0');
+            'templates' => [['title' => 'A', 'message' => 'a', 'status_id' => 999999]],
+        ])->assertSessionHasErrors('templates.0.status_id');
     }
 
     public function test_the_preview_shows_the_text_as_sent_and_what_it_costs(): void
@@ -268,8 +266,46 @@ class SmsTemplatesTest extends TestCase
     public function test_the_page_lists_saved_templates(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->template('Out for delivery', 'x', [$this->shipped->id]);
+        $this->template('Out for delivery', 'x', $this->shipped->id);
 
         $this->get(route('admin.extensions.unisms.index'))->assertOk()->assertSee('Out for delivery');
+    }
+
+    public function test_two_templates_can_swap_statuses_in_one_save(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $a = $this->template('A', 'a', $this->pending->id);
+        $b = $this->template('B', 'b', $this->shipped->id);
+
+        $this->post(route('admin.extensions.unisms.update'), [
+            'sender_id' => 'TEST',
+            'templates' => [
+                ['id' => $a->id, 'title' => 'A', 'message' => 'a', 'status_id' => $this->shipped->id],
+                ['id' => $b->id, 'title' => 'B', 'message' => 'b', 'status_id' => $this->pending->id],
+            ],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('a', SmsStatusMap::messageFor($this->shipped->id));
+        $this->assertSame('b', SmsStatusMap::messageFor($this->pending->id));
+    }
+
+    /** Templates saved before one-status-per-template split without losing a status. */
+    public function test_the_migration_splits_a_template_that_covered_several_statuses(): void
+    {
+        $migration = require base_path('extensions/sms-unisms/database/migrations/2026_09_26_200001_one_status_per_sms_template.php');
+        $migration->down();
+
+        $id = \DB::table('sms_templates')->insertGetId(['title' => 'Updates', 'message' => 'Order #{order_id}: {order_status}', 'created_at' => now(), 'updated_at' => now()]);
+        \DB::table('sms_template_statuses')->insert([
+            ['sms_template_id' => $id, 'order_status_id' => $this->pending->id],
+            ['sms_template_id' => $id, 'order_status_id' => $this->shipped->id],
+        ]);
+
+        $migration->up();
+
+        $this->assertSame(2, SmsTemplate::count());
+        $this->assertSame($this->pending->id, SmsTemplate::find($id)->order_status_id);
+        $this->assertSame('Updates (Shipped)', SmsTemplate::where('order_status_id', $this->shipped->id)->value('title'));
+        $this->assertSame('Order #{order_id}: {order_status}', SmsStatusMap::messageFor($this->shipped->id));
     }
 }

@@ -5,7 +5,6 @@
     grid-template-columns: 260px minmax(0, 1fr);
     border: 1px solid var(--v-line);
     border-radius: var(--v-r-md);
-    overflow: hidden;
 }
 
 .v-smsbook__list {
@@ -16,6 +15,9 @@
     padding: 6px;
     background: var(--v-sunken);
     border-right: 1px solid var(--v-line);
+    /* The book no longer clips (a status list must be free to drop below
+       it), so the list pane rounds its own outer corners. */
+    border-radius: var(--v-r-md) 0 0 var(--v-r-md);
 }
 
 .v-smsbook__item {
@@ -77,18 +79,53 @@
 }
 .v-smsbook__empty p { margin: 0; }
 
-/* A status another template already holds: visible, not pickable. */
-.v-statuspick__item.is-claimed { opacity: .62; cursor: not-allowed; }
-.v-statuspick__owner {
-    margin-left: auto;
-    padding-left: 8px;
-    font-size: 11.5px;
-    color: var(--v-ink-3);
-    white-space: nowrap;
+/* The order status picker: type to narrow, one status per template. */
+.v-smsbook__statusfield { flex: 0 1 300px; min-width: 0; margin: 0; }
+.v-statuscombo { position: relative; }
+.v-statuscombo__dot { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.v-statuscombo__dot + .v-statuscombo__input { padding-left: 28px; }
+.v-statuscombo__input { width: 100%; }
+.v-statuscombo__list {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 280px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-md);
+    box-shadow: var(--v-lift-2);
+}
+.v-statuscombo__opt {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 34px;
+    padding: 6px 9px;
+    border-radius: var(--v-r-sm);
+    font-size: 13px;
+    color: var(--v-ink);
+    cursor: pointer;
+}
+.v-statuscombo__opt[data-active="true"] { background: var(--v-hover); }
+.v-statuscombo__opt[aria-selected="true"] { background: var(--v-act-wash); font-weight: 600; }
+.v-statuscombo__opt[aria-disabled="true"] { color: var(--v-ink-3); cursor: not-allowed; }
+.v-statuscombo__name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.v-statuscombo__owner {
+    flex: none;
+    max-width: 45%;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 50%;
+    white-space: nowrap;
+    font-size: 11.5px;
+    color: var(--v-ink-3);
 }
+.v-statuscombo__none { padding: 10px; font-size: 13px; color: var(--v-ink-3); }
 
 /* The preview: a handset's message, spaces and line breaks as sent. */
 .v-smsphone {
@@ -141,13 +178,13 @@
 }
 @media (max-width: 760px) {
     .v-smsbook { grid-template-columns: minmax(0, 1fr); }
-    .v-smsbook__list { border-right: 0; border-bottom: 1px solid var(--v-line); max-height: 240px; overflow-y: auto; }
+    .v-smsbook__list { border-right: 0; border-bottom: 1px solid var(--v-line); max-height: 240px; overflow-y: auto; border-radius: var(--v-r-md) var(--v-r-md) 0 0; }
     .v-smsbook__detail { padding: 16px 14px; }
     .v-smsbook__top { flex-wrap: wrap; }
-    .v-smsbook__titlefield { flex-basis: 100%; }
+    .v-smsbook__titlefield, .v-smsbook__statusfield { flex-basis: 100%; }
 }
 @media (pointer: coarse) {
-    .v-smsbook__item { min-height: 44px; }
+    .v-smsbook__item, .v-statuscombo__opt { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .v-smsbook__item, .v-smsphone__bubble { transition: none; }

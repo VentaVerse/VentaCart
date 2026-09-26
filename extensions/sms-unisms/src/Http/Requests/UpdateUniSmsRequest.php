@@ -26,8 +26,8 @@ class UpdateUniSmsRequest extends FormRequest
             'templates.*.id' => ['nullable', 'integer', Rule::exists('sms_templates', 'id')],
             'templates.*.title' => ['required', 'string', 'max:100'],
             'templates.*.message' => ['required', 'string', 'max:' . UniSms::MAX_LENGTH],
-            'templates.*.status_ids' => ['required', 'array', 'min:1'],
-            'templates.*.status_ids.*' => [
+            'templates.*.status_id' => [
+                'required',
                 'integer',
                 'distinct',
                 Rule::exists('order_statuses', 'id')->where('store_id', (int) config('app.store_id', 1)),
@@ -40,9 +40,8 @@ class UpdateUniSmsRequest extends FormRequest
         return [
             'templates.*.title.required' => 'Give this template a title.',
             'templates.*.message.required' => 'Write the message this template sends.',
-            'templates.*.status_ids.required' => 'Choose at least one order status.',
-            'templates.*.status_ids.min' => 'Choose at least one order status.',
-            'templates.*.status_ids.*.distinct' => 'An order status can belong to one template only.',
+            'templates.*.status_id.required' => 'Choose the order status this template is for.',
+            'templates.*.status_id.distinct' => 'An order status can have one template only.',
         ];
     }
 }

@@ -92,7 +92,7 @@
                                    },
                                    shape(t) {
                                        return { key: 'k' + (++this.seq), id: t.id ? Number(t.id) : null, title: t.title ?? '', message: t.message ?? '',
-                                                status_ids: (t.status_ids ?? []).map(Number) };
+                                                status_id: t.status_id ? Number(t.status_id) : null };
                                    },
                                    get current() { return this.items.find((t) => t.key === this.cur) ?? null; },
                                    add() {
@@ -107,13 +107,9 @@
                                        this.errors = {};
                                        this.cur = this.items[Math.min(at, this.items.length - 1)]?.key ?? null;
                                    },
-                                   toggle(t, id, on) {
-                                       t.status_ids = on ? [...t.status_ids, id] : t.status_ids.filter((x) => x !== id);
-                                       this.render();
-                                   },
-                                   owner(id, key) { return this.items.find((t) => t.key !== key && t.status_ids.includes(id))?.title || null; },
-                                   claimed(id, key) { return this.items.some((t) => t.key !== key && t.status_ids.includes(id)); },
-                                   statusNames(t) { return this.statuses.filter((s) => t.status_ids.includes(s.id)).map((s) => s.name).join(', '); },
+                                   owner(id, key) { return this.items.find((t) => t.key !== key && t.status_id === id)?.title || 'another template'; },
+                                   claimed(id, key) { return this.items.some((t) => t.key !== key && t.status_id === id); },
+                                   status(id) { return this.statuses.find((s) => s.id === id) ?? null; },
                                    err(i, field) { return (this.errors['templates.' + i + '.' + field] ?? [])[0] ?? null; },
                                    hasErr(i) { return Object.keys(this.errors).some((k) => k.startsWith('templates.' + i + '.')); },
                                    render() {
@@ -127,7 +123,7 @@
                                                method: 'POST',
                                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json',
                                                           'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '' },
-                                               body: JSON.stringify({ message: t.message, status_id: t.status_ids[0] ?? null }),
+                                               body: JSON.stringify({ message: t.message, status_id: t.status_id }),
                                            }).then((r) => r.ok ? r.json() : null).then((p) => {
                                                if (! p || ask !== this.seq) return;
                                                this.preview = { ...p, busy: false };
@@ -137,7 +133,7 @@
                                }">
                     <x-slot:acts>
                         <span class="v-statuspick__count" aria-live="polite">
-                            <strong x-text="items.reduce((n, t) => n + t.status_ids.length, 0)"></strong> of {{ count($statuses) }} statuses text
+                            <strong x-text="items.filter((t) => t.status_id).length"></strong> of {{ count($statuses) }} statuses text
                         </span>
                         <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="add()">Add template</button>
                     </x-slot:acts>
@@ -154,7 +150,7 @@
                                         :class="{ 'is-invalid': hasErr(i) }"
                                         @click="cur = t.key">
                                     <span class="v-smsbook__title" :class="{ 'is-untitled': ! t.title.trim() }" x-text="t.title.trim() || 'Untitled'"></span>
-                                    <span class="v-smsbook__statuses" x-text="statusNames(t) || 'No status yet'"></span>
+                                    <span class="v-smsbook__statuses" x-text="status(t.status_id)?.name || 'No status yet'"></span>
                                 </button>
                             </template>
                         </div>
@@ -172,29 +168,72 @@
                                                    :name="'templates[' + i + '][title]'" x-model="t.title">
                                             <span class="v-field__error" x-show="err(i, 'title')" x-text="err(i, 'title')"></span>
                                         </label>
-                                        <button type="button" class="v-btn v-btn--ghost v-btn--sm v-smsbook__delete" @click="remove(t.key)">Delete template</button>
-                                    </div>
-
-                                    <div class="v-field">
-                                        <span class="v-field__label">
-                                            Order status <span class="v-req">Required</span>
-                                            <x-admin.help text="A status belongs to one template. One already taken shows which template has it." />
-                                        </span>
-                                        <div class="v-statuspick" role="group" aria-label="Order status">
-                                            <template x-for="s in statuses" :key="s.id">
-                                                <label class="v-statuspick__item" :class="{ 'is-claimed': claimed(s.id, t.key) }">
-                                                    <input type="checkbox" :name="'templates[' + i + '][status_ids][]'" :value="s.id"
-                                                           :checked="t.status_ids.includes(s.id)"
-                                                           :disabled="claimed(s.id, t.key)"
-                                                           @change="toggle(t, s.id, $event.target.checked)">
-                                                    <span class="v-statuspick__dot" :class="'v-statuspick__dot--' + s.tone" aria-hidden="true"></span>
-                                                    <span class="v-statuspick__name" x-text="s.name"></span>
-                                                    <span class="v-statuspick__owner" x-show="claimed(s.id, t.key)" x-text="owner(s.id, t.key)"></span>
-                                                </label>
-                                            </template>
+                                        {{-- One status per template, found by typing: a store can
+                                             carry thirty-odd statuses, too many to scan as ticks. --}}
+                                        <div class="v-field v-smsbook__statusfield"
+                                             x-data="{
+                                                 open: false, q: '', active: 0,
+                                                 get matches() {
+                                                     const n = this.q.trim().toLowerCase();
+                                                     return statuses.filter((s) => ! n || s.name.toLowerCase().includes(n));
+                                                 },
+                                                 show() {
+                                                     this.open = true;
+                                                     this.q = '';
+                                                     this.active = Math.max(0, this.matches.findIndex((s) => s.id === t.status_id));
+                                                 },
+                                                 close() { this.open = false; this.q = ''; },
+                                                 pick(s) {
+                                                     if (claimed(s.id, t.key)) return;
+                                                     t.status_id = s.id;
+                                                     this.close();
+                                                     render();
+                                                 },
+                                                 move(step) {
+                                                     if (! this.open) { this.show(); return; }
+                                                     const n = this.matches.length;
+                                                     if (! n) return;
+                                                     this.active = (this.active + step + n) % n;
+                                                     this.$nextTick(() => this.$refs.list?.querySelector('[data-active=true]')?.scrollIntoView({ block: 'nearest' }));
+                                                 },
+                                             }"
+                                             @click.outside="close()">
+                                            <label class="v-field__label" :for="'st-' + t.key">Order status <span class="v-req">Required</span></label>
+                                            <input type="hidden" :name="'templates[' + i + '][status_id]'" :value="t.status_id ?? ''">
+                                            <div class="v-statuscombo" :class="{ 'is-open': open }">
+                                                <span class="v-statuspick__dot v-statuscombo__dot" aria-hidden="true"
+                                                      x-show="status(t.status_id)"
+                                                      :class="'v-statuspick__dot--' + (status(t.status_id)?.tone ?? 'neutral')"></span>
+                                                <input type="text" class="v-control v-statuscombo__input" autocomplete="off"
+                                                       :id="'st-' + t.key" role="combobox" aria-autocomplete="list"
+                                                       :aria-expanded="open ? 'true' : 'false'" :aria-controls="'stl-' + t.key"
+                                                       :aria-activedescendant="open && matches[active] ? 'sto-' + t.key + '-' + matches[active].id : ''"
+                                                       :placeholder="open && t.status_id ? status(t.status_id)?.name : 'Search order statuses'"
+                                                       :value="open ? q : (status(t.status_id)?.name ?? '')"
+                                                       @focus="show()" @click="open || show()"
+                                                       @input="q = $event.target.value; open = true; active = 0"
+                                                       @keydown.arrow-down.prevent="move(1)" @keydown.arrow-up.prevent="move(-1)"
+                                                       @keydown.enter.prevent="open && matches[active] && pick(matches[active])"
+                                                       @keydown.escape.prevent="close()" @keydown.tab="close()">
+                                                <ul class="v-statuscombo__list" role="listbox" x-ref="list" :id="'stl-' + t.key" x-show="open" x-cloak>
+                                                    <template x-for="(s, n) in matches" :key="s.id">
+                                                        <li role="option" class="v-statuscombo__opt"
+                                                            :id="'sto-' + t.key + '-' + s.id"
+                                                            :aria-selected="t.status_id === s.id ? 'true' : 'false'"
+                                                            :aria-disabled="claimed(s.id, t.key) ? 'true' : 'false'"
+                                                            :data-active="n === active ? 'true' : 'false'"
+                                                            @mousedown.prevent="pick(s)" @mousemove="active = n">
+                                                            <span class="v-statuspick__dot" :class="'v-statuspick__dot--' + s.tone" aria-hidden="true"></span>
+                                                            <span class="v-statuscombo__name" x-text="s.name"></span>
+                                                            <span class="v-statuscombo__owner" x-show="claimed(s.id, t.key)" x-text="owner(s.id, t.key)"></span>
+                                                        </li>
+                                                    </template>
+                                                    <li class="v-statuscombo__none" x-show="matches.length === 0">No status matches.</li>
+                                                </ul>
+                                            </div>
+                                            <span class="v-field__error" x-show="err(i, 'status_id')" x-text="err(i, 'status_id')"></span>
                                         </div>
-                                        <span class="v-field__error" x-show="err(i, 'status_ids') || err(i, 'status_ids.0')"
-                                              x-text="err(i, 'status_ids') || err(i, 'status_ids.0')"></span>
+                                        <button type="button" class="v-btn v-btn--ghost v-btn--sm v-smsbook__delete" @click="remove(t.key)">Delete template</button>
                                     </div>
 
                                     <div class="v-smsbook__compose">

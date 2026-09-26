@@ -12,28 +12,28 @@ use Illuminate\Support\Facades\DB;
  */
 class SaveSmsTemplates
 {
-    /** @param list<array{id?: int|null, title: string, message: string, status_ids: list<int>}> $templates */
+    /** @param list<array{id?: int|null, title: string, message: string, status_id: int}> $templates */
     public function __invoke(array $templates): void
     {
         DB::transaction(function () use ($templates) {
             $kept = array_values(array_filter(array_map(fn ($t) => isset($t['id']) ? (int) $t['id'] : null, $templates)));
 
-            // Assignments go first and come back fresh below: moving a status
-            // from one template to another in the same save would otherwise
-            // hold it in both for a moment and trip the unique key.
-            DB::table('sms_template_statuses')->delete();
             SmsTemplate::whereNotIn('id', $kept)->delete();
+
+            // Statuses are released first and set again below: moving a
+            // status from one template to another in the same save would
+            // otherwise hold it twice for a moment and trip the unique key.
+            SmsTemplate::query()->update(['order_status_id' => null]);
 
             foreach ($templates as $posted) {
                 $template = isset($posted['id']) ? SmsTemplate::findOrFail((int) $posted['id']) : new SmsTemplate();
 
                 $template->fill([
+                    'order_status_id' => (int) $posted['status_id'],
                     'title' => trim($posted['title']),
                     // A browser posts a line break as CRLF; a handset counts one character.
                     'message' => rtrim(str_replace(["\r\n", "\r"], "\n", $posted['message'])),
                 ])->save();
-
-                $template->statuses()->sync(array_values(array_unique(array_map('intval', $posted['status_ids']))));
             }
         });
     }

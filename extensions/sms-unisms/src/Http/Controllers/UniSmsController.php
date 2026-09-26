@@ -36,11 +36,11 @@ class UniSmsController extends Controller
             ])->values(),
             // After a refused save the editor comes back as it was posted,
             // not as it was stored, so no typing is lost.
-            'templates' => old('templates', SmsTemplate::with('statuses:id')->orderBy('id')->get()->map(fn (SmsTemplate $t) => [
+            'templates' => old('templates', SmsTemplate::orderBy('id')->get()->map(fn (SmsTemplate $t) => [
                 'id' => $t->id,
                 'title' => $t->title,
                 'message' => $t->message,
-                'status_ids' => $t->statuses->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
+                'status_id' => $t->order_status_id,
             ])->all()),
         ]);
     }

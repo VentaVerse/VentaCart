@@ -738,56 +738,16 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
 }
 .v-checklist .v-check { display: flex; padding: 3px 0; }
 
-/* --- Status pick (a store's own statuses, ticked) --------------
-   One tile per status so a box never reads as belonging to the name
-   beside it, which a run-on row of .v-check labels did. The tone dot
-   is the merchant's own status tone, the same square mark .v-badge
-   draws, so a status reads the same here as everywhere it is shown. */
+/* --- Status marks (a store's own statuses) ---------------------
+   The tone dot is the merchant's own status tone, the same square mark
+   .v-badge draws, so a status reads the same here as everywhere it is
+   shown. The count beside a list says how many are in use. */
 
-.v-statuspick {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(208px, 1fr));
-    gap: 6px;
-}
-.v-statuspick__item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 36px;
-    padding: 6px 10px;
-    border: 1px solid var(--v-line);
-    border-radius: var(--v-r-sm);
-    font-size: 13px;
-    color: var(--v-ink-2);
-    cursor: pointer;
-    transition: background var(--v-fast), border-color var(--v-fast), color var(--v-fast);
-}
-.v-statuspick__item:hover { background: var(--v-hover); }
-.v-statuspick__item:has(input:checked) {
-    background: var(--v-act-wash);
-    border-color: var(--v-act-edge);
-    color: var(--v-ink);
-    font-weight: 560;
-}
-.v-statuspick__item:has(input:focus-visible) { outline: 2px solid var(--v-focus); outline-offset: 2px; }
-.v-statuspick__item input {
-    flex: none;
-    width: 16px; height: 16px;
-    margin: 0;
-    /* A global forms reset sets appearance: none and paints its own blue
-       box, which silently discards accent-color. Native appearance lets
-       the tick take the brass action color like every other v control. */
-    appearance: auto;
-    accent-color: var(--v-act-fill);
-    cursor: pointer;
-}
-.v-statuspick__item input:focus-visible { outline: none; }
 .v-statuspick__dot { flex: none; width: 8px; height: 8px; border-radius: 2px; background: var(--v-ink-3); }
 .v-statuspick__dot--info { background: var(--v-act); }
 .v-statuspick__dot--warning { background: var(--v-warn); }
 .v-statuspick__dot--success { background: var(--v-good); }
 .v-statuspick__dot--danger { background: var(--v-bad); }
-.v-statuspick__name { min-width: 0; overflow-wrap: anywhere; line-height: 1.3; }
 .v-statuspick__count { font-size: 12.5px; color: var(--v-ink-3); white-space: nowrap; }
 .v-statuspick__count strong {
     color: var(--v-ink);
@@ -795,8 +755,6 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
     font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
-@media (pointer: coarse) { .v-statuspick__item { min-height: 44px; } }
-@media (prefers-reduced-motion: reduce) { .v-statuspick__item { transition: none; } }
 
 .v-qr { height: 32px; width: 32px; object-fit: contain; border: 1px solid var(--v-line); border-radius: var(--v-r-sm); background: var(--v-plate); }
 .v-qr--lg { height: 96px; width: 96px; }

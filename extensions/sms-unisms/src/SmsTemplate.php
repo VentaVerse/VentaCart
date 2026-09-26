@@ -4,17 +4,17 @@ namespace Extensions\SmsUnisms;
 
 use App\Models\OrderStatus;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** A merchant's named text, sent when an order reaches one of its statuses. */
+/** A merchant's named text, sent when an order reaches its one status. */
 class SmsTemplate extends Model
 {
     protected $table = 'sms_templates';
 
-    protected $fillable = ['title', 'message'];
+    protected $fillable = ['order_status_id', 'title', 'message'];
 
-    public function statuses(): BelongsToMany
+    public function status(): BelongsTo
     {
-        return $this->belongsToMany(OrderStatus::class, 'sms_template_statuses', 'sms_template_id', 'order_status_id');
+        return $this->belongsTo(OrderStatus::class, 'order_status_id');
     }
 }

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Which order statuses are worth paying to text about, and what each says.
  *
- * A status texts exactly when a template claims it, so there is no second
+ * A status texts exactly when a template is written for it, so there is no second
  * list of ticks to fall out of step with the messages. Kept here rather than
  * in core because a text costs money per message: the choice belongs beside
  * the account that pays for it, and it must keep working whoever moved the
@@ -18,7 +18,7 @@ class SmsStatusMap
     /** @return list<int> */
     public static function all(): array
     {
-        return DB::table('sms_template_statuses')->pluck('order_status_id')->map(fn ($id) => (int) $id)->all();
+        return DB::table('sms_templates')->whereNotNull('order_status_id')->pluck('order_status_id')->map(fn ($id) => (int) $id)->all();
     }
 
     public static function texts(?int $statusId): bool
@@ -33,10 +33,7 @@ class SmsStatusMap
             return null;
         }
 
-        $message = DB::table('sms_template_statuses')
-            ->join('sms_templates', 'sms_templates.id', '=', 'sms_template_statuses.sms_template_id')
-            ->where('sms_template_statuses.order_status_id', $statusId)
-            ->value('sms_templates.message');
+        $message = DB::table('sms_templates')->where('order_status_id', $statusId)->value('message');
 
         return $message === null ? null : (string) $message;
     }
