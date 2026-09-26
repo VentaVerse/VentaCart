@@ -255,7 +255,17 @@ class CheckoutController extends Controller
                 ->with('error', 'Payment was not completed. Your cart has been preserved, please try again.');
         }
 
-        // Payment completed — clear cart (webhook may not have fired yet)
+        // ?status=completed is only what the address says, and anyone can
+        // type it. HitPay's own API decides. A payment it has not confirmed
+        // yet (still settling, or HitPay unreachable) changes nothing here:
+        // the signed webhook confirms the order when the money lands, and
+        // it clears the cart and sends the emails itself.
+        if (! (new \Extensions\PaymentHitpay\HitPayPayment())->confirmsPayment($order)) {
+            return redirect()->route('account.orders.show', $order)
+                ->with('success', 'Thank you. We are confirming your payment with HitPay, and this order updates as soon as it is confirmed.');
+        }
+
+        // Payment confirmed by HitPay: clear cart (webhook may not have fired yet)
         $cart = $customer->cart;
         if ($cart) {
             $cart->items()->delete();
