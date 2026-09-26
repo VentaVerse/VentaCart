@@ -139,11 +139,11 @@ class OrderNotificationService
         $plan ??= self::plan($newStatus, $choice);
 
         foreach ($plan['email'] ? ['email'] : [] as $target) {
-            SendOrderStatusNotification::dispatch($order->id, $target, $oldStatusName, $newStatus?->name, $comment, $historyId);
+            SendOrderStatusNotification::dispatch($order->id, $target, $oldStatusName, $newStatus?->name, $comment, $historyId, $newStatus?->id);
         }
 
         foreach ($plan['channels'] as $key) {
-            SendOrderStatusNotification::dispatch($order->id, $key, $oldStatusName, $newStatus?->name, $comment, $historyId);
+            SendOrderStatusNotification::dispatch($order->id, $key, $oldStatusName, $newStatus?->name, $comment, $historyId, $newStatus?->id);
         }
 
         return $plan;

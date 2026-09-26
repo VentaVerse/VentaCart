@@ -15,4 +15,6 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::post('/', [UniSmsController::class, 'update'])->name('update');
         Route::post('/test', [UniSmsController::class, 'test'])->name('test');
         Route::post('/send-test', [UniSmsController::class, 'sendTest'])->name('send-test');
+        // Fired as the merchant types, so it gets room, but never unlimited.
+        Route::post('/preview', [UniSmsController::class, 'preview'])->middleware('throttle:120,1')->name('preview');
     });

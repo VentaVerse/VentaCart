@@ -33,14 +33,9 @@ class SmsMessageTest extends TestCase
         Http::fake(['*' => Http::response(['status' => 'ok'], 200)]);
     }
 
-    public function test_the_seeded_template_is_the_owners_sentence(): void
-    {
-        $this->assertSame('{store_name}: Order #{order_id} is now {order_status}', UniSms::template());
-    }
-
     public function test_the_template_is_filled_in(): void
     {
-        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose($this->order, 'Shipped', null);
+        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose(UniSms::DEFAULT_TEMPLATE, $this->order, 'Shipped', null);
 
         $this->assertSame('VentaCart: Order #' . $this->order->id . ' is now Shipped', $text);
     }
@@ -48,12 +43,9 @@ class SmsMessageTest extends TestCase
     /** Review Focus 4: a placeholder with nothing behind it prints nothing. */
     public function test_an_empty_placeholder_prints_nothing(): void
     {
-        Setting::updateOrCreate(
-            ['group' => 'sms', 'key' => UniSms::KEY_TEMPLATE],
-            ['value' => 'Order #{order_id} tracking {tracking_number}']
-        );
+        $template = 'Order #{order_id} tracking {tracking_number}';
 
-        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose($this->order, 'Shipped', null);
+        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose($template, $this->order, 'Shipped', null);
 
         $this->assertSame('Order #' . $this->order->id . ' tracking', trim($text));
         $this->assertStringNotContainsString('{tracking_number}', $text);
@@ -62,12 +54,9 @@ class SmsMessageTest extends TestCase
     /** Review Focus 5: a link typed into the template never reaches a handset. */
     public function test_a_url_in_the_template_is_stripped(): void
     {
-        Setting::updateOrCreate(
-            ['group' => 'sms', 'key' => UniSms::KEY_TEMPLATE],
-            ['value' => 'Track at https://gogoxpress.com/track/ABC123 now']
-        );
+        $template = 'Track at https://gogoxpress.com/track/ABC123 now';
 
-        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose($this->order, 'Shipped', null);
+        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose($template, $this->order, 'Shipped', null);
 
         $this->assertStringNotContainsString('http', $text);
         $this->assertStringNotContainsString('gogoxpress.com', $text);
@@ -80,13 +69,10 @@ class SmsMessageTest extends TestCase
      */
     public function test_a_tracking_link_in_the_comment_becomes_its_number(): void
     {
-        Setting::updateOrCreate(
-            ['group' => 'sms', 'key' => UniSms::KEY_TEMPLATE],
-            ['value' => 'Order #{order_id} is now {order_status}. {comment}']
-        );
+        $template = 'Order #{order_id} is now {order_status}. {comment}';
         $comment = 'QuadX: <a href="https://gogoxpress.com/track/GGX1">GGX1</a>';
 
-        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose($this->order, 'Shipped', $comment);
+        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose($template, $this->order, 'Shipped', $comment);
 
         $this->assertStringContainsString('GGX1', $text, 'The number is what a customer can use.');
         $this->assertStringNotContainsString('http', $text);
@@ -101,7 +87,7 @@ class SmsMessageTest extends TestCase
     {
         $comment = 'QuadX: <a href="https://gogoxpress.com/track/GGX1">GGX1</a>';
 
-        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose($this->order, 'Shipped', $comment);
+        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose(UniSms::DEFAULT_TEMPLATE, $this->order, 'Shipped', $comment);
 
         $this->assertSame('VentaCart: Order #' . $this->order->id . ' is now Shipped', $text);
         $this->assertStringNotContainsString('GGX1', $text);
@@ -183,10 +169,7 @@ class SmsMessageTest extends TestCase
      */
     public function test_a_long_composed_message_is_capped_at_max_length(): void
     {
-        Setting::updateOrCreate(
-            ['group' => 'sms', 'key' => UniSms::KEY_TEMPLATE],
-            ['value' => str_repeat('{store_name} {order_status} {customer_name} {courier_name} ', 20) . 'end']
-        );
+        $template = str_repeat('{store_name} {order_status} {customer_name} {courier_name} ', 20) . 'end';
         config(['app.name' => str_repeat('VentaCart Music Gear Superstore ', 5)]);
 
         $order = Order::create([
@@ -199,7 +182,7 @@ class SmsMessageTest extends TestCase
         ]);
 
         $text = (new \Extensions\SmsUnisms\SmsChannel())->compose(
-            $order,
+            $template, $order,
             str_repeat('AwaitingCourierPickupConfirmation', 5),
             null
         );
@@ -207,25 +190,25 @@ class SmsMessageTest extends TestCase
         $this->assertLessThanOrEqual(UniSms::MAX_LENGTH, mb_strlen($text));
     }
 
-    /**
-     * Saving the settings form with the template field left blank must fall
-     * back to the seeded default, not save an empty string that would leave
-     * every future message blank.
-     */
-    public function test_saving_the_panel_with_an_empty_template_keeps_the_default(): void
+    /** The page offers a copy chip per placeholder; each one must be one compose() fills. */
+    public function test_every_offered_placeholder_is_filled_in(): void
+    {
+        $every = implode(' ', array_map(fn ($p) => '{' . $p . '}', UniSms::PLACEHOLDERS));
+        $template = $every;
+
+        $text = (new \Extensions\SmsUnisms\SmsChannel())->compose($template, $this->order, 'Shipped', 'Packed today');
+
+        $this->assertDoesNotMatchRegularExpression('/\{[a-z_]+\}/', $text);
+    }
+
+    public function test_the_page_offers_every_placeholder_to_copy(): void
     {
         $this->actingAs(\App\Models\User::factory()->create());
 
-        Setting::updateOrCreate(
-            ['group' => 'sms', 'key' => UniSms::KEY_TEMPLATE],
-            ['value' => 'A custom sentence with {order_id}']
-        );
+        $page = $this->get(route('admin.extensions.unisms.index'))->assertOk();
 
-        $this->post(route('admin.extensions.unisms.update'), [
-            'sender_id' => 'TEST',
-            'template' => '',
-        ])->assertSessionHasNoErrors();
-
-        $this->assertSame(UniSms::DEFAULT_TEMPLATE, UniSms::template());
+        foreach (UniSms::PLACEHOLDERS as $placeholder) {
+            $page->assertSee('{' . $placeholder . '}', false);
+        }
     }
 }

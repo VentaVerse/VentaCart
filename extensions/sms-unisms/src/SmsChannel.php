@@ -4,6 +4,7 @@ namespace Extensions\SmsUnisms;
 
 use App\Contracts\OrderNotificationChannel;
 use App\Models\Order;
+use App\Models\OrderStatus;
 use App\Support\Phone;
 
 /**
@@ -44,15 +45,24 @@ class SmsChannel implements OrderNotificationChannel
         return SmsStatusMap::texts($orderStatusId);
     }
 
-    public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null): array
+    public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null, ?int $newStatusId = null): array
     {
+        $template = SmsStatusMap::messageFor($newStatusId ?? $this->statusIdNamed($newStatus));
+
+        // Normally unreachable: wantsStatus() already said no. It still
+        // guards an explicit tick on the order page for a status the
+        // merchant never wrote a message for, which has nothing to send.
+        if ($template === null) {
+            return ['sent' => false, 'reason' => 'No SMS template covers this status.'];
+        }
+
         $number = $this->numberFor($order);
 
         if ($number === null) {
             return ['sent' => false, 'reason' => 'No mobile number on this order that could be dialled.'];
         }
 
-        $result = UniSms::send($number, $this->compose($order, $newStatus, $comment));
+        $result = UniSms::send($number, $this->compose($template, $order, $newStatus, $comment));
 
         // 429 is UniSMS saying "one request every two seconds", not "no":
         // the job goes back on the queue rather than recording a failure.
@@ -61,6 +71,21 @@ class SmsChannel implements OrderNotificationChannel
         }
 
         return ['sent' => $result['ok'], 'reason' => $result['error']];
+    }
+
+    /**
+     * For a caller that knows the status only by name. Names are what the
+     * customer reads, so a store does not give two statuses the same one.
+     */
+    private function statusIdNamed(?string $name): ?int
+    {
+        if ($name === null || $name === '') {
+            return null;
+        }
+
+        $id = OrderStatus::where('store_id', (int) config('app.store_id', 1))->where('name', $name)->value('id');
+
+        return $id === null ? null : (int) $id;
     }
 
     /**
@@ -89,26 +114,22 @@ class SmsChannel implements OrderNotificationChannel
      * What the text says.
      *
      * The merchant's template is authoritative: a placeholder the template
-     * does not mention does not appear, whatever the order carries. Under
-     * the seeded default there is no {comment}, so a status change with a
-     * comment still reads exactly "{store_name}: Order #{order_id} is now
-     * {order_status}" filled in. Nothing is appended on top of it.
+     * does not mention does not appear, whatever the order carries, and
+     * nothing is appended on top of it.
      */
-    public function compose(Order $order, ?string $newStatus, ?string $comment): string
+    public function compose(string $template, Order $order, ?string $newStatus, ?string $comment): string
     {
         $tracking = \App\Services\OrderNotificationService::trackingPlaceholders($order);
 
-        $text = strtr(UniSms::template(), [
-            '{store_name}' => (string) config('app.name'),
-            '{order_id}' => (string) $order->id,
-            '{order_status}' => $newStatus ?: 'updated',
-            '{customer_name}' => trim((string) $order->full_name),
-            '{tracking_number}' => trim(strip_tags((string) $tracking['tracking_number'])),
-            '{courier_name}' => trim((string) $tracking['carrier_name']),
-            '{comment}' => $this->plain((string) $comment),
+        return UniSms::render($template, [
+            'store_name' => (string) config('app.name'),
+            'order_id' => (string) $order->id,
+            'order_status' => $newStatus ?: 'updated',
+            'customer_name' => (string) $order->full_name,
+            'tracking_number' => strip_tags((string) $tracking['tracking_number']),
+            'courier_name' => (string) $tracking['carrier_name'],
+            'comment' => $this->plain((string) $comment),
         ]);
-
-        return mb_substr(UniSms::stripUrls($text), 0, UniSms::MAX_LENGTH);
     }
 
     /** Email HTML as something readable on a handset. */

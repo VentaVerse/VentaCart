@@ -289,7 +289,7 @@ class SpyChannel implements OrderNotificationChannel
         return self::$wants;
     }
 
-    public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null): array
+    public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null, ?int $newStatusId = null): array
     {
         if (self::$throw) {
             throw new \RuntimeException('the gateway fell over');

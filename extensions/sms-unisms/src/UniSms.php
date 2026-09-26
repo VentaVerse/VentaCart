@@ -40,10 +40,14 @@ class UniSms
 
     public const DEFAULT_BASE = 'https://unismsapi.com/api';
 
-    public const KEY_TEMPLATE = 'unisms_template';
-
-    /** The owner's sentence, used until a merchant writes their own. */
+    /** The owner's sentence, the starting message of every new template. */
     public const DEFAULT_TEMPLATE = '{store_name}: Order #{order_id} is now {order_status}';
+
+    /** Every placeholder render() fills, in the order the page offers them. */
+    public const PLACEHOLDERS = [
+        'store_name', 'order_id', 'order_status', 'customer_name',
+        'tracking_number', 'courier_name', 'comment',
+    ];
 
     /** The API's own pace: one request every this many seconds. */
     public const SECONDS_PER_REQUEST = 2;
@@ -63,11 +67,83 @@ class UniSms
         'blog', 'news', 'club', 'website', 'space', 'email', 'asia',
     ];
 
-    public static function template(): string
+    /**
+     * The text a template becomes for one order.
+     *
+     * Spaces, line breaks and blank lines are the merchant's and are kept
+     * exactly: a handset shows them, and each one is a character. The only
+     * thing tidied is a gap the code itself made: a placeholder with nothing
+     * behind it (no tracking number yet) and a link the guard removed each
+     * go with one neighbouring space, so "Tracking {tracking_number} via"
+     * does not become "Tracking  via". The page's preview calls this same
+     * method, so what it shows is what is sent.
+     *
+     * @param  array<string, string>  $values  placeholder name => value
+     */
+    public static function render(string $template, array $values): string
     {
-        $saved = trim((string) Setting::where('group', self::GROUP)->where('key', self::KEY_TEMPLATE)->value('value'));
+        $text = str_replace(["\r\n", "\r"], "\n", $template);
 
-        return $saved !== '' ? $saved : self::DEFAULT_TEMPLATE;
+        $pairs = [];
+        foreach ($values as $name => $value) {
+            // A value is one line: a comment's own line breaks belong to the
+            // email it was written for, not to the merchant's layout.
+            $value = trim(preg_replace('/\s+/u', ' ', (string) $value) ?? '');
+            // Empty becomes the same marker a removed link leaves, so
+            // stripUrls() takes it out with one neighbouring space.
+            $pairs['{' . $name . '}'] = $value === '' ? "\x00" : $value;
+        }
+
+        return mb_substr(self::stripUrls(strtr($text, $pairs)), 0, self::MAX_LENGTH);
+    }
+
+    /** Characters a handset counts once each, in the 7-bit alphabet every phone speaks. */
+    private const GSM_BASIC = "@£\$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
+
+    /** In that alphabet, but sent as two characters each. */
+    private const GSM_EXTENDED = "^{}\\[~]|€\f";
+
+    /**
+     * How many texts a message is billed as.
+     *
+     * In the 7-bit alphabet one text holds 160 characters, and a longer
+     * message is split into parts of 153 (the rest carries the joining
+     * header). One character outside it, an emoji or a curly quote, sends
+     * the whole message as Unicode: 70 in one text, 67 per part. A space
+     * and a line break are characters like any other.
+     *
+     * @return array{chars: int, segments: int, unicode: bool}
+     */
+    public static function segments(string $text): array
+    {
+        $chars = mb_strlen($text);
+
+        if ($text === '') {
+            return ['chars' => 0, 'segments' => 0, 'unicode' => false];
+        }
+
+        $units = 0;
+        $unicode = false;
+
+        foreach (mb_str_split($text) as $char) {
+            if (mb_strpos(self::GSM_BASIC, $char) !== false) {
+                $units += 1;
+            } elseif (mb_strpos(self::GSM_EXTENDED, $char) !== false) {
+                $units += 2;
+            } else {
+                $unicode = true;
+                break;
+            }
+        }
+
+        if ($unicode) {
+            // UTF-16 code units: an emoji is two.
+            $units = intdiv(strlen(mb_convert_encoding($text, 'UTF-16BE', 'UTF-8')), 2);
+
+            return ['chars' => $chars, 'segments' => $units <= 70 ? 1 : (int) ceil($units / 67), 'unicode' => true];
+        }
+
+        return ['chars' => $chars, 'segments' => $units <= 160 ? 1 : (int) ceil($units / 153), 'unicode' => false];
     }
 
     /**
@@ -111,25 +187,30 @@ class UniSms
             $token = $match[0];
 
             if (preg_match('~https?://~i', $token) === 1) {
-                return '';
+                return "\x00";
             }
 
             if (preg_match('~^www\.~i', $token) === 1) {
-                return '';
+                return "\x00";
             }
 
             if (preg_match('~[a-z0-9-]+(?:\.[a-z0-9-]+)+/~i', $token) === 1) {
-                return '';
+                return "\x00";
             }
 
             if (preg_match('~\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:' . $endings . '|[a-z]{2})\b~i', $token) === 1) {
-                return '';
+                return "\x00";
             }
 
             return $token;
         }, $text) ?? $text;
 
-        return trim(preg_replace('/\s{2,}/', ' ', $text) ?? $text);
+        // Drop each removed link with the space before it (or after it, at
+        // the start of a line), and nothing else: the merchant's line breaks
+        // are part of the message.
+        $text = preg_replace('/(?<=\S)[ \t]+\x00|\x00[ \t]*/', '', $text) ?? $text;
+
+        return trim(str_replace("\x00", '', $text));
     }
 
     public static function enabled(): bool

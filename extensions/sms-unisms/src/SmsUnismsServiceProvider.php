@@ -12,6 +12,7 @@ class SmsUnismsServiceProvider extends ServiceProvider
     {
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'sms-unisms');
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
         // The same socket payments, shipping rates and couriers plug into.
         // Core learns there is another way to tell a customer; it never

@@ -73,6 +73,7 @@ class SendOrderStatusNotification implements ShouldQueueAfterCommit
         public ?string $newStatus,
         public ?string $comment,
         public ?int $historyId = null,
+        public ?int $newStatusId = null,
     ) {
     }
 
@@ -144,7 +145,7 @@ class SendOrderStatusNotification implements ShouldQueueAfterCommit
             }
 
             try {
-                return $channel->statusChanged($order, $this->oldStatus, $this->newStatus, $this->comment);
+                return $channel->statusChanged($order, $this->oldStatus, $this->newStatus, $this->comment, $this->newStatusId);
             } catch (\Throwable $e) {
                 // The contract says a channel never throws. This is the belt
                 // for one that forgets: the order already moved.

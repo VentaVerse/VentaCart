@@ -46,6 +46,8 @@ class SmsRateLimitTest extends TestCase
         Setting::updateOrCreate(['group' => 'sms', 'key' => UniSms::KEY_SENDER], ['value' => 'TEST']);
 
         $shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 1]);
+        \Extensions\SmsUnisms\SmsTemplate::create(['title' => 'Shipped', 'message' => UniSms::DEFAULT_TEMPLATE])
+            ->statuses()->sync([$shipped->id]);
         $this->order = Order::create([
             'store_id' => 1, 'first_name' => 'June', 'last_name' => 'Sillacos',
             'email' => 'june@example.test', 'phone' => '+639171234567',

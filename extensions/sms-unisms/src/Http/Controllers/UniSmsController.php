@@ -5,17 +5,20 @@ namespace Extensions\SmsUnisms\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\OrderStatus;
 use App\Models\Setting;
-use Extensions\SmsUnisms\SmsStatusMap;
+use App\Support\StatusTone;
+use Extensions\SmsUnisms\Http\Requests\UpdateUniSmsRequest;
+use Extensions\SmsUnisms\SaveSmsTemplates;
+use Extensions\SmsUnisms\SmsTemplate;
 use Extensions\SmsUnisms\UniSms;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Validation\Rule;
 
 class UniSmsController extends Controller
 {
     public function index()
     {
         $key = UniSms::apiKey();
+        $statuses = $this->statuses();
 
         return view('sms-unisms::index', [
             // Never the key itself. The last four are enough to tell one
@@ -25,27 +28,26 @@ class UniSmsController extends Controller
             'senderId' => UniSms::senderId(),
             'enabled' => UniSms::enabled(),
             'baseUrl' => UniSms::baseUrl(),
-            'template' => UniSms::template(),
             'readiness' => UniSms::readiness(),
-            'statuses' => $this->statuses(),
-            'texted' => SmsStatusMap::all(),
+            'statuses' => $statuses->map(fn (OrderStatus $s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'tone' => in_array($s->tone, StatusTone::ALL, true) ? $s->tone : StatusTone::NEUTRAL,
+            ])->values(),
+            // After a refused save the editor comes back as it was posted,
+            // not as it was stored, so no typing is lost.
+            'templates' => old('templates', SmsTemplate::with('statuses:id')->orderBy('id')->get()->map(fn (SmsTemplate $t) => [
+                'id' => $t->id,
+                'title' => $t->title,
+                'message' => $t->message,
+                'status_ids' => $t->statuses->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
+            ])->all()),
         ]);
     }
 
-    public function update(Request $request)
+    public function update(UpdateUniSmsRequest $request, SaveSmsTemplates $saveTemplates)
     {
-        $data = $request->validate([
-            'api_key' => ['nullable', 'string', 'max:500'],
-            'sender_id' => ['nullable', 'string', 'max:32'],
-            'base_url' => ['nullable', 'url', 'max:255'],
-            'template' => ['nullable', 'string', 'max:500'],
-            'enabled' => ['nullable'],
-            'status_ids' => ['nullable', 'array'],
-            'status_ids.*' => [
-                'integer',
-                Rule::exists('order_statuses', 'id')->where('store_id', (int) config('app.store_id', 1)),
-            ],
-        ]);
+        $data = $request->validated();
 
         // Blank means "leave the saved one alone", so opening the page and
         // saving a sender ID does not wipe the key behind the asterisks.
@@ -61,20 +63,52 @@ class UniSmsController extends Controller
         $base = rtrim(trim((string) ($data['base_url'] ?? '')), '/');
         $this->put(UniSms::KEY_BASE, $base !== '' ? $base : UniSms::DEFAULT_BASE);
 
-        // Blank falls back to the seeded default rather than leaving the
-        // previous custom sentence in place: UniSms::template() already
-        // treats an empty saved value as "use the default".
-        $this->put(UniSms::KEY_TEMPLATE, trim((string) ($data['template'] ?? '')));
+        $saveTemplates(array_values($data['templates'] ?? []));
 
-        SmsStatusMap::put(array_map('intval', $data['status_ids'] ?? []));
+        // Back to the tab the merchant saved from. The page keeps it in the
+        // address bar, not in a field, so switching tabs never arms Save.
+        parse_str((string) parse_url((string) $request->headers->get('referer'), PHP_URL_QUERY), $query);
 
-        return redirect()->route('admin.extensions.unisms.index')
+        return redirect()->route('admin.extensions.unisms.index', ($query['tab'] ?? null) === 'messages' ? ['tab' => 'messages'] : [])
             ->with('success', 'UniSMS settings saved.');
     }
 
     /**
+     * The message as a handset would show it, for the editor's preview.
+     *
+     * Rendered by the same method that sends, with a made-up order, so the
+     * line breaks, the count and the links the guard removes are exactly
+     * what a customer would get. Nothing is sent and nothing is stored.
+     */
+    public function preview(Request $request)
+    {
+        $data = $request->validate([
+            'message' => ['nullable', 'string', 'max:' . UniSms::MAX_LENGTH],
+            'status_id' => ['nullable', 'integer'],
+        ]);
+
+        $status = isset($data['status_id'])
+            ? OrderStatus::where('store_id', (int) config('app.store_id', 1))->whereKey($data['status_id'])->value('name')
+            : null;
+
+        $text = UniSms::render((string) ($data['message'] ?? ''), [
+            'store_name' => (string) config('app.name'),
+            'order_id' => '10482',
+            // No status chosen yet: show the placeholder as written rather
+            // than a status this template may never be sent for.
+            'order_status' => $status ?? '{order_status}',
+            'customer_name' => 'Juan Dela Cruz',
+            'tracking_number' => 'TRK4829105573',
+            'courier_name' => 'Your courier',
+            'comment' => 'Thank you for your order.',
+        ]);
+
+        return response()->json(['text' => $text] + UniSms::segments($text));
+    }
+
+    /**
      * This store's statuses, in the same order the Order Statuses screen
-     * shows them, so the tick list reads the same way in both places.
+     * shows them, so the picker reads the same way in both places.
      */
     private function statuses()
     {

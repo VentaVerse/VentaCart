@@ -86,8 +86,8 @@ class CourierFetchNotificationTest extends TestCase
         Setting::updateOrCreate(['group' => 'sms', 'key' => \Extensions\SmsUnisms\UniSms::KEY_ENABLED], ['value' => '1']);
         Setting::updateOrCreate(['group' => 'sms', 'key' => \Extensions\SmsUnisms\UniSms::KEY_API], ['value' => \Illuminate\Support\Facades\Crypt::encryptString('dummy-key')]);
         Setting::updateOrCreate(['group' => 'sms', 'key' => \Extensions\SmsUnisms\UniSms::KEY_SENDER], ['value' => 'DUMMY']);
-        Setting::updateOrCreate(['group' => 'sms', 'key' => \Extensions\SmsUnisms\UniSms::KEY_TEMPLATE], ['value' => '{store_name}: Order #{order_id} is now {order_status}. {comment} {tracking_number}']);
-        \Extensions\SmsUnisms\SmsStatusMap::put([$this->shipped->id]);
+        \Extensions\SmsUnisms\SmsTemplate::create(['title' => 'Shipped', 'message' => '{store_name}: Order #{order_id} is now {order_status}. {comment} {tracking_number}'])
+            ->statuses()->sync([$this->shipped->id]);
         \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response(['data' => ['reference_id' => 'msg_1']], 200)]);
 
         $order = Order::create([

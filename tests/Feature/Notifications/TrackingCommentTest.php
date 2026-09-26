@@ -151,10 +151,9 @@ class TrackingCommentTest extends TestCase
     {
         app(ExtensionManager::class)->install('sms-unisms');
         app(ExtensionManager::class)->bootEnabled();
-        Setting::updateOrCreate(['group' => 'sms', 'key' => UniSms::KEY_TEMPLATE], ['value' => '{comment}']);
         $order = $this->tracked();
 
-        $text = (new SmsChannel())->compose($order, 'Shipped', OrderNotificationService::withTracking($order));
+        $text = (new SmsChannel())->compose('{comment}', $order, 'Shipped', OrderNotificationService::withTracking($order));
 
         $this->assertSame('LBC Express: LBC999', $text);
         $this->assertStringNotContainsString('<', $text);
