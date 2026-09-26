@@ -61,16 +61,26 @@
     flex: 1;
     display: grid;
     grid-template-columns: var(--v-snav-w) minmax(0, 1fr);
+    align-items: start;
     gap: 0;
     width: 100%;
 }
 
+/* The column's divider is drawn by the body, full height, so the nav
+   itself can be only as tall as its items. A nav as tall as the window
+   was pushed up under the topbar at the end of every long page, because
+   the body ends above the page's bottom padding. */
+@media (min-width: 1024px) {
+    .v-settings__body {
+        background: linear-gradient(var(--v-line), var(--v-line)) no-repeat calc(var(--v-snav-w) - 1px) 0 / 1px 100%;
+    }
+}
+
 .v-snav {
     padding: 22px 14px 40px 18px;
-    border-right: 1px solid var(--v-line);
     position: sticky;
     top: 54px;
-    height: calc(100vh - 54px);
+    max-height: calc(100vh - 54px);
     overflow-y: auto;
 }
 .v-snav__group { margin: 0 0 6px; padding: 14px 10px 4px; font-size: 11.5px; font-weight: 630; letter-spacing: .05em; color: var(--v-ink-3); }
@@ -104,19 +114,18 @@ button.v-snav__item { border: 0; background: none; width: 100%; text-align: left
    dead and delete them. That has happened once; the note is the guard. */
 .v-modgrid { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 22px; align-items: start; }
 .v-modgrid > .v-snav {
-    position: sticky; top: 18px; padding: 6px;
+    /* Clear the 54px sticky topbar, then keep the 18px breathing room. */
+    position: sticky; top: 72px; padding: 6px;
     background: var(--v-surface);
     border: 1px solid var(--v-line);
     border-radius: var(--v-r-lg);
     box-shadow: var(--v-lift);
-    /* The base .v-snav is the settings SPACE's column: a full-height
-       sticky rail (height: calc(100vh - 54px)) with a right border. A
-       side pan is a card that ends where its sections end, so it takes
-       its height back and only caps it if the list ever outgrows the
-       viewport. Without this the card stood 846px tall on a 900px
-       screen to hold 374px of buttons. */
+    /* A side pan is a card that ends where its sections end, and only
+       caps its height if the list ever outgrows the viewport below the
+       topbar. Once the card stood 846px tall on a 900px screen to hold
+       374px of buttons. */
     height: auto;
-    max-height: calc(100vh - 36px);
+    max-height: calc(100vh - 90px);
 }
 
 /* The nav's narrow-width stand-in. Declared hidden HERE, at the width
@@ -227,3 +236,4 @@ button.v-snav__item { border: 0; background: none; width: 100%; text-align: left
 /* The frame is the viewport here, so a page's own sticky offsets have
    no chrome to clear. */
 .v-framed .v-content > .v-settle { padding-top: 0; }
+.v-framed .v-modgrid > .v-snav { top: 18px; max-height: calc(100vh - 36px); }

@@ -83,11 +83,13 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
              and every one of those controls should be reachable.
              inert does not touch the transform, so the slide is
              unchanged. --}}
+        {{-- Pinned on desktop: the slab stays put while the work surface
+             scrolls, and its own list scrolls if it outgrows the window. --}}
         <aside :class="mobileNav ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
                :inert="navClosed"
                x-dialog="mobileNav && !lgUp"
                id="v-slab" aria-label="Navigation"
-               class="v-slab fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] flex-col transition-transform duration-200 lg:static">
+               class="v-slab fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] flex-col transition-transform duration-200 lg:sticky lg:top-0 lg:h-dvh">
             <div class="v-slab__brand">
                 <a href="{{ route('admin.dashboard') }}" class="v-slab__home" aria-label="{{ $vStoreName }} dashboard">
                     @if ($vLogo)
