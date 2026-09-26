@@ -115,13 +115,18 @@ class AutomationSeeder extends Seeder
      * sends without a separate worker. Where a worker does run it simply finds
      * the queue already empty. Public so the migration that adds it to stores
      * installed before it existed uses the same definition.
+     *
+     * queue:drain rather than queue:work --stop-when-empty: the daemon worker
+     * hooks signals through pcntl_signal(), which managed hosts disable while
+     * still loading the pcntl extension Laravel checks for, so queue:work dies
+     * on exactly the hosts this row exists to serve. See App\Console\Commands\DrainQueue.
      */
     public static function queueRow(): array
     {
         return [
             'key' => 'queue_work',
             'name' => 'Send Queued Emails and Texts',
-            'command' => 'queue:work --stop-when-empty --max-time=50',
+            'command' => 'queue:drain --max-time=50',
             'description' => 'Sends order status emails and SMS waiting in the queue. Stores without a separate queue worker rely on this to send at all.',
             'schedule_preset' => 'every_n_minutes',
             'schedule_params' => ['minute' => 1],

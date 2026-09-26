@@ -210,7 +210,7 @@ class SmsLogAndSwitchTest extends TestCase
 
         $this->assertNotNull($row, 'Added by migration, so stores installed earlier get it too.');
         $this->assertTrue($row->enabled);
-        $this->assertStringStartsWith('queue:work --stop-when-empty', $row->command);
+        $this->assertStringStartsWith('queue:drain', $row->command);
         $this->assertSame('* * * * *', $row->cron_expression);
     }
 
@@ -230,9 +230,7 @@ class SmsLogAndSwitchTest extends TestCase
         Http::assertNothingSent();
         $this->assertSame(1, \DB::table('jobs')->count(), 'Queued, not sent, until something works the queue.');
 
-        // --memory only because the suite's one PHP process has grown past
-        // the worker's 128MB default by here; the cron starts a fresh one.
-        $this->artisan('queue:work', ['--stop-when-empty' => true, '--max-time' => 50, '--memory' => 4096])->assertSuccessful();
+        $this->artisan('queue:drain', ['--max-time' => 50])->assertSuccessful();
 
         $this->assertSame(0, \DB::table('jobs')->count());
         $this->assertSame('sent', SmsLog::sole()->status);
