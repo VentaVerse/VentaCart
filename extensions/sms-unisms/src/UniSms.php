@@ -297,35 +297,85 @@ class UniSms
     }
 
     /**
-     * Send one message.
+     * Send one message, and write down how it went.
+     *
+     * Every attempt is logged, including the ones refused before UniSMS was
+     * asked (no key, a number that cannot be dialled), because "why did the
+     * customer not get a text" is answered by those as often as by UniSMS.
+     * The key itself is never logged.
      *
      * @param  string  $recipient  E.164, with the plus and country code.
+     * @param  array{source?: string, order_id?: int|null, order_status_id?: int|null, sms_template_id?: int|null}  $context
      * @return array{ok: bool, status: int|null, body: array|null, error: string|null}
      */
-    public static function send(string $recipient, string $content, ?string $senderId = null): array
+    public static function send(string $recipient, string $content, ?string $senderId = null, array $context = []): array
     {
+        $attempt = self::deliver($recipient, $content, $senderId);
+
+        try {
+            SmsLog::create([
+                'source' => $context['source'] ?? 'status_change',
+                'order_id' => $context['order_id'] ?? null,
+                'order_status_id' => $context['order_status_id'] ?? null,
+                'sms_template_id' => $context['sms_template_id'] ?? null,
+                'recipient' => mb_substr(trim($recipient), 0, 32),
+                'sender_id' => $attempt['sender_id'],
+                'message' => $attempt['content'],
+                'status' => $attempt['result']['ok'] ? 'sent' : (($attempt['result']['status'] ?? null) === 429 ? 'throttled' : 'failed'),
+                'http_status' => $attempt['result']['status'],
+                'gateway_reference' => self::referenceFrom($attempt['result']['body']),
+                'response' => $attempt['raw'] !== null ? mb_substr($attempt['raw'], 0, 5000) : null,
+                'error' => $attempt['result']['error'] !== null ? mb_substr($attempt['result']['error'], 0, 500) : null,
+            ]);
+        } catch (\Throwable $e) {
+            // A log that cannot be written must never cost the customer the text.
+            Log::warning('UniSMS: could not write the SMS log', ['error' => $e->getMessage()]);
+        }
+
+        return $attempt['result'];
+    }
+
+    /** UniSMS's own id for an accepted message, wherever its answer puts it. */
+    private static function referenceFrom(?array $body): ?string
+    {
+        $reference = $body['data']['reference_id'] ?? $body['reference_id'] ?? $body['data']['id'] ?? $body['id'] ?? null;
+
+        return is_scalar($reference) ? mb_substr((string) $reference, 0, 100) : null;
+    }
+
+    /**
+     * The send itself.
+     *
+     * @return array{result: array{ok: bool, status: int|null, body: array|null, error: string|null}, content: string, sender_id: string|null, raw: string|null}
+     */
+    private static function deliver(string $recipient, string $content, ?string $senderId): array
+    {
+        $sender = $senderId ?: self::senderId();
+        $refused = fn (string $error, string $sent) => [
+            'result' => ['ok' => false, 'status' => null, 'body' => null, 'error' => $error],
+            'content' => $sent, 'sender_id' => $sender ?: null, 'raw' => null,
+        ];
+
         $ready = self::readiness();
 
         if (! $ready['ready']) {
-            return ['ok' => false, 'status' => null, 'body' => null, 'error' => $ready['reason']];
+            return $refused($ready['reason'], trim($content));
         }
 
         $recipient = trim($recipient);
 
         if (! str_starts_with($recipient, '+')) {
-            return ['ok' => false, 'status' => null, 'body' => null,
-                'error' => 'Recipient must be in E.164 form, starting with + and the country code.'];
+            return $refused('Recipient must be in E.164 form, starting with + and the country code.', trim($content));
         }
 
         $content = self::stripUrls(trim($content));
 
         if ($content === '') {
-            return ['ok' => false, 'status' => null, 'body' => null, 'error' => 'Nothing to send.'];
+            return $refused('Nothing to send.', $content);
         }
 
         if (mb_strlen($content) > self::MAX_LENGTH) {
-            return ['ok' => false, 'status' => null, 'body' => null,
-                'error' => 'Message is longer than the ' . self::MAX_LENGTH . ' characters UniSMS accepts.'];
+            return $refused('Message is longer than the ' . self::MAX_LENGTH . ' characters UniSMS accepts.', $content);
         }
 
         try {
@@ -335,7 +385,7 @@ class UniSms
                 ->post(self::baseUrl() . '/sms', [
                     'recipient' => $recipient,
                     'content' => $content,
-                    'sender_id' => $senderId ?: self::senderId(),
+                    'sender_id' => $sender,
                 ]);
 
             if (! $response->successful()) {
@@ -343,15 +393,18 @@ class UniSms
             }
 
             return [
-                'ok' => $response->successful(),
-                'status' => $response->status(),
-                'body' => $response->json(),
-                'error' => $response->successful() ? null : self::reason($response->status(), $response->json()),
+                'result' => [
+                    'ok' => $response->successful(),
+                    'status' => $response->status(),
+                    'body' => $response->json(),
+                    'error' => $response->successful() ? null : self::reason($response->status(), $response->json()),
+                ],
+                'content' => $content, 'sender_id' => $sender, 'raw' => $response->body(),
             ];
         } catch (\Throwable $e) {
             Log::error('UniSMS: send failed', ['error' => $e->getMessage()]);
 
-            return ['ok' => false, 'status' => null, 'body' => null, 'error' => 'Could not reach UniSMS: ' . $e->getMessage()];
+            return $refused('Could not reach UniSMS: ' . $e->getMessage(), $content);
         }
     }
 

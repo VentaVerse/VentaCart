@@ -11,7 +11,12 @@ class SmsTemplate extends Model
 {
     protected $table = 'sms_templates';
 
-    protected $fillable = ['order_status_id', 'title', 'message'];
+    protected $fillable = ['order_status_id', 'title', 'message', 'is_active'];
+
+    protected function casts(): array
+    {
+        return ['is_active' => 'boolean'];
+    }
 
     public function status(): BelongsTo
     {

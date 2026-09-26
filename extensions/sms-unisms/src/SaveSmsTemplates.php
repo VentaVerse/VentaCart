@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
  */
 class SaveSmsTemplates
 {
-    /** @param list<array{id?: int|null, title: string, message: string, status_id: int}> $templates */
+    /** @param list<array{id?: int|null, title: string, message: string, status_id: int, is_active?: bool|string}> $templates */
     public function __invoke(array $templates): void
     {
         DB::transaction(function () use ($templates) {
@@ -30,6 +30,7 @@ class SaveSmsTemplates
 
                 $template->fill([
                     'order_status_id' => (int) $posted['status_id'],
+                    'is_active' => filter_var($posted['is_active'] ?? true, FILTER_VALIDATE_BOOL),
                     'title' => trim($posted['title']),
                     // A browser posts a line break as CRLF; a handset counts one character.
                     'message' => rtrim(str_replace(["\r\n", "\r"], "\n", $posted['message'])),

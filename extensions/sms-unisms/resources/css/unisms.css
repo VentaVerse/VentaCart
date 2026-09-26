@@ -189,3 +189,94 @@
 @media (prefers-reduced-motion: reduce) {
     .v-smsbook__item, .v-smsphone__bubble { transition: none; }
 }
+
+/* A template that is switched off: named in the list, marked, never sent. */
+.v-smsbook__titlerow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.v-smsbook__off {
+    flex: none;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line-2);
+    color: var(--v-ink-3);
+    font: 500 10.5px/1.4 var(--v-font-mono);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.v-smsbook__switch { flex: none; align-self: center; margin-top: 18px; }
+
+/* --- The log: one row per attempt, opened for its payload and response --- */
+
+.v-smslog__waiting {
+    margin-bottom: 14px;
+    padding: 11px 14px;
+    border: 1px solid var(--v-warn);
+    border-radius: var(--v-r-md);
+    background: var(--v-warn-wash);
+    color: var(--v-ink);
+    font-size: 13px;
+}
+.v-smslog__waiting a { margin-left: 6px; font-weight: 600; color: var(--v-act); }
+.v-smslog__empty { margin: 0; padding: 18px 0; color: var(--v-ink-3); }
+
+.v-smslog { border-top: 1px solid var(--v-line); }
+.v-smslog__row { border-bottom: 1px solid var(--v-line); }
+.v-smslog__summary {
+    display: grid;
+    grid-template-columns: 118px 86px minmax(140px, 200px) 130px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    padding: 10px 6px;
+    font-size: 13px;
+    cursor: pointer;
+    list-style: none;
+    transition: background var(--v-fast);
+}
+.v-smslog__summary::-webkit-details-marker { display: none; }
+.v-smslog__summary:hover { background: var(--v-hover); }
+.v-smslog__summary:focus-visible { outline: 2px solid var(--v-focus); outline-offset: -2px; }
+.v-smslog__row[open] > .v-smslog__summary { background: var(--v-sunken); }
+.v-smslog__when { color: var(--v-ink-3); font-size: 12px; }
+.v-smslog__what { color: var(--v-ink); font-weight: 560; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-smslog__to { color: var(--v-ink-2); font-size: 12px; }
+.v-smslog__text { color: var(--v-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.v-smslog__status {
+    justify-self: start;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 620;
+}
+.v-smslog__status--sent { background: var(--v-good-wash); color: var(--v-good); }
+.v-smslog__status--failed { background: var(--v-bad-wash); color: var(--v-bad); }
+.v-smslog__status--throttled { background: var(--v-warn-wash); color: var(--v-warn); }
+
+.v-smslog__detail { display: grid; gap: 14px; padding: 12px 6px 18px; background: var(--v-sunken); }
+.v-smslog__error { margin: 0; color: var(--v-bad); font-weight: 560; }
+.v-smslog__block { display: grid; gap: 6px; }
+.v-smslog__pre {
+    margin: 0;
+    padding: 10px 12px;
+    max-height: 260px;
+    overflow: auto;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-sm);
+    font: 12px/1.5 var(--v-font-mono);
+    color: var(--v-ink);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+    .v-smslog__summary { grid-template-columns: auto auto minmax(0, 1fr); gap: 6px 10px; }
+    .v-smslog__to, .v-smslog__text { grid-column: 1 / -1; }
+    .v-smsbook__switch { margin-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .v-smslog__summary { transition: none; }
+}
+
+/* Label and value read as a pair, not across the whole row. */
+.v-smslog__detail .v-facts { max-width: 460px; }

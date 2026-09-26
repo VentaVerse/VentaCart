@@ -775,6 +775,9 @@ class DaySheetTest extends TestCase
     {
         $this->actingAs($this->admin());
         $this->tradedBefore();
+        // Only this test's own rows: the migration-added queue task has
+        // never run in a fresh database and would read as unhealthy.
+        \App\Models\Automation::where('key', 'queue_work')->delete();
 
         \App\Models\Automation::create([
             'key' => 'a_overdue', 'name' => 'Sitemap Refresh', 'command' => 'sitemap:generate',
@@ -816,6 +819,9 @@ class DaySheetTest extends TestCase
     {
         $this->actingAs($this->admin());
         $this->tradedBefore();
+        // Only this test's own rows: the migration-added queue task has
+        // never run in a fresh database and would read as unhealthy.
+        \App\Models\Automation::where('key', 'queue_work')->delete();
 
         \App\Models\Automation::create([
             'key' => 'fine', 'name' => 'Quiet Task', 'command' => 'stock:notify',

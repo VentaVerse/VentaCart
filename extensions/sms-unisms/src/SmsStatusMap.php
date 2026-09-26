@@ -18,7 +18,8 @@ class SmsStatusMap
     /** @return list<int> */
     public static function all(): array
     {
-        return DB::table('sms_templates')->whereNotNull('order_status_id')->pluck('order_status_id')->map(fn ($id) => (int) $id)->all();
+        return DB::table('sms_templates')->whereNotNull('order_status_id')->where('is_active', true)
+            ->pluck('order_status_id')->map(fn ($id) => (int) $id)->all();
     }
 
     public static function texts(?int $statusId): bool
@@ -26,15 +27,19 @@ class SmsStatusMap
         return self::messageFor($statusId) !== null;
     }
 
-    /** The template's message for this status, or null when none claims it. */
+    /** The template's message for this status, or null when none is written for it or it is switched off. */
     public static function messageFor(?int $statusId): ?string
+    {
+        return self::templateFor($statusId)?->message;
+    }
+
+    /** The switched-on template for this status, or null. */
+    public static function templateFor(?int $statusId): ?SmsTemplate
     {
         if ($statusId === null) {
             return null;
         }
 
-        $message = DB::table('sms_templates')->where('order_status_id', $statusId)->value('message');
-
-        return $message === null ? null : (string) $message;
+        return SmsTemplate::where('order_status_id', $statusId)->where('is_active', true)->first();
     }
 }

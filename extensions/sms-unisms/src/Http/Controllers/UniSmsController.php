@@ -8,10 +8,12 @@ use App\Models\Setting;
 use App\Support\StatusTone;
 use Extensions\SmsUnisms\Http\Requests\UpdateUniSmsRequest;
 use Extensions\SmsUnisms\SaveSmsTemplates;
+use Extensions\SmsUnisms\SmsLog;
 use Extensions\SmsUnisms\SmsTemplate;
 use Extensions\SmsUnisms\UniSms;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 
 class UniSmsController extends Controller
 {
@@ -41,8 +43,41 @@ class UniSmsController extends Controller
                 'title' => $t->title,
                 'message' => $t->message,
                 'status_id' => $t->order_status_id,
+                'is_active' => $t->is_active,
             ])->all()),
+            'logs' => SmsLog::latest('id')->paginate(25, ['*'], 'log_page')->withQueryString(),
+            'waiting' => $this->waitingTexts(),
+            'statusNames' => $statuses->pluck('name', 'id'),
         ]);
+    }
+
+    /**
+     * Texts queued but not yet sent, when the queue lives in the database.
+     *
+     * The one thing the log cannot show: a text that never reached the
+     * sending step at all, because nothing is working the queue.
+     *
+     * @return array{count: int, oldest: \Illuminate\Support\Carbon|null}|null
+     */
+    private function waitingTexts(): ?array
+    {
+        if (config('queue.default') !== 'database') {
+            return null;
+        }
+
+        // Read and decoded here rather than matched in SQL: the payload is
+        // JSON holding a serialized job, and a LIKE on its escaped quotes
+        // reads differently on MySQL (backslash escapes) and SQLite.
+        $texts = DB::table(config('queue.connections.database.table', 'jobs'))
+            ->where('payload', 'like', '%SendOrderStatusNotification%')
+            ->orderBy('id')
+            ->limit(1000)
+            ->get(['payload', 'created_at'])
+            ->filter(fn ($job) => str_contains((string) (json_decode($job->payload, true)['data']['command'] ?? ''), 's:6:"target";s:3:"sms"'));
+
+        $oldest = $texts->min('created_at');
+
+        return ['count' => $texts->count(), 'oldest' => $oldest ? \Illuminate\Support\Carbon::createFromTimestamp((int) $oldest) : null];
     }
 
     public function update(UpdateUniSmsRequest $request, SaveSmsTemplates $saveTemplates)
@@ -152,7 +187,7 @@ class UniSmsController extends Controller
             'content' => ['required', 'string', 'max:' . UniSms::MAX_LENGTH],
         ]);
 
-        $result = UniSms::send($data['recipient'], $data['content']);
+        $result = UniSms::send($data['recipient'], $data['content'], null, ['source' => 'test']);
 
         return response()->json([
             'ok' => $result['ok'],

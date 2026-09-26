@@ -92,6 +92,7 @@ class AutomationSeeder extends Seeder
                 'schedule_params' => ['minute' => 0],
                 'enabled' => true,
             ],
+            self::queueRow(),
             [
                 'key' => 'cart_prune_empty',
                 'name' => 'Prune Empty Guest Carts',
@@ -101,6 +102,30 @@ class AutomationSeeder extends Seeder
                 'schedule_params' => ['hour' => 3, 'minute' => 0],
                 'enabled' => true,
             ],
+        ];
+    }
+
+    /**
+     * Sends what is waiting in the queue: status emails and texts.
+     *
+     * Notifications are queued so a courier's webhook or the ERP's call is
+     * never held open by a slow gateway. Pterodactyl and Docker installs keep
+     * a worker running; a plain web host (HestiaCP, cPanel) has only cron. This
+     * row is the cron's way of emptying the queue every minute, so a store
+     * sends without a separate worker. Where a worker does run it simply finds
+     * the queue already empty. Public so the migration that adds it to stores
+     * installed before it existed uses the same definition.
+     */
+    public static function queueRow(): array
+    {
+        return [
+            'key' => 'queue_work',
+            'name' => 'Send Queued Emails and Texts',
+            'command' => 'queue:work --stop-when-empty --max-time=50',
+            'description' => 'Sends order status emails and SMS waiting in the queue. Stores without a separate queue worker rely on this to send at all.',
+            'schedule_preset' => 'every_n_minutes',
+            'schedule_params' => ['minute' => 1],
+            'enabled' => true,
         ];
     }
 }

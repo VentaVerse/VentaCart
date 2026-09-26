@@ -47,22 +47,37 @@ class SmsChannel implements OrderNotificationChannel
 
     public function statusChanged(Order $order, ?string $oldStatus, ?string $newStatus, ?string $comment = null, ?int $newStatusId = null): array
     {
-        $template = SmsStatusMap::messageFor($newStatusId ?? $this->statusIdNamed($newStatus));
+        $statusId = $newStatusId ?? $this->statusIdNamed($newStatus);
+        $template = SmsStatusMap::templateFor($statusId);
 
         // Normally unreachable: wantsStatus() already said no. It still
         // guards an explicit tick on the order page for a status the
-        // merchant never wrote a message for, which has nothing to send.
+        // merchant never wrote a message for (or switched off), which has
+        // nothing to send.
         if ($template === null) {
-            return ['sent' => false, 'reason' => 'No SMS template covers this status.'];
+            return ['sent' => false, 'reason' => 'No switched-on SMS template covers this status.'];
         }
 
         $number = $this->numberFor($order);
 
         if ($number === null) {
-            return ['sent' => false, 'reason' => 'No mobile number on this order that could be dialled.'];
+            $reason = 'No mobile number on this order that could be dialled.';
+            SmsLog::create([
+                'source' => 'status_change', 'order_id' => $order->id, 'order_status_id' => $statusId,
+                'sms_template_id' => $template->id, 'recipient' => mb_substr((string) ($order->phone ?: '(none)'), 0, 32),
+                'message' => $this->compose($template->message, $order, $newStatus, $comment),
+                'status' => 'failed', 'error' => $reason,
+            ]);
+
+            return ['sent' => false, 'reason' => $reason];
         }
 
-        $result = UniSms::send($number, $this->compose($template, $order, $newStatus, $comment));
+        $result = UniSms::send($number, $this->compose($template->message, $order, $newStatus, $comment), null, [
+            'source' => 'status_change',
+            'order_id' => $order->id,
+            'order_status_id' => $statusId,
+            'sms_template_id' => $template->id,
+        ]);
 
         // 429 is UniSMS saying "one request every two seconds", not "no":
         // the job goes back on the queue rather than recording a failure.

@@ -26,6 +26,7 @@ class UpdateUniSmsRequest extends FormRequest
             'templates.*.id' => ['nullable', 'integer', Rule::exists('sms_templates', 'id')],
             'templates.*.title' => ['required', 'string', 'max:100'],
             'templates.*.message' => ['required', 'string', 'max:' . UniSms::MAX_LENGTH],
+            'templates.*.is_active' => ['nullable', 'boolean'],
             'templates.*.status_id' => [
                 'required',
                 'integer',

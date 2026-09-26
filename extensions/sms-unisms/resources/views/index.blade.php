@@ -22,11 +22,12 @@
          x-admin.form, and each tab only hides its half. A required field on
          the hidden tab is revealed by the save bar, which finds tabs by role. --}}
     <div class="v-settle"
-         x-data="{ tab: @js(in_array(request('tab'), ['settings', 'messages'], true) ? request('tab') : ($errors->has('templates.*') ? 'messages' : 'settings')),
+         x-data="{ tab: @js(in_array(request('tab'), ['settings', 'messages', 'log'], true) ? request('tab') : ($errors->has('templates.*') ? 'messages' : 'settings')),
                    pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }">
         <div class="v-tabs" role="tablist">
             <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'settings' ? 'true' : 'false'" @click="pick('settings')">Settings</button>
             <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'messages' ? 'true' : 'false'" @click="pick('messages')">Status and message</button>
+            <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'log' ? 'true' : 'false'" @click="pick('log')">Log</button>
         </div>
 
         <x-admin.form :action="route('admin.extensions.unisms.update')">
@@ -92,7 +93,8 @@
                                    },
                                    shape(t) {
                                        return { key: 'k' + (++this.seq), id: t.id ? Number(t.id) : null, title: t.title ?? '', message: t.message ?? '',
-                                                status_id: t.status_id ? Number(t.status_id) : null };
+                                                status_id: t.status_id ? Number(t.status_id) : null,
+                                                is_active: t.is_active === undefined || t.is_active === null ? true : [true, 1, '1'].includes(t.is_active) };
                                    },
                                    get current() { return this.items.find((t) => t.key === this.cur) ?? null; },
                                    add() {
@@ -133,7 +135,7 @@
                                }">
                     <x-slot:acts>
                         <span class="v-statuspick__count" aria-live="polite">
-                            <strong x-text="items.filter((t) => t.status_id).length"></strong> of {{ count($statuses) }} statuses text
+                            <strong x-text="items.filter((t) => t.status_id && t.is_active).length"></strong> of {{ count($statuses) }} statuses text
                         </span>
                         <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="add()">Add template</button>
                     </x-slot:acts>
@@ -149,7 +151,10 @@
                                         :aria-selected="cur === t.key ? 'true' : 'false'"
                                         :class="{ 'is-invalid': hasErr(i) }"
                                         @click="cur = t.key">
-                                    <span class="v-smsbook__title" :class="{ 'is-untitled': ! t.title.trim() }" x-text="t.title.trim() || 'Untitled'"></span>
+                                    <span class="v-smsbook__titlerow">
+                                        <span class="v-smsbook__title" :class="{ 'is-untitled': ! t.title.trim() }" x-text="t.title.trim() || 'Untitled'"></span>
+                                        <span class="v-smsbook__off" x-show="! t.is_active">Off</span>
+                                    </span>
                                     <span class="v-smsbook__statuses" x-text="status(t.status_id)?.name || 'No status yet'"></span>
                                 </button>
                             </template>
@@ -233,6 +238,14 @@
                                             </div>
                                             <span class="v-field__error" x-show="err(i, 'status_id')" x-text="err(i, 'status_id')"></span>
                                         </div>
+                                        <label class="v-toggle v-smsbook__switch">
+                                            <input type="hidden" :name="'templates[' + i + '][is_active]'" value="0">
+                                            <input type="checkbox" value="1" :name="'templates[' + i + '][is_active]'"
+                                                   :checked="t.is_active" @change="t.is_active = $event.target.checked"
+                                                   :aria-label="'Send ' + (t.title.trim() || 'this template')">
+                                            <span class="v-toggle__track" aria-hidden="true"></span>
+                                            <span x-text="t.is_active ? 'On' : 'Off'">On</span>
+                                        </label>
                                         <button type="button" class="v-btn v-btn--ghost v-btn--sm v-smsbook__delete" @click="remove(t.key)">Delete template</button>
                                     </div>
 
@@ -329,6 +342,75 @@
                         </button>
                     </div>
                 </div>
+            </x-admin.panel>
+        </div>
+        {{-- Outside the form: a record to read, not settings to save. --}}
+        <div x-show="tab === 'log'" x-cloak class="v-settle">
+            @if ($waiting && $waiting['count'] > 0)
+                <div class="v-smslog__waiting" role="status">
+                    <strong>{{ $waiting['count'] }} {{ \Illuminate\Support\Str::plural('text', $waiting['count']) }} waiting to send</strong>,
+                    oldest queued {{ $waiting['oldest']?->diffForHumans() }}.
+                    <a href="{{ route('admin.automations.index') }}">Automations</a>
+                </div>
+            @endif
+
+            <x-admin.panel title="Sent messages">
+                <x-slot:acts>
+                    <span class="v-statuspick__count"><strong>{{ number_format($logs->total()) }}</strong> logged</span>
+                </x-slot:acts>
+
+                @if ($logs->isEmpty())
+                    <p class="v-smslog__empty">Nothing sent yet.</p>
+                @else
+                    <div class="v-smslog">
+                        @foreach ($logs as $log)
+                            <details class="v-smslog__row">
+                                <summary class="v-smslog__summary">
+                                    <span class="v-smslog__when v-mono" title="{{ $log->created_at?->toDayDateTimeString() }}">{{ $log->created_at?->format('M j, g:i A') }}</span>
+                                    <span class="v-smslog__status v-smslog__status--{{ $log->status }}">{{ ucfirst($log->status) }}</span>
+                                    <span class="v-smslog__what">
+                                        @if ($log->source === 'test')
+                                            Test message
+                                        @elseif ($log->order_id)
+                                            Order #{{ $log->order_id }}@if ($log->order_status_id && isset($statusNames[$log->order_status_id])), {{ $statusNames[$log->order_status_id] }}@endif
+                                        @else
+                                            Status change
+                                        @endif
+                                    </span>
+                                    <span class="v-smslog__to v-mono">{{ $log->recipient }}</span>
+                                    <span class="v-smslog__text">{{ \Illuminate\Support\Str::limit(str_replace("\n", ' ', $log->message), 90) }}</span>
+                                </summary>
+                                <div class="v-smslog__detail">
+                                    @if ($log->error)
+                                        <p class="v-smslog__error">{{ $log->error }}</p>
+                                    @endif
+                                    <dl class="v-facts">
+                                        <dt>To</dt><dd class="v-mono">{{ $log->recipient }}</dd>
+                                        <dt>Sender ID</dt><dd class="v-mono">{{ $log->sender_id ?? '(none)' }}</dd>
+                                        <dt>HTTP status</dt><dd class="v-mono">{{ $log->http_status ?? 'Not sent to UniSMS' }}</dd>
+                                        @if ($log->gateway_reference)
+                                            <dt>UniSMS reference</dt><dd class="v-mono">{{ $log->gateway_reference }}</dd>
+                                        @endif
+                                        @if ($log->order_id)
+                                            <dt>Order</dt><dd><a href="{{ route('admin.orders.show', $log->order_id) }}">#{{ $log->order_id }}</a></dd>
+                                        @endif
+                                    </dl>
+                                    <div class="v-smslog__block">
+                                        <span class="v-field__label">Message</span>
+                                        <pre class="v-smslog__pre">{{ $log->message }}</pre>
+                                    </div>
+                                    @if ($log->responseForHumans())
+                                        <div class="v-smslog__block">
+                                            <span class="v-field__label">Response</span>
+                                            <pre class="v-smslog__pre">{{ $log->responseForHumans() }}</pre>
+                                        </div>
+                                    @endif
+                                </div>
+                            </details>
+                        @endforeach
+                    </div>
+                    <x-admin.pager :paginator="$logs->appends(['tab' => 'log'])" />
+                @endif
             </x-admin.panel>
         </div>
     </div>
