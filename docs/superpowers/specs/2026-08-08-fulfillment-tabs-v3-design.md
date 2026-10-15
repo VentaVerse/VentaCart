@@ -51,7 +51,7 @@ Stage precedence (amended by owner ruling, 2026-08-08): **cancelled** stage clai
 - **Courier-side cancel** (webhook/poll delivers a cancelled-phase status with no admin-initiated flag): stays on the order, surfaces in Cancelled as an exception with Rebook.
 
 ### Out of scope
-Order-page cancel UX changes; refund flows; RMA (card #52); merging to main.
+Order-page cancel UX changes; refund flows; RMA (card VENT-18); merging to main.
 
 ## Verification
 Suites green (new baseline 23); QuadX payload frozen; browser walk of every tab/sub-tab against the dev DB; legacy filter URLs redirect; Unpaid rows show exactly one action.

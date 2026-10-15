@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl;
+use Extensions\CourierFulfillment\Contracts\ReportsShippingCost;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Extensions\CourierFulfillment\ServiceabilityService;
 use Extensions\CourierFulfillment\Support\PickupCountry;
@@ -18,7 +19,7 @@ use Extensions\CourierFulfillment\Support\ServiceabilityVerdict;
  * lives here + QuadXClient: auth, parcel categories, services, the
  * seller_payment_method field, and name-based address resolution.
  */
-class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTrackingUrl
+class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTrackingUrl, ReportsShippingCost
 {
     public function __construct(
         private ?QuadXClient $client = null,
@@ -53,8 +54,13 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
     public function getServiceTypes(): array
     {
         return [
-            ['value' => 'next_day',        'label' => 'Next Day'],
+            // Owner ruling 2026-09-03: same day sits first because it is the
+            // one with a cut-off to catch, and both are named "Pickup" so the
+            // two read as one pair rather than two unrelated things.
+            // The VALUES are QuadX's own and never change: bookings, the
+            // default-service setting and every stored order reference them.
             ['value' => 'same_day_pickup', 'label' => 'Same Day Pickup'],
+            ['value' => 'next_day',        'label' => 'Next Day Pickup'],
         ];
     }
 
@@ -677,17 +683,21 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
             ],
             [
                 'key'     => 'quadx_default_service',
-                'label'   => 'Default service',
+                'label'   => 'Default schedule',
                 'type'    => 'select',
                 'options' => $this->getServiceTypes(),
-                'help'    => 'Pre-selected service on the booking form.',
+                // Not "pre-selected on the booking form" any more: since
+                // 2026-09-03 that form asks every time and pre-selects
+                // nothing. This is the fallback for a booking that arrives
+                // without a schedule, which is the ERP API's path.
+                'help'    => 'Used when a booking arrives without one, such as from the ERP API. The booking form asks every time.',
             ],
             [
                 'key'     => 'quadx_default_parcel',
                 'label'   => 'Default parcel',
                 'type'    => 'select',
                 'options' => $this->getParcelOptions(),
-                'help'    => 'Pre-selected parcel category on the booking form.',
+                'help'    => 'Used when a booking arrives without one, such as from the ERP API. The booking form asks every time.',
             ],
         ];
     }
@@ -717,6 +727,33 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
         $host = $mode === 'production' ? 'https://app.gogoxpress.com' : 'https://app.staging.gogoxpress.com';
 
         return $host . '/track/' . rawurlencode($trackingNumber);
+    }
+
+    /**
+     * What QuadX charged the store for this shipment.
+     *
+     * The booking response answers twice, the same way the rate endpoint does
+     * (see feesFrom()): `shipping_fee` is the list price and
+     * `fees_adjustment.shipping_fee` is the same figure after QuadX's own
+     * campaigns and surcharges. A real booking came back 80.00 list against
+     * 77.00 adjusted, being a 10% price drop and a 5.00 fuel surcharge. The
+     * store pays the adjusted one, so that is what is recorded.
+     *
+     * Null, never zero, when QuadX said nothing: an absent figure means the
+     * cost is not known, and reporting it as free would be a lie the margin
+     * is then computed from.
+     */
+    public function actualShippingCost(array $courierMeta): ?float
+    {
+        $booked = $courierMeta['booked_response'] ?? null;
+
+        if (! is_array($booked)) {
+            return null;
+        }
+
+        $fee = $booked['fees_adjustment']['shipping_fee'] ?? $booked['shipping_fee'] ?? null;
+
+        return is_numeric($fee) ? (float) $fee : null;
     }
 
     public function parseWebhook(array $payload): array
@@ -805,7 +842,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
      *
      * Left out on purpose: for_release and claimed (never seen), the
      * claims/lost/damaged/disposal chain (waits on the returns process,
-     * board #52), and the four ops-system events (dws_update,
+     * board VENT-18), and the four ops-system events (dws_update,
      * runsheet_closure, rcd_*). The map page appends any status this store
      * has actually received that is not listed here, so nothing can strand
      * an order silently again.
@@ -877,9 +914,10 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
             // it accepts orders with no parcel object, so we don't collect or send them.
             'payment_provider' => 'other',
             'payment_method'   => $buyerPayment === 'cod' ? 'cod' : 'other',
-            'items'            => $this->items($order, $buyerPayment === 'cod'),
+            'items'            => $this->items($order),
             'currency'         => 'PHP',
             'shipment'         => self::parcelFor($opts),
+            'total'            => (float) $order->total,
             // QuadX insures via declared_value (~1% fee on that amount). Omitting
             // this field entirely makes QuadX silently DEFAULT declared_value to
             // the order total — auto-insuring every booking with an unwanted fee.
@@ -888,19 +926,6 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
             'declared_value'   => self::declaredValue($order, $opts),
             'async_address_validate' => false,
         ];
-
-        // Owner ruling 2026-09-03: money only travels when QuadX needs to
-        // collect it. On a prepaid booking the rider collects nothing, so the
-        // order value has no job to do on the waybill or the QuadX dashboard,
-        // and sending it just discloses what the parcel is worth to everyone
-        // who handles it. SPX already worked this way (cod_amount is written
-        // only when cod_collection is 1); QuadX sent it unconditionally.
-        //
-        // COD is the one case that needs it: the amount QuadX collects is the
-        // order total, so it has to be told.
-        if ($buyerPayment === 'cod') {
-            $payload['total'] = (float) $order->total;
-        }
 
         // Seller's shipping-fee payment. Omit entirely for net-off (deduct/bill).
         $shippingPayment = $opts['shipping_payment'] ?? 'net_off';
@@ -972,38 +997,20 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
         ];
     }
 
-    /**
-     * What is in the parcel, and what it is worth only when that matters.
-     *
-     * The rider still needs to know what they are carrying and how many, so
-     * description and quantity always travel. `amount` is the item's value,
-     * and on a prepaid booking nobody down the chain has a use for it.
-     *
-     * @param bool $withPrices true only for COD, where QuadX collects money
-     */
-    private function items(Order $order, bool $withPrices): array
+    private function items(Order $order): array
     {
         $items = [];
         foreach ($order->products as $p) {
-            $item = [
+            $items[] = [
                 'type'        => 'product',
                 'description' => $p->name ?: 'Item',
+                'amount'      => (float) $p->price,
                 'quantity'    => (int) $p->quantity,
             ];
-            if ($withPrices) {
-                $item['amount'] = (float) $p->price;
-            }
-            $items[] = $item;
         }
-
         if ($items === []) {
-            $fallback = ['type' => 'product', 'description' => 'Order #' . $order->id, 'quantity' => 1];
-            if ($withPrices) {
-                $fallback['amount'] = (float) $order->total;
-            }
-            $items[] = $fallback;
+            $items[] = ['type' => 'product', 'description' => 'Order #' . $order->id, 'amount' => (float) $order->total, 'quantity' => 1];
         }
-
         return $items;
     }
 

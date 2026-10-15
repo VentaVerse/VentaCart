@@ -28,7 +28,7 @@ return new class extends Migration
                 $table->string('current_slug')->nullable();
                 $table->string('suggested_slug')->nullable();
                 $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
-                $table->timestamp('generated_at');
+                $table->timestamp('generated_at')->useCurrent();
                 $table->timestamps();
                 $table->index(['entity_type', 'entity_id']);
             });
@@ -45,7 +45,7 @@ return new class extends Migration
                 $table->decimal('health_score', 5, 2)->default(0);
                 $table->json('top_opportunities')->nullable();
                 $table->json('search_insights')->nullable();
-                $table->timestamp('generated_at');
+                $table->timestamp('generated_at')->useCurrent();
                 $table->timestamps();
             });
         }
@@ -70,8 +70,8 @@ return new class extends Migration
                 $table->id();
                 $table->string('path')->unique();
                 $table->unsignedBigInteger('hits')->default(1);
-                $table->timestamp('first_hit_at');
-                $table->timestamp('last_hit_at');
+                $table->timestamp('first_hit_at')->useCurrent();
+                $table->timestamp('last_hit_at')->useCurrent();
                 $table->string('last_query', 500)->nullable();
                 $table->string('last_referer', 500)->nullable();
                 $table->string('last_user_agent')->nullable();

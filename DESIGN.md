@@ -1,6 +1,6 @@
 # Venta admin design record
 
-> **On the name (owner ruling 2026-08-21, card #133, LANDED):** the
+> **On the name (owner ruling 2026-08-21, card VENT-33, LANDED):** the
 > system was built under the internal codename "v"; the product is
 > Venta 2, so on 2026-08-21 the whole vocabulary collapsed to the
 > version-free `v-` prefix and the `admin` directories, the legacy v2

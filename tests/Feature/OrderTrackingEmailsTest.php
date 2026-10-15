@@ -166,8 +166,11 @@ class OrderTrackingEmailsTest extends TestCase
     {
         $this->installFulfillment();
         $delivered = $this->orderStatus('Delivered', 5);
+        // The email answers from the store's list on Status Mapping, not the
+        // courier map's per-row "notify" flag, which is ignored.
+        \Extensions\CourierFulfillment\NotifyMap::put([...\Extensions\CourierFulfillment\NotifyMap::all(), $delivered->id]);
         Setting::create(['group' => 'courier', 'key' => 'fake_status_map', 'value' => json_encode([
-            'delivered' => ['order_status_id' => $delivered->id, 'notify' => true],
+            'delivered' => ['order_status_id' => $delivered->id, 'notify' => false],
         ])]);
 
         $order = $this->order();
@@ -385,11 +388,19 @@ class OrderTrackingEmailsTest extends TestCase
     }
 
     /**
-     * Owner ruling 2026-09-03: for a clean QuadX dashboard, a prepaid booking
-     * carries no prices. SPX already behaved this way (cod_amount is written
-     * only when cod_collection is 1); QuadX sent the total unconditionally.
+     * QuadX requires `total` on every booking, prepaid included.
+     *
+     * d781db9d stopped sending it on non-COD bookings so the order value would
+     * not sit on the QuadX dashboard for a parcel nobody collects money for.
+     * That commit's own note said the assumption was unverified against the
+     * live API. It was wrong: QuadX answers 422 with "The total field is
+     * required", so every prepaid order failed to book while COD kept working.
+     *
+     * This test exists so nobody makes that trade again without first hearing
+     * QuadX refuse it. The privacy argument was reasonable; the API does not
+     * allow it.
      */
-    public function test_quadx_sends_prices_only_when_quadx_collects_the_money(): void
+    public function test_quadx_always_sends_the_total_because_its_api_requires_it(): void
     {
         $this->installFulfillment();
         $quadx = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment();
@@ -398,20 +409,23 @@ class OrderTrackingEmailsTest extends TestCase
         $order = $this->order($this->placed('to_pack', 'Processing', 2));
         $order->forceFill(['total' => 1100.00])->save();
 
-        $prepaid = $build->invoke($quadx, $order, ['buyer_payment' => 'prepaid', 'service' => 'next_day', 'parcel' => 'box']);
-        $this->assertArrayNotHasKey('total', $prepaid, 'A prepaid booking must not disclose the order value.');
-        $this->assertSame('other', $prepaid['payment_method']);
-        foreach ($prepaid['items'] as $item) {
-            $this->assertArrayNotHasKey('amount', $item, 'A prepaid booking must not disclose item prices.');
-            // The rider still needs to know what they are carrying.
-            $this->assertArrayHasKey('description', $item);
-            $this->assertArrayHasKey('quantity', $item);
+        foreach (['prepaid', 'cod'] as $buyerPayment) {
+            $payload = $build->invoke($quadx, $order, [
+                'buyer_payment' => $buyerPayment, 'service' => 'next_day', 'parcel' => 'box',
+            ]);
+
+            $this->assertSame(1100.00, $payload['total'],
+                "QuadX rejects a {$buyerPayment} booking that carries no total.");
+            $this->assertArrayHasKey('amount', $payload['items'][0]);
+            $this->assertArrayHasKey('description', $payload['items'][0]);
+            $this->assertArrayHasKey('quantity', $payload['items'][0]);
         }
 
+        // What DOES still follow the payment type is who collects.
+        $prepaid = $build->invoke($quadx, $order, ['buyer_payment' => 'prepaid', 'service' => 'next_day', 'parcel' => 'box']);
         $cod = $build->invoke($quadx, $order, ['buyer_payment' => 'cod', 'service' => 'next_day', 'parcel' => 'box']);
-        $this->assertSame(1100.00, $cod['total'], 'COD is the one case QuadX has to be told the amount.');
+        $this->assertSame('other', $prepaid['payment_method']);
         $this->assertSame('cod', $cod['payment_method']);
-        $this->assertArrayHasKey('amount', $cod['items'][0]);
     }
 
     public function test_a_quadx_booking_records_the_environment_it_used(): void

@@ -258,4 +258,43 @@ class Order extends Model
 
         return $this->shippingCourier->getTrackingLink($this->tracking_number);
     }
+
+    /**
+     * Every line between the subtotal and the total, in the order the admin
+     * order page shows them: the coupon first, then whatever else the totals
+     * pipeline saved at checkout (store credit, and any total extension added
+     * later). subtotal + shipping_cost + the sum of these amounts is the total.
+     *
+     * The coupon comes from its columns, never from the saved line: the admin
+     * can change the discount after checkout, and the columns are what the
+     * total is recomputed from. A line worth nothing is dropped.
+     *
+     * @return array<int, array{code: string, label: string, amount: float}>
+     */
+    public function adjustmentLines(): array
+    {
+        $lines = [];
+
+        if ((float) $this->coupon_discount != 0) {
+            $lines[] = [
+                'code' => 'coupon',
+                'label' => $this->coupon_code ? 'Coupon (' . $this->coupon_code . ')' : 'Coupon',
+                'amount' => -round((float) $this->coupon_discount, 2),
+            ];
+        }
+
+        foreach ($this->total_lines ?? [] as $line) {
+            $amount = round((float) ($line['amount'] ?? 0), 2);
+            if (($line['code'] ?? '') === 'coupon' || $amount == 0) {
+                continue;
+            }
+            $lines[] = [
+                'code' => (string) ($line['code'] ?? ''),
+                'label' => (string) ($line['label'] ?? $line['code'] ?? ''),
+                'amount' => $amount,
+            ];
+        }
+
+        return $lines;
+    }
 }

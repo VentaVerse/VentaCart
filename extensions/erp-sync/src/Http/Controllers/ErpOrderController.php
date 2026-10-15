@@ -4,7 +4,8 @@ namespace Extensions\ErpSync\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\OrderHistory;
+use App\Services\OrderStatusChanger;
+use App\Support\NotifyChoice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -142,8 +143,41 @@ class ErpOrderController extends Controller
             }),
             'totals' => [
                 'subtotal' => $order->subtotal,
+                // What the CUSTOMER was charged for shipping. Not the same
+                // number as fees.shipping_cost, which is what the courier
+                // charged the store, and the two must never be conflated.
                 'shipping' => $order->shipping_cost,
                 'total' => $order->total,
+                // Every line between the subtotal and the total (coupon,
+                // store credit, any later total extension), signed, so
+                // subtotal + shipping + the lines adds up to the total.
+                // Empty on an order with nothing in between, and on the
+                // migrated OpenCart orders, whose lines were never copied.
+                'lines' => array_map(function (array $line) {
+                    return [
+                        'code' => $line['code'],
+                        'label' => $line['label'],
+                        'amount' => number_format($line['amount'], 2, '.', ''),
+                    ];
+                }, $order->adjustmentLines()),
+            ],
+            // What the order cost the store. Deliberately outside `totals`:
+            // the total is what the customer owed and these do not reduce it.
+            // The ERP computes margin from them itself.
+            //
+            // null means NOT KNOWN YET, not zero. A payment fee arrives at
+            // settlement and a courier's charge at booking, so an order can
+            // legitimately have neither. Reading null as 0 would report an
+            // unbooked parcel as free and overstate the margin.
+            'fees' => [
+                'payment_fee' => $order->payment_fee,
+                'shipping_cost' => $order->shipping_cost_actual,
+                // Derived, never stored, so it cannot drift from its inputs.
+                // Only offered once BOTH are known: a partial subtraction
+                // would look like a finished figure and read too high.
+                'net_after_fees' => ($order->payment_fee !== null && $order->shipping_cost_actual !== null)
+                    ? round((float) $order->total - (float) $order->payment_fee - (float) $order->shipping_cost_actual, 2)
+                    : null,
             ],
             'payment_method' => $order->payment_method_label,
             'payment_method_key' => $order->payment_method,
@@ -212,16 +246,20 @@ class ErpOrderController extends Controller
         $validated = $request->validate([
             'status_id' => 'required|integer|exists:order_statuses,id',
             'comment' => 'nullable|string|max:1000',
+            'notify' => 'sometimes|boolean',
+            'notify_sms' => 'sometimes|boolean',
         ]);
 
-        $order->update(['order_status_id' => $validated['status_id']]);
-
-        OrderHistory::create([
-            'order_id' => $order->id,
-            'order_status_id' => $validated['status_id'],
-            'comment' => $validated['comment'] ?? 'Status updated via ERP API',
-            'notify_customer' => false,
-        ]);
+        OrderStatusChanger::apply(
+            $order,
+            (int) $validated['status_id'],
+            $validated['comment'] ?? 'Status updated via ERP API',
+            $this->notifyChoice($validated),
+            null,
+            // The fallback wording above is for the record. The customer
+            // reads only what the ERP actually wrote, which may be nothing.
+            $validated['comment'] ?? '',
+        );
 
         $data = [
             'id' => $order->id,
@@ -231,5 +269,45 @@ class ErpOrderController extends Controller
         ];
 
         return $this->logAndRespond($request, $data);
+    }
+
+    /**
+     * Who hears about this change.
+     *
+     * The caller moving the order may say, like a person ticking the boxes
+     * on the order page: notify for the email, notify_sms for a text. A half
+     * it leaves out follows the store's automatic settings (the email list
+     * and each channel's own list), and a call that says neither follows
+     * them entirely, which is how every call behaved before these fields.
+     * A text needs a messaging extension that is on and has a message for
+     * the status; asking for one where there is none sends nothing.
+     *
+     * @param  array{status_id: int, notify?: bool, notify_sms?: bool}  $validated
+     */
+    private function notifyChoice(array $validated): NotifyChoice
+    {
+        $saysEmail = array_key_exists('notify', $validated);
+        $saysSms = array_key_exists('notify_sms', $validated);
+
+        if (! $saysEmail && ! $saysSms) {
+            return NotifyChoice::follow();
+        }
+
+        $automatic = \App\Services\OrderNotificationService::plan(
+            \App\Models\OrderStatus::find((int) $validated['status_id']),
+            NotifyChoice::follow(),
+        );
+
+        $email = $saysEmail ? (bool) $validated['notify'] : $automatic['email'];
+
+        $channels = $automatic['channels'];
+        if ($saysSms) {
+            $channels = array_values(array_diff($channels, ['sms']));
+            if ($validated['notify_sms']) {
+                $channels[] = 'sms';
+            }
+        }
+
+        return NotifyChoice::explicit($email, $channels);
     }
 }

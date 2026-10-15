@@ -40,8 +40,8 @@ return new class extends Migration {
                 $table->id();
                 $table->string('path');                       // request path, no query string
                 $table->unsignedBigInteger('hits')->default(1);
-                $table->timestamp('first_hit_at');
-                $table->timestamp('last_hit_at');
+                $table->timestamp('first_hit_at')->useCurrent();
+                $table->timestamp('last_hit_at')->useCurrent();
                 $table->string('last_query', 500)->nullable();
                 $table->string('last_referer', 500)->nullable();
                 $table->string('last_user_agent', 255)->nullable();

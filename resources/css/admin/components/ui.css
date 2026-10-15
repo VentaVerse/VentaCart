@@ -569,6 +569,15 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
 .v-stat__value { font-family: var(--v-font-mono); font-size: 24px; font-weight: 640; margin-top: 2px; }
 
 .v-chip--inline { display: inline-block; width: auto; margin: 0 6px 6px 0; }
+
+/* A wrapping row of copy chips under a field. The row owns the spacing, so
+   the stacked-list margin a chip gets from its neighbour is cancelled. */
+.v-chiprow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.v-chiprow .v-chip { width: auto; margin: 0; }
+@media (pointer: coarse) { .v-chiprow .v-chip { min-height: 44px; } }
+
+/* A text message template: short, but long enough to see a whole message. */
+.v-smstemplate { min-height: 84px; resize: vertical; line-height: 1.5; }
 .v-narrowsearch { max-width: 260px; min-height: 30px; font-size: 12.5px; }
 .v-pager { padding: 12px 16px; border-top: 1px solid var(--v-line); font-size: 13px; }
 
@@ -728,6 +737,24 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
     padding: 8px 12px;
 }
 .v-checklist .v-check { display: flex; padding: 3px 0; }
+
+/* --- Status marks (a store's own statuses) ---------------------
+   The tone dot is the merchant's own status tone, the same square mark
+   .v-badge draws, so a status reads the same here as everywhere it is
+   shown. The count beside a list says how many are in use. */
+
+.v-statuspick__dot { flex: none; width: 8px; height: 8px; border-radius: 2px; background: var(--v-ink-3); }
+.v-statuspick__dot--info { background: var(--v-act); }
+.v-statuspick__dot--warning { background: var(--v-warn); }
+.v-statuspick__dot--success { background: var(--v-good); }
+.v-statuspick__dot--danger { background: var(--v-bad); }
+.v-statuspick__count { font-size: 12.5px; color: var(--v-ink-3); white-space: nowrap; }
+.v-statuspick__count strong {
+    color: var(--v-ink);
+    font-family: var(--v-font-mono);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
 
 .v-qr { height: 32px; width: 32px; object-fit: contain; border: 1px solid var(--v-line); border-radius: var(--v-r-sm); background: var(--v-plate); }
 .v-qr--lg { height: 96px; width: 96px; }
@@ -1336,6 +1363,33 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
 .v-facts dt.v-facts__sum,
 .v-ledger dt.v-facts__sum {
     color: var(--v-ink);
+}
+
+/* Fees and charges: what the order cost the store, below the total and
+   visibly not part of it. The dashed rule is the whole point — it says these
+   figures sit outside the sum above rather than adding to it, which is what
+   stops anyone reading the net as the order's value. */
+.v-ledger dt.v-ledger__cap {
+    grid-column: 1 / -1;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 2px dashed var(--v-line-2);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--v-ink-3);
+}
+
+.v-ledger dt.v-ledger__net,
+.v-ledger dd.v-ledger__net {
+    padding-top: 8px;
+    border-top: 1px solid var(--v-line);
+    font-weight: 600;
+}
+
+.v-ledger dd.v-ledger__net {
+    color: var(--v-good);
 }
 
 .v-ledger__notes {

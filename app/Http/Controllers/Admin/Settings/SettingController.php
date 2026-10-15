@@ -287,17 +287,6 @@ class SettingController extends Controller
         return response()->json(['ok' => true, 'value' => $value]);
     }
 
-    public function generateErpToken()
-    {
-        $token = bin2hex(random_bytes(32));
-
-        Setting::updateOrCreate(
-            ['group' => 'api', 'key' => 'erp_token'],
-            ['value' => $token]
-        );
-
-        return back()->with('success', 'ERP API token generated.')->with('tab', 'api')->with('new_erp_token', $token);
-    }
 
     public function uploadGscCredentials(Request $request)
     {

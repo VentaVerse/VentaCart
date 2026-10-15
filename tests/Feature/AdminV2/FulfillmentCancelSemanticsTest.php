@@ -21,10 +21,12 @@ use Tests\TestCase;
  *
  *  (a) CANCEL ORDER - the real cancel. A new POST route sets the CORE order
  *      status to the module setting `cancel_order_status_id` (default: the
- *      status named "Canceled") through the same history + StockService path
- *      the admin order page uses (notify off). Offered on Unpaid rows (their
- *      ONLY action) and on To Pack rows (alongside Book). Refused while an
- *      active courier booking exists.
+ *      status named "Canceled") through the same doorway the admin order
+ *      page uses (OrderStatusChanger::apply() with NotifyChoice::follow():
+ *      the customer hears about it only if Status Mapping's email list,
+ *      or a channel's own list, says so). Offered on
+ *      Unpaid rows (their ONLY action) and on To Pack rows (alongside Book).
+ *      Refused while an active courier booking exists.
  *  (b) CANCEL BOOKING - when the courier confirms an admin-initiated cancel,
  *      the previous booking is snapshotted into courier_meta.booking_history
  *      (courier, tracking number, timeline, admin_cancelled, cancelled_at)
@@ -217,7 +219,10 @@ class FulfillmentCancelSemanticsTest extends TestCase
         $order->refresh();
         $this->assertSame($canceled->id, $order->order_status_id);
 
-        // History entry through the same path the order page uses - notify OFF.
+        // History entry through the same doorway the order page uses. The
+        // store's lists decide: this fixture's cancel status is not on
+        // Status Mapping's email list and no channel is registered, so nothing was
+        // queued and the row reads notify_customer false.
         $this->assertDatabaseHas('order_histories', [
             'order_id' => $order->id,
             'order_status_id' => $canceled->id,

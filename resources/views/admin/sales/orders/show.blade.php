@@ -163,6 +163,54 @@
                         @endforeach
                         <dt class="v-facts__sum">Total</dt>
                         <dd class="v-facts__sum v-mono">{{ $currency }}{{ number_format($order->total, 2) }}</dd>
+
+                        {{-- Fees and charges (owner ruling 2026-09-09). NOT
+                             "cost of sale": that includes the cost of the
+                             goods, which VentaCart does not hold, so the name
+                             would promise a figure it cannot produce.
+
+                             Below the total and never inside it. The ERP reads
+                             the total to know what the customer owed and works
+                             out margin from these separately, so subtracting
+                             here would corrupt the number it depends on.
+
+                             null and 0.00 mean different things: null is "not
+                             known yet" (a payment fee before settlement, a
+                             courier's charge before booking) and 0.00 is
+                             genuinely nothing to pay. --}}
+                        @php
+                            $hasFees = $order->payment_fee !== null || $order->shipping_cost_actual !== null;
+                            $knownFees = (float) ($order->payment_fee ?? 0) + (float) ($order->shipping_cost_actual ?? 0);
+                            $allFeesIn = $order->payment_fee !== null && $order->shipping_cost_actual !== null;
+                        @endphp
+                        @if ($hasFees)
+                            {{-- Spans both columns, so it must NOT be followed
+                                 by a <dd>: the empty cell pushed every label
+                                 and amount after it one place along and swapped
+                                 the two columns for the rest of the block. --}}
+                            <dt class="v-ledger__cap">Fees and charges</dt>
+                            <dt>Payment fee</dt>
+                            <dd class="v-mono">
+                                @if ($order->payment_fee !== null)
+                                    -{{ $currency }}{{ number_format($order->payment_fee, 2) }}
+                                @else
+                                    <span class="v-cell-quiet">awaiting settlement</span>
+                                @endif
+                            </dd>
+                            <dt>Shipping cost @if ($order->shipping_courier_name)({{ $order->shipping_courier_name }})@endif</dt>
+                            <dd class="v-mono">
+                                @if ($order->shipping_cost_actual !== null)
+                                    -{{ $currency }}{{ number_format($order->shipping_cost_actual, 2) }}
+                                @else
+                                    <span class="v-cell-quiet">awaiting booking</span>
+                                @endif
+                            </dd>
+                            {{-- "Net so far" while a figure is still missing:
+                                 calling it "after fees" would state something
+                                 untrue about a number nobody has yet. --}}
+                            <dt class="v-ledger__net">{{ $allFeesIn ? 'Net after fees' : 'Net so far' }}</dt>
+                            <dd class="v-ledger__net v-mono">{{ $currency }}{{ number_format($order->total - $knownFees, 2) }}</dd>
+                        @endif
                     </dl>
                 </div>
                 @if ($order->comment || $order->courier_comment)
@@ -202,10 +250,11 @@
             {{-- Every submit here CREATES a history entry, so the button is
                  the verb and the save bar stays out of it. --}}
             <x-admin.panel title="Update order">
-                <form method="POST" action="{{ route('admin.orders.history.store', $order) }}">
+                <form method="POST" action="{{ route('admin.orders.history.store', $order) }}"
+                      x-data="{ statusId: {{ (int) $order->order_status_id }}, current: {{ (int) $order->order_status_id }}, channelWants: @js($channelWantsByStatus) }">
                     @csrf
                     <x-admin.field name="order_status_id" label="Status" required>
-                        <select name="order_status_id" required class="v-control">
+                        <select name="order_status_id" required class="v-control" x-model.number="statusId">
                             @foreach ($statuses as $status)
                                 <option value="{{ $status->id }}" @selected($order->order_status_id == $status->id)>{{ $status->name }}</option>
                             @endforeach
@@ -231,9 +280,14 @@
                             <input type="text" name="comment" class="v-control">
                         </x-admin.field>
                     </div>
+                    {{-- The email box starts unticked, as in OpenCart: a person
+                         changing a status by hand decides whether to write. Each
+                         channel's box starts from that channel's own list, and
+                         only while the status is actually changing. --}}
                     <div class="v-gap v-actrow">
                         <label class="v-check">
-                            <input type="checkbox" name="notify_customer" value="1">
+                            <input type="checkbox" name="notify_customer" value="1"
+                                   aria-label="Email the customer about this change">
                             Notify customer
                         </label>
                         {{-- One tick per way of telling a customer that an
@@ -241,9 +295,10 @@
                              turn the extension off and its tick is not drawn,
                              because there is nothing to draw. Each is its own
                              decision, so emailing never implies texting. --}}
-                        @foreach (\App\Services\OrderNotificationService::channels() as $vChannel)
+                        @foreach ($notifyChannels as $vChannel)
                             <label class="v-check">
-                                <input type="checkbox" name="channels[]" value="{{ $vChannel->key() }}">
+                                <input type="checkbox" name="channels[]" value="{{ $vChannel->key() }}"
+                                       x-bind:checked="statusId !== current && (channelWants[@js($vChannel->key())]?.[statusId] ?? false)">
                                 {{ $vChannel->label() }}
                             </label>
                         @endforeach

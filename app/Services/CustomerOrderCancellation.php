@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\Setting;
+use App\Support\NotifyChoice;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -95,16 +96,18 @@ class CustomerOrderCancellation
             $target = self::target($locked);
             $oldName = $locked->order_status_name;
 
-            OrderStatusChanger::apply($locked, $target->id, $comment, true, null);
+            // The customer is always told their own cancellation worked;
+            // any registered channel (SMS and the like) follows the store's
+            // own ticks, same as every other status change.
+            OrderStatusChanger::apply($locked, $target->id, $comment, NotifyChoice::emailAlways(), null);
 
             return [$oldName, $target];
         });
 
         $order->refresh();
 
-        // After the commit, the way every status change notifies: the
-        // customer hears the order moved, the store hears who moved it.
-        OrderNotificationService::statusChanged($order, $oldName, $target->name, $comment);
+        // The doorway already told the customer. The store still hears who
+        // moved it, which is a separate, admin-facing email this class owns.
         self::notifyStore($order, $oldName, $target->name, $comment);
 
         return $target;

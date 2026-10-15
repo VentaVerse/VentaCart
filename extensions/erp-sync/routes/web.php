@@ -13,4 +13,6 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->name('admin.erp-sync.')
     ->group(function () {
         Route::get('/', [ErpSyncSettingsController::class, 'page'])->name('settings');
+        Route::post('/keys', [ErpSyncSettingsController::class, 'store'])->name('keys.store');
+        Route::delete('/keys/{apiKey}', [ErpSyncSettingsController::class, 'destroy'])->name('keys.destroy');
     });

@@ -12,6 +12,7 @@ use App\Models\ShippingCourier;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\OrderStatusChanger;
+use App\Support\NotifyChoice;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -305,7 +306,7 @@ class OrderHistoricalRecordTest extends TestCase
 
         $order = $this->order(['order_status_id' => $from->id]);
 
-        OrderStatusChanger::apply($order, $to->id, 'Handed to courier.', false, $staff->id);
+        OrderStatusChanger::apply($order, $to->id, 'Handed to courier.', NotifyChoice::silent(), $staff->id);
 
         $this->assertDatabaseHas('order_histories', [
             'order_id' => $order->id,

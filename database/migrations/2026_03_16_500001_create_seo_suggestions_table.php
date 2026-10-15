@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('current_meta_keywords')->nullable();
             $table->string('suggested_meta_keywords')->nullable();
             $table->enum('status', ['pending', 'accepted', 'rejected'])->default('pending');
-            $table->timestamp('generated_at');
+            $table->timestamp('generated_at')->useCurrent();
             $table->timestamps();
             $table->index(['product_id', 'status']);
         });

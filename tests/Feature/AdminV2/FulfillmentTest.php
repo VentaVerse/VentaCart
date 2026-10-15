@@ -213,10 +213,11 @@ class FulfillmentTest extends TestCase
         ], $overrides));
     }
 
-    /** Stores an encrypted ERP token under settings(group=api,key=erp_token) — the exact row App\Http\Middleware\ErpApiAuth reads — and returns the plaintext for the Bearer header. */
+    /** An API key permitted everything, returning the secret for the Bearer header. */
     private function makeErpToken(string $token = 'erp-test-token-abc123'): string
     {
-        Setting::create(['group' => 'api', 'key' => 'erp_token', 'value' => Crypt::encryptString($token)]);
+        $this->apiKey($token);
+
         return $token;
     }
 
@@ -557,11 +558,11 @@ class FulfillmentTest extends TestCase
         ])]);
 
         $this->assertSame(
-            ['order_status_id' => $delivered->id, 'notify' => false],
+            ['order_status_id' => $delivered->id],
             StatusMapper::resolve(StatusMapper::currentMap('fake'), 'delivered')
         );
         $this->assertSame(
-            ['order_status_id' => $pending->id, 'notify' => false],
+            ['order_status_id' => $pending->id],
             StatusMapper::resolve(StatusMapper::currentMap('quadx'), 'delivered')
         );
         $this->assertSame([], StatusMapper::currentMap('unregistered-courier'));
@@ -853,12 +854,12 @@ class FulfillmentTest extends TestCase
                 // insure not posted -> declared_value must be 0, never default
                 // to the order total (that hazard is called out in buildPayload()).
                 && (int) $body['declared_value'] === 0
-                // Owner ruling 2026-09-03: money only travels for COD. This
-                // booking is prepaid, so the order value must not reach the
-                // QuadX dashboard or the waybill at all.
-                && !array_key_exists('total', $body)
-                && !array_key_exists('amount', $body['items'][0])
-                // What the rider still needs is untouched.
+                // QuadX requires `total` on every booking, prepaid included:
+                // omitting it for non-COD (d781db9d) made the live API answer
+                // 422 "The total field is required" and no prepaid order could
+                // be booked. Restored in 33adec6f.
+                && (float) $body['total'] === 1100.0
+                && array_key_exists('amount', $body['items'][0])
                 && $body['items'][0]['description'] !== ''
                 && (int) $body['items'][0]['quantity'] >= 1
                 && $body['delivery_address']['line_1'] === '123 Mango St'

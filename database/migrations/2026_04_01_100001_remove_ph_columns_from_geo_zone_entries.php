@@ -15,14 +15,27 @@ return new class extends Migration
             ->whereNull('zone_id')
             ->delete();
 
-        // Drop the old location index first — SQLite refuses to drop columns
-        // that are still referenced by an index.
+        // The foreign key goes first. On MySQL and MariaDB the composite
+        // location index is the one backing the foreign key on geo_zone_id,
+        // so the index cannot be dropped while the key exists. Dropping the
+        // index first used to fail silently here, the column drops below then
+        // only shrank it, and re-adding it further down collided with its own
+        // name: every fresh install on MySQL or MariaDB stopped at this
+        // migration. SQLite never showed it, which is what the tests run on.
         try {
+            Schema::table('geo_zone_entries', function (Blueprint $table) {
+                $table->dropForeign(['geo_zone_id']);
+            });
+        } catch (\Throwable) {
+            // FK may already be dropped or have a different name
+        }
+
+        // Then the old location index. SQLite also refuses to drop columns
+        // that are still referenced by an index.
+        if (Schema::hasIndex('geo_zone_entries', 'gze_location_index')) {
             Schema::table('geo_zone_entries', function (Blueprint $table) {
                 $table->dropIndex('gze_location_index');
             });
-        } catch (\Throwable) {
-            // Index may already be dropped or have a different name
         }
 
         // Drop PH columns if they still exist
@@ -32,15 +45,6 @@ return new class extends Migration
             Schema::table('geo_zone_entries', function (Blueprint $table) use ($toDrop) {
                 $table->dropColumn($toDrop);
             });
-        }
-
-        // Drop FK so we can safely rebuild the composite index
-        try {
-            Schema::table('geo_zone_entries', function (Blueprint $table) {
-                $table->dropForeign(['geo_zone_id']);
-            });
-        } catch (\Throwable) {
-            // FK may already be dropped or have a different name
         }
 
         Schema::table('geo_zone_entries', function (Blueprint $table) {

@@ -39,7 +39,7 @@ class ManualShipmentRequest extends FormRequest
     {
         return [
             // Optional, and the select defaults to "Select courier..."
-            // (card #135). This form mirrors "Update order" on the core order
+            // (card VENT-35). This form mirrors "Update order" on the core order
             // page, so submitting with no courier is a plain status update:
             // the order moves, tracking and comment are saved, nobody is
             // recorded as carrying it. Requiring a courier meant an operator
@@ -55,15 +55,18 @@ class ManualShipmentRequest extends FormRequest
             'notify_customer' => ['sometimes', 'boolean'],
             // Which registered channels the packer left ticked. Names are
             // never validated against a list here: the service asks the
-            // registry, so an unknown key is simply not matched.
+            // registry, so an unknown key is simply not matched. The form
+            // always sends one empty entry (a hidden sentinel), so every box
+            // unticked still arrives as "no channels" rather than as no
+            // answer at all; the service drops the empty entry.
             'channels'        => ['sometimes', 'array'],
-            'channels.*'      => ['string', 'max:32'],
+            'channels.*'      => ['nullable', 'string', 'max:32'],
             // Owner directive (2026-08-12): "Add in manual booking the order
             // status change." Recording a manual shipment IS a status change
             // like any other, so the operator states which one rather than
             // having the module decide for them.
             //
-            // Required since card #135, which mirrors this form on the core
+            // Required since card VENT-35, which mirrors this form on the core
             // order page's "Update order" panel. It used to be nullable, with
             // absence meaning the module's own To-Handover-placed status. That
             // default cannot survive courier becoming optional: a submission

@@ -6,7 +6,6 @@ use App\Models\Cart;
 use App\Models\Customer;
 use App\Models\CustomerAddress;
 use App\Models\Order;
-use App\Models\OrderHistory;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
 use App\Services\PaymentMethods\PaymentMethodInterface;
@@ -14,6 +13,7 @@ use App\Services\PaymentMethods\PaymentResult;
 use App\Services\ActivityLogger;
 use App\Services\PaymentRestrictionService;
 use App\Mail\OrderConfirmationMail;
+use App\Support\NotifyChoice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -39,7 +39,7 @@ class CheckoutService
         $methods = \App\Services\PaymentManager::enabledMethods();
 
         // Apply payment restrictions whenever we know the cart subtotal. The
-        // address may be null (customer hasn't picked or saved one yet) — that
+        // address may be null (customer hasn't picked or saved one yet), that
         // is fine: only the geo-zone check needs an address, and isAllowed skips
         // it when absent. Every other dimension (customer group, total, quantity,
         // weight, currency) MUST still apply here, or group-restricted methods
@@ -175,8 +175,8 @@ class CheckoutService
         // Order totals pipeline: every registered total extension
         // (coupon, store credit, ...) contributes its lines against this
         // context; a provider may also adjust the shipping cost (a
-        // free-shipping coupon zeroes it). The mandatory arithmetic —
-        // subtotal + shipping + lines, floored at zero — is
+        // free-shipping coupon zeroes it). The mandatory arithmetic,
+        // subtotal + shipping + lines, floored at zero, is
         // TotalsContext::total(), core and not disableable.
         $totalsCtx = \App\Services\OrderTotals\OrderTotals::collect(new \App\Services\OrderTotals\TotalsContext(
             $customer,
@@ -293,7 +293,7 @@ class CheckoutService
 
         $paymentResult = $paymentMethod->processPayment($order);
 
-        // Failed API call (e.g. HitPay rejected) — return without clearing cart
+        // Failed API call (e.g. HitPay rejected): return without clearing cart
         if (!$paymentResult->success) {
             return ['order' => $order, 'payment' => $paymentResult];
         }
@@ -311,7 +311,7 @@ class CheckoutService
     }
 
     /**
-     * Confirm an order — sets status, creates history, adjusts stock, sends emails.
+     * Confirm an order: sets status, creates history, adjusts stock, sends emails.
      * Called when payment is confirmed (immediately for Bank/COD, via webhook for HitPay).
      */
     public function confirmOrder(Order $order, ?OrderStatus $status = null): void
@@ -321,18 +321,18 @@ class CheckoutService
             ->first();
 
         if ($status) {
-            $order->update(['order_status_id' => $status->id]);
-
-            OrderHistory::create([
-                'order_id' => $order->id,
-                'order_status_id' => $status->id,
-                'comment' => 'Order confirmed.',
-                // Written for the customer: the account page shows a history
-                // comment only when the customer was meant to read it.
-                'notify_customer' => true,
-            ]);
-
-            StockService::adjustForStatusChange($order, $status);
+            OrderStatusChanger::apply(
+                $order,
+                $status->id,
+                'Order confirmed.',
+                // The confirmation email below is this method's own; a
+                // status email would say the same thing twice in the same
+                // second. Channels still follow the store's ticks, so a
+                // store that texts on its first status does. apply() stamps
+                // notify_customer true regardless, because this email IS
+                // how the customer was told.
+                NotifyChoice::emailHandledElsewhere(),
+            );
         }
 
         $order->load('products', 'status');
@@ -520,7 +520,7 @@ class CheckoutService
         if ($order->shipping_address_1) {
             $lines[] = e($order->shipping_address_1);
         }
-        // Extension fields (e.g. PH address) — rendered only if populated
+        // Extension fields (e.g. PH address): rendered only if populated
         if ($order->shipping_barangay) {
             $lines[] = e($order->shipping_barangay);
         }

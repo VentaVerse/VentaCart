@@ -174,7 +174,7 @@ owner pick from the round-two artifact. Admin login note: username `dev`.
 
 ## Phase 3 (2026-08-17): editor rebuilt, live preview parked
 
-Live preview parked by the owner (kanban #119). Shipped instead:
+Live preview parked by the owner (kanban VENT-24). Shipped instead:
 
 - Visual layout pickers: schema type "layout" renders radio tiles with
   SVG arrangement diagrams (x-admin3.layout-pick); the five layout

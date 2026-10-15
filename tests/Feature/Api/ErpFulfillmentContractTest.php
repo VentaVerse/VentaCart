@@ -35,7 +35,7 @@ class ErpFulfillmentContractTest extends TestCase
         $manager->install('courier-fulfillment');
         $manager->bootEnabled();
 
-        Setting::create(['group' => 'api', 'key' => 'erp_token', 'value' => Crypt::encryptString('erp-test-token')]);
+        $this->apiKey('erp-test-token');
         Setting::create(['group' => 'courier', 'key' => 'fulfillment_enabled', 'value' => '1']);
 
         // No call may reach a real courier.
@@ -188,7 +188,14 @@ class ErpFulfillmentContractTest extends TestCase
         $this->assertArrayHasKey('quadx', $json['couriers']);
         $quadx = $json['couriers']['quadx'];
         $this->assertSame('QuadX', $quadx['name']);
-        $this->assertSame(['next_day', 'same_day_pickup'], array_column($quadx['service_types'], 'value'));
+        // The VALUES are the contract; the order is a display decision the
+        // admin form owns (owner ruling 2026-09-03 put same day first). An
+        // ERP that treats position as meaning would break on a reorder that
+        // changes nothing about what can be booked, so this asserts the set.
+        $this->assertEqualsCanonicalizing(
+            ['next_day', 'same_day_pickup'],
+            array_column($quadx['service_types'], 'value')
+        );
         $this->assertContains('box', array_column($quadx['parcel_options'], 'value'));
         $this->assertSame('cash', $quadx['shipping_payment_options'][0]['value']);
         // Cash on pickup by default, and the store's own configured

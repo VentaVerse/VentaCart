@@ -9,11 +9,13 @@ use App\Models\Setting;
 use App\Models\ShippingCourier;
 use App\Services\OrderNotificationService;
 use App\Services\OrderStatusChanger;
+use App\Support\NotifyChoice;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl;
+use Extensions\CourierFulfillment\Contracts\ReportsShippingCost;
 
 /**
  * Shared booking core, used by BOTH the admin Fulfillment page and the ERP API
@@ -443,8 +445,12 @@ class FulfillmentService
      * repeat poll (or a courier status map that reached the same status
      * first) can never write a second identical history row.
      *
-     * Notify is OFF: the customer is told about a shipment by the status
-     * map's own notify flag or the order page, never by this internal move.
+     * $notify defaults to NotifyChoice::silent(): both automatic callers
+     * (book() below and PollCourierStatus's async resolution) pass nothing,
+     * because the customer is told about a shipment by the status map's own
+     * notify flag or the order page, never by this internal move. bookManual()
+     * below is the one caller that passes its own choice: the packer's
+     * ticks, or NotifyChoice::follow() when the caller stated nothing.
      *
      * $comment replaces only the FIRST sentence (what happened); the status
      * move is always appended by this method, so every history row still ends
@@ -453,7 +459,7 @@ class FulfillmentService
      * note, not "Courier booking confirmed" — no courier was contacted.
      * Omitted by both integrated callers, whose rows are unchanged.
      */
-    public static function applyBookedStatus(Order $order, ?string $courierName = null, ?string $tracking = null, ?string $comment = null, ?OrderStatus $chosen = null, bool $notifyCustomer = false): ?OrderStatus
+    public static function applyBookedStatus(Order $order, ?string $courierName = null, ?string $tracking = null, ?string $comment = null, ?OrderStatus $chosen = null, ?NotifyChoice $notify = null): ?OrderStatus
     {
         // $chosen is the manual path's operator-named status (owner
         // directive, 2026-08-12). Absent everywhere else, so an integrated
@@ -464,16 +470,29 @@ class FulfillmentService
             return null;
         }
 
-        $comment = ($comment ?? ('Courier booking confirmed'
+        // $customerComment is what a human (or the customer, if they ever
+        // read raw history) wrote about what actually happened; the audit
+        // line below is for the record, not for their inbox, so it is
+        // appended only to the history row's own comment.
+        $customerComment = $comment ?? ('Courier booking confirmed'
             . ($courierName ? ' with ' . $courierName : '')
             . ($tracking ? ' (' . $tracking . ')' : '')
-            . '.'))
-            . ' Order status set to ' . $status->name . ' by fulfillment.';
+            . '.');
+
+        // A period between the two sentences whatever $customerComment
+        // happens to end with (already a period, or a tracking anchor's
+        // closing tag) - a bare space left them reading as one run-on
+        // clause.
+        $trimmed = rtrim($customerComment);
+        $historyComment = ($trimmed !== '' && !str_ends_with($trimmed, '.')) ? $trimmed . '.' : $trimmed;
+        $historyComment .= ' Order status set to ' . $status->name . ' by fulfillment.';
+
+        $notify ??= NotifyChoice::silent();
 
         // History row + status update + stock adjustment either all land or
         // none do, same as every other status change in the app.
-        DB::transaction(function () use ($order, $status, $comment, $notifyCustomer) {
-            OrderStatusChanger::apply($order, $status->id, $comment, $notifyCustomer, Auth::id());
+        DB::transaction(function () use ($order, $status, $historyComment, $customerComment, $notify) {
+            OrderStatusChanger::apply($order, $status->id, $historyComment, $notify, Auth::id(), $customerComment);
         });
 
         return $status;
@@ -568,6 +587,12 @@ class FulfillmentService
             'courier_tracking_number' => null,
             // booking_history is the ONE key that persists through the reset.
             'courier_meta'            => json_encode(['booking_history' => $history]),
+            // The cost described the shipment just cancelled. Left behind it
+            // reports a charge for a parcel nobody is carrying, and on an
+            // order that is never rebooked it would sit in the margin for
+            // good. The figure is preserved in booking_history above, which
+            // is where a cancelled shipment's facts belong.
+            'shipping_cost_actual'    => null,
         ];
         // Core snapshot columns: cleared IF they still point at the shipment
         // just cancelled — a customer must never be shown a voided AWB.
@@ -588,11 +613,15 @@ class FulfillmentService
 
         if ($target && (int) $order->order_status_id !== (int) $target->id) {
             DB::transaction(function () use ($order, $target, $comment, $actorUserId) {
+                // Undoing a booking, back to where it was before it existed.
+                // The customer was never told about this booking through this
+                // internal move (see applyBookedStatus()), so reverting it
+                // stays just as quiet.
                 OrderStatusChanger::apply(
                     $order,
                     $target->id,
                     $comment . ' Order status set to ' . $target->name . ', back under To Ship, To Pack.',
-                    false,
+                    NotifyChoice::silent(),
                     $actorUserId,
                 );
             });
@@ -914,9 +943,30 @@ class FulfillmentService
             $meta['booking_history'] = $previousMeta['booking_history'];
         }
 
+        // What the shipment cost the STORE, from a courier willing to say.
+        // Read from the meta this booking just produced, never from the
+        // column, which still holds the previous booking at this point.
+        //
+        // Recorded beside the total and never inside it. The customer's
+        // shipping charge (orders.shipping_cost) and the courier's charge to
+        // us are different numbers that happen to sit close together, and
+        // conflating them is how a margin report starts lying. A courier that
+        // reports nothing leaves the column null, which reads as "not known"
+        // rather than as free.
+        $cost = $courier instanceof ReportsShippingCost
+            ? $courier->actualShippingCost(is_array($meta) ? $meta : [])
+            : null;
+
         // forceFill bypasses mass-assignment: courier_* columns are extension-owned
         // and not in core Order::$fillable; courier_meta has no cast so encode it.
         $order->forceFill([
+            // Always written, including as null. Only setting it when the
+            // courier answered would let a rebooking inherit the PREVIOUS
+            // courier's figure: cancel a QuadX booking, rebook with one that
+            // reports nothing, and the old 77.00 would stand in for a
+            // shipment it has nothing to do with. This column describes the
+            // current booking or it describes nothing.
+            'shipping_cost_actual'    => $cost,
             'courier_provider'        => $courier->getKey(),
             'courier_tracking_number' => $result['tracking_number'] ?? null,
             'courier_status'          => $result['status'] ?? null,
@@ -1058,7 +1108,7 @@ class FulfillmentService
             ];
         }
 
-        // Optional since card #135. With none named this is a plain status
+        // Optional since card VENT-35. With none named this is a plain status
         // update: the order moves, tracking and comment are saved, and no
         // courier is recorded as carrying it. A courier id that was given but
         // is not an active courier is still an error, since that is a wrong
@@ -1074,27 +1124,35 @@ class FulfillmentService
 
         $tracking = trim((string) ($opts['tracking_number'] ?? '')) ?: null;
         $note     = trim((string) ($opts['comment'] ?? $opts['note'] ?? '')) ?: null;
-        // Who decides whether the customer hears about this. When the caller
-        // says nothing, the store's own policy answers: the packer records a
-        // parcel and the status settles the rest. An explicit value still
-        // wins, so a form or an ERP call can override the policy per order.
-        $notify = array_key_exists('notify_customer', $opts)
-            ? (bool) $opts['notify_customer']
-            : NotifyMap::notifies(($chosenStatus ?? self::bookedStatus())?->id);
+        // Who decides whether the customer hears about this. A caller that
+        // says nothing at all (an ERP call with neither field) gets the
+        // store's own answer through the doorway: this extension's email
+        // list on Status Mapping and each channel's own list. The queue form
+        // always states both halves (a hidden notify_customer=0 and a
+        // hidden channels[] sentinel), so a packer unticking everything
+        // has said no rather than nothing.
+        $saysEmail = array_key_exists('notify_customer', $opts);
+        $saysChannels = array_key_exists('channels', $opts);
+        $targetStatusId = ($chosenStatus ?? self::bookedStatus())?->id;
 
-        // The same rule for every registered channel: what the caller ticked,
-        // or the store's policy for this status when the caller said nothing.
-        // An ERP that knows nothing about channels gets the policy, which is
-        // what makes this need no ERP work.
-        $channelKeys = array_key_exists('channels', $opts)
-            ? array_values(array_filter((array) $opts['channels'], 'is_string'))
-            : array_values(array_filter(
-                array_map(
+        if (!$saysEmail && !$saysChannels) {
+            $choice = NotifyChoice::follow();
+        } else {
+            // A stated half is the caller's own and stays explicit; the half
+            // it left out is answered from the same homes follow() reads.
+            $notify = $saysEmail
+                ? (bool) $opts['notify_customer']
+                : ($targetStatusId !== null && NotifyMap::notifies((int) $targetStatusId));
+
+            $channelKeys = $saysChannels
+                ? array_values(array_filter((array) $opts['channels'], fn ($key) => is_string($key) && $key !== ''))
+                : array_values(array_map(
                     fn ($c) => $c->key(),
-                    OrderNotificationService::channels()
-                ),
-                fn ($key) => NotifyMap::notifiesVia($key, ($chosenStatus ?? self::bookedStatus())?->id)
-            ));
+                    array_filter(OrderNotificationService::channels(), fn ($c) => $c->wantsStatus($targetStatusId))
+                ));
+
+            $choice = NotifyChoice::explicit($notify, $channelKeys);
+        }
 
         // Built from the courier's own {tracking_number} template, and only
         // when there is a number to put in it — a link to a tracking page with
@@ -1126,17 +1184,11 @@ class FulfillmentService
             unset($meta['booking_history']);
         }
 
-        $comment = ($courier
-                ? 'Shipment recorded with ' . $courier->name
-                    . ($tracking ? ' (' . $tracking . ')' : ', no tracking number')
-                : 'Updated from fulfillment' . ($tracking ? ' (' . $tracking . ')' : ''))
-            . '.' . ($note ? ' Note: ' . $note : '');
-
         // The write and the status move either both land or neither does: an
         // order carrying a courier name while still sitting in To Pack would
         // offer to be booked again over a parcel that has already left.
         $applied = null;
-        DB::transaction(function () use ($order, $courier, $tracking, $trackingLink, $meta, $comment, $chosenStatus, $notify, &$applied) {
+        DB::transaction(function () use ($order, $courier, $tracking, $trackingLink, $meta, $note, $chosenStatus, $choice, &$applied) {
             // forceFill for courier_meta / courier_booked_at only (extension-
             // owned, not in core Order::$fillable). The three columns that
             // matter here are core's own and long-standing; they are written
@@ -1149,39 +1201,26 @@ class FulfillmentService
                 'courier_booked_at'   => now(),
             ])->save();
 
+            // One sentence, built once, with the courier's tracking anchor
+            // riding on the end exactly as withTracking() builds it
+            // everywhere else. It becomes the history row AND, through the
+            // doorway, the customer email: no second, shorter version to
+            // drift out of sync with it. Built here, after the forceFill
+            // above, so $order already carries the fresh tracking_number and
+            // tracking_link withTracking() reads.
+            $prefix = ($courier
+                    ? 'Shipment recorded with ' . $courier->name . ($tracking ? '' : ', no tracking number')
+                    : 'Updated from fulfillment')
+                . '.' . ($note ? ' Note: ' . $note : '');
+            $comment = OrderNotificationService::withTracking($order, $prefix);
+
             // Moves it by the same shared helper an integrated booking uses,
             // so a manual parcel walks the placement tabs exactly like every
             // other order: same OrderStatusChanger call, same history row
             // shape, same stock rules, same notification behaviour. The only
             // difference is WHICH status, which the operator may name.
-            $applied = self::applyBookedStatus($order, $courier?->name, $tracking, $comment, $chosenStatus, $notify);
+            $applied = self::applyBookedStatus($order, $courier?->name, $tracking, $comment, $chosenStatus, $choice);
         });
-
-        // Committed; only now may the customer hear about it. OrderStatusChanger
-        // never sends mail (its contract), so until this was added a ticked
-        // "notify customer" on a recorded shipment sent nothing at all. A
-        // parcel with a number gets the shipping email, which names the courier
-        // and links the number; one without gets the plain status email.
-        // One update, one email, and the same one the order page sends. A
-        // parcel with a number used to get the shipping mail instead, which
-        // never said the status had changed: record "Handed over" with a
-        // number and the customer was told the order had shipped and not
-        // where it now stood. The tracking rides in the comment now, built by
-        // the shared builder, so both screens answer a status change the same
-        // way whichever one the packer happened to use.
-        if ($applied) {
-            $was = OrderStatus::whereKey($preBookingStatusId)->value('name');
-            $said = OrderNotificationService::withTracking($order, $note);
-
-            if ($notify) {
-                OrderNotificationService::statusChanged($order, $was, $applied->name, $said);
-            }
-
-            // Independent of the email, and of each other: a store may text
-            // without emailing. A channel that cannot reach this customer
-            // reports it and changes nothing else.
-            OrderNotificationService::statusChangedVia($channelKeys, $order, $was, $applied->name, $said);
-        }
 
         return [
             'success'         => true,
@@ -1263,11 +1302,14 @@ class FulfillmentService
             ])->save();
 
             if ($target && (int) $order->order_status_id !== (int) $target->id) {
+                // Same reasoning as cancelBooking(): undoing a recorded
+                // shipment reverts to where it was before, and the customer
+                // was never told about it through this internal move either.
                 OrderStatusChanger::apply(
                     $order,
                     $target->id,
                     $comment . ' Order status set to ' . $target->name . ', back under To Ship, To Pack.',
-                    false,
+                    NotifyChoice::silent(),
                     Auth::id(),
                 );
 

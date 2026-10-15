@@ -496,10 +496,48 @@ class LbcFulfillment implements CourierFulfillmentInterface
         return [];
     }
 
+    /**
+     * LBC's packaging products, as the packer names them.
+     *
+     * The value is the PKG code that goes into the payload verbatim, from
+     * Table 2.0 "PKG or PRODUCT ID LIST" on page 15 of
+     * LBC_Pickup_Request_API_V2 2026-02-04.pdf. Every row in that table
+     * carries ProductLineID 2, so the CARGO / DOCUMENTS split is descriptive
+     * and PKG alone selects the product.
+     *
+     * Only the products this store actually ships are listed (owner ruling
+     * 2026-09-09), not LBC's whole catalogue: PLASTIC, CRATE, PIECE and SACK
+     * are packaging shapes for goods NGD does not send, and offering them is
+     * a way to mis-book rather than a feature. Kilobox is shortened to KB
+     * because the packer reads this list twenty times an afternoon.
+     *
+     * Own packaging is PKG 16 (BOX), LBC's code for a parcel that fits none
+     * of their standard sizes. It is the one option whose dimensions cannot
+     * be defaulted, because there is no standard box behind it.
+     *
+     * NOT LISTED YET: N-Pack Sakto. The owner ships it, but it does not
+     * appear in Table 2.0 under that name, and guessing which of the four
+     * unclaimed pouch codes (3 N-POUCH REGULAR, 9 X POUCH, 61 N-POUCH XL,
+     * 62 N-POUCH SS) it maps to would silently book the wrong product.
+     * Pending LBC confirming the code.
+     */
     public function getParcelOptions(): array
     {
-        return [];
+        return [
+            ['value' => '45',  'label' => 'N-Pack Small'],
+            ['value' => '8',   'label' => 'N-Pack Large'],
+            ['value' => '165', 'label' => 'KB Mini'],
+            ['value' => '6',   'label' => 'KB Small'],
+            ['value' => '164', 'label' => 'KB Slim'],
+            ['value' => '63',  'label' => 'KB Medium'],
+            ['value' => '7',   'label' => 'KB Large'],
+            ['value' => '64',  'label' => 'KB XL'],
+            ['value' => '16',  'label' => 'Own packaging'],
+        ];
     }
+
+    /** The PKG code for a parcel the store packs itself, so its dimensions are asked for. */
+    public const OWN_PACKAGING_PKG = '16';
 
     public function getShippingPaymentOptions(): array
     {

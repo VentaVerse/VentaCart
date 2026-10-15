@@ -509,7 +509,7 @@ class CourierSettingsController extends Controller
             $ventaName = $ventaName === '@booked' ? $bookedName : $ventaName;
             $id = $ventaName ? \App\Models\OrderStatus::where('name', $ventaName)->value('id') : null;
             if ($id) {
-                $statusMap[$statusName] = ['order_status_id' => $id, 'notify' => false];
+                $statusMap[$statusName] = ['order_status_id' => $id];
             }
         }
 

@@ -126,6 +126,139 @@ class HitPayPayment implements PaymentMethodInterface
         return hash_equals($computed, $hmac);
     }
 
+    /**
+     * What HitPay kept from this payment, or null when they did not say.
+     *
+     * Their webhook carries no fee at all, so it has to be asked for. The
+     * payment request answers with a list of payment attempts, and only the
+     * one that succeeded carries the charge worth recording: a failed attempt
+     * can carry a figure of its own, and reading the first entry would bill
+     * the store for a payment that never happened.
+     *
+     * Null on anything unclear — HitPay unreachable, a request with nothing
+     * succeeded yet, a malformed answer — because the order page and the ERP
+     * both read null as "not known yet". Returning 0 would report the payment
+     * as free and quietly overstate the margin.
+     */
+    public function fetchFee(string $paymentRequestId): ?float
+    {
+        $request = $this->fetchPaymentRequest($paymentRequestId);
+
+        if ($request === null) {
+            return null;
+        }
+
+        $fee = $this->succeededPayment($request)['fees'] ?? null;
+
+        return is_numeric($fee) ? (float) $fee : null;
+    }
+
+    /**
+     * Has HitPay itself taken the money for this order?
+     *
+     * The return page cannot know from its own address: HitPay appends
+     * ?status=completed to the redirect, and anyone can type that. So the
+     * answer comes from HitPay's API, and it must match this order the same
+     * three ways the signed webhook is held to: the payment request is the
+     * one this order created, it carries this order's reference, and it was
+     * for this order's total. It must also hold a payment that succeeded.
+     *
+     * False on anything short of that, including HitPay being unreachable
+     * or a payment still settling: the order is then left as it is, and the
+     * webhook confirms it once the money really lands.
+     */
+    public function confirmsPayment(Order $order): bool
+    {
+        $paymentRequestId = (string) $order->payment_reference;
+        $request = $this->fetchPaymentRequest($paymentRequestId);
+
+        if ($request === null) {
+            return false;
+        }
+
+        $matches = ($request['id'] ?? null) === $paymentRequestId
+            && ($request['status'] ?? null) === 'completed'
+            && (string) ($request['reference_number'] ?? '') === (string) $order->id
+            && is_numeric($request['amount'] ?? null)
+            && abs((float) $request['amount'] - (float) $order->total) <= 0.01
+            && $this->succeededPayment($request) !== null;
+
+        if (! $matches) {
+            Log::warning('HitPay: return page refused an unconfirmed payment', [
+                'order_id' => $order->id,
+                'payment_request' => $paymentRequestId,
+                'status' => $request['status'] ?? null,
+                'reference_number' => $request['reference_number'] ?? null,
+                'amount' => $request['amount'] ?? null,
+            ]);
+        }
+
+        return $matches;
+    }
+
+    /** The payment request as HitPay reports it, or null when it cannot be read. */
+    private function fetchPaymentRequest(string $paymentRequestId): ?array
+    {
+        $mode = $this->getSetting('hitpay_mode', 'sandbox');
+        $apiKey = $this->getDecryptedSetting("hitpay_{$mode}_api_key");
+
+        if (! $apiKey || $paymentRequestId === '') {
+            return null;
+        }
+
+        $base = $mode === 'production' ? self::PRODUCTION_URL : self::SANDBOX_URL;
+
+        try {
+            $response = Http::withHeaders(['X-BUSINESS-API-KEY' => $apiKey])
+                ->timeout(20)
+                ->get($base . '/' . rawurlencode($paymentRequestId));
+
+            if (! $response->successful()) {
+                Log::warning('HitPay: could not read the payment request', [
+                    'payment_request' => $paymentRequestId, 'status' => $response->status(),
+                ]);
+
+                return null;
+            }
+
+            $data = $response->json();
+
+            return is_array($data) ? $data : null;
+        } catch (\Throwable $e) {
+            Log::warning('HitPay: payment request lookup failed', [
+                'payment_request' => $paymentRequestId, 'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * The attempt that actually took the money. A failed attempt can sit in
+     * the same list with figures of its own, so the first entry is not it.
+     */
+    private function succeededPayment(array $request): ?array
+    {
+        $payment = collect($request['payments'] ?? [])->firstWhere('status', 'succeeded');
+
+        return is_array($payment) ? $payment : null;
+    }
+
+    /**
+     * Put the fee on the order, beside the total and never inside it.
+     *
+     * A fee that could not be read leaves the column alone rather than
+     * writing a zero, so a later attempt can still fill it in.
+     */
+    public function recordFee(Order $order, string $paymentRequestId): void
+    {
+        $fee = $this->fetchFee($paymentRequestId);
+
+        if ($fee !== null) {
+            $order->forceFill(['payment_fee' => $fee])->save();
+        }
+    }
+
     private function getSetting(string $key, ?string $default = null): ?string
     {
         $value = Setting::where('group', 'payment')->where('key', $key)->value('value');

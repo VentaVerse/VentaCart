@@ -27,6 +27,9 @@ class OrderStatus extends Model
             // stock and earned nothing. Read ONLY through App\Support\Revenue.
             'counts_as_revenue' => 'boolean',
             'customer_can_cancel' => 'boolean',
+            // Whether reaching this status sends the customer an email. Off
+            // by default: a fresh status is silent until the store says
+            // otherwise. SMS is a separate list kept by the UniSMS extension.
         ];
     }
 

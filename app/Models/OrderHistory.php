@@ -9,13 +9,25 @@ class OrderHistory extends Model
 {
     protected $fillable = [
         'order_id', 'order_status_id', 'created_by',
-        'comment', 'notify_customer',
+        'comment', 'customer_comment', 'notify_customer', 'notifications',
     ];
+
+    /**
+     * What the customer may read about this change: the line written for
+     * them when the caller gave one (possibly empty), otherwise the row's
+     * own comment. Only meaningful on a row that told them
+     * (notify_customer); the account page checks both.
+     */
+    public function customerFacingComment(): string
+    {
+        return (string) ($this->customer_comment ?? $this->comment);
+    }
 
     protected function casts(): array
     {
         return [
             'notify_customer' => 'boolean',
+            'notifications' => 'array',
         ];
     }
 

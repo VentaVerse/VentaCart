@@ -23,6 +23,11 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'courier-fulfillment');
         \Illuminate\Support\Facades\Blade::anonymousComponentPath(__DIR__ . '/../resources/views/components', 'courier-fulfillment');
 
+        // The automatic email list lives here, on Status Mapping: this is
+        // the extension that automates order handling, as in OpenCart. Core
+        // emails only when asked unless something is bound.
+        $this->app->singleton(\App\Contracts\OrderEmailPolicy::class, FulfillmentEmailPolicy::class);
+
         // Register couriers. Adding a competitor later = one more line here.
         CourierManager::register(QuadXFulfillment::class);
         CourierManager::register(SpxFulfillment::class);

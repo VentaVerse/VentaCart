@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->unsignedBigInteger('product_variant_id')->nullable();
             $table->integer('quantity_at_alert');
-            $table->timestamp('alerted_at');
+            $table->timestamp('alerted_at')->useCurrent();
             $table->timestamps();
 
             $table->unique(['product_id', 'product_variant_id'], 'lsa_product_variant_unique');

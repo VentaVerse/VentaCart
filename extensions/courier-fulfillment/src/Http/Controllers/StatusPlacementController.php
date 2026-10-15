@@ -60,12 +60,10 @@ class StatusPlacementController extends Controller
             'id'         => $status->id,
             'name'       => $status->name,
             'placement'  => $placements[$status->id] ?? null,
+            // The store's automatic email list: fulfilment, courier updates,
+            // payments and API calls that say nothing all follow it. Texts
+            // are decided in the SMS extension's own settings, not here.
             'notifies'   => NotifyMap::notifies($status->id),
-            // Keyed by channel so the view can draw a column per registered
-            // one without knowing what any of them are.
-            'channels'   => collect(\App\Services\OrderNotificationService::channels())
-                ->mapWithKeys(fn ($c) => [$c->key() => NotifyMap::notifiesVia($c->key(), $status->id)])
-                ->all(),
             'orders'     => (int) ($orderCounts[$status->id] ?? 0),
             // Offered by the "Suggest placements" button only, never applied
             // on its own (the module places nothing without being asked).
@@ -76,7 +74,6 @@ class StatusPlacementController extends Controller
             'unplaced'       => $rows->whereNull('placement')->values(),
             'placed'         => $rows->whereNotNull('placement')->values(),
             'placementNames' => FulfillmentService::TAB_LABELS,
-            'channels'       => \App\Services\OrderNotificationService::channels(),
         ]);
     }
 
@@ -87,8 +84,6 @@ class StatusPlacementController extends Controller
             'placements.*' => ['nullable', Rule::in(FulfillmentService::PLACEMENTS)],
             'notify'       => ['array'],
             'notify.*'     => ['nullable'],
-            'channel'      => ['array'],
-            'channel.*'    => ['array'],
         ]);
 
         // Only this store's own statuses can be placed: the form's keys are
@@ -116,16 +111,6 @@ class StatusPlacementController extends Controller
             array_map('intval', array_keys($validated['notify'] ?? [])),
             fn ($id) => in_array($id, $ownIds, true)
         )));
-
-        // The same answer for every registered channel. Only channels that
-        // are actually registered are written, so a stale key from an
-        // extension that has since gone cannot be revived by a save here.
-        foreach (\App\Services\OrderNotificationService::channels() as $channel) {
-            NotifyMap::putFor($channel->key(), array_values(array_filter(
-                array_map('intval', array_keys($validated['channel'][$channel->key()] ?? [])),
-                fn ($id) => in_array($id, $ownIds, true)
-            )));
-        }
 
         return redirect()->route('admin.fulfillment.settings.placement')
             ->with('success', 'Status Mapping saved.');

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->decimal('health_score', 5, 2)->default(0);
             $table->json('top_opportunities')->nullable();
             $table->json('search_insights')->nullable();
-            $table->timestamp('generated_at');
+            $table->timestamp('generated_at')->useCurrent();
             $table->timestamps();
         });
     }

@@ -14,6 +14,8 @@ use App\Models\ShippingCourier;
 use Illuminate\Http\Request;
 use App\Services\OrderStatusChanger;
 use App\Services\StockService;
+use App\Support\NotifyChoice;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -55,16 +57,14 @@ class OrderController extends Controller
 
         if ($request->filled('search')) {
             $search = trim($request->input('search'));
+            // Same name rule as the customers list. An order number and a
+            // tracking number are matched whole, and a numeric search still
+            // finds the order by id.
             $query->where(function ($q) use ($search) {
                 if (is_numeric($search)) {
                     $q->orWhere('id', (int) $search);
                 }
-                $q->orWhere('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('tracking_number', 'like', "%{$search}%")
-                  // Full-name search: "John Doe" matches first+last together.
-                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
+                $q->orWhere(fn ($n) => \App\Support\NameSearch::apply($n, $search, ['email', 'tracking_number']));
             });
         }
 
@@ -80,12 +80,35 @@ class OrderController extends Controller
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 
+        [$customerGroupId, $customerGroupName] = $this->customerGroupFromOldInput() ?? [null, null];
+
         return view('admin.sales.orders.form', [
             'order' => null,
             'statuses' => $statuses,
             'couriers' => $couriers,
             'countries' => $countries,
+            'customerGroupId' => $customerGroupId,
+            'customerGroupName' => $customerGroupName,
         ]);
+    }
+
+    /**
+     * The group of the customer picked before a rejected save, or null when
+     * this is not a redirect back. The group is not a form field (the page
+     * learns it when a customer is picked), so without this the page comes
+     * back asking for shipping and payment methods as a guest would.
+     *
+     * @return array{0: ?int, 1: ?string}|null
+     */
+    private function customerGroupFromOldInput(): ?array
+    {
+        if (!session()->hasOldInput('customer_id')) {
+            return null;
+        }
+
+        $customer = Customer::with('customerGroup')->find(old('customer_id'));
+
+        return [$customer?->customer_group_id, $customer?->customerGroup?->name];
     }
 
     public function show(Order $order)
@@ -98,7 +121,18 @@ class OrderController extends Controller
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
 
-        return view('admin.sales.orders.show', compact('order', 'statuses', 'couriers'));
+        // Each channel's own answer for every status, so the page can
+        // pre-tick a channel's box from the channel's own list. The email
+        // box is never pre-ticked here: by hand, the person decides.
+        $notifyChannels = OrderNotificationService::channels();
+        $channelWantsByStatus = [];
+        foreach ($notifyChannels as $channel) {
+            foreach ($statuses as $status) {
+                $channelWantsByStatus[$channel->key()][$status->id] = $channel->wantsStatus($status->id);
+            }
+        }
+
+        return view('admin.sales.orders.show', compact('order', 'statuses', 'couriers', 'notifyChannels', 'channelWantsByStatus'));
     }
 
     public function store(Request $request)
@@ -220,6 +254,13 @@ class OrderController extends Controller
         // repricing and so must stay a live link.
         $customerGroupName = $order->customer_group_name;
 
+        // A rejected save that had switched the customer comes back with the
+        // new customer's group, live, since the order does not own it yet.
+        $old = $this->customerGroupFromOldInput();
+        if ($old !== null && (int) old('customer_id') !== (int) $order->customer_id) {
+            [$customerGroupId, $customerGroupName] = $old;
+        }
+
         $now = now();
         $existingItems = $order->products->map(function ($item) use ($customerGroupId, $now) {
             $image = $item->image ? thumb_url($item->image) : null;
@@ -294,7 +335,18 @@ class OrderController extends Controller
             // Detect if products changed before sync
             $oldProducts = $order->products->map(fn($p) => $p->product_id . '-' . $p->product_variant_id . '-' . $p->quantity . '-' . $p->price)->sort()->values()->toJson();
 
-            $order->update($validated);
+            // The lines themselves, not just their fingerprint: if they change
+            // while this order's units are out of inventory, stock has to be
+            // settled against what was actually deducted. Loaded here because
+            // syncProducts() deletes the rows.
+            $oldLines = $order->products->load('product', 'productVariant');
+
+            // order_status_id is excluded here and applied below, through the
+            // one doorway every other status change uses: a mass update that
+            // set it early would make OrderStatusChanger::apply() read the
+            // order as already on its new status and skip the history row,
+            // the stock adjustment and the announcement entirely.
+            $order->update(Arr::except($validated, ['order_status_id']));
 
             $this->syncProducts($order, $request);
             $this->recalculateTotals($order);
@@ -303,11 +355,39 @@ class OrderController extends Controller
             $newProducts = $order->products->map(fn($p) => $p->product_id . '-' . $p->product_variant_id . '-' . $p->quantity . '-' . $p->price)->sort()->values()->toJson();
             $productsChanged = $oldProducts !== $newProducts;
 
+            // Order matters: settle the lines FIRST, under the flag as it
+            // stands, so stock reflects the new lines. Only then does the
+            // status change apply its own rule, which reads those same new
+            // lines. Doing it the other way round would deduct or return a
+            // list that was about to be replaced.
+            if ($productsChanged) {
+                StockService::reconcileLines($order, $oldLines);
+            }
+
             if ($statusChanged) {
-                $newStatus = OrderStatus::find($validated['order_status_id']);
-                if ($newStatus) {
-                    StockService::adjustForStatusChange($order, $newStatus);
-                }
+                // Same doorway every other status change uses: history row +
+                // status update + stock adjustment + the one announcement.
+                // This form carries no per-change notify tick, so the
+                // store's own ticks on the target status decide, exactly as
+                // an ERP call or a courier poll landing here would.
+                OrderStatusChanger::apply(
+                    $order,
+                    (int) $validated['order_status_id'],
+                    null,
+                    NotifyChoice::follow(),
+                    Auth::id(),
+                );
+            }
+
+            // Stock moving with nothing to show for it is how this went
+            // unnoticed for so long. If units moved, the order says so.
+            if ($productsChanged && $order->fresh()->stock_adjusted) {
+                \App\Models\OrderHistory::create([
+                    'order_id'        => $order->id,
+                    'order_status_id' => $order->order_status_id,
+                    'comment'         => 'Products edited while stock was deducted. Inventory reconciled: the previous items were returned and the current items taken out.',
+                    'notify_customer' => false,
+                ]);
             }
         });
 
@@ -341,7 +421,6 @@ class OrderController extends Controller
             'tracking_number' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $oldStatus = $order->order_status_name ?? 'Unknown';
         $validated['created_by'] = Auth::id();
         $validated['notify_customer'] = $request->has('notify_customer');
 
@@ -371,40 +450,19 @@ class OrderController extends Controller
         $validated['comment'] = $comment ?: null;
 
         // Shared status-change core (history row + status update + stock
-        // adjustment) — the same mechanics the fulfillment queue's Cancel
-        // order action applies (App\Services\OrderStatusChanger). The
-        // notification email below stays at THIS layer.
-        $newStatus = OrderStatusChanger::apply(
+        // adjustment + the one announcement), the same mechanics the
+        // fulfillment queue's Cancel order action applies
+        // (App\Services\OrderStatusChanger). The operator's own ticks on
+        // this page are the explicit choice; the doorway sends, once.
+        OrderStatusChanger::apply(
             $order,
             (int) $validated['order_status_id'],
             $validated['comment'],
-            (bool) $validated['notify_customer'],
+            NotifyChoice::explicit(
+                (bool) $validated['notify_customer'],
+                $validated['channels'] ?? [],
+            ),
             $validated['created_by'],
-        );
-
-        // After the write. The status email carries the tracking placeholders
-        // whenever the order has a number; a tracking number recorded in this
-        // same submission also earns the shipping email, as it always has.
-        // One update, one email. The comment built above already carries the
-        // courier and a clickable tracking number when one was given, so the
-        // status email says everything a second shipping email would have,
-        // and the customer is told once instead of twice. Recording a courier
-        // on an order that already had a number used to send the shipping
-        // mail again as well, announcing a despatch that had not happened.
-        if ($validated['notify_customer'] && $order->email) {
-            OrderNotificationService::statusChanged($order, $oldStatus, $newStatus?->name, $validated['comment'] ?? '');
-        }
-
-        // Ticked separately from the email, because they are separate acts:
-        // a store may text without emailing, or email without texting. A
-        // channel that cannot reach this customer says so and changes
-        // nothing else; the order has already moved either way.
-        OrderNotificationService::statusChangedVia(
-            $validated['channels'] ?? [],
-            $order,
-            $oldStatus,
-            $newStatus?->name,
-            $validated['comment'] ?? '',
         );
 
         return redirect()->route('admin.orders.show', $order)
@@ -546,11 +604,9 @@ class OrderController extends Controller
 
         $customers = Customer::where('store_id', $request->input('store_id'))
             ->where('is_active', true)
-            ->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            })
+            // The picker searches names the same way the lists do, so a
+            // customer findable in one screen is findable in all three.
+            ->where(fn ($q) => \App\Support\NameSearch::apply($q, $search, ['email']))
             ->with(['addresses', 'customerGroup'])
             ->limit(10)
             ->get()
@@ -788,8 +844,12 @@ class OrderController extends Controller
             $qty = (int) ($item['quantity'] ?? 1);
 
             $order->products()->create([
-                'product_id' => $item['product_id'] ?: null,
-                'product_variant_id' => $item['product_variant_id'] ?: null,
+                // ?? before ?:, because neither key is required by the
+                // validation rules above: a client that posts a line without
+                // them (the ERP, a script, a form that omits the hidden
+                // input) used to raise "Undefined array key" and 500 the save.
+                'product_id' => ($item['product_id'] ?? null) ?: null,
+                'product_variant_id' => ($item['product_variant_id'] ?? null) ?: null,
                 'name' => $item['name'],
                 'sku' => $item['sku'] ?? null,
                 'variant_label' => $item['variant_label'] ?? null,
@@ -803,13 +863,19 @@ class OrderController extends Controller
         }
     }
 
+    /**
+     * Every deduction the order carries, not just the coupon. Store credit is
+     * spent from the customer's balance at checkout and never handed back, so
+     * a recompute that dropped it billed the customer again for money they had
+     * already paid in credit.
+     */
     protected function recalculateTotals(Order $order): void
     {
-        $subtotal = $order->products()->sum('total');
-        $couponDiscount = (float) ($order->coupon_discount ?? 0);
+        $subtotal = (float) $order->products()->sum('total');
+        $adjustments = array_sum(array_column($order->adjustmentLines(), 'amount'));
         $order->update([
             'subtotal' => $subtotal,
-            'total' => max(0, $subtotal + ($order->shipping_cost ?? 0) - $couponDiscount),
+            'total' => max(0, round($subtotal + (float) ($order->shipping_cost ?? 0) + $adjustments, 2)),
         ]);
     }
 }

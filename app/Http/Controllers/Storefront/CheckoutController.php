@@ -81,7 +81,7 @@ class CheckoutController extends Controller
                 $couponDiscount = $couponResult->discount;
                 $couponFreeShipping = $couponResult->freeShipping;
             } else {
-                // Coupon no longer valid — clear it from cart
+                // Coupon no longer valid: clear it from cart
                 $cart->update(['coupon_code' => null]);
                 $couponError = $couponResult->message;
             }
@@ -249,37 +249,55 @@ class CheckoutController extends Controller
             return redirect()->route('account.orders');
         }
 
-        // Customer didn't complete payment — send back to checkout
+        // Customer didn't complete payment: send back to checkout
         if ($status !== 'completed') {
             return redirect()->route('checkout.index')
                 ->with('error', 'Payment was not completed. Your cart has been preserved, please try again.');
         }
 
-        // Payment completed — clear cart (webhook may not have fired yet)
+        // ?status=completed is only what the address says, and anyone can
+        // type it. HitPay's own API decides. A payment it has not confirmed
+        // yet (still settling, or HitPay unreachable) changes nothing here:
+        // the signed webhook confirms the order when the money lands, and
+        // it clears the cart and sends the emails itself.
+        if (! (new \Extensions\PaymentHitpay\HitPayPayment())->confirmsPayment($order)) {
+            return redirect()->route('account.orders.show', $order)
+                ->with('success', 'Thank you. We are confirming your payment with HitPay, and this order updates as soon as it is confirmed.');
+        }
+
+        // Payment confirmed by HitPay: clear cart (webhook may not have fired yet)
         $cart = $customer->cart;
         if ($cart) {
             $cart->items()->delete();
         }
 
-        // If webhook hasn't processed yet, update status and send emails now
+        // If webhook hasn't processed yet, update status and send emails now.
+        // This path and the webhook can both land here for the same order at
+        // nearly the same instant, each having read $order before either
+        // wrote. claimStatus() re-checks under a row lock rather than
+        // against $order's own (possibly stale) order_status_id, which is
+        // what stops both requests from passing the idempotency check
+        // together: the loser sees the winner's already-applied status and
+        // does nothing.
         $successStatusId = \App\Models\Setting::where('group', 'payment')
             ->where('key', 'hitpay_success_status_id')->value('value');
 
-        if ($successStatusId && (int) $order->order_status_id !== (int) $successStatusId) {
-            $newStatus = \App\Models\OrderStatus::find($successStatusId);
-            $order->update(['order_status_id' => $successStatusId]);
+        $applied = false;
 
-            \App\Models\OrderHistory::create([
-                'order_id' => $order->id,
-                'order_status_id' => $successStatusId,
-                'comment' => 'Payment confirmed via HitPay (return URL).',
-            ]);
+        if ($successStatusId) {
+            $applied = \App\Services\OrderStatusChanger::claimStatus(
+                $order,
+                (int) $successStatusId,
+                'Payment confirmed via HitPay (return URL).',
+                // The confirmation email below is this path's own; channels
+                // still follow the store's ticks.
+                \App\Support\NotifyChoice::emailHandledElsewhere(),
+            );
+        }
 
-            if ($newStatus) {
-                \App\Services\StockService::adjustForStatusChange($order, $newStatus);
-            }
-
-            $order->load('products', 'status');
+        // Only the winner of the race emails; the loser applied nothing.
+        if ($applied) {
+            $order->refresh()->load('products', 'status');
             \App\Services\CheckoutService::sendOrderConfirmationEmail($order);
             \App\Services\CheckoutService::sendAdminOrderNotification($order);
         }

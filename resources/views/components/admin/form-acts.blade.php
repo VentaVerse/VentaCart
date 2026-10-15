@@ -1,4 +1,4 @@
-@props(['formId', 'onlyWhenDirty' => false])
+@props(['formId', 'onlyWhenDirty' => false, 'label' => 'Save'])
 {{-- The page's save controls. Rendered either in the page header (the
      default, teleported there by x-admin.form) or beside the fields when
      a page carries more than one save scope. Both placements are the same

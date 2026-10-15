@@ -1,7 +1,6 @@
 <?php
 namespace Extensions\CourierFulfillment;
 
-use App\Models\OrderHistory;
 use App\Models\Setting;
 
 /**
@@ -29,7 +28,6 @@ class StatusMapper
         }
         return [
             'order_status_id' => (int) $row['order_status_id'],
-            'notify'          => (bool) ($row['notify'] ?? false),
         ];
     }
 
@@ -55,30 +53,24 @@ class StatusMapper
             return false;
         }
 
-        $oldStatus = \App\Models\OrderStatus::find($order->order_status_id)?->name ?? 'Unknown';
-
         // What the history row says, and what the customer reads when the
-        // mapping notifies them: the courier's name and the status in the
+        // status announces: the courier's name and the status in the
         // courier's own words ("QuadX: Out for delivery"), never the raw
         // code. The code itself lives on courier_status for the admin.
         $comment = CourierStatusLabel::sentence($order, (string) $courierStatus);
 
-        $order->update(['order_status_id' => $newStatus->id]);
-        \App\Services\StockService::adjustForStatusChange($order, $newStatus);
-
-        OrderHistory::create([
-            'order_id'         => $order->id,
-            'order_status_id'  => $newStatus->id,
-            'comment'          => $comment,
-            'notify_customer'  => $target['notify'],
-        ]);
-
-        // Through the shared sender, so the email names the courier and links
-        // the tracking number this order has carried since booking. It used
-        // to send the bare status pair and nothing to click.
-        if ($target['notify']) {
-            \App\Services\OrderNotificationService::statusChanged($order, $oldStatus, $newStatus->name, $comment);
-        }
+        // The doorway does the write (history row, order_status_id update,
+        // stock adjustment) and the announcing, through NotifyChoice::follow():
+        // email follows the store's list on Status Mapping and each channel
+        // its own list, whichever door moved the order there. Maps saved
+        // before 2026-09-26 may still carry a per-row "notify" flag; it is
+        // ignored.
+        \App\Services\OrderStatusChanger::apply(
+            $order,
+            $newStatus->id,
+            $comment,
+            \App\Support\NotifyChoice::follow(),
+        );
 
         return true;
     }
