@@ -80,12 +80,35 @@ class OrderController extends Controller
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 
+        [$customerGroupId, $customerGroupName] = $this->customerGroupFromOldInput() ?? [null, null];
+
         return view('admin.sales.orders.form', [
             'order' => null,
             'statuses' => $statuses,
             'couriers' => $couriers,
             'countries' => $countries,
+            'customerGroupId' => $customerGroupId,
+            'customerGroupName' => $customerGroupName,
         ]);
+    }
+
+    /**
+     * The group of the customer picked before a rejected save, or null when
+     * this is not a redirect back. The group is not a form field (the page
+     * learns it when a customer is picked), so without this the page comes
+     * back asking for shipping and payment methods as a guest would.
+     *
+     * @return array{0: ?int, 1: ?string}|null
+     */
+    private function customerGroupFromOldInput(): ?array
+    {
+        if (!session()->hasOldInput('customer_id')) {
+            return null;
+        }
+
+        $customer = Customer::with('customerGroup')->find(old('customer_id'));
+
+        return [$customer?->customer_group_id, $customer?->customerGroup?->name];
     }
 
     public function show(Order $order)
@@ -230,6 +253,13 @@ class OrderController extends Controller
         // this page is history, while $customerGroupId above drives live
         // repricing and so must stay a live link.
         $customerGroupName = $order->customer_group_name;
+
+        // A rejected save that had switched the customer comes back with the
+        // new customer's group, live, since the order does not own it yet.
+        $old = $this->customerGroupFromOldInput();
+        if ($old !== null && (int) old('customer_id') !== (int) $order->customer_id) {
+            [$customerGroupId, $customerGroupName] = $old;
+        }
 
         $now = now();
         $existingItems = $order->products->map(function ($item) use ($customerGroupId, $now) {
