@@ -83,6 +83,19 @@ class CheckoutService
         ?string $shippingMethodName = null,
         ?float $shippingCostOverride = null
     ): array {
+        // A line switched off since it was added (its product or its
+        // variant) is not for sale, whatever stock it shows. Asked first:
+        // it is about the cart, whichever way the shopper pays.
+        $unavailable = $cart->items()->with(['product', 'productVariant'])->get()
+            ->filter(fn ($item) => $item->isUnavailable())
+            ->map(fn ($item) => $item->name . ($item->variant_label ? ' (' . $item->variant_label . ')' : ''));
+
+        if ($unavailable->isNotEmpty()) {
+            throw new \InvalidArgumentException(
+                'These items are no longer available: ' . $unavailable->implode(', ') . '. Please remove them from your cart before checkout.'
+            );
+        }
+
         $paymentMethod = $this->getPaymentMethod($paymentMethodKey);
         if (!$paymentMethod) {
             throw new \InvalidArgumentException('Invalid payment method.');

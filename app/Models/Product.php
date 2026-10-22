@@ -125,6 +125,23 @@ class Product extends Model
         return $this->hasMany(ProductVariant::class);
     }
 
+    /**
+     * A product with variants carries the stock of the ones that are for sale.
+     *
+     * Owner ruling 2026-10-16: a switched-off variant's units are not stock
+     * the shop can sell, so they are left out of the parent's total. The one
+     * place that total is computed; the admin save, the ERP and every stock
+     * move after an order all come through here.
+     */
+    public function syncStockFromVariants(): void
+    {
+        if (! $this->has_variants) {
+            return;
+        }
+
+        $this->update(['quantity' => (int) $this->variants()->where('is_active', true)->sum('quantity')]);
+    }
+
     public function specials(): HasMany
     {
         return $this->hasMany(ProductSpecial::class)->orderBy('priority');

@@ -389,18 +389,29 @@ Alpine.data('addToCart', (config = {}) => ({
     resolveVariant() {
         if (!this.hasVariants) return;
 
-        const key = Object.keys(this.selectedValues)
-            .sort((a, b) => a - b)
-            .map(k => this.selectedValues[k])
+        // The page's matrix is keyed by value ids in numeric order, so the
+        // key is built the same way. Ordering by option type instead missed
+        // every combination whose value ids ran the other way.
+        const key = Object.values(this.selectedValues)
             .filter(v => v !== '')
+            .map(Number)
+            .sort((a, b) => a - b)
             .join('_');
 
         this.activeVariant = this.variantMatrix[key] || null;
     },
 
     async submit() {
+        if (this.hasVariants && Object.keys(this.variantMatrix || {}).length === 0) {
+            this.message = 'This product is currently unavailable.';
+            this.messageType = 'error';
+            return;
+        }
+
         if (this.hasVariants && !this.activeVariant) {
-            this.message = 'Please select all options';
+            this.message = Object.values(this.selectedValues).every(v => v !== '')
+                ? 'This combination is not available.'
+                : 'Please select all options';
             this.messageType = 'error';
             return;
         }
@@ -482,10 +493,11 @@ Alpine.data('addToCart', (config = {}) => ({
 /* ============================================
    Cart Page
    ============================================ */
-Alpine.data('cartPage', (initialItems, initialSubtotal, initialOutOfStockIds) => ({
+Alpine.data('cartPage', (initialItems, initialSubtotal, initialOutOfStockIds, initialUnavailableIds) => ({
     items: initialItems || [],
     subtotal: initialSubtotal || 0,
     outOfStockIds: initialOutOfStockIds || [],
+    unavailableIds: initialUnavailableIds || [],
     stockWarning: '',
 
     recalcSubtotal() {
@@ -543,6 +555,9 @@ Alpine.data('cartPage', (initialItems, initialSubtotal, initialOutOfStockIds) =>
 
     async removeItem(item) {
         item._removed = true;
+        // A removed line no longer holds checkout back.
+        this.outOfStockIds = this.outOfStockIds.filter(id => id !== item.id);
+        this.unavailableIds = this.unavailableIds.filter(id => id !== item.id);
         this.recalcSubtotal();
 
         const resp = await fetch(`/cart/${item.id}`, {

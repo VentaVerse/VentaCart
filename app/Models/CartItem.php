@@ -37,6 +37,24 @@ class CartItem extends Model
         return $this->belongsTo(ProductVariant::class);
     }
 
+    /**
+     * Can this line no longer be bought?
+     *
+     * True when its product is gone or switched off, or it names a variant
+     * that is gone or switched off. A cart keeps a line from before the
+     * switch was turned, so the cart page and checkout both ask this rather
+     * than trusting that the line was valid when it was added.
+     */
+    public function isUnavailable(): bool
+    {
+        if (! $this->product || ! $this->product->is_active) {
+            return true;
+        }
+
+        return $this->product_variant_id !== null
+            && (! $this->productVariant || ! $this->productVariant->is_active);
+    }
+
     public function getLineTotalAttribute(): float
     {
         return $this->price * $this->quantity;

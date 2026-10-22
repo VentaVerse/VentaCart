@@ -710,11 +710,9 @@ class ErpProductController extends Controller
         // Only what this push actually dropped.
         $product->variants()->whereNotIn('id', $keptIds)->delete();
 
-        // Sync product quantity and flag
-        $product->update([
-            'has_variants' => true,
-            'quantity' => $product->variants()->sum('quantity'),
-        ]);
+        // Sync product quantity (switched-on variants only) and flag
+        $product->update(['has_variants' => true]);
+        $product->syncStockFromVariants();
     }
 
     /**

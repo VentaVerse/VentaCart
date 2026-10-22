@@ -101,11 +101,9 @@ class ErpVariantController extends Controller
 
         $variant->update($fillable);
 
-        // Sync parent product quantity
+        // Sync parent product quantity (switched-on variants only)
         $product = $variant->product;
-        if ($product->has_variants) {
-            $product->update(['quantity' => $product->variants()->sum('quantity')]);
-        }
+        $product->syncStockFromVariants();
 
         $variant->load(['product:id,name,sku', 'values']);
 
@@ -194,10 +192,8 @@ class ErpVariantController extends Controller
             ];
         }
 
-        $product->update([
-            'has_variants' => true,
-            'quantity' => $product->variants()->sum('quantity'),
-        ]);
+        $product->update(['has_variants' => true]);
+        $product->syncStockFromVariants();
 
         $data = [
             'product_id' => $product->id,

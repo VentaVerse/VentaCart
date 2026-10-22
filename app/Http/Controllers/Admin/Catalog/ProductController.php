@@ -628,9 +628,7 @@ class ProductController extends Controller
 
     protected function syncQuantityFromVariants(Product $product): void
     {
-        if ($product->has_variants) {
-            $product->update(['quantity' => $product->variants()->sum('quantity')]);
-        }
+        $product->syncStockFromVariants();
     }
 
     protected function syncSpecials(Product $product, Request $request): void
