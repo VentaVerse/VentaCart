@@ -15,6 +15,7 @@ use Database\Seeders\StoreSeeder;
 use Database\Seeders\ThemeSeeder;
 use Database\Seeders\WorldGeographicSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -36,6 +37,13 @@ use Tests\TestCase;
 class SeedersAreIdempotentTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // ThemeSeeder copies the default logo and favicon onto the public disk.
+        Storage::fake('public');
+    }
 
     public function test_reseeding_keeps_the_stores_own_theme_settings(): void
     {

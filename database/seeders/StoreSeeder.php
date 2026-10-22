@@ -19,7 +19,7 @@ class StoreSeeder extends Seeder
         // the admin, not in .env, and an upgrade must never pull them back to
         // whatever the environment happens to say.
         \App\Models\Store::firstOrCreate(['id' => 1], [
-            'name' => config('app.name', 'Venta Store'),
+            'name' => config('app.name', 'VentaCart'),
             'code' => 'default',
             'domain' => parse_url(config('app.url', ''), PHP_URL_HOST) ?: 'localhost',
             'currency' => env('STORE_CURRENCY', 'USD'),

@@ -40,7 +40,8 @@ class ThemeSeeder extends Seeder
         // Settings
         $settings = [
             'identity' => [
-                'site_name' => 'Venta',
+                'site_name' => 'VentaCart',
+                // Filled in below, only for a store that has never had one.
                 'logo' => null,
                 'favicon' => null,
                 'active_theme' => $activeTheme,
@@ -107,6 +108,17 @@ class ThemeSeeder extends Seeder
         // time somebody deployed. A key the store genuinely lacks is still
         // filled, which is the whole job. Same contract the blocks below have
         // always had, and the one AutomationSeeder documents.
+        // A brand new store opens wearing VentaCart's own logo and favicon.
+        // The upload screen deletes the file it replaces, so the store gets a
+        // copy on the public disk and the shipped original stays untouched.
+        // Only a key the store has never had gets one: a store that removed
+        // its logo keeps its null, the same answer-is-owned rule as below.
+        foreach (['logo', 'favicon'] as $mark) {
+            if (! Setting::where('group', 'identity')->where('key', $mark)->exists()) {
+                $settings['identity'][$mark] = $this->shipMark($mark);
+            }
+        }
+
         foreach ($settings as $group => $items) {
             foreach ($items as $key => $value) {
                 Setting::firstOrCreate(
@@ -257,5 +269,19 @@ class ThemeSeeder extends Seeder
                 'is_enabled' => true,
             ]);
         }
+    }
+
+    /** Copy a shipped VentaCart mark onto the public disk; its path, or null when it is missing. */
+    private function shipMark(string $mark): ?string
+    {
+        $source = resource_path("branding/ventacart-{$mark}.png");
+        if (! is_file($source)) {
+            return null;
+        }
+
+        $path = "identity/ventacart-{$mark}.png";
+        \Illuminate\Support\Facades\Storage::disk('public')->put($path, file_get_contents($source));
+
+        return $path;
     }
 }

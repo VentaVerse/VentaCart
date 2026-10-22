@@ -20,7 +20,7 @@ services:
     ports:
       - "8080:80"
     environment:
-      APP_NAME: "${APP_NAME:-Venta}"
+      APP_NAME: "${APP_NAME:-VentaCart}"
       APP_ENV: "${APP_ENV:-production}"
       APP_DEBUG: "${APP_DEBUG:-false}"
       APP_KEY: "${APP_KEY}"
