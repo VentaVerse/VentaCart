@@ -13,6 +13,9 @@ class AuthenticationTest extends TestCase
 
     public function test_login_screen_can_be_rendered(): void
     {
+        // With no admin at all the login hands over to setup (FirstAdminSetupTest).
+        User::factory()->create();
+
         $response = $this->get(route('login'));
 
         $response->assertStatus(200);

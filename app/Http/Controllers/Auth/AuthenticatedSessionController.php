@@ -17,8 +17,13 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        // A fresh install has no admin to sign in as: make one first.
+        if (! \App\Models\User::exists()) {
+            return redirect()->route('setup');
+        }
+
         return view('auth.login');
     }
 

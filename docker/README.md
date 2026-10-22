@@ -46,9 +46,10 @@ DB_PASSWORD=...
 
 ```
 VENTA_RUN_SEEDERS=true            # run db:seed once on first boot (set to false / unset afterwards)
-VENTA_ADMIN_EMAIL=...             # creates initial admin user if both set
-VENTA_ADMIN_PASSWORD=...
 ```
+
+The first admin account is created in the browser: open the admin after the
+first boot and fill in the setup page. No admin is seeded.
 
 ## Building locally
 
