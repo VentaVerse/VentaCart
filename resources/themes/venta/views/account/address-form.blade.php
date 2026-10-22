@@ -90,8 +90,8 @@
 
                         {{-- PH: District (Manila-style cities) --}}
                         <div x-show="hasProvider && districts.length > 0">
-                            <label class="account-label">District</label>
-                            <select name="district" x-model="district" @change="onDistrictChange()" class="account-input w-full">
+                            <label class="account-label">District <span class="text-[var(--color-secondary)]">*</span></label>
+                            <select name="district" x-model="district" :required="hasProvider && districts.length > 0" @change="onDistrictChange()" class="account-input w-full">
                                 <option value="">-- Select District --</option>
                                 <template x-for="d in districts" :key="d.id">
                                     <option :value="d.name" x-text="d.name"></option>
@@ -101,8 +101,8 @@
 
                         {{-- PH: Barangay --}}
                         <div x-show="hasProvider && barangays.length > 0">
-                            <label class="account-label">Barangay</label>
-                            <select name="barangay" x-model="barangay" class="account-input w-full" :class="loadingBarangays ? 'address-select-loading' : ''">
+                            <label class="account-label">Barangay <span class="text-[var(--color-secondary)]">*</span></label>
+                            <select name="barangay" x-model="barangay" :required="hasProvider && barangays.length > 0" class="account-input w-full" :class="loadingBarangays ? 'address-select-loading' : ''">
                                 <option value="">-- Select Barangay --</option>
                                 <template x-for="b in barangays" :key="b.id">
                                     <option :value="b.name" x-text="b.name"></option>

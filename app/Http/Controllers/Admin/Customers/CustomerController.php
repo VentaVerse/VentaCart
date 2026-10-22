@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Admin\Customers;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\Customer;
+use App\Models\CustomerAddress;
 use App\Models\CustomerGroup;
+use App\Services\Address\DeepAddressRules;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -127,7 +130,27 @@ class CustomerController extends Controller
             $rules['password'] = ['required', 'string', 'min:8'];
         }
 
-        return $request->validate($rules);
+        $validated = $request->validate($rules);
+
+        // Asked before the customer row is written, so a refused address
+        // leaves nothing half saved. Blank rows are skipped, as syncAddresses
+        // does, and so is a saved address sent back untouched: changing a
+        // customer's group must not wait on an old address's barangay.
+        $input = Arr::dot($request->input());
+        $saved = $customerId ? CustomerAddress::where('customer_id', $customerId)->get()->keyBy('id') : collect();
+        foreach ($request->input('addresses', []) as $i => $address) {
+            if (empty($address['address_1'])) {
+                continue;
+            }
+            $before = $saved->get($address['id'] ?? null);
+            $untouched = $before && collect(['country_id', 'state', 'city', 'district', 'barangay'])
+                ->every(fn ($f) => (string) ($address[$f] ?? '') === (string) ($before->{$f} ?? ''));
+            if (!$untouched) {
+                app(DeepAddressRules::class)->validate($input, "addresses.{$i}.");
+            }
+        }
+
+        return $validated;
     }
 
     protected function syncAddresses(Customer $customer, Request $request): void

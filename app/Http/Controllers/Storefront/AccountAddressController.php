@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\CustomerAddress;
+use App\Services\Address\DeepAddressRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -113,7 +114,7 @@ class AccountAddressController extends Controller
 
     private function validateAddress(Request $request): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'address_1' => ['required', 'string', 'max:1000'],
@@ -125,5 +126,9 @@ class AccountAddressController extends Controller
             'country_id' => ['required', 'integer', 'exists:countries,id'],
             'phone' => ['required', 'string', 'max:30'],
         ]);
+
+        app(DeepAddressRules::class)->validate($validated);
+
+        return $validated;
     }
 }
