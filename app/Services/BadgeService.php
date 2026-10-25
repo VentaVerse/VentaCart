@@ -80,32 +80,18 @@ class BadgeService
 
     private function getSaleInfo(Product $product): ?array
     {
-        if (!$product->relationLoaded('specials')) {
-            $product->load('specials');
-        }
+        // The same special the cart charges, the default group's for guests.
+        // Quantity tiers start above one unit, so they never show as a sale.
+        $price = \App\Support\Pricing::display($product);
 
-        $customerGroupId = \Illuminate\Support\Facades\Auth::guard('customer')->user()?->customer_group_id;
-
-        $special = $product->specials
-            ->where('display_mode', 'sale')
-            ->filter(function ($s) use ($customerGroupId) {
-                if ($s->date_start && $s->date_start > now()) return false;
-                if ($s->date_end && $s->date_end < now()) return false;
-                if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                if ($s->quantity > 1) return false; // Quantity discounts don't show as sale badges
-                return true;
-            })
-            ->sortBy('priority')
-            ->first();
-
-        if (!$special || $product->price <= 0) {
+        if (! $price->isSale()) {
             return null;
         }
 
         return [
-            'percent' => round((1 - $special->price / $product->price) * 100),
-            'sale_price' => $special->price,
-            'end_date' => $special->date_end?->toISOString(),
+            'percent' => $price->savingPercent(),
+            'sale_price' => $price->price,
+            'end_date' => $price->endsAt?->toISOString(),
         ];
     }
 

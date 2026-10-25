@@ -259,7 +259,37 @@ Products carry attributes (Catalog > Attributes): named facts in groups, one val
 - `$attributeGroups` on the product page (and in `PageContext`): `[['name' => 'Farm', 'attributes' => [['name' => 'Origin', 'value' => 'Sagada'], …]], …]`.
 - `$availableAttributes` on category pages: the filterable attributes among the category's products, `[['slug' => 'origin', 'name' => 'Origin', 'values' => [['value' => 'Sagada', 'count' => 3], …]], …]`. A filter form sends `attr[{slug}][]={value}`; values of one attribute widen the match, different attributes narrow it.
 
-## 5.4 Wishlist
+## 5.4 Prices
+
+A theme never picks a special itself. `App\Support\Pricing::display(Product $product, ?int $variantId = null, int $quantity = 1)` answers what the cart will charge and why, using the cart's own rule (`CartService::winningSpecial()`): among the specials that apply now to the shopper's customer group (the default group for guests), the deepest quantity tier at or below the quantity wins, then the lower priority value, then the lower price. A variant's price carries the product's special through its difference from the product price, as the cart does.
+
+It returns an `App\Support\DisplayPrice`:
+
+| member | meaning |
+|---|---|
+| `price` (float) | what the cart charges for one unit |
+| `regularPrice` (float) | the product's or variant's own price, before any special |
+| `special` (`ProductSpecial` or null) | the special the cart applies |
+| `displayMode` (`'sale'`, `'override'` or null) | how the special asks to be shown |
+| `endsAt` (date or null) | the special's last day, for a countdown |
+| `isSale()` | true when the regular price should be struck through beside `price` |
+| `savingPercent()` | the saving as a whole percentage, 0 when none |
+| `toArray()` | the same as plain values, for JSON and script data |
+
+Format amounts with `money()`. A card draws:
+
+```blade
+@php $price = \App\Support\Pricing::display($product); @endphp
+@if ($price->isSale())
+    <s>{{ money($price->regularPrice) }}</s> {{ money($price->price) }}
+@else
+    {{ money($price->price) }}
+@endif
+```
+
+Core's listings eager load `specials`, so a grid costs no extra query. The product page also publishes the result as `$displayPrice` (and in `PageContext`), with `$activeSpecial` set when it is a sale and `$overrideSpecial` for any other special.
+
+## 5.5 Wishlist
 
 The wishlist is stored for signed-in customers and kept in the session for guests; signing in merges the guest's list into the account (`App\Services\WishlistService`).
 
@@ -274,7 +304,7 @@ The main menu is composed in Layout > Menus (`nav_menus`, nested `nav_menu_items
 
 ## 7. Behaviour the theme must keep
 
-- Prices come from `CartService::resolvePrice()` and the product's `effective_price`; the theme never computes a price.
+- Prices come from `App\Support\Pricing::display()` (section 5.4); the theme never computes a price.
 - Add-to-cart, variant selection and quantity go through the `addToCart` Alpine component (theme.js) posting to `cart.add`.
 - The reviews block renders only when `\App\Support\Reviews::enabled()` and the page setting `show_reviews` is on.
 - SKU and model are internal and never shown.

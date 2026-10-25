@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Services\BadgeService;
+use App\Support\Pricing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class RecentlyViewedController extends Controller
 {
@@ -25,55 +25,19 @@ class RecentlyViewedController extends Controller
         $products = Product::where('is_active', true)
             ->whereIn('id', $ids)
             ->with(['images', 'specials'])
-            ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
-            ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')])
+            // Ratings belong to the reviews extension; without it there are none.
+            ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
+                ->withAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'approved')], 'rating')
+                ->withCount(['reviews as reviews_count' => fn ($q) => $q->where('status', 'approved')]))
             ->get()
             ->map(function ($product) use ($badgeService) {
                 $galleryImage = $product->images->sortBy('sort_order')->first();
                 $image = $product->image ? (object)['path' => $product->image] : $galleryImage;
-                $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
-
-                $price = (float) $product->price;
-                $salePrice = null;
-                $overridePrice = null;
-
-                // Sale special (shows strikethrough)
-                $activeSpecial = $product->specials
-                    ->where('display_mode', 'sale')
-                    ->filter(function ($s) use ($customerGroupId) {
-                        if ($s->date_start && $s->date_start > now()) return false;
-                        if ($s->date_end && $s->date_end < now()) return false;
-                        if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                        if ($s->quantity > 1) return false;
-                        return true;
-                    })
-                    ->sortBy('priority')
-                    ->first();
-
-                if ($activeSpecial) {
-                    $salePrice = (float) $activeSpecial->price;
-                }
-
-                // Override special (clean price replacement)
-                if (!$salePrice) {
-                    $overrideSpecial = $product->specials
-                        ->where('display_mode', 'override')
-                        ->filter(function ($s) use ($customerGroupId) {
-                            if ($s->date_start && $s->date_start > now()) return false;
-                            if ($s->date_end && $s->date_end < now()) return false;
-                            if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                            if ($s->quantity > 1) return false;
-                            return true;
-                        })
-                        ->sortBy('priority')
-                        ->first();
-
-                    if ($overrideSpecial) {
-                        $overridePrice = (float) $overrideSpecial->price;
-                    }
-                }
-
-                $displayPrice = $overridePrice ?? $price;
+                // What the cart will charge, and the special behind it.
+                $pricing = Pricing::display($product);
+                $salePrice = $pricing->isSale() ? $pricing->price : null;
+                $overridePrice = ! $pricing->isSale() && $pricing->special !== null ? $pricing->price : null;
+                $displayPrice = $pricing->isSale() ? $pricing->regularPrice : $pricing->price;
 
                 return [
                     'id' => $product->id,
@@ -83,7 +47,8 @@ class RecentlyViewedController extends Controller
                     'sale_price' => $salePrice,
                     'override_price' => $overridePrice,
                     'formatted_price' => money($displayPrice),
-                    'formatted_sale_price' => $salePrice ? money($salePrice) : null,
+                    'formatted_sale_price' => $salePrice !== null ? money($salePrice) : null,
+                    'pricing' => $pricing->toArray(),
                     'url' => route('product.show', $product->slug),
                     'image' => $image ? storage_url($image->path) : null,
                     'badges' => $badgeService->getBadgesForProduct($product),

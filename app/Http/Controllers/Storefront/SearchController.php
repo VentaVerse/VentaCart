@@ -71,7 +71,7 @@ class SearchController extends Controller
                 $q->where('name', 'LIKE', "%{$query}%")
                   ->orWhere('sku', 'LIKE', "%{$query}%");
             })
-            ->with('images')
+            ->with(['images', 'specials'])
             ->limit(6)
             ->get()
             ->map(function ($product) {
@@ -79,7 +79,7 @@ class SearchController extends Controller
                 return [
                     'name' => $product->name,
                     'slug' => $product->slug,
-                    'price' => (float) $product->price,
+                    'price' => \App\Support\Pricing::display($product)->price,
                     'image' => $image ? asset('storage/' . $image->path) : null,
                     'url' => route('product.show', $product->slug),
                 ];

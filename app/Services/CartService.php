@@ -6,6 +6,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\ProductSpecial;
 use App\Models\ProductVariant;
 use App\Services\ActivityLogger;
 use Illuminate\Support\Collection;
@@ -352,28 +353,46 @@ class CartService
      * Math:
      *   modifier = basePrice − product.price   (0 for non-variant items)
      *   effective_variant_price = special.price + modifier
-     *   final = min(basePrice, effective_variant_price)
+     *   final = max(0, effective_variant_price) when a special applies, else basePrice
      */
     public static function resolvePrice(Product $product, float $basePrice, int $qty = 1, ?int $customerGroupId = null): float
     {
-        if ($customerGroupId === null) {
-            $customer = Auth::guard('customer')->user();
-            // Guests resolve to the default customer group (OpenCart parity) so
-            // Default-group specials/tiers apply in cart/checkout exactly as they
-            // do on the product page.
-            $customerGroupId = $customer?->customer_group_id
-                ?? \Illuminate\Support\Facades\Cache::remember(
-                    'default_customer_group_id',
-                    3600,
-                    fn () => \App\Models\CustomerGroup::where('is_default', true)->value('id')
-                );
-        }
-        $now = now();
+        $special = self::winningSpecial($product, $qty, $customerGroupId);
 
-        $bestPrice = $basePrice;
+        if ($special === null) {
+            return max(0.0, $basePrice);
+        }
+
         $modifier = $basePrice - (float) $product->price;
 
-        $applicableSpecials = $product->specials
+        return max(0.0, (float) $special->price + $modifier);
+    }
+
+    /**
+     * The customer group prices are worked out for: the signed-in
+     * customer's, else the store's default group, so guests get the
+     * default group's specials and tiers just as the cart charges them.
+     */
+    public static function customerGroupId(): ?int
+    {
+        return Auth::guard('customer')->user()?->customer_group_id
+            ?? once(fn () => \App\Models\CustomerGroup::defaultId());
+    }
+
+    /**
+     * The special the cart applies to $qty units, or null when none does.
+     *
+     * Quantity-tier semantics: the DEEPEST tier whose threshold is at or
+     * below the quantity wins (the most specific tier for this quantity),
+     * whether its price is above or below the base. Within a tier, the lower
+     * priority value wins, then the lower price.
+     */
+    public static function winningSpecial(Product $product, int $qty = 1, ?int $customerGroupId = null): ?ProductSpecial
+    {
+        $customerGroupId ??= self::customerGroupId();
+        $now = now();
+
+        $applicable = $product->specials
             ->filter(function ($s) use ($now, $customerGroupId, $qty) {
                 if ($s->date_start && $s->date_start > $now) return false;
                 if ($s->date_end && $s->date_end < $now) return false;
@@ -382,22 +401,13 @@ class CartService
                 return true;
             });
 
-        if ($applicableSpecials->isNotEmpty()) {
-            // Quantity-tier semantics: the DEEPEST tier whose threshold <= qty
-            // wins (the most specific tier for this quantity), regardless of
-            // whether its price is above or below the base. Tie-break within a
-            // tier: lower priority value first, then lower price.
-            $deepestQty = $applicableSpecials->max('quantity');
-            $best = $applicableSpecials
-                ->where('quantity', $deepestQty)
-                ->sortBy([['priority', 'asc'], ['price', 'asc']])
-                ->first();
-
-            if ($best) {
-                $bestPrice = (float) $best->price + $modifier;
-            }
+        if ($applicable->isEmpty()) {
+            return null;
         }
 
-        return max(0.0, $bestPrice);
+        return $applicable
+            ->where('quantity', $applicable->max('quantity'))
+            ->sortBy([['priority', 'asc'], ['price', 'asc']])
+            ->first();
     }
 }

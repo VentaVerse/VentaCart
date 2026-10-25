@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Services\ThemeService;
 use App\Services\CartService;
-use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
@@ -53,44 +52,14 @@ class ProductController extends Controller
             $product->setAttribute('quantity', (int) $product->variants->sum('quantity'));
         }
 
-        // Active special (sale or override pricing).
-        // Guests are treated as the default customer group so Default-targeted
-        // specials apply on the storefront (PHP's loose 1 != null is true,
-        // which would otherwise filter them out for guests).
-        $customerGroupId = Auth::guard('customer')->user()?->customer_group_id
-            ?? \Illuminate\Support\Facades\Cache::remember(
-                'default_customer_group_id',
-                3600,
-                fn () => \App\Models\CustomerGroup::where('is_default', true)->value('id')
-            );
-
-        $activeSpecial = $product->specials
-            ->where('display_mode', 'sale')
-            ->filter(function ($s) use ($customerGroupId) {
-                if ($s->date_start && $s->date_start > now()) return false;
-                if ($s->date_end && $s->date_end < now()) return false;
-                if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                if ($s->quantity > 1) return false;
-                return true;
-            })
-            ->sortBy('priority')
-            ->first();
-
-        // Override special (clean price replacement — no strikethrough)
-        $overrideSpecial = null;
-        if (!$activeSpecial) {
-            $overrideSpecial = $product->specials
-                ->where('display_mode', 'override')
-                ->filter(function ($s) use ($customerGroupId) {
-                    if ($s->date_start && $s->date_start > now()) return false;
-                    if ($s->date_end && $s->date_end < now()) return false;
-                    if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                    if ($s->quantity > 1) return false;
-                    return true;
-                })
-                ->sortBy('priority')
-                ->first();
-        }
+        // The price the cart will charge for one unit, and the special behind
+        // it, chosen the way the cart chooses (the default customer group's
+        // for guests). A sale special shows the regular price struck
+        // through; any other special is a plain price.
+        $customerGroupId = CartService::customerGroupId();
+        $displayPrice = \App\Support\Pricing::display($product);
+        $activeSpecial = $displayPrice->isSale() ? $displayPrice->special : null;
+        $overrideSpecial = $activeSpecial === null ? $displayPrice->special : null;
 
         // Below-product modules from settings
         $settings = $theme->getGroup('product_page');
@@ -165,20 +134,13 @@ class ProductController extends Controller
 
                 // Variant price = its own absolute (already includes the modifier).
                 $regularVariantPrice = (float) ($variant->price ?? $product->price);
-                $variantPrice = $regularVariantPrice;
 
-                // Sale or override at product scope ripples through the variant's modifier:
-                //   effective_variant = special.price + (variant.price − product.price)
-                // So a 720→500 product-level sale on variants priced 720/1000/1280
-                // yields 500/780/1060 — not a flat 500 across all variants.
-                $rippleSpecial = $activeSpecial ?: $overrideSpecial;
-                if ($rippleSpecial) {
-                    $modifier = $regularVariantPrice - (float) $product->price;
-                    $effectiveVariant = (float) $rippleSpecial->price + $modifier;
-                    if ($effectiveVariant >= 0 && $effectiveVariant < $regularVariantPrice) {
-                        $variantPrice = $effectiveVariant;
-                    }
-                }
+                // A product special ripples through the variant's modifier,
+                // exactly as the cart charges it:
+                //   effective_variant = special.price + (variant.price - product.price)
+                // So a 720 to 500 product sale on variants priced 720/1000/1280
+                // yields 500/780/1060, not a flat 500 across all variants.
+                $variantPrice = CartService::resolvePrice($product, $regularVariantPrice, 1, $customerGroupId);
 
                 $variantMatrix[$key] = [
                     'variant_id' => $variant->id,
@@ -204,9 +166,8 @@ class ProductController extends Controller
         $averageRating = $approvedReviews->avg('rating') ?: 0;
         $reviewCount = $approvedReviews->count();
 
-        // Determine the effective price for the addToCart component
-        $effectivePrice = $activeSpecial ? (float) $activeSpecial->price
-            : ($overrideSpecial ? (float) $overrideSpecial->price : (float) $product->price);
+        // The effective price for the addToCart component.
+        $effectivePrice = $displayPrice->price;
 
         // Quantity price tiers for the current customer group — one row per
         // quantity threshold (matching CartService::resolvePrice tie-break),
@@ -237,7 +198,7 @@ class ProductController extends Controller
 
         $page = compact(
             'attributeGroups',
-            'product', 'activeSpecial', 'overrideSpecial', 'settings',
+            'product', 'activeSpecial', 'overrideSpecial', 'displayPrice', 'settings',
             'relatedProducts', 'sameBrandProducts',
             'breadcrumbs', 'belowModules',
             'variantMatrix', 'variantTypes', 'effectivePrice', 'priceTiers',

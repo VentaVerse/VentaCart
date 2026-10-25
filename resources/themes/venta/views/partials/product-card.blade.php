@@ -2,48 +2,8 @@
     $mainImage = $product->images->sortBy('sort_order')->first();
     $imagePath = $product->image ?? $mainImage?->path;
 
-    $price = $product->price;
-    $salePrice = null;
-    $overridePrice = null;
-    $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
-
-    // Check for sale special (shows strikethrough)
-    $activeSpecial = $product->specials
-        ->where('display_mode', 'sale')
-        ->filter(function ($s) use ($customerGroupId) {
-            if ($s->date_start && $s->date_start > now()) return false;
-            if ($s->date_end && $s->date_end < now()) return false;
-            if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-            if ($s->quantity > 1) return false;
-            return true;
-        })
-        ->sortBy('priority')
-        ->first();
-
-    if ($activeSpecial) {
-        $salePrice = $activeSpecial->price;
-    }
-
-    // Check for override special (clean price replacement, no strikethrough)
-    if (!$salePrice) {
-        $overrideSpecial = $product->specials
-            ->where('display_mode', 'override')
-            ->filter(function ($s) use ($customerGroupId) {
-                if ($s->date_start && $s->date_start > now()) return false;
-                if ($s->date_end && $s->date_end < now()) return false;
-                if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                if ($s->quantity > 1) return false;
-                return true;
-            })
-            ->sortBy('priority')
-            ->first();
-
-        if ($overrideSpecial) {
-            $overridePrice = $overrideSpecial->price;
-        }
-    }
-
-    $currency = $defaultCurrency ?? (object)['symbol' => '₱'];
+    // What the cart will charge, and the special behind it.
+    $vPrice = \App\Support\Pricing::display($product);
     $badges = isset($badgeService) ? $badgeService->getBadgesForProduct($product) : [];
 @endphp
 
@@ -124,13 +84,11 @@
         @endif
 
         <div class="product-price">
-            @if ($salePrice)
-                <span class="product-price-old">{{ money($price) }}</span>
-                <span class="product-price-sale">{{ money($salePrice) }}</span>
-            @elseif ($overridePrice)
-                {{ money($overridePrice) }}
+            @if ($vPrice->isSale())
+                <span class="product-price-old">{{ money($vPrice->regularPrice) }}</span>
+                <span class="product-price-sale">{{ money($vPrice->price) }}</span>
             @else
-                {{ money($price) }}
+                {{ money($vPrice->price) }}
             @endif
         </div>
     </div>
