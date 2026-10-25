@@ -44,10 +44,10 @@ class PaymentMethodRestriction extends Model
         $parts = [];
 
         if ($this->min_total) {
-            $parts[] = "Min ₱" . number_format($this->min_total, 2);
+            $parts[] = 'Min ' . store_money($this->min_total);
         }
         if ($this->max_total) {
-            $parts[] = "Max ₱" . number_format($this->max_total, 2);
+            $parts[] = 'Max ' . store_money($this->max_total);
         }
         if ($this->min_weight) {
             $parts[] = "Min {$this->min_weight}kg";

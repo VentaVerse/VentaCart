@@ -146,7 +146,7 @@
             if (!path) return '';
             return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
         };
-        window.__currency = { symbol: @json($activeCurrency?->symbol ?? '₱'), rate: {{ (float) ($activeCurrency?->rate ?? 1) }} };
+        window.__currency = { symbol: @json((string) $activeCurrency?->symbol), rate: {{ (float) ($activeCurrency?->rate ?? 1) }} };
         window.money = function(amount) {
             return window.__currency.symbol + (Number(amount) * window.__currency.rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         };

@@ -387,7 +387,7 @@ class CheckoutService
     public static function sendOrderConfirmationEmail(Order $order): void
     {
         $order->loadMissing('products.product');
-        $currency = \App\Models\Setting::where('key', 'currency_symbol')->value('value') ?? '₱';
+        $currency = (string) app(ThemeService::class)->getDefaultCurrency()?->symbol;
 
         $itemsHtml = self::buildOrderItemsHtml($order, $currency);
         $addressHtml = self::buildShippingAddressHtml($order);
@@ -426,7 +426,7 @@ class CheckoutService
         if (!$adminEmail) return;
 
         $order->loadMissing('products.product');
-        $currency = \App\Models\Setting::where('key', 'currency_symbol')->value('value') ?? '₱';
+        $currency = (string) app(ThemeService::class)->getDefaultCurrency()?->symbol;
 
         $itemsHtml = self::buildOrderItemsHtml($order, $currency);
         $addressHtml = self::buildShippingAddressHtml($order);

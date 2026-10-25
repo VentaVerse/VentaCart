@@ -155,8 +155,8 @@ Alpine.data('categoryTabs', () => ({
    ============================================ */
 Alpine.data('currencySelector', (config = {}) => ({
     open: false,
-    current: config.current || 'PHP',
-    symbol: config.symbol || '₱',
+    current: config.current || '',
+    symbol: config.symbol || '',
 
     toggle() {
         this.open = !this.open;

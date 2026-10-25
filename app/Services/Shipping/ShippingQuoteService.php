@@ -84,7 +84,7 @@ class ShippingQuoteService
 
         static::$context = [];
 
-        // Only free shipping RULES override other methods — not custom methods priced at ₱0
+        // Only free shipping RULES override other methods — not custom methods priced at zero
         $freeShippingQuotes = array_filter($quotes, fn ($q) => ($q['service_type'] ?? '') === 'free_shipping');
         if (!empty($freeShippingQuotes)) {
             return array_values($freeShippingQuotes);

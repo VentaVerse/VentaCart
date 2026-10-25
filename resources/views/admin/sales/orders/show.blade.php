@@ -1,5 +1,4 @@
 @php
-    $currency = $defaultCurrency->symbol ?? '₱';
     $statusTones = [
         'Pending' => 'warn', 'Unpaid' => 'warn', 'Processing' => 'info',
         'Payment Received' => 'info', 'Shipped' => 'info', 'Order Being Shipped' => 'info',
@@ -37,7 +36,7 @@
                 <div class="v-factrow">
                     <div>
                         <div class="v-label">Total</div>
-                        <div class="v-bigmoney v-mono">{{ $currency }}{{ number_format($order->total, 2) }}</div>
+                        <div class="v-bigmoney v-mono">{{ store_money($order->total) }}</div>
                     </div>
                     <div>
                         <div class="v-label">Payment</div>
@@ -135,9 +134,9 @@
                                             </span>
                                         </span>
                                     </td>
-                                    <td class="v-cell-num v-mono">{{ $currency }}{{ number_format($item->price, 2) }}</td>
+                                    <td class="v-cell-num v-mono">{{ store_money($item->price) }}</td>
                                     <td class="v-cell-num v-mono">{{ $item->quantity }}</td>
-                                    <td class="v-cell-num v-mono">{{ $currency }}{{ number_format($item->price * $item->quantity, 2) }}</td>
+                                    <td class="v-cell-num v-mono">{{ store_money($item->price * $item->quantity) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -146,23 +145,23 @@
                 <div class="v-ledger">
                     <dl>
                         <dt>Subtotal</dt>
-                        <dd class="v-mono">{{ $currency }}{{ number_format($order->subtotal, 2) }}</dd>
+                        <dd class="v-mono">{{ store_money($order->subtotal) }}</dd>
                         <dt>Shipping @if ($shippingCourierLabel)({{ $shippingCourierLabel }})@endif</dt>
-                        <dd class="v-mono">@if ($order->shipping_cost > 0){{ $currency }}{{ number_format($order->shipping_cost, 2) }}@else Free @endif</dd>
+                        <dd class="v-mono">@if ($order->shipping_cost > 0){{ store_money($order->shipping_cost) }}@else Free @endif</dd>
                         @if ($order->coupon_code)
                             <dt>Coupon ({{ $order->coupon_code }})</dt>
-                            <dd class="v-mono">-{{ $currency }}{{ number_format($order->coupon_discount, 2) }}</dd>
+                            <dd class="v-mono">-{{ store_money($order->coupon_discount) }}</dd>
                         @endif
                         {{-- Other totals-pipeline lines (store credit, future
                              fees). Coupon skipped: its columns render above. --}}
                         @foreach (collect($order->total_lines ?? [])->where('code', '!=', 'coupon') as $line)
                             @if (($line['amount'] ?? 0) != 0)
                                 <dt>{{ $line['label'] }}</dt>
-                                <dd class="v-mono">{{ $line['amount'] < 0 ? '-' : '' }}{{ $currency }}{{ number_format(abs($line['amount']), 2) }}</dd>
+                                <dd class="v-mono">{{ $line['amount'] < 0 ? '-' : '' }}{{ store_money(abs($line['amount'])) }}</dd>
                             @endif
                         @endforeach
                         <dt class="v-facts__sum">Total</dt>
-                        <dd class="v-facts__sum v-mono">{{ $currency }}{{ number_format($order->total, 2) }}</dd>
+                        <dd class="v-facts__sum v-mono">{{ store_money($order->total) }}</dd>
 
                         {{-- Fees and charges (owner ruling 2026-09-09). NOT
                              "cost of sale": that includes the cost of the
@@ -192,7 +191,7 @@
                             <dt>Payment fee</dt>
                             <dd class="v-mono">
                                 @if ($order->payment_fee !== null)
-                                    -{{ $currency }}{{ number_format($order->payment_fee, 2) }}
+                                    -{{ store_money($order->payment_fee) }}
                                 @else
                                     <span class="v-cell-quiet">awaiting settlement</span>
                                 @endif
@@ -200,7 +199,7 @@
                             <dt>Shipping cost @if ($order->shipping_courier_name)({{ $order->shipping_courier_name }})@endif</dt>
                             <dd class="v-mono">
                                 @if ($order->shipping_cost_actual !== null)
-                                    -{{ $currency }}{{ number_format($order->shipping_cost_actual, 2) }}
+                                    -{{ store_money($order->shipping_cost_actual) }}
                                 @else
                                     <span class="v-cell-quiet">awaiting booking</span>
                                 @endif
@@ -209,7 +208,7 @@
                                  calling it "after fees" would state something
                                  untrue about a number nobody has yet. --}}
                             <dt class="v-ledger__net">{{ $allFeesIn ? 'Net after fees' : 'Net so far' }}</dt>
-                            <dd class="v-ledger__net v-mono">{{ $currency }}{{ number_format($order->total - $knownFees, 2) }}</dd>
+                            <dd class="v-ledger__net v-mono">{{ store_money($order->total - $knownFees) }}</dd>
                         @endif
                     </dl>
                 </div>

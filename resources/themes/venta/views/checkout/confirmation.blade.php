@@ -31,8 +31,8 @@
                                 @endif
                                 <div class="text-xs text-[var(--color-text)]">Qty: {{ $item->quantity }}</div>
                             </div>
-                            <div class="text-sm text-[var(--color-text-heading)] flex-shrink-0" class="font-heading">
-                                ₱{{ number_format($item->price * $item->quantity, 2) }}
+                            <div class="text-sm text-[var(--color-text-heading)] flex-shrink-0 font-heading">
+                                {{ store_money($item->price * $item->quantity) }}
                             </div>
                         </div>
                     @endforeach
@@ -43,13 +43,13 @@
                 <div class="space-y-2 text-sm">
                     <div class="flex justify-between">
                         <span class="text-[var(--color-text-muted)]">Subtotal</span>
-                        <span class="text-[var(--color-text-heading)]" class="font-heading">₱{{ number_format($order->subtotal, 2) }}</span>
+                        <span class="text-[var(--color-text-heading)] font-heading">{{ store_money($order->subtotal) }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-[var(--color-text-muted)]">Shipping @if ($order->courier_label)({{ $order->courier_label }})@endif</span>
                         <span class="font-heading">
                             @if ($order->shipping_cost > 0)
-                                <span class="text-[var(--color-text-heading)]">₱{{ number_format($order->shipping_cost, 2) }}</span>
+                                <span class="text-[var(--color-text-heading)]">{{ store_money($order->shipping_cost) }}</span>
                             @else
                                 <span class="text-emerald-400">FREE</span>
                             @endif
@@ -59,7 +59,7 @@
                         @if (($line['amount'] ?? 0) != 0)
                             <div class="flex justify-between">
                                 <span class="text-[var(--color-text-muted)]">{{ $line['label'] }}</span>
-                                <span class="font-heading {{ $line['amount'] < 0 ? 'text-emerald-400' : 'text-[var(--color-text-heading)]' }}">{{ $line['amount'] < 0 ? '-' : '' }}₱{{ number_format(abs($line['amount']), 2) }}</span>
+                                <span class="font-heading {{ $line['amount'] < 0 ? 'text-emerald-400' : 'text-[var(--color-text-heading)]' }}">{{ $line['amount'] < 0 ? '-' : '' }}{{ store_money(abs($line['amount'])) }}</span>
                             </div>
                         @endif
                     @endforeach
@@ -69,7 +69,7 @@
 
                 <div class="flex justify-between">
                     <span class="text-[var(--color-text-heading)]" class="font-heading-wide">TOTAL</span>
-                    <span class="text-xl text-[var(--color-text-heading)]" class="font-heading">₱{{ number_format($order->total, 2) }}</span>
+                    <span class="text-xl text-[var(--color-text-heading)] font-heading">{{ store_money($order->total) }}</span>
                 </div>
             </div>
 

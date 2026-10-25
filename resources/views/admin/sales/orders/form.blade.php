@@ -1,3 +1,4 @@
+@php $storeSymbol = (string) app(\App\Services\ThemeService::class)->getDefaultCurrency()?->symbol; @endphp
 <x-admin.shell :title="$order ? 'Order #' . $order->id : 'Create order'" active="sales">
     <div class="v-head">
         <div class="v-head__body">
@@ -139,7 +140,7 @@
                                                         </span>
                                                         <span class="v-combo__meta">
                                                             <span x-show="p.sku" x-text="'SKU ' + p.sku"></span>
-                                                            <span x-text="'₱' + parseFloat(p.price).toFixed(2)"></span>
+                                                            <span x-text="@js($storeSymbol) + parseFloat(p.price).toFixed(2)"></span>
                                                             <span x-text="'Stock ' + (p.stock ?? 0)"></span>
                                                         </span>
                                                     </span>
@@ -484,7 +485,7 @@
                                     <select x-show="!loadingShipping" x-model="shippingMethod" @change="onShippingMethodChange()" class="v-control">
                                         <option value="">Select</option>
                                         <template x-for="sm in availableShippingMethods" :key="sm.key">
-                                            <option :value="sm.name" x-text="sm.name + ': ₱' + parseFloat(sm.cost).toFixed(2)"></option>
+                                            <option :value="sm.name" x-text="sm.name + ': ' + @js($storeSymbol) + parseFloat(sm.cost).toFixed(2)"></option>
                                         </template>
                                         <option value="custom">Other (type below)</option>
                                     </select>

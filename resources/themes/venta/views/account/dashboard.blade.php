@@ -70,7 +70,7 @@
                                         <tr>
                                             <td class="text-[var(--color-text-heading)]">#{{ $order->id }}</td>
                                             <td>{{ $order->created_at->format('M d, Y') }}</td>
-                                            <td class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</td>
+                                            <td class="font-heading">{{ store_money($order->total) }}</td>
                                             <td>
                                                 @php $statusName = $order->order_status_name ?? 'Pending'; @endphp
                                                 <span class="account-status-badge account-status-badge--{{ $order->status?->tone ?? 'neutral' }}">{{ $statusName }}</span>

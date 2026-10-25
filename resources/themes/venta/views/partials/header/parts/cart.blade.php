@@ -1,5 +1,5 @@
             {{-- Cart --}}
-            <div class="relative flex-shrink-0" x-data="miniCart({{ $cartCount }}, {{ $cartSubtotal }}, '{{ $defaultCurrency?->symbol ?? '₱' }}')" @mouseenter="onHover()" @mouseleave="onLeave()">
+            <div class="relative flex-shrink-0" x-data="miniCart({{ $cartCount }}, {{ $cartSubtotal }}, @js((string) $defaultCurrency?->symbol))" @mouseenter="onHover()" @mouseleave="onLeave()">
                 <a href="{{ route('cart.index') }}" class="cart-btn" x-on:cart-updated.window="onCartUpdated($event.detail)">
                     <span class="hidden sm:inline font-mono text-xs cart-text" x-text="count + ' item(s) - ' + money(subtotal)">{{ $cartCount }} item(s) - {{ money($cartSubtotal) }}</span>
                     <div class="relative">

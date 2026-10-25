@@ -14,7 +14,6 @@
     $countriesJson = $countries->toJson();
     $phoneCodesJson = $countries->pluck('phone_code', 'id')->toJson();
     $countryNamesJson = $countries->pluck('name', 'id')->toJson();
-    $currencySymbol = $defaultCurrency?->symbol ?? '₱';
     $couponCodeJson = json_encode($couponCode ?? '');
     $couponDiscountVal = $couponDiscount ?? 0;
     $couponFreeShippingJson = json_encode($couponFreeShipping ?? false);

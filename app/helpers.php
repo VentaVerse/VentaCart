@@ -28,6 +28,20 @@ if (!function_exists('money')) {
     }
 }
 
+if (!function_exists('store_money')) {
+    /**
+     * Format an amount in the store's own (default) currency, unconverted.
+     * For amounts already charged, such as an order's lines and totals: the
+     * shopper's chosen display currency must not restate what was paid.
+     */
+    function store_money(mixed $amount): string
+    {
+        $currency = app(ThemeService::class)->getDefaultCurrency();
+
+        return $currency ? money($amount, $currency) : number_format((float) $amount, 2);
+    }
+}
+
 if (!function_exists('storage_url')) {
     /**
      * Generate a URL for a file in the public storage disk.

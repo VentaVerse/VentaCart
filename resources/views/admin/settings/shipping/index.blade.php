@@ -137,7 +137,7 @@
                             <input type="number" name="weight" step="0.01" min="0.01" max="1000" required class="v-control v-mono"
                                    value="{{ old('weight', $rateTest['input']['weight'] ?? '1.5') }}">
                         </x-admin.field>
-                        <x-admin.field name="subtotal" label="Subtotal (₱)" required>
+                        <x-admin.field name="subtotal" label="Subtotal" required>
                             <input type="number" name="subtotal" step="0.01" min="0" required class="v-control v-mono"
                                    value="{{ old('subtotal', $rateTest['input']['subtotal'] ?? '2500') }}">
                         </x-admin.field>
@@ -165,7 +165,7 @@
                                             <tr>
                                                 <td>{{ $quote['name'] }}</td>
                                                 <td class="v-cell-quiet">{{ $quote['service_type'] === 'free_shipping' ? 'Free shipping' : ($quote['service_type'] ?? '-') }}</td>
-                                                <td class="v-mono">₱{{ number_format($quote['service_type'] === 'free_shipping' ? 0 : ($quote['cost'] ?? 0), 2) }}</td>
+                                                <td class="v-mono">{{ store_money($quote['service_type'] === 'free_shipping' ? 0 : ($quote['cost'] ?? 0)) }}</td>
                                                 <td>
                                                     @if ($quote['key'] === $rateTest['winner'])
                                                         <span class="v-badge v-badge--good">Winner</span>

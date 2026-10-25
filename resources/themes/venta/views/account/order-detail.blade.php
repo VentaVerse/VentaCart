@@ -30,7 +30,7 @@
                         </div>
                         <div>
                             <span class="account-label">Total</span>
-                            <p class="text-lg text-[var(--color-text-heading)] font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</p>
+                            <p class="text-lg text-[var(--color-text-heading)] font-heading">{{ store_money($order->total) }}</p>
                         </div>
                     </div>
                 </div>
@@ -134,9 +134,9 @@
                                         <span class="block text-xs text-[var(--color-text)]">{{ $item->variant_label }}</span>
                                     @endif
                                 </div>
-                                <span class="account-item__price font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price, 2) }}</span>
+                                <span class="account-item__price font-heading">{{ store_money($item->price) }}</span>
                                 <span class="account-item__qty"><span class="account-item__x" aria-hidden="true">&times;</span>{{ $item->quantity }}</span>
-                                <span class="account-item__total font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price * $item->quantity, 2) }}</span>
+                                <span class="account-item__total font-heading">{{ store_money($item->price * $item->quantity) }}</span>
                             </li>
                         @endforeach
                     </ul>
@@ -144,14 +144,14 @@
                     <div class="mt-4 pt-4 border-t border-[var(--color-border)] space-y-2 text-sm text-right">
                         <div class="flex justify-end gap-8">
                             <span class="text-[var(--color-text)]">Subtotal</span>
-                            <span class="text-[var(--color-text-heading)] w-28 font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->subtotal, 2) }}</span>
+                            <span class="text-[var(--color-text-heading)] w-28 font-heading">{{ store_money($order->subtotal) }}</span>
                         </div>
                         @if ($order->shipping_cost > 0 || $order->courier_label)
                             <div class="flex justify-end gap-8">
                                 <span class="text-[var(--color-text)]">Shipping @if ($order->courier_label)<span class="text-[var(--color-text)]">({{ $order->courier_label }})</span>@endif</span>
                                 <span class="text-[var(--color-text-heading)] w-28 font-heading">
                                     @if ($order->shipping_cost > 0)
-                                        {{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->shipping_cost, 2) }}
+                                        {{ store_money($order->shipping_cost) }}
                                     @else
                                         <span class="account-free">FREE</span>
                                     @endif
@@ -160,7 +160,7 @@
                         @endif
                         <div class="flex justify-end gap-8 pt-2 border-t border-[var(--color-border)]">
                             <span class="text-[var(--color-text-heading)] font-heading-wide">TOTAL</span>
-                            <span class="text-lg text-[var(--color-text-heading)] w-28 font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</span>
+                            <span class="text-lg text-[var(--color-text-heading)] w-28 font-heading">{{ store_money($order->total) }}</span>
                         </div>
                     </div>
                 </div>

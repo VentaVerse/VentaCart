@@ -19,8 +19,8 @@
 
     $sentences = [];
     if ($restriction) {
-        if ($restriction->min_total) $sentences[] = 'Minimum order total: ₱' . number_format($restriction->min_total, 2);
-        if ($restriction->max_total) $sentences[] = 'Maximum order total: ₱' . number_format($restriction->max_total, 2);
+        if ($restriction->min_total) $sentences[] = 'Minimum order total: ' . store_money($restriction->min_total);
+        if ($restriction->max_total) $sentences[] = 'Maximum order total: ' . store_money($restriction->max_total);
         if ($restriction->min_weight) $sentences[] = 'Minimum weight: ' . $restriction->min_weight . 'kg';
         if ($restriction->max_weight) $sentences[] = 'Maximum weight: ' . $restriction->max_weight . 'kg';
         if ($restriction->min_quantity) $sentences[] = 'Minimum quantity: ' . $restriction->min_quantity . ' items';

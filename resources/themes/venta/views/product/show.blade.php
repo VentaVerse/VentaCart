@@ -24,7 +24,7 @@
             "offers": {
                 "@@type": "Offer",
                 "price": "{{ $effectivePrice }}",
-                "priceCurrency": "PHP",
+                "priceCurrency": @json((string) $defaultCurrency?->code),
                 "availability": "{{ $product->quantity > 0 || !$product->track_stock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}"
             }
             @if ($reviewCount > 0)
@@ -66,7 +66,6 @@
             }
         }
         $thumbPosition = $settings['thumbnail_position'] ?? 'left';
-        $currencySymbol = $defaultCurrency->symbol ?? '₱';
     @endphp
 
     <div class="container-store py-8">

@@ -12,7 +12,7 @@
             <div class="flex items-center gap-5">
                 {{-- Currency Selector --}}
                 @if ($currencies->count() > 1)
-                    <div class="currency-selector" x-data="currencySelector({ current: '{{ $activeCurrency?->code ?? 'PHP' }}', symbol: '{{ $activeCurrency?->symbol ?? '₱' }}' })">
+                    <div class="currency-selector" x-data="currencySelector({ current: @js((string) $activeCurrency?->code), symbol: @js((string) $activeCurrency?->symbol) })">
                         <button @click="toggle()" type="button">
                             <span class="led led-green mr-1"></span>
                             <span x-text="current"></span>

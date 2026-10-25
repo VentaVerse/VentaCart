@@ -119,13 +119,12 @@ class CustomerOrderCancellation
         if (! $adminEmail) {
             return;
         }
-        $currency = Setting::where('key', 'currency_symbol')->value('value') ?? '₱';
-
+        
         TemplateMailService::send('order_cancelled_by_customer_admin', $adminEmail, [
             'order_id'       => $order->id,
             'customer_name'  => trim($order->first_name . ' ' . $order->last_name),
             'customer_email' => $order->email,
-            'order_total'    => $currency . number_format((float) $order->total, 2),
+            'order_total'    => store_money($order->total),
             'old_status'     => $oldName ?: 'Unknown',
             'new_status'     => $newName,
             'comment'        => e($comment),
