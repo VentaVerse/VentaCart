@@ -18,6 +18,12 @@ class DemoContent extends Model
 
     public const POST = 'post';
 
+    /** A category a template made for its demo products. */
+    public const CATEGORY = 'category';
+
+    /** An attribute a template made for its demo products. */
+    public const ATTRIBUTE = 'attribute';
+
     /** @return list<int> */
     public static function idsFor(string $type): array
     {

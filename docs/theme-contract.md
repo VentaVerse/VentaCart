@@ -104,6 +104,16 @@ Read a setting from any view with `\App\Support\ThemeOptions::get('key', $defaul
 
 `presets/{look}.json` holds `colors` (and optionally `fonts`) for a look. The looks editor lists them beside the merchant's own saved looks (which live in `storage/app/themes/{slug}/presets`). Shipped presets are read only.
 
+### 2.4.1 Demo products and posts
+
+A preset may carry `products` and `posts`, installed by `App\Services\DemoContentService` only while the catalogue is empty or entirely demo content. A product entry takes `name`, `price`, `sale`, `quantity`, `views`, `image` and `description`, and may also carry:
+
+- `images`: more pictures after the main one (storage paths);
+- `categories`: category names; a category the store lacks is made and removed again with the demo;
+- `attributes`: `{"Origin": "Sagada"}` or `[{"group": "Roast", "name": "Level", "value": "Light", "card": true, "filter": true}]`; an attribute the store lacks is made (group default Details) and removed again with the demo.
+
+A theme or extension adds its own extras with `DemoContentService::afterProduct(fn (Product $product, array $definition, string $slug) => …)`.
+
 ### 2.5 Shipped arrangements
 
 `layouts/{name}.json` is an exported Layout template (the same format Layout exports): a list of rows with columns, style and placements. The Layout editor offers them under Templates as `theme:{name}`, and the merchant loads one into a region. A theme should ship at least a `home` arrangement so a store that switches to it has a homepage.
