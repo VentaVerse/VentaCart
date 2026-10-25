@@ -423,6 +423,18 @@ class ThemeService
         return true;
     }
 
+    /**
+     * Whether a theme keeps its look and layouts in storage of its own
+     * (`"storage": "own"` in theme.json). Such a theme only reads core, so
+     * core never writes looks or layout rows on its behalf.
+     */
+    public function keepsOwnStorage(string $slug): bool
+    {
+        $meta = json_decode((string) @file_get_contents($this->getThemePath($slug) . '/theme.json'), true);
+
+        return is_array($meta) && ($meta['storage'] ?? null) === 'own';
+    }
+
     /** Point the storefront at another installed theme. */
     public function activateTheme(string $slug): void
     {
@@ -431,12 +443,17 @@ class ThemeService
         }
 
         $from = $this->getActiveTheme();
+        $switching = $from !== $slug;
 
-        if ($from !== $slug) {
-            // The look (colours, fonts, vars, the preset in use) belongs to
-            // the theme it was made for. The outgoing theme's is kept under
-            // its own name; the incoming theme gets its own back, or its
-            // default look the first time.
+        // The look (colours, fonts, vars, the preset in use) and the layout
+        // rows in core belong to themes that store them in core. A theme
+        // with storage of its own neither leaves a look here nor takes one.
+        $fromInCore = ! $this->keepsOwnStorage($from);
+        $toInCore = ! $this->keepsOwnStorage($slug);
+
+        if ($switching && $fromInCore) {
+            // The outgoing theme's look is kept under its own name, so the
+            // live groups can be handed to another theme and returned later.
             $this->stashLook($from);
         }
 
@@ -446,14 +463,17 @@ class ThemeService
         );
         $this->settings['identity']['active_theme'] = $slug;
 
-        if ($from !== $slug) {
+        if ($switching && $toInCore) {
+            // The incoming theme gets its own look back, or its default look
+            // the first time.
             $this->restoreLook($slug);
 
             // A theme opened for the first time has no layout of its own. It
             // shows what it ships (layouts/home.json) when it ships one, so
             // nothing of the previous theme is assumed; a theme without a
-            // shipped arrangement takes the merchant's rows along instead.
-            if (! $this->installShippedLayout($slug)) {
+            // shipped arrangement takes the merchant's rows along instead,
+            // when the previous theme kept its rows in core.
+            if (! $this->installShippedLayout($slug) && $fromInCore) {
                 $this->carryLayout($from, $slug);
             }
         }

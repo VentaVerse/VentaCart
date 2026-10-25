@@ -21,7 +21,8 @@ trait UsesSampleTheme
 {
     protected string $sampleTheme = 'sample';
 
-    protected function makeSampleTheme(): void
+    /** @param  array<string, mixed>  $overrides  keys laid over the sample's theme.json */
+    protected function makeSampleTheme(array $overrides = []): void
     {
         $default = resource_path('themes/'.ThemeService::THEME);
         $build = storage_path('framework/testing/themes/'.$this->sampleTheme);
@@ -41,6 +42,7 @@ trait UsesSampleTheme
             'system.product_tabs',
         ]];
         $manifest['regions']['category_main'] = ['label' => 'Category page', 'system' => true, 'page' => 'category', 'defaults' => ['system.category_subcategories', 'system.category_products']];
+        $manifest = array_replace_recursive($manifest, $overrides);
         file_put_contents($build.'/theme.json', json_encode($manifest, JSON_PRETTY_PRINT));
 
         foreach (['css', 'js'] as $dir) {
@@ -87,9 +89,10 @@ trait UsesSampleTheme
         app()->forgetInstance(ExtensionManager::class);
     }
 
-    protected function installSampleTheme(bool $activate = false): void
+    /** @param  array<string, mixed>  $manifest  keys laid over the sample's theme.json */
+    protected function installSampleTheme(bool $activate = false, array $manifest = []): void
     {
-        $this->makeSampleTheme();
+        $this->makeSampleTheme($manifest);
         app(ExtensionManager::class)->install(ThemeService::registryName($this->sampleTheme));
         if ($activate) {
             app(ThemeService::class)->activateTheme($this->sampleTheme);

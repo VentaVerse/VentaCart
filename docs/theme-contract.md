@@ -22,7 +22,7 @@ Vite discovers `css/theme.css` and `js/theme.js` on its own; run `npm run build`
 
 ### Install, uninstall, live
 
-Themes are discovered like extensions and recorded in the same registry under the name `theme-{slug}`. The Themes page (Extensions > Themes) lists every package on disk with Install, Use this theme and Uninstall. Installing runs the contract check and refuses a package that fails it, naming what is missing. Uninstalling removes the registry row and nothing else: the folder, the theme's layout rows and its settings stay, so installing it again finds them.
+Themes are discovered like extensions and recorded in the same registry under the name `theme-{slug}`. The Themes page (Extensions > Themes) lists every package on disk with Install, Use this theme and Uninstall. Installing runs the contract check and refuses a package that fails it, naming what is missing. Uninstalling rolls back every migration the theme ran (whichever batch each ran in, so tables from an earlier version go too) and removes the registry row. The folder, the theme's layout rows in core and its settings in core stay, so installing it again finds them. A theme's own extensions follow the same rule when they are uninstalled.
 
 When a theme's files carry a higher `version` than the one installed, the theme is awaiting an update. The storefront keeps drawing with it, and the Themes and Extensions screens show "Update available" with an Update button, which records the new version and runs any migrations the new files bring (`database/migrations`). Only a theme whose new files fail the contract check stops being served until it is updated or fixed.
 
@@ -119,6 +119,18 @@ A theme or extension adds its own extras with `DemoContentService::afterProduct(
 ### 2.5 Shipped arrangements
 
 `layouts/{name}.json` is an exported Layout template (the same format Layout exports): a list of rows with columns, style and placements. The Layout editor offers them under Templates as `theme:{name}`, and the merchant loads one into a region. A theme should ship at least a `home` arrangement so a store that switches to it has a homepage.
+
+### 2.6 A theme with storage of its own
+
+```json
+{ "editor": "admin.example.panel", "storage": "own" }
+```
+
+By default a theme keeps its look (colours, fonts, vars, the preset in use) and its layouts in core: in the `colors`, `fonts`, `vars` and `identity` settings groups and in `layout_rows`, `layout_placements` and `layout_columns`, keyed by the theme's slug. Switching themes stashes the outgoing theme's look under its own name, gives the incoming theme its kept look (or its theme.json defaults and default preset the first time), and installs its `layouts/home.json`, or copies the outgoing theme's rows when it ships none.
+
+A theme that declares `"storage": "own"` keeps its look and layouts in tables of its own (from its `database/migrations`) and only reads core. Switching to it sets `identity.active_theme` and nothing else: core writes no look, no default preset and no layout rows for it. Switching away from it leaves no stash behind, and a theme switched to from it does not take its rows. The look of the core-storing theme that was live before is kept under that theme's name as usual, so it comes back intact.
+
+`editor` and `storage` are separate: a theme may bring an editor of its own and still keep its data in core. A theme with storage of its own needs an editor of its own, since the core looks and Layout editors write core's tables. Without the key, or with any other value, a theme keeps today's behaviour.
 
 ## 3. Regions and Layout
 
