@@ -94,7 +94,7 @@ class LayoutSaver
                         'page_type' => $pageType,
                         'region' => $region,
                         'columns' => $widths,
-                        'style' => RowStyle::normalize($unit['style'] ?? []),
+                        'style' => RowStyle::normalizeRow($unit['style'] ?? []),
                         'responsive' => LayoutRow::normalizeResponsive($unit['responsive'] ?? [], count($widths)),
                         'sort_order' => $r,
                         'is_enabled' => (bool) ($unit['enabled'] ?? true),

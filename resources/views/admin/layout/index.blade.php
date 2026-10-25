@@ -478,14 +478,14 @@
             <label class="v-lay__field">
                 <span>Width</span>
                 <select :value="rs('width')" @change="setRowStyle('width', $event.target.value)">
-                    <option value="contained">On the page</option><option value="full">Edge to edge</option>
+                    <option value="contained">On the page</option><option value="full">Edge to edge</option><option value="edge">Edge to edge, content too</option>
                 </select>
             </label>
 
             <label class="v-lay__field">
                 <span>Border</span>
                 <select :value="rs('border')" @change="setRowStyle('border', $event.target.value)">
-                    <option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option>
+                    <option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option><option value="double">Double</option>
                 </select>
             </label>
 
@@ -513,8 +513,32 @@
                 <span>Shadow</span>
                 <select :value="rs('shadow')" @change="setRowStyle('shadow', $event.target.value)">
                     <option value="none">None</option><option value="sm">Light</option><option value="md">Medium</option><option value="lg">Heavy</option>
+                    <option value="custom" x-show="rs('shadow') === 'custom'">Custom</option>
                 </select>
             </label>
+
+            <label class="v-lay__field">
+                <span>Space above (px)</span>
+                <input type="number" min="-200" max="400" placeholder="Theme" :value="rs('margin_top')" @input="setRowStyle('margin_top', $event.target.value)">
+            </label>
+            <label class="v-lay__field">
+                <span>Space below (px)</span>
+                <input type="number" min="-200" max="400" placeholder="Theme" :value="rs('margin_bottom')" @input="setRowStyle('margin_bottom', $event.target.value)">
+            </label>
+
+            <label class="v-lay__field">
+                <span>Extra CSS class</span>
+                <input type="text" maxlength="200" placeholder="promo-band" :value="rs('css_class')" @change="setRowStyle('css_class', $event.target.value)">
+            </label>
+
+            <div class="v-lay__field">
+                <span>Hide on</span>
+                <span class="v-lay__hide">
+                    <template x-for="d in [['hide_phone', 'Phones'], ['hide_tablet', 'Tablets'], ['hide_desktop', 'Desktops']]" :key="d[0]">
+                        <label><input type="checkbox" :checked="!!rs(d[0])" @change="setRowStyle(d[0], $event.target.checked)"> <span x-text="d[1]"></span></label>
+                    </template>
+                </span>
+            </div>
 
             <button type="button" class="v-lay__new" @click="clearRowStyle()">Remove all styling</button>
         </div>
@@ -661,6 +685,9 @@
                     columns: unit.columns && unit.columns.length ? unit.columns.slice() : [8],
                     enabled: unit.enabled !== false,
                     style: unit.style ? { ...unit.style } : null,
+                    // Kept as loaded so a save here never resets what another
+                    // editor set (device widths, column and block styles).
+                    responsive: unit.responsive ?? null,
                     shipped: !!unit.shipped,
                     cols: (unit.cols || [[]]).map((c) => c.slice()),
                 });
@@ -757,9 +784,9 @@
                     /** One position's rows as data: shapes, styles, cards. */
                     regionRows(region) {
                         return this.rowsIn(region).map((unit) => ({
-                            columns: unit.columns, enabled: unit.enabled, style: unit.style,
+                            columns: unit.columns, enabled: unit.enabled, style: unit.style, responsive: unit.responsive,
                             placements: unit.cols.flatMap((col, c) => col.map((p) => ({
-                                column: c, widget: p.widget, title: p.title, enabled: p.enabled, config: (p.config && typeof p.config === 'object') ? Object.assign({}, p.config) : {},
+                                column: c, widget: p.widget, title: p.title, enabled: p.enabled, config: (p.config && typeof p.config === 'object') ? Object.assign({}, p.config) : {}, style: p.style ?? null,
                             }))),
                         }));
                     },
@@ -898,7 +925,9 @@
                         const s = unit.style;
                         if (!s) return false;
                         return s.bg !== 'none' || s.text !== '' || s.pad !== 'none' || s.width !== 'contained'
-                            || s.border !== 'none' || s.radius !== 'none' || s.shadow !== 'none';
+                            || s.border !== 'none' || s.radius !== 'none' || s.shadow !== 'none'
+                            || (s.margin_top ?? '') !== '' || (s.margin_bottom ?? '') !== '' || !!s.css_class
+                            || !!s.hide_phone || !!s.hide_tablet || !!s.hide_desktop;
                     },
 
                     /** A hex to show on a chip, whether the value is a hex or a theme key. */
@@ -1491,11 +1520,12 @@
                                     col.forEach((p) => placements.push({
                                         id: p.id, column: c, widget: p.widget,
                                         title: p.title, enabled: p.enabled, config: (p.config && typeof p.config === 'object') ? Object.assign({}, p.config) : {},
+                                        style: p.style ?? null,
                                     }));
                                 });
                                 rows.push({
                                     id: unit.id, region, columns: unit.columns, enabled: unit.enabled,
-                                    style: unit.style, placements,
+                                    style: unit.style, responsive: unit.responsive, placements,
                                 });
                             });
                         });

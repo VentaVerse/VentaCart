@@ -59,7 +59,7 @@ final class LayoutInventory
                     'id' => $row?->id,
                     'columns' => $widths,
                     'enabled' => $row ? (bool) $row->is_enabled : true,
-                    'style' => \App\Support\RowStyle::normalize($row?->style),
+                    'style' => \App\Support\RowStyle::normalizeRow($row?->style),
                     'responsive' => LayoutRow::normalizeResponsive($row?->responsive, count($widths)),
                     'cols' => array_fill(0, count($widths), []),
                 ];
@@ -79,7 +79,7 @@ final class LayoutInventory
                     'id' => $row->id,
                     'columns' => $widths,
                     'enabled' => (bool) $row->is_enabled,
-                    'style' => \App\Support\RowStyle::normalize($row->style),
+                    'style' => \App\Support\RowStyle::normalizeRow($row->style),
                     'responsive' => LayoutRow::normalizeResponsive($row->responsive, count($widths)),
                     'cols' => array_fill(0, count($widths), []),
                 ];
@@ -107,7 +107,7 @@ final class LayoutInventory
                     'id' => null,
                     'columns' => $shipped['columns'],
                     'enabled' => true,
-                    'style' => \App\Support\RowStyle::normalize([]),
+                    'style' => \App\Support\RowStyle::normalizeRow([]),
                     'responsive' => LayoutRow::normalizeResponsive($shipped['responsive'], count($shipped['columns'])),
                     'shipped' => true,
                     'cols' => array_map(fn ($pieces) => array_map(fn ($d) => [

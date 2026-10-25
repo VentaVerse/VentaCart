@@ -2,7 +2,10 @@
    Rows inside a region: core markup the Layout editor produces, styled here
    once for every theme that imports this file. A theme may override any of
    it in its own stylesheet; the class names and the custom properties
-   (--row-bg, --row-text, --row-border, --row-bg-*) are the contract.
+   (--row-bg, --row-text, --row-border, --row-bg-* and the rest set by
+   App\Support\RowStyle) are the contract. Rows, columns and placed blocks
+   share one vocabulary under the prefixes layout-row, layout-col and
+   layout-block.
 
    A split row is columns on the same eight-column grid as the page's rails,
    so a 4+4 row and a 2/6 rail line up. Under the tablet breakpoint the
@@ -125,3 +128,141 @@
 .layout-block--headings-lg h1, .layout-block--headings-lg h2, .layout-block--headings-lg h3, .layout-block--headings-lg .section-title { font-size: 1.9em; }
 .layout-row--headings-xl h1, .layout-row--headings-xl h2, .layout-row--headings-xl h3, .layout-row--headings-xl .section-title,
 .layout-block--headings-xl h1, .layout-block--headings-xl h2, .layout-block--headings-xl h3, .layout-block--headings-xl .section-title { font-size: 2.6em; }
+
+/* ---- a styled column ------------------------------------------------ */
+/* The same vocabulary again, on one column of a row. */
+.layout-col--styled { color: var(--row-text, inherit); }
+.layout-col--bg {
+    background: var(--row-bg);
+    background-size: var(--row-bg-size, auto);
+    background-position: var(--row-bg-position, center);
+    background-repeat: var(--row-bg-repeat, no-repeat);
+    background-attachment: var(--row-bg-attachment, scroll);
+}
+.layout-col--border { border: var(--row-border); }
+.layout-col--pad-sm { padding: 0.75rem; }
+.layout-col--pad-md { padding: 1.5rem; }
+.layout-col--pad-lg { padding: 2.5rem 1.5rem; }
+.layout-col--pad-xl { padding: 4rem 1.5rem; }
+.layout-col--radius-sm { border-radius: 0.375rem; }
+.layout-col--radius-md { border-radius: 0.75rem; }
+.layout-col--radius-lg { border-radius: 1.25rem; }
+.layout-col--shadow-sm { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.layout-col--shadow-md { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.layout-col--shadow-lg { box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18); }
+.layout-col--title-left .section-title { text-align: left; }
+.layout-col--title-center .section-title { text-align: center; }
+.layout-col--title-right .section-title { text-align: right; }
+.layout-col--headings h1, .layout-col--headings h2, .layout-col--headings h3, .layout-col--headings .section-title { color: var(--row-heading); }
+.layout-col--links a:not(.btn):not(.button) { color: var(--row-link); }
+.layout-col--size-sm { font-size: 0.9em; }
+.layout-col--size-lg { font-size: 1.12em; }
+.layout-col--font-heading, .layout-col--font-heading * { font-family: var(--font-heading); }
+.layout-col--font-body, .layout-col--font-body * { font-family: var(--font-body); }
+.layout-col--headings-sm h1, .layout-col--headings-sm h2, .layout-col--headings-sm h3, .layout-col--headings-sm .section-title { font-size: 1.1em; }
+.layout-col--headings-lg h1, .layout-col--headings-lg h2, .layout-col--headings-lg h3, .layout-col--headings-lg .section-title { font-size: 1.9em; }
+.layout-col--headings-xl h1, .layout-col--headings-xl h2, .layout-col--headings-xl h3, .layout-col--headings-xl .section-title { font-size: 2.6em; }
+
+/* ---- finer choices, on a row, a column or a block -------------------- */
+/* Each class below is written only together with the custom property it
+   reads, on the same element, so nothing leaks in from a parent box. */
+
+/* Layout */
+:is(.layout-row--mt, .layout-col--mt, .layout-block--mt) { margin-top: var(--row-mt); }
+:is(.layout-row--mb, .layout-col--mb, .layout-block--mb) { margin-bottom: var(--row-mb); }
+:is(.layout-row--padding, .layout-col--padding, .layout-block--padding) { padding: var(--row-padding); }
+:is(.layout-row--min-h, .layout-col--min-h, .layout-block--min-h) { min-height: var(--row-min-h); }
+.layout-row--gap { gap: var(--row-gap); }
+
+/* Content edge to edge as well as the background. */
+.layout-row--edge {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+}
+/* Full bleed keeps the content on the measure, whatever padding was chosen. */
+.layout-row--full.layout-row--padding {
+    padding-left: max(1.5rem, calc(50vw - 640px));
+    padding-right: max(1.5rem, calc(50vw - 640px));
+}
+
+/* Vertical alignment: a row aligns its columns, a column and a block
+   align what they hold. */
+.layout-row--valign-top { align-items: start; }
+.layout-row--valign-middle { align-items: center; }
+.layout-row--valign-bottom { align-items: end; }
+.layout-row--valign-stretch { align-items: stretch; }
+:is(.layout-col, .layout-block):is([class*="--valign-top"], [class*="--valign-middle"], [class*="--valign-bottom"]) {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+}
+:is(.layout-col--valign-top, .layout-block--valign-top) { justify-content: flex-start; }
+:is(.layout-col--valign-middle, .layout-block--valign-middle) { justify-content: center; }
+:is(.layout-col--valign-bottom, .layout-block--valign-bottom) { justify-content: flex-end; }
+.layout-col--valign-stretch { align-self: stretch; }
+
+/* Shadow */
+:is(.layout-row--shadow-custom, .layout-col--shadow-custom, .layout-block--shadow-custom) { box-shadow: var(--row-shadow); }
+
+/* Background: a colour under an image */
+:is(.layout-row--bg-under, .layout-col--bg-under, .layout-block--bg-under) { background-color: var(--row-bg-color); }
+
+/* Border per side, corners each their own */
+:is(.layout-row--border-sides, .layout-col--border-sides, .layout-block--border-sides) { border-width: var(--row-border-width); }
+:is(.layout-row--corners, .layout-col--corners, .layout-block--corners) { border-radius: var(--row-radius); }
+.layout-block--corners { overflow: hidden; }
+
+/* Colours */
+:is(.layout-row--links-hover, .layout-col--links-hover, .layout-block--links-hover) a:not(.btn):not(.button):hover { color: var(--row-link-hover); }
+
+/* Typography */
+:is(.layout-row--fs, .layout-col--fs, .layout-block--fs) { font-size: var(--row-font-size); }
+:is(.layout-row--lh, .layout-col--lh, .layout-block--lh) { line-height: var(--row-line-height); }
+:is(.layout-row--headings-w, .layout-col--headings-w, .layout-block--headings-w) :is(h1, h2, h3, h4, .section-title) { font-weight: var(--row-heading-weight); }
+:is(.layout-row--headings-ls, .layout-col--headings-ls, .layout-block--headings-ls) :is(h1, h2, h3, h4, .section-title) { letter-spacing: var(--row-heading-spacing); }
+:is(.layout-row--headings-tt-none, .layout-col--headings-tt-none, .layout-block--headings-tt-none) :is(h1, h2, h3, h4, .section-title) { text-transform: none; }
+:is(.layout-row--headings-tt-uppercase, .layout-col--headings-tt-uppercase, .layout-block--headings-tt-uppercase) :is(h1, h2, h3, h4, .section-title) { text-transform: uppercase; }
+:is(.layout-row--headings-tt-lowercase, .layout-col--headings-tt-lowercase, .layout-block--headings-tt-lowercase) :is(h1, h2, h3, h4, .section-title) { text-transform: lowercase; }
+:is(.layout-row--headings-tt-capitalize, .layout-col--headings-tt-capitalize, .layout-block--headings-tt-capitalize) :is(h1, h2, h3, h4, .section-title) { text-transform: capitalize; }
+
+/* A block's title: .section-title is the class every theme's block views
+   put on it. */
+:is(.layout-row--title-color, .layout-col--title-color, .layout-block--title-color) .section-title { color: var(--row-title-color); }
+:is(.layout-row--title-bg, .layout-col--title-bg, .layout-block--title-bg) .section-title { background: var(--row-title-bg); }
+:is(.layout-row--title-size, .layout-col--title-size, .layout-block--title-size) .section-title { font-size: var(--row-title-size); }
+:is(.layout-row--title-w, .layout-col--title-w, .layout-block--title-w) .section-title { font-weight: var(--row-title-weight); }
+:is(.layout-row--title-ls, .layout-col--title-ls, .layout-block--title-ls) .section-title { letter-spacing: var(--row-title-spacing); }
+:is(.layout-row--title-tt-none, .layout-col--title-tt-none, .layout-block--title-tt-none) .section-title { text-transform: none; }
+:is(.layout-row--title-tt-uppercase, .layout-col--title-tt-uppercase, .layout-block--title-tt-uppercase) .section-title { text-transform: uppercase; }
+:is(.layout-row--title-tt-lowercase, .layout-col--title-tt-lowercase, .layout-block--title-tt-lowercase) .section-title { text-transform: lowercase; }
+:is(.layout-row--title-tt-capitalize, .layout-col--title-tt-capitalize, .layout-block--title-tt-capitalize) .section-title { text-transform: capitalize; }
+:is(.layout-row--title-border-bottom, .layout-col--title-border-bottom, .layout-block--title-border-bottom) .section-title { border-bottom: var(--row-title-border); }
+:is(.layout-row--title-border-all, .layout-col--title-border-all, .layout-block--title-border-all) .section-title { border: var(--row-title-border); }
+:is(.layout-row--title-mb, .layout-col--title-mb, .layout-block--title-mb) .section-title { margin-bottom: var(--row-title-mb); }
+:is(.layout-row--title-py, .layout-col--title-py, .layout-block--title-py) .section-title { padding-top: var(--row-title-py); padding-bottom: var(--row-title-py); }
+:is(.layout-row--title-px, .layout-col--title-px, .layout-block--title-px) .section-title { padding-left: var(--row-title-px); padding-right: var(--row-title-px); }
+:is(.layout-row--title-noline, .layout-col--title-noline, .layout-block--title-noline) .section-title::after { display: none; }
+
+/* ---- columns per device ------------------------------------------------ */
+/* Tablets may reorder columns; phones may keep columns side by side at a
+   width of their own instead of stacking. */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .layout-col { order: var(--col-tablet-order, 0); }
+}
+@media (max-width: 767px) {
+    .layout-row--phone-cols { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .layout-row--phone-cols > .layout-col { grid-column: span 8 !important; }
+    .layout-row--phone-cols > .layout-col[style*="--col-phone:"] { grid-column: span var(--col-phone) !important; }
+}
+
+/* ---- hidden on a device ------------------------------------------------ */
+@media (max-width: 767px) {
+    :is(.layout-row--hide-phone, .layout-col--hide-phone, .layout-block--hide-phone) { display: none !important; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+    :is(.layout-row--hide-tablet, .layout-col--hide-tablet, .layout-block--hide-tablet) { display: none !important; }
+}
+@media (min-width: 1024px) {
+    :is(.layout-row--hide-desktop, .layout-col--hide-desktop, .layout-block--hide-desktop) { display: none !important; }
+}

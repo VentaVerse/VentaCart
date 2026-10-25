@@ -44,26 +44,30 @@ class LayoutRow extends Model
     protected $fillable = ['theme', 'page_type', 'region', 'sort_order', 'columns', 'style', 'responsive', 'is_enabled'];
 
     /**
-     * A row's columns on smaller screens, every value allowed: tablet widths
-     * in eighths (null keeps the desktop width) and the phone order per
-     * column (1-based). Both lists are as long as the row has columns.
+     * A row's columns on smaller screens, every value allowed. Widths are in
+     * eighths: a tablet width of null keeps the desktop width, a phone width
+     * of null stacks the column full width. Orders are 1-based positions per
+     * device. Every list is as long as the row has columns.
      *
-     * @return array{tablet: list<int|null>, phone_order: list<int>}
+     * @return array{tablet: list<int|null>, phone: list<int|null>, tablet_order: list<int>, phone_order: list<int>}
      */
     public static function normalizeResponsive(mixed $in, int $count): array
     {
         $in = is_array($in) ? $in : [];
         $count = max(1, $count);
-        $tablet = [];
-        $order = [];
+        $out = ['tablet' => [], 'phone' => [], 'tablet_order' => [], 'phone_order' => []];
         for ($i = 0; $i < $count; $i++) {
-            $w = $in['tablet'][$i] ?? null;
-            $tablet[] = is_numeric($w) && (int) $w >= 1 && (int) $w <= self::GRID ? (int) $w : null;
-            $o = $in['phone_order'][$i] ?? ($i + 1);
-            $order[] = is_numeric($o) ? max(1, min($count, (int) $o)) : $i + 1;
+            foreach (['tablet', 'phone'] as $device) {
+                $w = $in[$device][$i] ?? null;
+                $out[$device][] = is_numeric($w) && (int) $w >= 1 && (int) $w <= self::GRID ? (int) $w : null;
+            }
+            foreach (['tablet_order', 'phone_order'] as $key) {
+                $o = $in[$key][$i] ?? ($i + 1);
+                $out[$key][] = is_numeric($o) ? max(1, min($count, (int) $o)) : $i + 1;
+            }
         }
 
-        return ['tablet' => $tablet, 'phone_order' => $order];
+        return $out;
     }
 
     /** Whether any column departs from the default on a smaller screen. */
@@ -73,14 +77,18 @@ class LayoutRow extends Model
             return false;
         }
         $n = self::normalizeResponsive($responsive, $count);
-        foreach ($n['tablet'] as $w) {
-            if ($w !== null) {
-                return true;
+        foreach (['tablet', 'phone'] as $device) {
+            foreach ($n[$device] as $w) {
+                if ($w !== null) {
+                    return true;
+                }
             }
         }
-        foreach ($n['phone_order'] as $i => $o) {
-            if ($o !== $i + 1) {
-                return true;
+        foreach (['tablet_order', 'phone_order'] as $key) {
+            foreach ($n[$key] as $i => $o) {
+                if ($o !== $i + 1) {
+                    return true;
+                }
             }
         }
 

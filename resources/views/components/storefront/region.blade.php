@@ -52,12 +52,11 @@
         $vData = \App\Support\Widgets::resolve($placement->widget, $placement->config ?? []);
         $vHtml = view($vView, array_merge(['placement' => $placement], $vData, $vExtra))->render();
 
-        // A block styled on its own (box padding, background, border,
-        // corners, shadow, tone, title alignment) is wrapped in core markup
-        // on the same vocabulary as a styled row.
+        // A block styled on its own (box, title, an extra class, hidden on
+        // a device) is wrapped in core markup on the same vocabulary as a
+        // styled row.
         if (\App\Support\RowStyle::isStyled($placement->style)) {
-            $vHtml = '<div class="layout-block ' . e(implode(' ', \App\Support\RowStyle::classes($placement->style, 'layout-block'))) . '"'
-                . ' style="' . e(\App\Support\RowStyle::vars($placement->style)) . '">' . $vHtml . '</div>';
+            $vHtml = '<div' . \App\Support\RowStyle::attributes($placement->style, 'layout-block', ['layout-block']) . '>' . $vHtml . '</div>';
         }
 
         return \App\Support\LayoutHooks::wrapPlacement($vHtml, $placement, $name);
@@ -71,30 +70,47 @@
     foreach ($vUnits as $vIndex => $vUnit) {
         $vRow = $vUnit['row'];
         $vStyled = $vRow && \App\Support\RowStyle::isStyled($vRow->style);
+        $vColStyled = $vRow && \App\Support\RowStyle::hasColumnStyles($vRow->style);
         $vHtml = '';
 
-        if ($vRow && ($vRow->isSplit() || $vStyled)) {
+        if ($vRow && ($vRow->isSplit() || $vStyled || $vColStyled)) {
             $vWidths = \App\Models\LayoutRow::normalizeColumns($vRow->columns);
             $vResp = \App\Models\LayoutRow::isResponsive($vRow->responsive, count($vWidths))
                 ? \App\Models\LayoutRow::normalizeResponsive($vRow->responsive, count($vWidths)) : null;
+            $vBase = ['layout-row', 'layout-row--' . count($vWidths)];
+            // Columns given a phone width keep a grid on phones instead of stacking.
+            if ($vResp && array_filter($vResp['phone'], fn ($w) => $w !== null) !== []) {
+                $vBase[] = 'layout-row--phone-cols';
+            }
             // The style attribute carries the merchant's chosen values as
             // custom properties (data, not authored CSS); the rules live in
             // resources/css/storefront/layout-rows.css.
-            $vHtml .= '<div class="layout-row layout-row--' . count($vWidths)
-                . ($vStyled ? ' ' . e(implode(' ', \App\Support\RowStyle::classes($vRow->style))) : '') . '"'
-                . ' data-layout-row="' . e((string) $vRow->id) . '"'
-                . ($vStyled ? ' style="' . e(\App\Support\RowStyle::vars($vRow->style)) . '"' : '') . '>';
+            $vHtml .= '<div' . ($vStyled
+                    ? \App\Support\RowStyle::attributes($vRow->style, 'layout-row', $vBase)
+                    : ' class="' . e(implode(' ', $vBase)) . '"')
+                . ' data-layout-row="' . e((string) $vRow->id) . '">';
             foreach ($vWidths as $vCol => $vWidth) {
-                $vColVars = '';
+                $vColVars = [];
                 if ($vResp) {
-                    if ($vResp['tablet'][$vCol] !== null) {
-                        $vColVars .= '--col-tablet: ' . (int) $vResp['tablet'][$vCol] . '; ';
+                    foreach (['tablet' => '--col-tablet', 'phone' => '--col-phone'] as $vDevice => $vVar) {
+                        if ($vResp[$vDevice][$vCol] !== null) {
+                            $vColVars[] = $vVar . ': ' . (int) $vResp[$vDevice][$vCol];
+                        }
                     }
-                    if ($vResp['phone_order'][$vCol] !== $vCol + 1) {
-                        $vColVars .= '--col-phone-order: ' . (int) $vResp['phone_order'][$vCol] . '; ';
+                    foreach (['tablet_order' => '--col-tablet-order', 'phone_order' => '--col-phone-order'] as $vKey => $vVar) {
+                        if ($vResp[$vKey][$vCol] !== $vCol + 1) {
+                            $vColVars[] = $vVar . ': ' . (int) $vResp[$vKey][$vCol];
+                        }
                     }
                 }
-                $vHtml .= '<div class="layout-col layout-col--' . (int) $vWidth . '"' . ($vColVars !== '' ? ' style="' . e(trim($vColVars)) . '"' : '') . '>';
+                $vColBase = ['layout-col', 'layout-col--' . (int) $vWidth];
+                $vColStyle = \App\Support\RowStyle::columnStyle($vRow->style, $vCol);
+                // A column's own style shares the style attribute with its
+                // device widths and orders.
+                $vHtml .= '<div' . ($vColStyle
+                        ? \App\Support\RowStyle::attributes($vColStyle, 'layout-col', $vColBase, $vColVars)
+                        : ' class="' . e(implode(' ', $vColBase)) . '"' . ($vColVars !== [] ? ' style="' . e(implode('; ', $vColVars)) . '"' : ''))
+                    . '>';
                 $vHtml .= \App\Support\BlockGroup::renderColumn($vUnit['columns'][$vCol] ?? [], $vRender);
                 $vHtml .= '</div>';
             }

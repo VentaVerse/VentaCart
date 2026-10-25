@@ -22,7 +22,7 @@ class LayoutTemplate extends Model
      * styles normalised, only registered widgets, no ids. The same cleaner
      * serves a template save, a JSON import, and a copy to another page.
      *
-     * @return list<array{columns: list<int>, enabled: bool, style: array, placements: list<array>}>
+     * @return list<array{columns: list<int>, enabled: bool, style: array, responsive: array, placements: list<array>}>
      */
     public static function cleanRows(mixed $rows): array
     {
@@ -45,13 +45,14 @@ class LayoutTemplate extends Model
                     'title' => isset($p['title']) ? mb_substr((string) $p['title'], 0, 255) : null,
                     'enabled' => (bool) ($p['enabled'] ?? true),
                     'config' => is_array($p['config'] ?? null) ? $p['config'] : [],
+                    'style' => is_array($p['style'] ?? null) && RowStyle::isStyled($p['style']) ? RowStyle::normalize($p['style']) : null,
                 ];
             }
 
             $out[] = [
                 'columns' => $widths,
                 'enabled' => (bool) ($row['enabled'] ?? true),
-                'style' => RowStyle::normalize($row['style'] ?? []),
+                'style' => RowStyle::normalizeRow($row['style'] ?? []),
                 'responsive' => LayoutRow::normalizeResponsive($row['responsive'] ?? [], count($widths)),
                 'placements' => $placements,
             ];
@@ -77,6 +78,7 @@ class LayoutTemplate extends Model
                     'enabled' => $p['enabled'],
                     'available' => $widget !== null,
                     'config' => $p['config'],
+                    'style' => $p['style'],
                 ];
             }
             $units[] = [
@@ -84,6 +86,7 @@ class LayoutTemplate extends Model
                 'columns' => $row['columns'],
                 'enabled' => $row['enabled'],
                 'style' => $row['style'],
+                'responsive' => $row['responsive'],
                 'cols' => $cols,
             ];
         }

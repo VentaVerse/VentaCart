@@ -1089,6 +1089,8 @@
 .v-lay__presetrow button:hover { background: var(--v-paper); }
 
 .v-lay__imgpath { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 12px; }
+.v-lay__hide { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
+.v-lay__hide label { display: inline-flex; align-items: center; gap: 6px; }
 
 
 /* ---- a position's templates menu ------------------------------------- */

@@ -413,12 +413,12 @@ class LayoutController extends Controller
             foreach ($rows as $i => $row) {
                 $layoutRow = LayoutRow::create([
                     'theme' => $theme, 'page_type' => $target, 'region' => $targetRegion,
-                    'columns' => $row['columns'], 'style' => $row['style'], 'sort_order' => $after + 1 + $i, 'is_enabled' => $row['enabled'],
+                    'columns' => $row['columns'], 'style' => $row['style'], 'responsive' => $row['responsive'], 'sort_order' => $after + 1 + $i, 'is_enabled' => $row['enabled'],
                 ]);
                 foreach ($row['placements'] as $p) {
                     LayoutPlacement::create([
                         'theme' => $theme, 'page_type' => $target, 'region' => $targetRegion, 'row_id' => $layoutRow->id,
-                        'column_index' => $p['column'], 'widget' => $p['widget'], 'title' => $p['title'], 'config' => $p['config'],
+                        'column_index' => $p['column'], 'widget' => $p['widget'], 'title' => $p['title'], 'config' => $p['config'], 'style' => $p['style'],
                         'sort_order' => ++$order, 'is_enabled' => $p['enabled'],
                     ]);
                     $count++;
