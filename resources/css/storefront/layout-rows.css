@@ -63,13 +63,14 @@
 
 /* Full bleed: the background runs edge to edge while the content stays on
    the page's measure. The wrapper escapes its container by the viewport's
-   margin on each side. */
+   margin on each side. A theme with a site width setting sets --row-measure
+   so full rows line up with the rest of its page. */
 .layout-row--full {
     width: 100vw;
     margin-left: calc(50% - 50vw);
     margin-right: calc(50% - 50vw);
-    padding-left: max(1.5rem, calc(50vw - 640px));
-    padding-right: max(1.5rem, calc(50vw - 640px));
+    padding-left: max(1.5rem, calc(50vw - var(--row-measure, 1280px) / 2));
+    padding-right: max(1.5rem, calc(50vw - var(--row-measure, 1280px) / 2));
 }
 
 /* A styled row with one column keeps its content full width. */
@@ -182,8 +183,8 @@
 }
 /* Full bleed keeps the content on the measure, whatever padding was chosen. */
 .layout-row--full.layout-row--padding {
-    padding-left: max(1.5rem, calc(50vw - 640px));
-    padding-right: max(1.5rem, calc(50vw - 640px));
+    padding-left: max(1.5rem, calc(50vw - var(--row-measure, 1280px) / 2));
+    padding-right: max(1.5rem, calc(50vw - var(--row-measure, 1280px) / 2));
 }
 
 /* Vertical alignment: a row aligns its columns, a column and a block
