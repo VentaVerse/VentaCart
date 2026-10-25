@@ -9,17 +9,18 @@ use App\Services\ThemeService;
 use App\Support\ThemeContract;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
+use Tests\Support\UsesSampleTheme;
 use Tests\TestCase;
 
 /**
- * Themes as installable packages (Plaza plan, phase 7): a theme folder is
+ * Themes as installable packages: a theme folder is
  * discovered like an extension, installed against the contract, made live
  * from the Themes page, and a store with no installed theme shows core's
  * plain page.
  */
 class ThemePackagesTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, UsesSampleTheme;
 
     private function admin(): void
     {
@@ -31,7 +32,6 @@ class ThemePackagesTest extends TestCase
     public function test_the_shipped_themes_keep_the_contract(): void
     {
         $this->assertSame([], ThemeContract::check(resource_path('themes/venta')));
-        $this->assertSame([], ThemeContract::check(resource_path('themes/plaza')));
     }
 
     public function test_the_contract_names_what_a_broken_package_lacks(): void
@@ -54,36 +54,39 @@ class ThemePackagesTest extends TestCase
 
     public function test_themes_are_discovered_as_packages_and_the_default_is_installed(): void
     {
+        $this->makeSampleTheme();
         $discovered = app(ExtensionManager::class)->discovered();
         $this->assertSame('theme', $discovered->get('theme-venta')['type']);
-        $this->assertSame('theme', $discovered->get('theme-plaza')['type']);
+        $this->assertSame('theme', $discovered->get('theme-sample')['type']);
         $this->assertTrue($discovered->get('theme-venta')['default_enabled']);
-        $this->assertFalse($discovered->get('theme-plaza')['default_enabled']);
+        $this->assertFalse($discovered->get('theme-sample')['default_enabled']);
 
         $themes = app(ThemeService::class)->getAvailableThemes();
         $this->assertTrue($themes['venta']['installed']);
-        $this->assertFalse($themes['plaza']['installed']);
-        $this->assertArrayNotHasKey('plaza', app(ThemeService::class)->getInstalledThemes());
+        $this->assertFalse($themes['sample']['installed']);
+        $this->assertArrayNotHasKey('sample', app(ThemeService::class)->getInstalledThemes());
     }
 
     public function test_a_theme_that_is_not_installed_cannot_be_made_live(): void
     {
+        $this->makeSampleTheme();
         $this->expectException(\InvalidArgumentException::class);
-        app(ThemeService::class)->activateTheme('plaza');
+        app(ThemeService::class)->activateTheme('sample');
     }
 
     public function test_the_themes_page_installs_and_uninstalls_a_package(): void
     {
+        $this->makeSampleTheme();
         $this->admin();
 
         $this->get(route('admin.theme.index'))->assertOk()->assertSee('Not installed')->assertSee('Install');
 
-        $this->post(route('admin.theme.package.install'), ['theme' => 'plaza'])->assertRedirect()->assertSessionHas('success');
-        $this->assertTrue(Extension::where('name', 'theme-plaza')->exists());
+        $this->post(route('admin.theme.package.install'), ['theme' => 'sample'])->assertRedirect()->assertSessionHas('success');
+        $this->assertTrue(Extension::where('name', 'theme-sample')->exists());
         $this->get(route('admin.theme.index'))->assertOk()->assertSee('Use this theme');
 
-        $this->post(route('admin.theme.package.uninstall'), ['theme' => 'plaza'])->assertRedirect()->assertSessionHas('success');
-        $this->assertFalse(Extension::where('name', 'theme-plaza')->exists());
+        $this->post(route('admin.theme.package.uninstall'), ['theme' => 'sample'])->assertRedirect()->assertSessionHas('success');
+        $this->assertFalse(Extension::where('name', 'theme-sample')->exists());
     }
 
     public function test_a_store_without_an_installed_theme_shows_the_plain_page_and_the_admin_still_works(): void

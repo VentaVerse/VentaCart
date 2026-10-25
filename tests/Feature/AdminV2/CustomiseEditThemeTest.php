@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\ExtensionManager;
 use App\Services\ThemeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\UsesSampleTheme;
 use Tests\TestCase;
 
 /**
@@ -16,40 +17,42 @@ use Tests\TestCase;
  */
 class CustomiseEditThemeTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, UsesSampleTheme;
 
     private function boot(string $activate): void
     {
         $m = app(ExtensionManager::class);
-        foreach (['theme', 'banners', ThemeService::registryName('plaza')] as $name) {
+        foreach (['theme', 'banners'] as $name) {
             $m->install($name);
         }
-        $m->bootEnabled();
+        $this->installSampleTheme();
+        app(ExtensionManager::class)->bootEnabled();
         app(ThemeService::class)->activateTheme($activate);
         app(ThemeService::class)->clearCache();
+        $this->withoutVite();
         $this->actingAs(User::factory()->create());
     }
 
     public function test_a_decoupled_live_theme_is_sent_to_its_own_editor(): void
     {
-        $this->boot('plaza');
+        $this->boot('sample');
 
-        // Plaza is not rideable, so with no riding target named the editor
-        // lands on Venta; asking for Plaza explicitly can never reach it.
+        // Sample is not rideable, so with no riding target named the editor
+        // lands on Venta; asking for Sample explicitly can never reach it.
         $this->get(route('admin.theme.customise'))->assertOk()->assertSee('Theme: Venta');
-        $this->get(route('admin.theme.customise', ['theme' => 'plaza']))->assertOk()->assertSee('Theme: Venta');
+        $this->get(route('admin.theme.customise', ['theme' => 'sample']))->assertOk()->assertSee('Theme: Venta');
     }
 
     public function test_customising_a_riding_theme_that_is_not_live_edits_its_stash(): void
     {
-        // Plaza first (so venta's look is stashed when plaza goes live).
+        // Sample first (so venta's look is stashed when sample goes live).
         $this->boot('venta');
-        app(ThemeService::class)->activateTheme('plaza');
+        app(ThemeService::class)->activateTheme('sample');
         app(ThemeService::class)->clearCache();
-        $plazaPrimary = (string) Setting::where('group', 'colors')->where('key', 'primary')->value('value');
+        $samplePrimary = (string) Setting::where('group', 'colors')->where('key', 'primary')->value('value');
         $stashPrimary = (string) Setting::where('group', 'colors__theme_venta')->where('key', 'primary')->value('value');
 
-        // The page shows Venta's stashed look, not the live Plaza one, and
+        // The page shows Venta's stashed look, not the live Sample one, and
         // hides the presets section while editing a non-live theme.
         $html = $this->get(route('admin.theme.customise', ['theme' => 'venta']))->assertOk()->getContent();
         $this->assertStringContainsString('Theme: Venta', $html);
@@ -59,7 +62,7 @@ class CustomiseEditThemeTest extends TestCase
         // Saving writes the stash; the live look does not move.
         $this->post(route('admin.theme.settings.update'), ['theme' => 'venta', 'groups' => ['colors' => ['primary' => '#654321']]])->assertRedirect();
         $this->assertSame('#654321', Setting::where('group', 'colors__theme_venta')->where('key', 'primary')->value('value'));
-        $this->assertSame($plazaPrimary, (string) Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
+        $this->assertSame($samplePrimary, (string) Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
 
         // Going live, Venta wears the edit.
         app(ThemeService::class)->activateTheme('venta');
