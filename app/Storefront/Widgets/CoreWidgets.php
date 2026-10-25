@@ -183,15 +183,17 @@ class CoreWidgets
         }
         // The intro area: the page's trail and its title, drawn by the
         // theme from what the page said about itself (App\Support\PageIntro).
+        // Either may also sit inside a page's own region, beside the pieces
+        // it names. A product page keeps its name as a piece of its own, so
+        // the title is not offered there.
         foreach ([
-            'system.breadcrumbs' => ['title' => 'Breadcrumbs', 'shape' => 'strip'],
-            'system.page_title' => ['title' => 'Page title', 'shape' => 'block'],
+            'system.breadcrumbs' => ['title' => 'Breadcrumbs', 'shape' => 'strip', 'regions' => ['intro', 'product_main', 'category_main']],
+            'system.page_title' => ['title' => 'Page title', 'shape' => 'block', 'regions' => ['intro', 'category_main']],
         ] as $key => $spec) {
             Widgets::register($key, $spec + [
                 'module' => 'theme',
                 'system' => true,
                 'view' => 'widgets.' . $key,
-                'regions' => ['intro'],
             ]);
         }
         Widgets::register('system.quick_view', [
@@ -204,10 +206,35 @@ class CoreWidgets
         ]);
 
         // The product page's own pieces, for a theme that declares a
-        // product_main region. The gallery and buy box stay one piece: they
-        // share the scope that moves the image when a variant is chosen.
+        // product_main region. Each reads the page's data from PageContext.
+        //
+        // The price, variants, volume pricing and add to cart pieces work
+        // together: choosing a variant or a quantity changes the price. A
+        // theme gives them one shared script scope by wrapping the whole
+        // region, which is why they are offered in product_main only.
+        //
+        // The gallery and buy box, and the description and reviews, are also
+        // offered whole, for layouts arranged before the page came apart.
+        $showHide = ['show' => 'Show', 'hide' => 'Hide'];
         foreach ([
-            'system.product_buy' => ['title' => 'Gallery and buy box', 'shape' => 'block'],
+            'system.product_images' => ['title' => 'Images', 'shape' => 'block'],
+            'system.product_name' => ['title' => 'Product name', 'shape' => 'block'],
+            'system.product_rating' => ['title' => 'Rating', 'shape' => 'block'],
+            'system.product_info' => ['title' => 'Product info', 'shape' => 'block', 'schema' => [
+                'brand' => ['type' => 'select', 'label' => 'Brand', 'default' => 'show', 'options' => $showHide],
+                'shipping' => ['type' => 'select', 'label' => 'Free shipping note', 'default' => 'show', 'options' => $showHide],
+                'stock' => ['type' => 'select', 'label' => 'Stock', 'default' => 'show', 'options' => $showHide],
+            ]],
+            'system.product_price' => ['title' => 'Price', 'shape' => 'block'],
+            'system.product_countdown' => ['title' => 'Sale countdown', 'shape' => 'block'],
+            'system.product_variants' => ['title' => 'Variants', 'shape' => 'block'],
+            'system.product_volume_pricing' => ['title' => 'Volume pricing', 'shape' => 'block'],
+            'system.product_add_to_cart' => ['title' => 'Add to cart', 'shape' => 'block'],
+            'system.product_tags' => ['title' => 'Tags', 'shape' => 'strip'],
+            'system.product_share' => ['title' => 'Share buttons', 'shape' => 'strip'],
+            'system.product_description' => ['title' => 'Description', 'shape' => 'text'],
+            'system.product_reviews' => ['title' => 'Reviews', 'shape' => 'text'],
+            'system.product_buy' => ['title' => 'Gallery and buy box (all in one)', 'shape' => 'block'],
             'system.product_tabs' => ['title' => 'Description and reviews', 'shape' => 'block'],
             'system.product_related' => ['title' => 'Related products', 'shape' => 'strip'],
             'system.product_brand' => ['title' => 'More from the brand', 'shape' => 'strip'],
@@ -218,6 +245,24 @@ class CoreWidgets
                 'view' => 'widgets.' . $key,
                 'regions' => ['product_main'],
                 'pages' => ['product'],
+            ]);
+        }
+
+        // The category page's own pieces, for a theme that declares a
+        // category_main region: the category's picture and text, its
+        // children, and the paginated listing with its sort and view.
+        foreach ([
+            'system.category_image' => ['title' => 'Category image', 'shape' => 'banner'],
+            'system.category_description' => ['title' => 'Category description', 'shape' => 'text'],
+            'system.category_subcategories' => ['title' => 'Subcategories', 'shape' => 'strip'],
+            'system.category_products' => ['title' => 'Product listing', 'shape' => 'grid'],
+        ] as $key => $spec) {
+            Widgets::register($key, $spec + [
+                'module' => 'theme',
+                'system' => true,
+                'view' => 'widgets.' . $key,
+                'regions' => ['category_main'],
+                'pages' => ['category'],
             ]);
         }
 

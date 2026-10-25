@@ -96,29 +96,31 @@ final class LayoutInventory
         }
 
         // A system region with nothing arranged on the page it belongs to
-        // shows the theme's shipped pieces as one row of cards, ids null:
-        // saving the page makes them the merchant's own.
+        // shows the theme's shipped rows as cards, ids null: saving the page
+        // makes them the merchant's own.
         foreach (\App\Support\Regions::all() as $region => $spec) {
-            $defaults = \App\Support\Regions::defaults($region);
-            if ($defaults === [] || isset($out[$region]) || \App\Support\Regions::page($region) !== $pageType) {
+            if (isset($out[$region]) || ! \App\Support\Regions::shipsOn($region, $pageType)) {
                 continue;
             }
-            $out[$region][] = [
-                'id' => null,
-                'columns' => [LayoutRow::GRID],
-                'enabled' => true,
-                'style' => \App\Support\RowStyle::normalize([]),
-                'shipped' => true,
-                'cols' => [array_map(fn ($d) => [
+            foreach (\App\Support\Regions::defaultRows($region) as $shipped) {
+                $out[$region][] = [
                     'id' => null,
-                    'widget' => $d['widget'],
-                    'title' => $d['title'],
-                    'label' => \App\Support\Widgets::get($d['widget'])['title'] ?? $d['widget'],
+                    'columns' => $shipped['columns'],
                     'enabled' => true,
-                    'available' => \App\Support\Widgets::has($d['widget']),
-                    'config' => $d['config'],
-                ], $defaults)],
-            ];
+                    'style' => \App\Support\RowStyle::normalize([]),
+                    'responsive' => LayoutRow::normalizeResponsive($shipped['responsive'], count($shipped['columns'])),
+                    'shipped' => true,
+                    'cols' => array_map(fn ($pieces) => array_map(fn ($d) => [
+                        'id' => null,
+                        'widget' => $d['widget'],
+                        'title' => $d['title'],
+                        'label' => \App\Support\Widgets::get($d['widget'])['title'] ?? $d['widget'],
+                        'enabled' => true,
+                        'available' => \App\Support\Widgets::has($d['widget']),
+                        'config' => $d['config'],
+                    ], $pieces), $shipped['cols']),
+                ];
+            }
         }
 
         // An OBJECT, always. An empty PHP array serialises to [], which is a JS

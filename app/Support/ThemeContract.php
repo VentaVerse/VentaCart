@@ -104,6 +104,16 @@ final class ThemeContract
             if (is_array($spec) && ! empty($spec['defaults']) && ! is_array($spec['defaults'])) {
                 $problems[] = "Region [{$region}] defaults must be a list of widget keys.";
             }
+            // A shipped row that would collapse to one column on the
+            // storefront is a mistake in the manifest, not a layout.
+            foreach (is_array($spec['defaults'] ?? null) ? $spec['defaults'] : [] as $entry) {
+                if (is_array($entry) && isset($entry['cols'])) {
+                    $widths = array_values((array) ($entry['columns'] ?? []));
+                    if (! is_array($entry['cols']) || \App\Models\LayoutRow::normalizeColumns($widths) !== $widths || count($widths) !== count($entry['cols'])) {
+                        $problems[] = "Region [{$region}] has a default row whose columns do not add up to eight, one list of pieces per column.";
+                    }
+                }
+            }
         }
 
         foreach ((array) ($meta['settings'] ?? []) as $key => $spec) {

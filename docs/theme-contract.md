@@ -132,10 +132,16 @@ A region may declare its shipped contents:
 ```json
 "header": { "label": "Header", "system": true, "page": "*", "defaults": ["system.header"] },
 "product_main": { "label": "Product page", "system": true, "page": "product",
-                  "defaults": ["system.product_buy", "system.product_tabs", "system.product_related", "system.product_brand"] }
+                  "defaults": [
+                      { "columns": [4, 4], "cols": [["system.product_images"],
+                                                    ["system.product_name", "system.product_price", "system.product_add_to_cart"]] },
+                      "system.product_tabs", "system.product_related"
+                  ] }
 ```
 
-Until the merchant arranges such a region, the storefront renders the defaults as if they were placed, and the Layout editor shows them as one "As shipped" row that saving makes the merchant's own. `page` is the page type the region belongs to (`*` for every page). The widgets named in `defaults` are the theme's own pieces (section 5.2) or any core widget, with an optional `{ "widget": "…", "title": "…", "config": { … } }` form.
+Until the merchant arranges such a region, the storefront renders the defaults as if they were placed, and the Layout editor shows them as "As shipped" rows that saving makes the merchant's own. `page` is the page type the region belongs to (`*` for every page). The widgets named in `defaults` are the theme's own pieces (section 5.2) or any core widget, with an optional `{ "widget": "…", "title": "…", "config": { … } }` form.
+
+An entry with `columns` and `cols` is a row of its own: widths in eighths that add up to eight, and one list of pieces per column (an optional `responsive` takes the same `tablet` and `phone_order` lists a saved row does). Plain entries next to each other share one full-width row. `App\Support\Regions::defaultRows()` returns the rows; `defaults()` returns every piece in order. A one-category or one-level page shows the shipped rows while nothing up its chain has been arranged.
 
 ### 3.3 Rendering a region
 
@@ -225,9 +231,13 @@ A theme's own parts become widgets when the theme declares the region they belon
 | region | keys |
 |---|---|
 | `header` | `system.header` (the whole header as arranged), `system.topbar`, `system.logo`, `system.search`, `system.cart`, `system.nav` |
-| `product_main` | `system.product_buy` (gallery and buy box, one piece: they share the scope that changes the image with the variant), `system.product_tabs`, `system.product_related`, `system.product_brand` |
+| `product_main` | `system.product_images`, `system.product_name`, `system.product_rating`, `system.product_info` (brand, free shipping note and stock, each shown or hidden by its settings), `system.product_price`, `system.product_countdown` (the sale's end), `system.product_variants`, `system.product_volume_pricing` (quantity tiers), `system.product_add_to_cart`, `system.product_tags`, `system.product_share`, `system.product_description`, `system.product_reviews`, `system.product_related`, `system.product_brand` (more from the brand); and two pieces that hold several of these at once, `system.product_buy` (gallery and buy box) and `system.product_tabs` (description and reviews) |
+| `category_main` | `system.category_image`, `system.category_description`, `system.category_subcategories`, `system.category_products` (the paginated listing with its sort and view) |
+| `intro` | `system.breadcrumbs` and `system.page_title` (section 3.5), which may also sit in `product_main` (breadcrumbs only) and `category_main` |
 
-Views live at `views/widgets/system/{key}.blade.php`. Product pieces read the page's bundle from `App\Support\PageContext` (`extract(\App\Support\PageContext::all(), EXTR_SKIP)`), which `ProductController::show` publishes: `product`, `variantMatrix`, `variantTypes`, `effectivePrice`, `priceTiers`, `relatedProducts`, `sameBrandProducts`, `belowModules`, `reviewCount`, `averageRating`, and the rest of the product view's data.
+Views live at `views/widgets/system/{key}.blade.php`. Product pieces read the page's bundle from `App\Support\PageContext` (`extract(\App\Support\PageContext::all(), EXTR_SKIP)`), which `ProductController::show` publishes: `product`, `variantMatrix`, `variantTypes`, `effectivePrice`, `priceTiers`, `relatedProducts`, `sameBrandProducts`, `belowModules`, `reviewCount`, `averageRating`, and the rest of the product view's data. `CategoryController::show` publishes the category page's: `category`, `products` (the paginator), `subcategories`, `sort`, `settings`, `breadcrumbs` and the filter data.
+
+The price, variants, volume pricing and add to cart pieces change together when a variant or a quantity is chosen. A theme that draws them as separate pieces gives them one shared script scope around the whole `product_main` region, so they keep working in whatever rows and columns the merchant puts them.
 
 ## 6. Menus
 

@@ -117,11 +117,17 @@ class CategoryController extends Controller
         $page = (int) request()->query('page', 1);
         view()->share('canonical', route('category.show', $category->slug) . ($page > 1 ? '?page=' . $page : ''));
 
-        return view('category.index', compact(
+        $data = compact(
             'category', 'products', 'availableBrands', 'priceRange',
             'availableTags', 'subcategories', 'breadcrumbs', 'sort', 'settings',
             'ogTitle', 'ogDescription'
-        ));
+        );
+
+        // The page's pieces may be widgets in a theme's category region; they
+        // read the same bundle the page view gets.
+        \App\Support\PageContext::set($data);
+
+        return view('category.index', $data);
     }
 
     private function getCategoryAndDescendantIds(Category $category): array

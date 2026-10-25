@@ -34,7 +34,13 @@ trait UsesSampleTheme
         $manifest['name'] = 'Sample';
         $manifest['editor'] = 'admin.dashboard';
         $manifest['regions']['header'] = ['label' => 'Header', 'system' => true, 'page' => '*', 'defaults' => ['system.header']];
-        $manifest['regions']['product_main'] = ['label' => 'Product page', 'system' => true, 'page' => 'product', 'defaults' => ['system.product_buy']];
+        // The product page ships the way a two-column theme does: the images
+        // beside the buying pieces, then a full-width piece under both.
+        $manifest['regions']['product_main'] = ['label' => 'Product page', 'system' => true, 'page' => 'product', 'defaults' => [
+            ['columns' => [4, 4], 'cols' => [['system.product_images'], ['system.product_name', 'system.product_price', 'system.product_add_to_cart']]],
+            'system.product_tabs',
+        ]];
+        $manifest['regions']['category_main'] = ['label' => 'Category page', 'system' => true, 'page' => 'category', 'defaults' => ['system.category_subcategories', 'system.category_products']];
         file_put_contents($build.'/theme.json', json_encode($manifest, JSON_PRETTY_PRINT));
 
         foreach (['css', 'js'] as $dir) {
@@ -51,8 +57,14 @@ trait UsesSampleTheme
         foreach (File::directories($default.'/views/widgets') as $dir) {
             symlink($dir, $build.'/views/widgets/'.basename($dir));
         }
-        foreach (['cart', 'header', 'logo', 'nav', 'product_brand', 'product_buy', 'product_related', 'product_tabs', 'search', 'topbar'] as $piece) {
-            file_put_contents($build."/views/widgets/system/{$piece}.blade.php", "<div class=\"sample-{$piece}\"></div>\n");
+        // A placeholder for every system piece its regions take, so the
+        // sample passes the contract however many pieces core registers.
+        foreach (\App\Support\Widgets::all() as $key => $spec) {
+            if (! empty($spec['system']) && empty($spec['theme']) && str_starts_with($key, 'system.')
+                && array_intersect((array) $spec['regions'], array_keys($manifest['regions'])) !== []) {
+                $piece = substr($key, strlen('system.'));
+                file_put_contents($build."/views/widgets/system/{$piece}.blade.php", "<div class=\"sample-{$piece}\"></div>\n");
+            }
         }
 
         if (is_link($link)) {

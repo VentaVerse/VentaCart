@@ -21,14 +21,20 @@
     // A system region nobody has arranged yet shows the theme's own pieces,
     // in the theme's order, as if they were placed: the page looks as it
     // always did until the merchant moves something.
-    if ($vUnits->isEmpty() && ($vDefaults = \App\Support\Regions::defaults($name)) !== []) {
-        $vUnits = collect([[
-            'row' => null,
-            'columns' => [array_map(fn ($d) => new \App\Models\LayoutPlacement([
-                'theme' => \App\Models\LayoutPlacement::scopeTheme(), 'page_type' => $vPageType ?? '*', 'region' => $name,
+    // A shipped row with columns is drawn as an unsaved row, so it renders
+    // through the same grid markup a saved one does.
+    if ($vUnits->isEmpty() && ($vShipped = \App\Support\Regions::defaultRows($name)) !== []) {
+        $vTheme = \App\Models\LayoutPlacement::scopeTheme();
+        $vUnits = collect(array_map(fn ($r) => [
+            'row' => count($r['columns']) > 1 ? new \App\Models\LayoutRow([
+                'theme' => $vTheme, 'page_type' => $vPageType ?? '*', 'region' => $name,
+                'columns' => $r['columns'], 'responsive' => $r['responsive'], 'is_enabled' => true,
+            ]) : null,
+            'columns' => array_map(fn ($pieces) => array_map(fn ($d) => new \App\Models\LayoutPlacement([
+                'theme' => $vTheme, 'page_type' => $vPageType ?? '*', 'region' => $name,
                 'widget' => $d['widget'], 'title' => $d['title'], 'config' => $d['config'], 'is_enabled' => true,
-            ]), $vDefaults)],
-        ]]);
+            ]), $pieces), $r['cols']),
+        ], $vShipped));
     }
 
     // One placement, rendered by its widget's view. A placement whose module

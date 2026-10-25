@@ -51,20 +51,101 @@ class Regions
      * A region with defaults is a system region: the page's fixed parts
      * became rows the merchant may reorder, keep, or replace.
      *
+     * Every piece, in order, whatever rows defaultRows() groups them into.
+     *
      * @return list<array{widget: string, title: ?string, config: array}>
      */
     public static function defaults(string $region, ?string $theme = null): array
     {
         $out = [];
-        foreach ((array) (static::all($theme)[$region]['defaults'] ?? []) as $entry) {
-            if (is_string($entry)) {
-                $out[] = ['widget' => $entry, 'title' => null, 'config' => []];
-            } elseif (is_array($entry) && ! empty($entry['widget'])) {
-                $out[] = ['widget' => (string) $entry['widget'], 'title' => $entry['title'] ?? null, 'config' => (array) ($entry['config'] ?? [])];
+        foreach (static::defaultRows($region, $theme) as $row) {
+            foreach ($row['cols'] as $pieces) {
+                array_push($out, ...$pieces);
             }
         }
 
         return $out;
+    }
+
+    /**
+     * The shipped arrangement as rows, the shape the storefront draws and
+     * the editor edits.
+     *
+     * A defaults entry may be a row of its own, {columns: [4, 4], cols:
+     * [[...], [...]]}, so a page whose pieces sit side by side (a gallery
+     * beside the price) ships that way. Consecutive single entries share one
+     * full-width row, which is how a theme that lists plain keys has always
+     * been drawn. A row whose widths do not add up collapses to one column,
+     * the same rule a saved row follows.
+     *
+     * @return list<array{columns: list<int>, responsive: ?array, cols: list<list<array{widget: string, title: ?string, config: array}>>}>
+     */
+    public static function defaultRows(string $region, ?string $theme = null): array
+    {
+        $rows = [];
+        $loose = [];
+        $flush = function () use (&$rows, &$loose) {
+            if ($loose !== []) {
+                $rows[] = ['columns' => [\App\Models\LayoutRow::GRID], 'responsive' => null, 'cols' => [$loose]];
+                $loose = [];
+            }
+        };
+
+        foreach ((array) (static::all($theme)[$region]['defaults'] ?? []) as $entry) {
+            if (is_array($entry) && isset($entry['cols']) && is_array($entry['cols'])) {
+                $flush();
+                $cols = array_values(array_map(
+                    fn ($pieces) => array_values(array_filter(array_map([static::class, 'piece'], (array) $pieces))),
+                    $entry['cols']
+                ));
+                $widths = \App\Models\LayoutRow::normalizeColumns($entry['columns'] ?? []);
+                if (count($widths) !== count($cols)) {
+                    $widths = [\App\Models\LayoutRow::GRID];
+                    $cols = [array_merge(...($cols ?: [[]]))];
+                }
+                $rows[] = ['columns' => $widths, 'responsive' => is_array($entry['responsive'] ?? null) ? $entry['responsive'] : null, 'cols' => $cols];
+            } elseif ($piece = static::piece($entry)) {
+                $loose[] = $piece;
+            }
+        }
+        $flush();
+
+        return $rows;
+    }
+
+    /** One shipped piece: a widget key, or {widget, title, config}. */
+    private static function piece(mixed $entry): ?array
+    {
+        if (is_string($entry) && $entry !== '') {
+            return ['widget' => $entry, 'title' => null, 'config' => []];
+        }
+        if (is_array($entry) && ! empty($entry['widget'])) {
+            return ['widget' => (string) $entry['widget'], 'title' => $entry['title'] ?? null, 'config' => (array) ($entry['config'] ?? [])];
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether a page key shows a region's shipped pieces when it has no
+     * rows of its own there: the region belongs to the key's page type and
+     * nothing up the key's chain (a category's level, all categories) has
+     * been arranged, since that arrangement is what the page inherits.
+     */
+    public static function shipsOn(string $region, string $pageKey, ?string $theme = null): bool
+    {
+        if (static::defaultRows($region, $theme) === [] || static::page($region, $theme) !== LayoutPage::type($pageKey)) {
+            return false;
+        }
+
+        $theme = \App\Models\LayoutPlacement::scopeTheme($theme);
+        $up = array_values(array_diff(array_slice(LayoutPage::chain($pageKey), 1), [\App\Models\LayoutPlacement::EVERYWHERE]));
+        if ($up === []) {
+            return true;
+        }
+
+        return ! \App\Models\LayoutPlacement::where('theme', $theme)->where('region', $region)->whereIn('page_type', $up)->exists()
+            && ! \App\Models\LayoutRow::where('theme', $theme)->where('region', $region)->whereIn('page_type', $up)->exists();
     }
 
     /** The page type a region belongs to ('*' when it renders everywhere). */
