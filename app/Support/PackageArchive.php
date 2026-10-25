@@ -29,6 +29,18 @@ final class PackageArchive
     /** A version the registry can compare: 1.2, 1.2.3 or 1.2.3-beta.1. */
     public const VERSION_PATTERN = '/^\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?$/';
 
+    /** The longest version a package may give (package_uploads.version holds 40). */
+    public const VERSION_MAX = 40;
+
+    /** The longest name of a package shown to an admin or written to the log. */
+    public const TITLE_MAX = 120;
+
+    /** Namespaces of the application, the framework and the tools that build them. */
+    private const RESERVED_NAMESPACES = ['App\\', 'Illuminate\\', 'Laravel\\', 'Symfony\\', 'Database\\', 'Tests\\', 'Composer\\'];
+
+    /** Names Windows keeps for devices, which no file of a package may take. */
+    private const DEVICE_NAMES = '/^(?:con|prn|aux|nul|com[0-9]|lpt[0-9])(?:\..*)?$/i';
+
     /** Entries zip tools add on their own, skipped rather than refused. */
     private const SKIPPED = ['__MACOSX/', '.DS_Store', 'Thumbs.db'];
 
@@ -45,6 +57,9 @@ final class PackageArchive
 
     /** @var list<array{index: int, name: string, dir: bool, size: int}> */
     private array $entries = [];
+
+    /** @var array<string, array<string, mixed>>|null */
+    private ?array $bundled = null;
 
     private function __construct(
         private ZipArchive $zip,
@@ -79,6 +94,7 @@ final class PackageArchive
 
         $entries = [];
         $seen = [];
+        $folds = [];
         $tops = [];
         $total = 0;
 
@@ -94,10 +110,18 @@ final class PackageArchive
                 continue;
             }
 
+            // zip tools that do not mark names as UTF-8 get them read as an
+            // old DOS code page, which turns control bytes into printable
+            // symbols. The bytes as stored are checked too.
+            $raw = $zip->getNameIndex($i, ZipArchive::FL_ENC_RAW | ZipArchive::FL_UNCHANGED);
+            if (is_string($raw) && preg_match('/[\x00-\x1F\x7F\\\\]/', $raw)) {
+                self::assertSafeName($raw);
+            }
+
             self::assertSafeName($name);
 
             if (($stat['encryption_method'] ?? 0) !== 0) {
-                throw new PackageRefused("The archive is password protected ({$name}). Upload it without a password.");
+                throw new PackageRefused('The archive is password protected (' . self::plain($name, 200) . '). Upload it without a password.');
             }
 
             $dir = str_ends_with($name, '/');
@@ -115,10 +139,14 @@ final class PackageArchive
             }
 
             $key = rtrim($name, '/');
-            if (isset($seen[$key])) {
-                throw new PackageRefused("The archive lists {$key} more than once.");
+            // Case-insensitive file systems (Windows, macOS) would write two
+            // names that differ only in case to the same file.
+            $folded = mb_strtolower($key);
+            if (isset($seen[$key]) || isset($folds[$folded])) {
+                throw new PackageRefused('The archive lists ' . self::plain($key, 200) . ' more than once.');
             }
             $seen[$key] = true;
+            $folds[$folded] = true;
 
             $size = $dir ? 0 : (int) $stat['size'];
             if ($size > $limits['max_file_bytes']) {
@@ -196,7 +224,47 @@ final class PackageArchive
     {
         $title = $this->kind === 'theme' ? ($this->manifest['name'] ?? '') : ($this->manifest['title'] ?? '');
 
-        return is_string($title) && $title !== '' ? $title : $this->slug;
+        $title = is_string($title) ? self::plain($title, self::TITLE_MAX) : '';
+
+        return $title !== '' ? $title : $this->slug;
+    }
+
+    /**
+     * $text made safe to show and to log: control characters and line
+     * breaks become spaces, so a manifest cannot forge a line of the log,
+     * and it is cut to $max characters.
+     */
+    public static function plain(string $text, int $max = 200): string
+    {
+        $text = mb_scrub($text, 'UTF-8');
+        $text = trim((string) preg_replace('/[\p{Cc}\x{2028}\x{2029}]+/u', ' ', $text));
+
+        if (mb_strlen($text) <= $max) {
+            return $text;
+        }
+
+        return rtrim(mb_substr($text, 0, max(1, $max - 3))) . '...';
+    }
+
+    /**
+     * The migration files the package brings, as Laravel names them (the
+     * file name without .php), each with the folder inside the package it
+     * comes from: database/migrations, or extensions/{name}/database/migrations.
+     *
+     * @return list<array{name: string, folder: string}>
+     */
+    public function migrationNames(): array
+    {
+        $found = [];
+        $pattern = '#^' . preg_quote($this->slug, '#') . '/((?:extensions/[^/]+/)?database/migrations)/([^/]+)\.php$#';
+
+        foreach ($this->entries as $entry) {
+            if (! $entry['dir'] && preg_match($pattern, $entry['name'], $m)) {
+                $found[] = ['name' => $m[2], 'folder' => $m[1]];
+            }
+        }
+
+        return $found;
     }
 
     /**
@@ -207,6 +275,10 @@ final class PackageArchive
      */
     public function bundledExtensions(): array
     {
+        if ($this->bundled !== null) {
+            return $this->bundled;
+        }
+
         $found = [];
 
         foreach ($this->entries as $entry) {
@@ -215,7 +287,7 @@ final class PackageArchive
             }
         }
 
-        return $found;
+        return $this->bundled = $found;
     }
 
     /**
@@ -244,6 +316,8 @@ final class PackageArchive
             $this->writeEntry($entry, $target);
         }
 
+        // Read while the archive is still open.
+        $this->bundledExtensions();
         $this->zip->close();
 
         return $base . '/' . $this->slug;
@@ -329,6 +403,12 @@ final class PackageArchive
             if ($segment === '..' || $segment === '.' || $segment === '') {
                 throw new PackageRefused("The archive holds a path that leaves its folder or is not plain ({$shown}).");
             }
+            // Characters and names other systems treat specially: a colon
+            // opens an NTFS stream, Windows drops trailing dots and spaces,
+            // and device names never reach a file.
+            if (strpbrk($segment, ':*?"<>|') !== false || preg_match('/[. ]$/', $segment) || preg_match(self::DEVICE_NAMES, $segment)) {
+                throw new PackageRefused("The archive holds a file name that not every system can store ({$shown}). Rename it and make the zip again.");
+            }
         }
         if (strlen($name) > 400) {
             throw new PackageRefused("The archive holds a path longer than 400 characters ({$shown}).");
@@ -383,7 +463,7 @@ final class PackageArchive
                 throw new PackageRefused("{$file} needs a name.");
             }
             if ($name !== $slug) {
-                throw new PackageRefused("{$file} names the extension \"{$name}\", but its folder is \"{$slug}\". The two must match.");
+                throw new PackageRefused("{$file} names the extension \"" . self::plain($name, 80) . "\", but its folder is \"{$slug}\". The two must match.");
             }
             if (isset($manifest['provider']) && ! self::validProvider($manifest['provider'])) {
                 throw new PackageRefused("{$file} names a provider class that an extension may not use.");
@@ -393,7 +473,8 @@ final class PackageArchive
                 throw new PackageRefused("{$file} needs a name.");
             }
             if (isset($manifest['slug']) && $manifest['slug'] !== $slug) {
-                throw new PackageRefused("{$file} names the theme \"{$manifest['slug']}\", but its folder is \"{$slug}\". The two must match.");
+                $named = is_string($manifest['slug']) ? self::plain($manifest['slug'], 80) : 'something else';
+                throw new PackageRefused("{$file} names the theme \"{$named}\", but its folder is \"{$slug}\". The two must match.");
             }
             if (isset($manifest['provider']) && ! self::validProvider($manifest['provider'])) {
                 throw new PackageRefused("{$file} names a provider class that a theme may not use.");
@@ -401,8 +482,8 @@ final class PackageArchive
         }
 
         $version = $manifest['version'] ?? null;
-        if (! is_string($version) || ! preg_match(self::VERSION_PATTERN, $version)) {
-            throw new PackageRefused("{$file} needs a version such as 1.0.0.");
+        if (! is_string($version) || strlen($version) > self::VERSION_MAX || ! preg_match(self::VERSION_PATTERN, $version)) {
+            throw new PackageRefused("{$file} needs a version such as 1.0.0, of at most " . self::VERSION_MAX . ' characters.');
         }
     }
 
@@ -418,13 +499,35 @@ final class PackageArchive
             return false;
         }
 
-        foreach (['App\\', 'Illuminate\\', 'Laravel\\', 'Symfony\\', 'Database\\', 'Tests\\', 'Composer\\'] as $reserved) {
-            if (str_starts_with($provider, $reserved)) {
+        // PHP namespaces ignore case, so APP\Support is App\Support.
+        foreach (self::RESERVED_NAMESPACES as $reserved) {
+            if (self::namespacesOverlap(self::providerNamespace($provider), $reserved)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /** The namespace a provider class is in, with its trailing backslash. */
+    public static function providerNamespace(string $provider): string
+    {
+        $cut = strrpos($provider, '\\');
+
+        return $cut === false ? '' : substr($provider, 0, $cut + 1);
+    }
+
+    /**
+     * Whether two namespaces (each ending in a backslash) share classes:
+     * one is the other, or holds it. Compared without regard to case, as
+     * PHP compares class names.
+     */
+    public static function namespacesOverlap(string $a, string $b): bool
+    {
+        $a = strtolower(rtrim($a, '\\') . '\\');
+        $b = strtolower(rtrim($b, '\\') . '\\');
+
+        return str_starts_with($a, $b) || str_starts_with($b, $a);
     }
 
     private static function shapeHint(): string

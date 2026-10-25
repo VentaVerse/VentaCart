@@ -18,6 +18,22 @@ return [
 
     /*
     |--------------------------------------------------------------------
+    | Themes Path and Published Package Builds
+    |--------------------------------------------------------------------
+    |
+    | Where themes live (resources/themes/{slug}/theme.json), and where a
+    | package's build/ folder is copied so the browser can load it
+    | (public/packages/{name}, served at /packages/{name}). Overridden in
+    | tests so they never write to the real folders.
+    |
+    */
+
+    'themes_path' => resource_path('themes'),
+
+    'public_path' => public_path('packages'),
+
+    /*
+    |--------------------------------------------------------------------
     | Package uploads
     |--------------------------------------------------------------------
     |
@@ -28,15 +44,29 @@ return [
     | than max_files, a file larger than max_file_mb, or more than
     | max_unpacked_mb in all.
     |
+    | enabled switches the Upload screen on or off. Installing code from
+    | the admin needs the web server to be able to write to the themes,
+    | extensions and public/packages folders; a store that deploys from
+    | git or CI can switch uploads off and keep those folders read-only.
+    | To make uploads opt-in, change the default below to false.
+    |
     */
 
     'upload' => [
+        'enabled' => (bool) env('PACKAGE_UPLOAD_ENABLED', true),
         'max_size_mb' => (int) env('PACKAGE_UPLOAD_MAX_MB', 64),
         'max_files' => (int) env('PACKAGE_UPLOAD_MAX_FILES', 5000),
         'max_file_mb' => (int) env('PACKAGE_UPLOAD_MAX_FILE_MB', 32),
         'max_unpacked_mb' => (int) env('PACKAGE_UPLOAD_MAX_UNPACKED_MB', 256),
         // Uploads one admin may send per minute.
         'per_minute' => (int) env('PACKAGE_UPLOAD_PER_MINUTE', 5),
+        // Seconds PHP may spend on one upload; the install step runs past
+        // the usual request limit so a slow disk or migration can finish.
+        'max_seconds' => (int) env('PACKAGE_UPLOAD_MAX_SECONDS', 900),
+        // The lock every package change takes (App\Support\PackageLock),
+        // and how long a change waits for another one to finish.
+        'lock_file' => env('PACKAGE_LOCK_FILE', storage_path('framework/package-changes.lock')),
+        'lock_wait_seconds' => (int) env('PACKAGE_LOCK_WAIT_SECONDS', 10),
     ],
 
 ];

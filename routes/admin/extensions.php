@@ -29,10 +29,14 @@ Route::prefix('extensions')->group(function () {
     // uninstall Sub-Total and break every checkout; Venta does not.
     Route::get('/order-totals', [ExtensionsController::class, 'orderTotals'])->name('extensions.order-totals');
     // Upload a theme or extension as a .zip ('upload' is reserved the same
-    // way). Super admin only: it installs code.
-    Route::get('/upload', [PackageUploadController::class, 'show'])->name('extensions.upload');
+    // way). Super admin only, and the password must have been confirmed in
+    // the last 15 minutes: it installs code, so a stolen session alone is
+    // not enough.
+    Route::get('/upload', [PackageUploadController::class, 'show'])
+        ->middleware(\Illuminate\Auth\Middleware\RequirePassword::using('password.confirm', 900))
+        ->name('extensions.upload');
     Route::post('/upload', [PackageUploadController::class, 'store'])
-        ->middleware('throttle:package-uploads')
+        ->middleware([\Illuminate\Auth\Middleware\RequirePassword::using('password.confirm', 900), 'throttle:package-uploads'])
         ->name('extensions.upload.store');
     Route::post('/{name}/install', [ExtensionsController::class, 'install'])->name('extensions.install');
     Route::post('/{name}/enable', [ExtensionsController::class, 'enable'])->name('extensions.enable');

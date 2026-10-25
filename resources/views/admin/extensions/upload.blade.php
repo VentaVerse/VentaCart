@@ -38,7 +38,14 @@
             </div>
         @endif
 
+        @if (! $enabled)
+            <div class="v-notice v-notice--bad" role="status">
+                <p class="v-notice__title">Package uploads are switched off on this store</p>
+                <p class="v-notice__text">Themes and extensions are installed from the server's files instead. To allow uploads, set PACKAGE_UPLOAD_ENABLED=true in the store's .env and give the web server write access to resources/themes, extensions and public/packages.</p>
+            </div>
+        @else
         <x-admin.panel title="Package file" :note="'A .zip of one folder named after the package, with its theme.json or extension.json inside. At most ' . $uploadLimit . '.'">
+            <p class="v-field__hint">Installing runs the package's code on this store: its migrations at once, and its provider on every request after. Upload only packages from someone you trust.</p>
             <form method="POST" action="{{ route('admin.extensions.upload.store') }}" enctype="multipart/form-data"
                   class="v-upload" x-data="{ busy: false }" @submit="busy = true">
                 @csrf
@@ -55,6 +62,7 @@
                 </div>
             </form>
         </x-admin.panel>
+        @endif
 
         <x-admin.panel title="Recent uploads" flush>
             <div class="v-tablewrap">
@@ -83,8 +91,8 @@
                                     @endif
                                 </td>
                                 <td data-label="Result" class="v-cell-wide">
-                                    <span class="v-badge v-badge--{{ $upload->result === 'refused' ? 'bad' : 'good' }}">{{ ucfirst($upload->result) }}</span>
-                                    @if ($upload->result === 'refused' && $upload->message)
+                                    <span class="v-badge v-badge--{{ match ($upload->result) { 'installed', 'updated' => 'good', 'pending' => 'warn', default => 'bad' } }}">{{ $upload->result === 'pending' ? 'In progress' : ucfirst($upload->result) }}</span>
+                                    @if (in_array($upload->result, ['refused', 'failed'], true) && $upload->message)
                                         <span class="v-upload__why">{{ \Illuminate\Support\Str::limit($upload->message, 160) }}</span>
                                     @endif
                                 </td>

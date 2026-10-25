@@ -88,7 +88,7 @@ class RegisterThemeViews
             return false;
         }
 
-        $path = resource_path("themes/{$theme}/views");
+        $path = ThemeService::root("{$theme}/views");
 
         if (!is_dir($path)) {
             return false;

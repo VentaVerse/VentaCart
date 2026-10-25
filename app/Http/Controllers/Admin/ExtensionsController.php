@@ -126,6 +126,26 @@ class ExtensionsController extends Controller
             abort(404);
         }
 
+        // The same lock as a package upload: an upload swapping this
+        // package's folder while it is installed or removed here would
+        // leave files and registry disagreeing.
+        $lock = \App\Support\PackageLock::acquire((float) config('extensions.upload.lock_wait_seconds', 10));
+        if ($lock === null) {
+            return back()->with('error', 'Another package is being installed, updated or removed. Try again when it has finished.');
+        }
+
+        try {
+            return $this->runLocked($name, $action, $verbPast, $manifest);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function runLocked(string $name, string $action, string $verbPast, array $manifest): RedirectResponse
+    {
+        // Read again under the lock: an upload may have just changed it.
+        $this->manager->rescan();
+        $manifest = $this->manager->discovered()->get($name) ?? $manifest;
         $state = $this->manager->state($name);
 
         if (! in_array($state, self::ALLOWED_FROM_STATE[$action], true)) {

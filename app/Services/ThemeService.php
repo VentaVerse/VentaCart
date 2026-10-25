@@ -28,6 +28,17 @@ class ThemeService
         $this->reload();
     }
 
+    /**
+     * The folder themes live in (resources/themes unless
+     * extensions.themes_path says otherwise), or $path inside it.
+     */
+    public static function root(string $path = ''): string
+    {
+        $root = rtrim((string) (config('extensions.themes_path') ?: resource_path('themes')), '/');
+
+        return $path === '' ? $root : $root . '/' . ltrim($path, '/');
+    }
+
     /** Read the stored settings again, dropping any overlay. */
     public function reload(): void
     {
@@ -250,7 +261,7 @@ class ThemeService
     {
         $slug = (string) $this->get('identity.active_theme', self::THEME);
 
-        if ($slug === '' || ! is_file(resource_path("themes/{$slug}/theme.json"))) {
+        if ($slug === '' || ! is_file(self::root("{$slug}/theme.json"))) {
             return self::THEME;
         }
 
@@ -289,7 +300,7 @@ class ThemeService
      */
     public function getAvailableThemes(): array
     {
-        $dir = resource_path('themes');
+        $dir = self::root();
 
         if (! is_dir($dir)) {
             return [];
@@ -342,7 +353,7 @@ class ThemeService
             return false;
         }
 
-        $path = resource_path("themes/{$slug}");
+        $path = self::root($slug);
         $key = $slug . '@' . $installedVersion . '@' . (string) @filemtime($path . '/theme.json');
 
         return $this->servable[$key] ??= \App\Support\ThemeContract::check($path) === [];
@@ -516,7 +527,7 @@ class ThemeService
     public function getThemePath(?string $theme = null): string
     {
         $theme = $theme ?? $this->getActiveTheme();
-        return resource_path("themes/{$theme}");
+        return self::root($theme);
     }
 
     /**

@@ -73,7 +73,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->booted(function () {
             try {
                 $theme = app(ThemeService::class)->getActiveTheme();
-                $themePath = resource_path("themes/{$theme}/views");
+                $themePath = ThemeService::root("{$theme}/views");
 
                 if (is_dir($themePath)) {
                     View::getFinder()->prependLocation($themePath);

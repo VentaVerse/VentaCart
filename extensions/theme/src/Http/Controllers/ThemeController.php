@@ -400,6 +400,13 @@ class ThemeController extends Controller
 
         $updating = ! empty($meta['update_available']);
 
+        // The lock package uploads take, so an upload never swaps the
+        // folder while it is being installed here.
+        $lock = \App\Support\PackageLock::acquire((float) config('extensions.upload.lock_wait_seconds', 10));
+        if ($lock === null) {
+            return back()->with('error', 'Another package is being installed, updated or removed. Try again when it has finished.');
+        }
+
         try {
             $extensions->install(ThemeService::registryName($slug));
         } catch (\RuntimeException $e) {
@@ -410,6 +417,8 @@ class ThemeController extends Controller
             \Illuminate\Support\Facades\Log::error("Theme {$slug}: " . ($updating ? 'update' : 'install') . ' failed', ['exception' => $e]);
 
             return back()->with('error', ($updating ? 'Updating ' : 'Installing ') . $meta['name'] . ' failed. Check the application log for details.');
+        } finally {
+            $lock->release();
         }
 
         $theme->clearCache();
@@ -434,7 +443,16 @@ class ThemeController extends Controller
             return back()->with('error', 'That theme is not installed.');
         }
 
-        $extensions->uninstall(ThemeService::registryName($slug));
+        $lock = \App\Support\PackageLock::acquire((float) config('extensions.upload.lock_wait_seconds', 10));
+        if ($lock === null) {
+            return back()->with('error', 'Another package is being installed, updated or removed. Try again when it has finished.');
+        }
+
+        try {
+            $extensions->uninstall(ThemeService::registryName($slug));
+        } finally {
+            $lock->release();
+        }
         $theme->clearCache();
 
         return back()->with(

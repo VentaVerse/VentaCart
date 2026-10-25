@@ -19,7 +19,7 @@ class EditTheme
     public static function rideable(ThemeService $theme): array
     {
         return array_filter($theme->getInstalledThemes(), function ($meta, $slug) {
-            $json = json_decode((string) @file_get_contents(resource_path("themes/{$slug}/theme.json")), true) ?: [];
+            $json = json_decode((string) @file_get_contents(ThemeService::root("{$slug}/theme.json")), true) ?: [];
 
             return empty($json['editor']);
         }, ARRAY_FILTER_USE_BOTH);

@@ -38,7 +38,16 @@ class PackageVite extends Vite
         $up = str_repeat('../', substr_count(trim($buildDirectory, '/'), '/') + 1);
 
         foreach ($packages as $name => $chunks) {
+            // A package's entries are its own source files only, so one
+            // package's build can never stand in for another's entries or
+            // for the store's.
+            $own = self::sourcePattern((string) $name);
+            $chunks = array_filter($chunks, fn ($chunk, $key) => str_starts_with((string) $key, '_') || preg_match($own, (string) $key), ARRAY_FILTER_USE_BOTH);
             $entries = array_filter(array_keys($chunks), fn ($key) => ! str_starts_with((string) $key, '_'));
+
+            if ($entries === []) {
+                continue;
+            }
 
             // The store's own build already compiled this package.
             if (array_intersect($entries, array_keys($manifest)) !== []) {
@@ -63,7 +72,10 @@ class PackageVite extends Vite
                 }
                 foreach (['imports', 'dynamicImports'] as $list) {
                     if (isset($chunk[$list])) {
-                        $chunk[$list] = array_map($rename, (array) $chunk[$list]);
+                        $chunk[$list] = array_values(array_map($rename, array_filter(
+                            (array) $chunk[$list],
+                            fn ($import) => is_string($import) && (str_starts_with($import, '_') || preg_match($own, $import)),
+                        )));
                     }
                 }
 
@@ -72,6 +84,22 @@ class PackageVite extends Vite
         }
 
         return $manifest;
+    }
+
+    /**
+     * Where a package's own sources sit, as Vite keys them: a theme under
+     * resources/themes/{slug}/, an extension under extensions/{name}/ or
+     * inside the theme that brings it.
+     */
+    private static function sourcePattern(string $name): string
+    {
+        $quoted = preg_quote($name, '#');
+
+        if (str_starts_with($name, 'theme-')) {
+            return '#^resources/themes/' . preg_quote(substr($name, 6), '#') . '/#';
+        }
+
+        return '#^(?:extensions/' . $quoted . '/|resources/themes/[a-z0-9-]+/extensions/' . $quoted . '/)#';
     }
 
     protected function assetPath($path, $secure = null)

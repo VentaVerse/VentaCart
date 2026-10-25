@@ -17,6 +17,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Tests\Support\BuildsPackageUploads;
 use Tests\TestCase;
 use ZipArchive;
 
@@ -27,145 +28,13 @@ use ZipArchive;
  */
 class PackageUploadTest extends TestCase
 {
+    use BuildsPackageUploads;
     use RefreshDatabase;
-
-    private const SLUG = 'upload-sample';
-
-    private string $scratch;
-
-    private string $extensionsRoot;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->scratch = storage_path('framework/testing/package-upload');
-        $this->extensionsRoot = $this->scratch . '/extensions';
-        File::deleteDirectory($this->scratch);
-        File::ensureDirectoryExists($this->extensionsRoot);
-        config(['extensions.path' => $this->extensionsRoot]);
-        $this->forgetTheme();
-
-        $this->beforeApplicationDestroyed(function () {
-            $this->forgetTheme();
-            File::deleteDirectory($this->scratch);
-        });
-
-        app()->forgetInstance(ExtensionManager::class);
-        $this->actingAs(User::factory()->create(['name' => 'Maria Santos']));
-    }
-
-    private function forgetTheme(): void
-    {
-        $theme = resource_path('themes/' . self::SLUG);
-        if (is_link($theme)) {
-            unlink($theme);
-        }
-        File::deleteDirectory($theme);
-        foreach (glob(resource_path('themes/.upload-*'), GLOB_ONLYDIR) ?: [] as $left) {
-            File::deleteDirectory($left);
-        }
-        PackageAssets::remove(ThemeService::registryName(self::SLUG));
-    }
-
-    /**
-     * A zip of the default theme under another folder name, at $version,
-     * with a migration of its own. Extra entries are added as given.
-     *
-     * @param  array<string, string>  $extra
-     */
-    private function themeZip(string $version = '1.0.0', array $extra = [], string $folder = self::SLUG, ?callable $manifest = null): string
-    {
-        $default = resource_path('themes/' . ThemeService::THEME);
-        $files = [];
-
-        $items = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($default, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS));
-        foreach ($items as $item) {
-            if ($item->isFile()) {
-                $files[$folder . '/' . substr($item->getPathname(), strlen($default) + 1)] = (string) file_get_contents($item->getPathname());
-            }
-        }
-
-        $meta = json_decode($files["{$folder}/theme.json"], true);
-        $meta['name'] = 'Upload Sample';
-        $meta['version'] = $version;
-        if ($manifest) {
-            $meta = $manifest($meta);
-        }
-        $files["{$folder}/theme.json"] = json_encode($meta, JSON_PRETTY_PRINT);
-        $files["{$folder}/database/migrations/2026_01_01_000000_create_upload_sample_notes.php"] = $this->migration('upload_sample_notes');
-
-        return $this->zip($files + $extra);
-    }
-
-    private function migration(string $table): string
-    {
-        return <<<PHP
-        <?php
-
-        use Illuminate\Database\Migrations\Migration;
-        use Illuminate\Database\Schema\Blueprint;
-        use Illuminate\Support\Facades\Schema;
-
-        return new class extends Migration
-        {
-            public function up(): void
-            {
-                Schema::create('{$table}', function (Blueprint \$table) {
-                    \$table->id();
-                    \$table->string('body')->nullable();
-                });
-            }
-
-            public function down(): void
-            {
-                Schema::dropIfExists('{$table}');
-            }
-        };
-        PHP;
-    }
-
-    /**
-     * @param  array<string, string>  $files  entry name => contents
-     * @param  array<string, string>  $links  entry name => link target
-     */
-    private function zip(array $files, array $links = []): string
-    {
-        $path = $this->scratch . '/' . bin2hex(random_bytes(6)) . '.zip';
-        $zip = new ZipArchive();
-        $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-        foreach ($files as $name => $contents) {
-            $zip->addFromString($name, $contents);
-        }
-        foreach ($links as $name => $target) {
-            $zip->addFromString($name, $target);
-            $zip->setExternalAttributesName($name, ZipArchive::OPSYS_UNIX, (0120777 << 16));
-        }
-        $zip->close();
-
-        return $path;
-    }
-
-    private function upload(string $zip, string $name = 'package.zip')
-    {
-        return $this->post(route('admin.extensions.upload.store'), [
-            'package' => new UploadedFile($zip, $name, 'application/zip', null, true),
-        ]);
-    }
-
-    private function outcome(): array
-    {
-        return (array) session('package_upload');
-    }
-
-    private function assertRefused(string $contains): void
-    {
-        $result = $this->outcome();
-        $this->assertFalse($result['ok'] ?? true, 'The upload was expected to be refused.');
-        $this->assertStringContainsString($contains, $result['message']);
-        $this->assertSame(PackageUpload::REFUSED, PackageUpload::latest('id')->value('result'));
-        $this->assertDirectoryDoesNotExist(resource_path('themes/' . self::SLUG));
-        $this->assertSame([], glob(resource_path('themes/.upload-*')) ?: []);
+        $this->setUpPackageScratch();
     }
 
     public function test_the_screen_opens_for_a_super_admin(): void
@@ -186,7 +55,7 @@ class PackageUploadTest extends TestCase
         $this->assertSame('1.0.0', $result['version']);
         $this->assertFalse($result['updated']);
 
-        $this->assertFileExists(resource_path('themes/' . self::SLUG . '/theme.json'));
+        $this->assertFileExists($this->themePath('theme.json'));
         $this->assertSame('1.0.0', Extension::where('name', 'theme-' . self::SLUG)->value('version'));
         $this->assertTrue(Schema::hasTable('upload_sample_notes'));
         $this->assertTrue(app(ThemeService::class)->getAvailableThemes()[self::SLUG]['installed']);
@@ -226,7 +95,7 @@ class PackageUploadTest extends TestCase
         $this->assertTrue(Schema::hasTable('upload_sample_tags'));
         $this->assertSame('Kept', DB::table('upload_sample_notes')->value('body'));
         $this->assertSame('centered', Setting::where('group', 'theme_settings')->where('key', self::SLUG . '_header_layout')->value('value'));
-        $this->assertFileExists(resource_path('themes/' . self::SLUG . '/views/partials/added-in-update.blade.php'));
+        $this->assertFileExists($this->themePath('views/partials/added-in-update.blade.php'));
         $this->assertSame(PackageUpload::UPDATED, PackageUpload::latest('id')->value('result'));
 
         $this->get(route('admin.extensions.upload'))->assertSee('Updated from version 1.0.0 to 1.1.0');
@@ -249,7 +118,7 @@ class PackageUploadTest extends TestCase
 
         $this->assertFalse($this->outcome()['ok']);
         $this->assertStringContainsString('older than the 1.2.0', $this->outcome()['message']);
-        $this->assertSame('1.2.0', json_decode(file_get_contents(resource_path('themes/' . self::SLUG . '/theme.json')), true)['version']);
+        $this->assertSame('1.2.0', json_decode(file_get_contents($this->themePath('theme.json')), true)['version']);
     }
 
     public function test_a_zip_slip_path_is_refused(): void
@@ -259,6 +128,7 @@ class PackageUploadTest extends TestCase
         $this->assertRefused('leaves its folder');
         $this->assertFileDoesNotExist(resource_path('escaped.php'));
         $this->assertFileDoesNotExist(base_path('escaped.php'));
+        $this->assertFileDoesNotExist($this->scratch . '/escaped.php');
     }
 
     public function test_an_absolute_path_is_refused(): void
@@ -325,7 +195,7 @@ class PackageUploadTest extends TestCase
         file_put_contents($file, 'plain text');
 
         $this->upload($file)->assertSessionHasErrors('package');
-        $this->assertDirectoryDoesNotExist(resource_path('themes/' . self::SLUG));
+        $this->assertDirectoryDoesNotExist($this->themePath());
     }
 
     public function test_an_archive_without_a_manifest_is_refused(): void
@@ -400,7 +270,7 @@ class PackageUploadTest extends TestCase
         $elsewhere = $this->scratch . '/linked-theme';
         File::ensureDirectoryExists($elsewhere);
         file_put_contents($elsewhere . '/theme.json', '{"name":"Linked","version":"1.0.0"}');
-        symlink($elsewhere, resource_path('themes/' . self::SLUG));
+        symlink($elsewhere, $this->themePath());
 
         $this->upload($this->themeZip('2.0.0'));
 
@@ -449,13 +319,14 @@ class PackageUploadTest extends TestCase
                 'resources/themes/upload-sample/css/extra.css' => ['file' => 'assets/extra-abc123.css', 'src' => 'resources/themes/upload-sample/css/extra.css', 'isEntry' => true],
             ]),
             self::SLUG . '/build/assets/extra-abc123.css' => 'body{}',
-            self::SLUG . '/build/assets/run.php' => '<?php echo 1;',
+            self::SLUG . '/build/assets/notes.txt' => 'Not a browser asset.',
         ]));
 
         $this->assertTrue($this->outcome()['ok'], $this->outcome()['message'] ?? '');
         $published = PackageAssets::publicPath('theme-' . self::SLUG);
         $this->assertFileExists($published . '/assets/extra-abc123.css');
-        $this->assertFileDoesNotExist($published . '/assets/run.php');
+        $this->assertFileDoesNotExist($published . '/assets/notes.txt');
+        $this->assertStringContainsString('php_flag engine off', (string) file_get_contents($this->publicRoot . '/.htaccess'));
 
         if (is_file(public_path('build/manifest.json'))) {
             $html = (string) app(\Illuminate\Foundation\Vite::class)('resources/themes/upload-sample/css/extra.css');
@@ -477,7 +348,7 @@ class PackageUploadTest extends TestCase
         $this->get(route('admin.extensions.upload'))->assertForbidden();
         $this->upload($this->themeZip('1.0.0'))->assertForbidden();
 
-        $this->assertDirectoryDoesNotExist(resource_path('themes/' . self::SLUG));
+        $this->assertDirectoryDoesNotExist($this->themePath());
         $this->assertSame(0, PackageUpload::count());
         $this->get(route('admin.extensions.index'))->assertOk()->assertDontSee(route('admin.extensions.upload'));
     }

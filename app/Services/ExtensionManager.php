@@ -81,7 +81,7 @@ class ExtensionManager
         // theme.json. It has no provider, no migrations and no routes; the
         // registry row is what "installed" means, and the shipped default
         // is installed with the other essentials on a fresh store.
-        $themes = collect(File::glob(resource_path('themes/*/theme.json')))
+        $themes = collect(File::glob(ThemeService::root('*/theme.json')))
             ->map(function (string $json) {
                 $meta = json_decode(File::get($json), true);
 
@@ -112,7 +112,7 @@ class ExtensionManager
         // folder. They are packages like any other, installed and switched
         // through the same registry; they carry the theme's slug so the
         // theme's own panel can list them and nothing else claims them.
-        $owned = collect(File::glob(resource_path('themes/*/extensions/*/extension.json')))
+        $owned = collect(File::glob(ThemeService::root('*/extensions/*/extension.json')))
             ->map(function (string $manifestPath) {
                 $manifest = json_decode(File::get($manifestPath), true);
 
@@ -539,6 +539,58 @@ class ExtensionManager
                 require $file;
             }
         });
+    }
+
+    /**
+     * Forgets the cached registry, for code that changed registry rows
+     * itself (putting back the rows a failed upload replaced).
+     */
+    public function forgetRegistry(): void
+    {
+        $this->booted = false;
+        $this->invalidateRegistryCache();
+    }
+
+    /** The newest migration batch the store has run, or 0 when none has. */
+    public function lastMigrationBatch(): int
+    {
+        $repository = app('migration.repository');
+
+        return $repository->repositoryExists() ? (int) $repository->getLastBatchNumber() : 0;
+    }
+
+    /**
+     * Rolls back, newest first, every migration batch after $batch, but
+     * only the migrations whose files are in these package folders. Used
+     * when installing a package fails part way, so the store does not keep
+     * a schema its files no longer match.
+     *
+     * @param  list<string>  $packagePaths
+     */
+    public function rollBackMigrationsAfter(int $batch, array $packagePaths): void
+    {
+        $paths = array_values(array_filter(
+            array_map(fn (string $path) => rtrim($path, '/') . '/database/migrations', $packagePaths),
+            fn (string $path) => File::isDirectory($path),
+        ));
+
+        if ($paths === [] || ! app('migration.repository')->repositoryExists()) {
+            return;
+        }
+
+        $batches = array_unique(array_filter(
+            array_map('intval', app('migration.repository')->getMigrationBatches()),
+            fn (int $ran) => $ran > $batch,
+        ));
+        rsort($batches);
+
+        foreach ($batches as $ran) {
+            Artisan::call('migrate:rollback', [
+                '--path' => array_map(fn (string $path) => $this->relativePath($path), $paths),
+                '--batch' => (int) $ran,
+                '--force' => true,
+            ]);
+        }
     }
 
     protected function runMigrations(string $extensionPath, string $command): void
