@@ -442,6 +442,11 @@ final class RowStyle
         foreach ($n['palette'] as $key => $hex) {
             $vars['--color-' . str_replace('_', '-', $key)] = $hex;
         }
+        // Text already painted by the page keeps the page's colour, so a
+        // palette that redefines the text colour paints this box's text too.
+        if ($n['text'] === '' && isset($n['palette']['text']) && ! isset($vars['--row-text'])) {
+            $vars['--row-text'] = $n['palette']['text'];
+        }
 
         return implode('; ', array_map(fn ($k, $v) => $k . ': ' . $v, array_keys($vars), $vars));
     }

@@ -109,6 +109,18 @@ class LayoutStyleSectionsTest extends TestCase
         $this->assertSame(' class="layout-block layout-block--styled layout-block--pad-none a b" id="deals" style="--row-text: #FFFFFF"', $attrs);
     }
 
+    public function test_a_palette_text_colour_paints_the_boxs_own_text(): void
+    {
+        $vars = RowStyle::vars(['palette' => ['text' => '#F4EFE4', 'primary' => '#2FBFB0']]);
+        $this->assertStringContainsString('--color-text: #F4EFE4', $vars);
+        $this->assertStringContainsString('--row-text: #F4EFE4', $vars);
+
+        // A box with its own text colour keeps it, and one whose palette
+        // leaves text alone inherits from around it as before.
+        $this->assertStringContainsString('--row-text: #111111', RowStyle::vars(['text' => '#111111', 'palette' => ['text' => '#F4EFE4']]));
+        $this->assertStringNotContainsString('--row-text', RowStyle::vars(['palette' => ['primary' => '#2FBFB0']]));
+    }
+
     public function test_the_finer_choices_render_as_custom_properties(): void
     {
         $vars = RowStyle::vars([
