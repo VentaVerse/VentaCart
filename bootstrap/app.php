@@ -50,7 +50,16 @@ return Application::configure(basePath: dirname(__DIR__))
             // and by nobody else, and a framed page stays framed across its
             // own redirects. Storefront responses are left alone.
             \App\Http\Middleware\AdminFraming::class,
+            // Every admin route, core or extension, needs the permission its
+            // name maps to (config/admin-permissions.php).
+            \App\Http\Middleware\EnforceAdminPermission::class,
         ]);
+        // After sign-in, so the user is known; before route model binding,
+        // so a refused request never loads what it named.
+        $middleware->appendToPriorityList(
+            \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            \App\Http\Middleware\EnforceAdminPermission::class,
+        );
 
         // The active theme's view folder, re-checked per request. The provider
         // already prepends it at boot; this only catches the case where that

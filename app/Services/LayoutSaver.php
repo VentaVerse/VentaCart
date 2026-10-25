@@ -7,9 +7,13 @@ use App\Models\LayoutColumns;
 use App\Models\LayoutPlacement;
 use App\Models\LayoutRow;
 use App\Support\Regions;
+use App\Support\AdminPermissions;
 use App\Support\RowStyle;
 use App\Support\Widgets;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * One save carries the whole page type: its columns and its rows. Shared by
@@ -27,9 +31,15 @@ class LayoutSaver
     /**
      * @param  array{columns?: array, settings?: array, rows?: array, placements?: array}  $data
      *
+     * @param  bool  $trusted  true for a layout the store shipped with (a
+     *                          theme's own files), which may carry code
+     *                          fields whoever applies it
+     *
      * @throws RefusedSave when nothing sent could be placed
+     * @throws AuthorizationException when someone who may not write
+     *                                storefront code changed a code field
      */
-    public function save(string $pageType, array $data): array
+    public function save(string $pageType, array $data, bool $trusted = false): array
     {
         // The editor sends rows. A flat placements list (the shape before rows
         // existed, and what an import may still carry) is accepted too: each
@@ -40,6 +50,10 @@ class LayoutSaver
                 'id' => null, 'region' => $p['region'] ?? '', 'columns' => [LayoutRow::GRID], 'enabled' => true,
                 'placements' => [$p + ['column' => 0]],
             ]);
+
+        if (! $trusted) {
+            $this->refuseCodeChanges($pageType, $rows);
+        }
 
         // Written by this save, and counted in what the merchant is told.
         $kept = [];
@@ -155,5 +169,53 @@ class LayoutSaver
         });
 
         return ['kept' => $kept, 'spared' => $spared, 'rows' => $rows->count()];
+    }
+
+    /**
+     * A widget field marked 'code' (the HTML block's markup) is printed on
+     * the storefront unescaped, so only someone allowed to write storefront
+     * code may change one. Everyone else can still move, switch off, delete
+     * or re-save such a block, as long as the code itself arrives as stored.
+     * With nobody signed in (a console command) the operator is trusted.
+     */
+    private function refuseCodeChanges(string $pageType, Collection $rows): void
+    {
+        $user = auth()->user();
+
+        if ($user === null || Gate::forUser($user)->allows(AdminPermissions::STOREFRONT_CODE)) {
+            return;
+        }
+
+        $stored = null;
+
+        foreach ($rows as $unit) {
+            foreach ((array) ($unit['placements'] ?? []) as $row) {
+                $widget = (string) ($row['widget'] ?? '');
+                $fields = array_keys(array_filter(
+                    (array) (Widgets::get($widget)['schema'] ?? []),
+                    fn ($field) => is_array($field) && ($field['code'] ?? false) === true
+                ));
+
+                if ($fields === []) {
+                    continue;
+                }
+
+                $stored ??= LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
+                    ->where('page_type', $pageType)
+                    ->get(['id', 'widget', 'config'])
+                    ->keyBy('id');
+
+                $id = isset($row['id']) && is_numeric($row['id']) ? (int) $row['id'] : null;
+                $before = $id !== null && $stored->get($id)?->widget === $widget
+                    ? (array) $stored->get($id)->config
+                    : [];
+
+                foreach ($fields as $field) {
+                    if ((string) ($row['config'][$field] ?? '') !== (string) ($before[$field] ?? '')) {
+                        throw new AuthorizationException('Only a super admin can change an HTML block.');
+                    }
+                }
+            }
+        }
     }
 }

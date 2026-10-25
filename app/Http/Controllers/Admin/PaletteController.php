@@ -19,38 +19,46 @@ class PaletteController extends Controller
             return response()->json(['results' => []]);
         }
 
+        // Each kind of result shows only to someone who may open it.
+        $user = $request->user();
         $results = [];
 
-        foreach (Product::query()->where('name', 'like', "%{$q}%")->limit(5)->get() as $p) {
-            $results[] = ['label' => $p->name, 'sub' => 'Product', 'url' => route('admin.products.edit', $p), 'group' => 'Products'];
+        if ($user->hasPermission('products.view')) {
+            foreach (Product::query()->where('name', 'like', "%{$q}%")->limit(5)->get() as $p) {
+                $results[] = ['label' => $p->name, 'sub' => 'Product', 'url' => route('admin.products.edit', $p), 'group' => 'Products'];
+            }
         }
 
-        foreach (
-            Order::query()
+        if ($user->hasPermission('orders.view')) {
+            $orders = Order::query()
                 ->where('id', 'like', "%{$q}%")
                 ->orWhere('first_name', 'like', "%{$q}%")
                 ->orWhere('last_name', 'like', "%{$q}%")
                 ->orWhere('email', 'like', "%{$q}%")
                 ->limit(5)
-                ->get() as $o
-        ) {
-            $results[] = [
-                'label' => "Order #{$o->id}",
-                'sub' => trim("{$o->first_name} {$o->last_name}"),
-                'url' => route('admin.orders.show', $o),
-                'group' => 'Orders',
-            ];
+                ->get();
+
+            foreach ($orders as $o) {
+                $results[] = [
+                    'label' => "Order #{$o->id}",
+                    'sub' => trim("{$o->first_name} {$o->last_name}"),
+                    'url' => route('admin.orders.show', $o),
+                    'group' => 'Orders',
+                ];
+            }
         }
 
-        foreach (
-            Customer::query()
+        if ($user->hasPermission('customers.view')) {
+            $customers = Customer::query()
                 ->where('email', 'like', "%{$q}%")
                 ->orWhere('first_name', 'like', "%{$q}%")
                 ->orWhere('last_name', 'like', "%{$q}%")
                 ->limit(5)
-                ->get() as $c
-        ) {
-            $results[] = ['label' => trim("{$c->first_name} {$c->last_name}"), 'sub' => $c->email, 'url' => route('admin.customers.edit', $c), 'group' => 'Customers'];
+                ->get();
+
+            foreach ($customers as $c) {
+                $results[] = ['label' => trim("{$c->first_name} {$c->last_name}"), 'sub' => $c->email, 'url' => route('admin.customers.edit', $c), 'group' => 'Customers'];
+            }
         }
 
         return response()->json(['results' => $results]);

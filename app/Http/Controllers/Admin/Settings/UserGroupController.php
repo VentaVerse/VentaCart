@@ -18,10 +18,13 @@ class UserGroupController extends Controller
      */
     private const SECTIONS = [
         'Overview' => ['dashboard', 'reports'],
-        'Sales' => ['orders'],
-        'Catalog' => ['categories', 'products'],
-        'Customers' => ['customers'],
-        'Extensions' => [],
+        'Sales' => ['orders', 'couriers', 'reviews'],
+        'Catalog' => ['products', 'categories', 'brands', 'tags', 'attributes', 'media'],
+        'Customers' => ['customers', 'customer-groups'],
+        'Marketing' => ['marketing'],
+        'Content' => ['pages', 'blog', 'menus'],
+        'Layout and themes' => ['layout', 'themes'],
+        'Extensions' => ['extensions'],
         'System' => ['users', 'settings'],
     ];
 

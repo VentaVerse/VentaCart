@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Route;
 class SettingsNav
 {
     /**
-     * Groups with items the given user may see. Null user = no filtering.
+     * Groups with items the given user may see, by the same permission map
+     * the routes enforce (see AdminNav::userMayOpen()). Null user = no
+     * filtering.
      *
      * Also drops any item whose named route isn't currently registered —
      * same reasoning as App\Support\AdminNav::groups(): the Fulfillment hub
@@ -19,14 +21,14 @@ class SettingsNav
      */
     public static function groups(?User $user = null): array
     {
+        $permissions = app(AdminPermissions::class);
+
         return collect(config('settings-nav'))
-            ->map(function (array $group) use ($user) {
+            ->map(function (array $group) use ($user, $permissions) {
                 $group['items'] = array_values(array_filter(
                     $group['items'],
-                    fn (array $item) => (
-                        $item['permission'] === null
-                        || ($user?->hasPermission($item['permission']) ?? true)
-                    ) && Route::has($item['route'])
+                    fn (array $item) => AdminNav::userMayOpen($user, $item, $permissions)
+                        && Route::has($item['route'])
                 ));
 
                 return $group;

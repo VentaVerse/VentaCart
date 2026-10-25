@@ -900,7 +900,8 @@ class ReskinWaveTest extends TestCase
 
         // Super Admin can never be stripped: a save with no permissions
         // still holds the full set afterward.
-        $superAdmin = Role::create(['name' => 'Super Admin', 'slug' => 'super-admin']);
+        // The acting factory user already sits in Super Admin.
+        $superAdmin = Role::firstOrCreate(['slug' => 'super-admin'], ['name' => 'Super Admin']);
         $this->put(route('admin.user-groups.update', $superAdmin), [
             'name' => 'Super Admin',
             'permissions' => [],

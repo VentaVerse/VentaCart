@@ -87,15 +87,14 @@ class AdminNav
     {
         $registry = static::registry();
         $settings = static::settingValues($registry);
+        $permissions = app(AdminPermissions::class);
 
         return collect($registry)
-            ->map(function (array $group) use ($user, $settings) {
+            ->map(function (array $group) use ($user, $settings, $permissions) {
                 $group['items'] = array_values(array_filter(
                     $group['items'],
-                    fn (array $item) => (
-                        $item['permission'] === null
-                        || ($user?->hasPermission($item['permission']) ?? true)
-                    ) && Route::has($item['route'])
+                    fn (array $item) => static::userMayOpen($user, $item, $permissions)
+                        && Route::has($item['route'])
                         && static::settingAllows($item, $settings)
                 ));
 
@@ -106,6 +105,25 @@ class AdminNav
             ->all();
     }
 
+
+    /**
+     * Whether a nav item's page would open for this user. Asks the same map
+     * the route middleware enforces (App\Support\AdminPermissions), so a
+     * link is never shown that would answer 403. An item's own 'permission'
+     * key, when set, is an extra condition on top. Null user = no filtering.
+     */
+    public static function userMayOpen(?User $user, array $item, ?AdminPermissions $permissions = null): bool
+    {
+        if ($user === null) {
+            return true;
+        }
+
+        if (($item['permission'] ?? null) !== null && ! $user->hasPermission($item['permission'])) {
+            return false;
+        }
+
+        return ($permissions ?? app(AdminPermissions::class))->allows($user, $item['route'], 'GET');
+    }
 
     /**
      * The registry entry for $key IF it is currently reachable for this

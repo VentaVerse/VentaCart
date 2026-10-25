@@ -9,8 +9,10 @@ use App\Models\NavMenu;
 use App\Models\NavMenuItem;
 use App\Models\Page;
 use App\Services\ThemeService;
+use App\Support\AdminPermissions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -203,7 +205,14 @@ class MenuController extends Controller
                 'banner_url' => (string) ($data['banner_url'] ?? ''),
             ];
         } elseif ($type === 'html') {
-            $config = ['html' => (string) ($data['html'] ?? '')];
+            $html = (string) ($data['html'] ?? '');
+            // Printed on the storefront unescaped, so writing it is super
+            // admin only. Saving an item without touching its HTML is fine.
+            $stored = $item && $item->type === 'html' ? (string) ($item->config['html'] ?? '') : '';
+            if ($html !== $stored && Gate::denies(AdminPermissions::STOREFRONT_CODE)) {
+                abort(403, 'Only a super admin can change custom HTML.');
+            }
+            $config = ['html' => $html];
         } elseif ($type === 'system') {
             $config = ['page' => $data['system_page']];
         }

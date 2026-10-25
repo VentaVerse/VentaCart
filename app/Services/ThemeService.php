@@ -387,7 +387,8 @@ class ThemeService
         }
         $region = (string) ($data['region'] ?? 'content_top');
         $rows = array_map(fn ($row) => $row + ['id' => null, 'region' => $region], \App\Models\LayoutTemplate::cleanRows($data['rows']));
-        app(LayoutSaver::class)->save('home', ['columns' => ['left' => 0, 'right' => 0], 'rows' => $rows]);
+        // The theme's own file: trusted, whoever switches the theme on.
+        app(LayoutSaver::class)->save('home', ['columns' => ['left' => 0, 'right' => 0], 'rows' => $rows], trusted: true);
 
         return true;
     }
@@ -703,10 +704,12 @@ class ThemeService
                     $rows[] = $row + ['id' => null, 'region' => (string) $region];
                 }
             }
+            // A preset is a theme's shipped file, or one a super admin
+            // imported (importing is super admin only), so it is trusted.
             app(LayoutSaver::class)->save((string) $pageType, [
                 'columns' => (array) ($regions['columns'] ?? ['left' => 0, 'right' => 0]),
                 'rows' => $rows,
-            ]);
+            ], trusted: true);
         }
 
         \App\Support\NavTree::forget();

@@ -1,8 +1,10 @@
 <?php
 
 // Single source of truth for admin navigation. The sidebar, breadcrumbs,
-// and command palette all render from this file. 'permission' of null =
-// visible to every admin; otherwise checked via User::hasPermission().
+// and command palette all render from this file. An item shows only to a
+// user its route would let in (config/admin-permissions.php, the same map
+// the routes enforce); 'permission', when not null, is an extra condition
+// checked via User::hasPermission().
 // 'keywords' are palette/search synonyms, never displayed. 'segment'
 // (groups) and 'key' (items) are the URL-grammar segments the path-derived
 // nav (App\Support\Breadcrumbs, App\Support\AdminNav::activeItemKey())

@@ -46,13 +46,46 @@ class User extends Authenticatable
         return $this->belongsToMany(Store::class, 'store_user');
     }
 
+    /**
+     * The role's permission slugs, read once per loaded user: the sidebar
+     * alone asks a few dozen times per page.
+     *
+     * @var list<string>|null
+     */
+    protected ?array $permissionSlugs = null;
+
+    /**
+     * Super admins hold every permission, including ones added after their
+     * role was saved, and pass every admin check. A user with no role holds
+     * none: nobody is given access by accident of a missing value.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role?->slug === Role::SUPER_ADMIN;
+    }
+
     public function hasPermission(string $slug): bool
     {
-        if (!$this->role) {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if (! $this->role) {
             return false;
         }
 
-        return $this->role->permissions()->where('slug', $slug)->exists();
+        $this->permissionSlugs ??= $this->role->permissions()->pluck('slug')->all();
+
+        return in_array($slug, $this->permissionSlugs, true);
+    }
+
+    /** Forget the cached permissions, after the role or its permissions change. */
+    public function refreshPermissions(): static
+    {
+        $this->permissionSlugs = null;
+        $this->unsetRelation('role');
+
+        return $this;
     }
 
     public function hasAccessToStore(int $storeId): bool
