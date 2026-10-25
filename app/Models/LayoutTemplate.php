@@ -45,7 +45,7 @@ class LayoutTemplate extends Model
                     'title' => isset($p['title']) ? mb_substr((string) $p['title'], 0, 255) : null,
                     'enabled' => (bool) ($p['enabled'] ?? true),
                     'config' => is_array($p['config'] ?? null) ? $p['config'] : [],
-                    'style' => is_array($p['style'] ?? null) && RowStyle::isStyled($p['style']) ? RowStyle::normalize($p['style']) : null,
+                    'style' => is_array($p['style'] ?? null) && RowStyle::hasAnything($p['style']) ? RowStyle::normalize($p['style']) : null,
                 ];
             }
 

@@ -126,6 +126,10 @@ final class RowStyle
         'title_color' => '', 'title_bg' => '', 'title_size' => '', 'title_transform' => '', 'title_weight' => '', 'title_spacing' => '',
         'title_border' => 'none', 'title_border_side' => 'bottom', 'title_border_width' => 1, 'title_border_color' => '',
         'title_margin_bottom' => '', 'title_pad_y' => '', 'title_pad_x' => '', 'title_line' => '',
+        // Words around a block's title: a line under it and a "view all" link
+        // beside it. They draw no wrapper of their own; the theme reads them
+        // through titleExtras().
+        'subtitle' => '', 'title_link_text' => '', 'title_link_url' => '',
         // Advanced
         'css_class' => '', 'anchor' => '', 'hide_phone' => false, 'hide_tablet' => false, 'hide_desktop' => false,
     ];
@@ -193,6 +197,10 @@ final class RowStyle
             $out[$key] = filter_var($in[$key] ?? false, FILTER_VALIDATE_BOOLEAN);
         }
 
+        $out['subtitle'] = self::words($in['subtitle'] ?? '', 200);
+        $out['title_link_text'] = self::words($in['title_link_text'] ?? '', 60);
+        $out['title_link_url'] = self::linkUrl($in['title_link_url'] ?? '');
+
         $out['palette'] = self::palette($in['palette'] ?? []);
         $out['css_class'] = self::classList($in['css_class'] ?? '');
         $out['anchor'] = self::anchor($in['anchor'] ?? '');
@@ -242,6 +250,66 @@ final class RowStyle
         }
 
         return false;
+    }
+
+    /**
+     * The subtitle and title link a block's title carries, for the theme
+     * to draw. A link needs both its words and an address.
+     *
+     * @return array{subtitle: string, link: ?array{text: string, url: string}}
+     */
+    public static function titleExtras(?array $style): array
+    {
+        $n = self::normalize($style ?? []);
+
+        return [
+            'subtitle' => $n['subtitle'],
+            'link' => $n['title_link_text'] !== '' && $n['title_link_url'] !== ''
+                ? ['text' => $n['title_link_text'], 'url' => $n['title_link_url']] : null,
+        ];
+    }
+
+    /** Anything worth keeping: a look the storefront draws, or words around the title. */
+    public static function hasAnything(?array $style): bool
+    {
+        if (self::isStyled($style)) {
+            return true;
+        }
+        $extras = self::titleExtras($style);
+
+        return $extras['subtitle'] !== '' || $extras['link'] !== null;
+    }
+
+    /** Plain words on one line, trimmed to $max characters. */
+    private static function words(mixed $value, int $max): string
+    {
+        if (! is_string($value)) {
+            return '';
+        }
+        $value = trim((string) preg_replace('/\s+/u', ' ', $value));
+
+        return mb_substr($value, 0, $max);
+    }
+
+    /**
+     * An address a shopper may follow: a path on this store, an anchor, or
+     * an http(s) page. Anything else (javascript:, data:, a bare word) is
+     * dropped.
+     */
+    private static function linkUrl(mixed $value): string
+    {
+        if (! is_string($value)) {
+            return '';
+        }
+        $value = trim($value);
+        if ($value === '' || strlen($value) > 500 || preg_match('/[\s<>"\'`]/', $value)) {
+            return '';
+        }
+        if (preg_match('#^(/(?!/)|\#)#', $value) || preg_match('#^https?://[^/\s]+#i', $value)) {
+            return $value;
+        }
+
+        return '';
     }
 
     /** Anything at all set away from the defaults that the storefront would draw? */
