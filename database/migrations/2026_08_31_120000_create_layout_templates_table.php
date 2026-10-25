@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Area templates (Plaza plan, phase 2): the rows of one region, with their
+ * Area templates: the rows of one region, with their
  * widgets and settings, kept under a name so a merchant can load the same
  * arrangement into another page or another region. Per theme, like layouts.
  */

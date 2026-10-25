@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 /**
  * Where a theme's own editor plugs into the storefront render.
  *
- * Core draws regions; an editor that edits on the page (Plaza's) needs to
+ * Core draws regions; an editor that edits on the page needs to
  * draw them from an unsaved draft, wrap every row and placement in
  * something it can point at, and show an empty region as a place to drop
  * into. These hooks are those four seams, registered per request by the

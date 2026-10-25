@@ -124,9 +124,9 @@ class LayoutController extends Controller
     /**
      * What can be added, and where.
      *
-     * Journal filters its module list by the position you are standing in
-     * (positions:"column_left,column_right,..."). Same here: a widget declares
-     * the regions it accepts, and one that declares none is offered anywhere.
+     * The list is filtered by the position the merchant is standing in: a
+     * widget declares the regions it accepts, and one that declares none is
+     * offered anywhere.
      */
     private function catalogue(array $regions): array
     {

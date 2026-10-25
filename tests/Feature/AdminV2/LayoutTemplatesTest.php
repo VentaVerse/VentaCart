@@ -11,7 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 /**
- * Area templates (Plaza plan, phase 2): a position's rows kept under a
+ * Area templates: a position's rows kept under a
  * name, loaded back as editor rows, copied to another page, carried out as
  * a file and brought back in. Only the copy writes a page, on its own
  * control; everything else is editor state until Save.

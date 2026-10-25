@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the Plaza demo artwork from docs/tools/demo-shots.json.
+"""Generate demo artwork from a shot manifest (--manifest).
 
     python3 docs/tools/genimg.py --provider gemini            # all missing shots
     python3 docs/tools/genimg.py --provider gemini --only hero
@@ -79,7 +79,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--provider", choices=["gemini", "elevenlabs"], default="gemini")
     ap.add_argument("--model")
-    ap.add_argument("--manifest", default="docs/tools/demo-shots.json",
+    ap.add_argument("--manifest", default="docs/tools/store-demo-shots.json",
                     help="which sheet to generate from, relative to the project root")
     ap.add_argument("--only", help="one folder name from the manifest's paths, e.g. hero or products")
     ap.add_argument("--limit", type=int)

@@ -10,10 +10,10 @@ use Tests\TestCase;
 /**
  * Side columns, and the ratio as a decision rather than a consequence.
  *
- * Journal and OpenCart compute content width from which sidebars exist:
- * col-sm-6 with both, col-sm-9 with one, col-sm-12 with none. A merchant who
- * wants a narrow filter rail beside a wide catalogue cannot express it, because
- * the template already decided. Here each side is set in eighths and the
+ * Computing content width from which sidebars exist (half with both,
+ * three quarters with one, full with none) means a merchant who wants a
+ * narrow filter rail beside a wide catalogue cannot express it, because the
+ * template already decided. Here each side is set in eighths and the
  * content takes the remainder.
  */
 class LayoutColumnsTest extends TestCase

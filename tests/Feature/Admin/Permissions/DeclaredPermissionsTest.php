@@ -97,13 +97,63 @@ class DeclaredPermissionsTest extends TestCase
         $this->post(route('admin.users.store'), [])->assertForbidden();
     }
 
-    public function test_theme_editors_need_themes_edit(): void
+    public function test_a_theme_editor_is_closed_until_its_theme_maps_it(): void
     {
         $permissions = app(AdminPermissions::class);
 
-        $this->assertSame('themes.edit', $permissions->requirementFor('admin.plaza.panel', 'GET'));
-        $this->assertSame('themes.edit', $permissions->requirementFor('admin.plaza.editor.save', 'POST'));
-        $this->assertSame('themes.edit', $permissions->requirementFor('admin.xelga.panel', 'GET'));
+        // Core names no theme's routes: an editor nobody declared stays
+        // super admin only.
+        $this->assertNull($permissions->requirementFor('admin.sample.panel', 'GET'));
+
+        AdminPermissions::map(['admin.sample.*' => 'themes.edit']);
+        $permissions = app(AdminPermissions::class);
+
+        $this->assertSame('themes.edit', $permissions->requirementFor('admin.sample.panel', 'GET'));
+        $this->assertSame('themes.edit', $permissions->requirementFor('admin.sample.editor.save', 'POST'));
+    }
+
+    public function test_a_theme_can_hold_one_of_its_screens_to_a_stricter_permission(): void
+    {
+        AdminPermissions::map([
+            'admin.sample.*' => 'themes.edit',
+            'admin.sample.messages.*' => 'customers',
+        ]);
+        $permissions = app(AdminPermissions::class);
+
+        $this->assertSame('themes.edit', $permissions->requirementFor('admin.sample.panel', 'GET'));
+        $this->assertSame('customers.view', $permissions->requirementFor('admin.sample.messages.index', 'GET'));
+        $this->assertSame('customers.delete', $permissions->requirementFor('admin.sample.messages.destroy', 'DELETE'));
+    }
+
+    public function test_a_declaration_cannot_relax_the_super_admin_only_list(): void
+    {
+        AdminPermissions::map([
+            'admin.users.*' => '@admin',
+            'admin.extensions.install' => '@admin',
+            'admin.theme.presets.import' => 'themes.edit',
+        ]);
+        $permissions = app(AdminPermissions::class);
+
+        $this->assertSame(AdminPermissions::SUPER_ADMIN, $permissions->requirementFor('admin.users.store', 'POST'));
+        $this->assertSame(AdminPermissions::SUPER_ADMIN, $permissions->requirementFor('admin.extensions.install', 'POST'));
+        $this->assertSame(AdminPermissions::SUPER_ADMIN, $permissions->requirementFor('admin.theme.presets.import', 'POST'));
+    }
+
+    public function test_a_declaration_broader_than_its_own_prefix_is_ignored(): void
+    {
+        AdminPermissions::map([
+            'admin.*' => '@admin',
+            '*' => '@admin',
+            'admin.demo*' => '@admin',
+            'other.demo-module.*' => '@admin',
+        ]);
+
+        $permissions = app(AdminPermissions::class);
+        $this->assertNull($permissions->requirementFor('admin.demo-module.index', 'GET'));
+        $this->assertNull($permissions->requirementFor('admin.nothing-maps-this', 'GET'));
+
+        $this->actingAs(User::factory()->role('staff')->create());
+        $this->get('/admin/demo-module')->assertForbidden();
     }
 
     public function test_the_action_follows_the_method_and_the_route_name(): void

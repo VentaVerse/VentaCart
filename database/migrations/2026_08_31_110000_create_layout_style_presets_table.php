@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Named row styles (Plaza plan, phase 2): a merchant styles one row and keeps
+ * Named row styles: a merchant styles one row and keeps
  * the result under a name to apply to other rows. Per theme, like layouts.
  */
 return new class extends Migration

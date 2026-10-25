@@ -17,9 +17,7 @@ use Tests\TestCase;
  *
  * Placements used to be global, so switching theme left rows pointing at
  * regions the new theme had never declared and the editor had to warn about
- * orphans. The evidence for scoping is in the merchant's own legacy store,
- * where oc_layout_module still holds "journal2_static_banners.72" in a shop
- * running Journal 3: placements from a theme two versions dead, pointing at
+ * orphans: placements from a theme long since replaced, pointing at
  * content that no longer exists, with nothing to report them.
  */
 class LayoutThemeScopeTest extends TestCase
@@ -163,7 +161,7 @@ class LayoutThemeScopeTest extends TestCase
 
         $html = $this->get(route('admin.layout', ['page' => 'cart']))->assertOk()->getContent();
 
-        // The seed is rows now (phase 1 of the Plaza plan); the rule is the same.
+        // The seed is rows now; the rule is the same.
         preg_match('/rows: (\{.*?\}|\[\]),\n/s', $html, $m);
 
         $this->assertNotEmpty($m, 'Could not find the rows seed in the page.');

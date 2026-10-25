@@ -2,7 +2,7 @@
 
 A theme is a package that draws the storefront. Core owns the data (products, layout rows, menus, looks, settings) and the routes; the theme owns every view, its stylesheet and its script. Any package that keeps this contract works with Layout, the looks editor, the widget catalogue and every storefront route. The contract is enforced in code by `App\Support\ThemeContract::check()` at install time; this document is the written form of the same rules.
 
-Two themes ship with Venta and are the reference implementations: `venta` (the default) and `plaza`.
+The default theme, `venta`, ships with core and is the reference implementation.
 
 ## 1. Package
 
@@ -29,7 +29,7 @@ Themes are discovered like extensions and recorded in the same registry under th
 
 ### Upload
 
-A super admin installs a theme or an extension from a `.zip` on **Extensions > Upload** (`admin.extensions.upload`), and updates it by uploading a newer one. The screen asks for the admin's password again when it was last confirmed more than 15 minutes ago, because an upload installs code: a stolen session alone must not be enough. The zip holds one folder named after the package (`plaza/` for a theme with slug `plaza`), with its `theme.json` or `extension.json` directly inside; an extension's `name` must equal its folder. `App\Services\PackageUploader` does the work:
+A super admin installs a theme or an extension from a `.zip` on **Extensions > Upload** (`admin.extensions.upload`), and updates it by uploading a newer one. The screen asks for the admin's password again when it was last confirmed more than 15 minutes ago, because an upload installs code: a stolen session alone must not be enough. The zip holds one folder named after the package (`my-theme/` for a theme with slug `my-theme`), with its `theme.json` or `extension.json` directly inside; an extension's `name` must equal its folder. `App\Services\PackageUploader` does the work:
 
 1. The upload is recorded in `package_uploads` as `pending` before anything on disk changes.
 2. The archive is read without unpacking it (`App\Support\PackageArchive`) and refused when it is not a zip, holds an absolute path, a backslash, a `..`, `.` or empty segment, a control character, a name with `:` `*` `?` `"` `<` `>` `|`, a trailing dot or space, a Windows device name (`CON`, `NUL`, `COM1`), two entries whose names differ only in case, a link, a device file or an encrypted entry, more entries than `extensions.upload.max_files`, a file over `max_file_mb` or more than `max_unpacked_mb` in all, or more than one top folder, or when its manifest is missing, is not JSON, or has no version of at most 40 characters (`1.2.3`, `1.2.3-beta.1`). An entry that unpacks to more bytes than the archive declares is stopped while it is written. The upload itself is capped at `max_size_mb` (`config/extensions.php`) and by PHP's own upload limits.
@@ -75,7 +75,7 @@ cannot be uninstalled while one of its extensions is still installed.
 
 ```json
 {
-  "name": "Plaza",
+  "name": "Demo Theme",
   "version": "1.0.0",
   "author": "Venta",
   "description": "…",
@@ -368,7 +368,7 @@ The main menu is composed in Layout > Menus (`nav_menus`, nested `nav_menu_items
 - Phone numbers print with the country dialling code (`App\Support\Phone::display`).
 - Order status badges use the status's tone (`App\Support\StatusTone`).
 - Every page works on phone, tablet and desktop.
-- No CSS or JavaScript inline in Blade; everything goes through `css/theme.css` and `js/theme.js`. The only exception is a merchant's own `custom_css` setting, which a theme prints filtered (see Plaza's `layouts/store.blade.php`).
+- No CSS or JavaScript inline in Blade; everything goes through `css/theme.css` and `js/theme.js`. The only exception is a merchant's own `custom_css` setting, which a theme prints filtered.
 
 ## 8. Checklist for a new theme
 

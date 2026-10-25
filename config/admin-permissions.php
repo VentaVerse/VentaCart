@@ -87,15 +87,13 @@ return [
         'admin.menus.*' => 'menus',
         'admin.menus.arrange' => 'menus.edit',
 
-        // Layout and themes. Plaza and Xelga register their own editors
-        // under these names; they are mapped here so the editors open for
-        // whoever may edit themes.
+        // Layout and themes. A theme that brings its own editor maps that
+        // editor's routes itself (AdminPermissions::map() from its provider,
+        // or "admin_permissions" in its manifest).
         'admin.layout' => 'layout.view',
         'admin.layout.*' => 'layout',
         'admin.theme.*' => 'themes',
         'admin.theme.currencies.*' => 'settings',
-        'admin.plaza.*' => 'themes.edit',
-        'admin.xelga.*' => 'themes.edit',
 
         // Extensions: the directory, modules, and each module's own
         // configuration pages.

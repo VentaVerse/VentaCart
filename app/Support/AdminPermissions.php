@@ -40,7 +40,10 @@ use Illuminate\Support\Str;
  *
  * Core's own entries always win a collision, and the 'super_admin_only' list
  * can never be relaxed by a declaration: a module can say who may use its
- * screens, not loosen core's.
+ * screens, not loosen core's. A declared pattern must also name its own
+ * route prefix ("admin.{slug}" or "admin.{slug}.*"); one as broad as
+ * "admin.*" is ignored, so a package cannot open screens that are not its
+ * own, including any core screen that is unmapped and so super admin only.
  */
 class AdminPermissions
 {
@@ -151,7 +154,7 @@ class AdminPermissions
     public static function map(array $entries): void
     {
         foreach ($entries as $pattern => $value) {
-            if (is_string($pattern) && is_string($value) && $value !== '') {
+            if (static::acceptsDeclaration($pattern, $value)) {
                 static::$registered[$pattern] = $value;
             }
         }
@@ -166,6 +169,17 @@ class AdminPermissions
     {
         $this->resolved = [];
         $this->declared = null;
+    }
+
+    /**
+     * True when a package may declare this entry: a route name pattern that
+     * starts with "admin." and a literal segment of its own before any
+     * wildcard, and a non-empty value.
+     */
+    public static function acceptsDeclaration(mixed $pattern, mixed $value): bool
+    {
+        return is_string($pattern) && is_string($value) && $value !== ''
+            && preg_match('/^admin\.[a-z0-9_-]+(\.[a-z0-9_.*-]*)?$/i', $pattern) === 1;
     }
 
     /** Forget registered entries. For tests. */
@@ -376,7 +390,7 @@ class AdminPermissions
                     continue;
                 }
                 foreach ($manifest['admin_permissions'] as $pattern => $value) {
-                    if (is_string($pattern) && is_string($value) && $value !== '') {
+                    if (static::acceptsDeclaration($pattern, $value)) {
                         $map[$pattern] = $value;
                     }
                 }

@@ -4,10 +4,10 @@ use App\Http\Controllers\Admin\Layout\LayoutController;
 use App\Http\Controllers\Admin\Layout\MenuController;
 use Illuminate\Support\Facades\Route;
 
-// The Layout editor: what renders where, on which pages. OpenCart's shape
-// by the owner's ruling (2026-08-31): the layout system stands on its own
-// under Content, and themes without an editor of their own ride it. A theme
-// that brings its own editor (Plaza) is decoupled and never edited here.
+// The Layout editor: what renders where, on which pages. The layout system
+// stands on its own under Content, and themes without an editor of their
+// own ride it. A theme that brings its own editor is decoupled and never
+// edited here.
 Route::prefix('content/layout')->middleware(\App\Http\Middleware\EditTheme::class)->group(function () {
     Route::get('/', [LayoutController::class, 'index'])->name('layout');
     Route::post('/', [LayoutController::class, 'update'])->name('layout.update');
@@ -26,7 +26,7 @@ Route::prefix('content/layout')->middleware(\App\Http\Middleware\EditTheme::clas
 // pages beside it. One door, under Content, and no second one anywhere.
 // One menu, the one the header draws. Creating a second was a capability
 // with no payoff: the header is not switchable and an extra menu could only
-// surface as a placed widget. Menus that do more are Plaza's to bring.
+// surface as a placed widget. Menus that do more are a theme's to bring.
 Route::prefix('content/menus')->group(function () {
     Route::get('/', [MenuController::class, 'index'])->name('menus');
     Route::post('/{menu}/arrange', [MenuController::class, 'arrange'])->name('menus.arrange');

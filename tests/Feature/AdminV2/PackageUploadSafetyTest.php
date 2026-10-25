@@ -518,7 +518,7 @@ class PackageUploadSafetyTest extends TestCase
         $this->assertFalse(PackageArchive::validProvider('APP\\Support\\Evil'));
         $this->assertFalse(PackageArchive::validProvider('ILLUMINATE\\Support\\Evil'));
         $this->assertTrue(PackageArchive::validProvider('Apple\\Support\\Provider'));
-        $this->assertTrue(PackageArchive::namespacesOverlap('Themes\\Plaza\\', 'THEMES\\PLAZA\\Extensions\\'));
+        $this->assertTrue(PackageArchive::namespacesOverlap('Themes\\Sample\\', 'THEMES\\SAMPLE\\Extensions\\'));
         $this->assertFalse(PackageArchive::namespacesOverlap('Extensions\\Ban\\', 'Extensions\\Banners\\'));
     }
 
@@ -838,10 +838,10 @@ class PackageUploadSafetyTest extends TestCase
         $merge = new \ReflectionMethod($vite, 'merge');
 
         $merged = $merge->invoke($vite, ['resources/css/app.css' => ['file' => 'assets/app.css']], [
-            'theme-plaza-clone' => [
-                'resources/themes/plaza/css/theme.css' => ['file' => 'assets/stolen.css', 'isEntry' => true],
+            'theme-sample-clone' => [
+                'resources/themes/sample/css/theme.css' => ['file' => 'assets/stolen.css', 'isEntry' => true],
                 'resources/css/app.css' => ['file' => 'assets/stolen-app.css', 'isEntry' => true],
-                'resources/themes/plaza-clone/css/theme.css' => ['file' => 'assets/own.css', 'isEntry' => true, 'imports' => ['resources/themes/plaza/js/x.js', '_shared.js']],
+                'resources/themes/sample-clone/css/theme.css' => ['file' => 'assets/own.css', 'isEntry' => true, 'imports' => ['resources/themes/sample/js/x.js', '_shared.js']],
                 '_shared.js' => ['file' => 'assets/shared.js'],
             ],
             'sample-tools' => [
@@ -851,10 +851,10 @@ class PackageUploadSafetyTest extends TestCase
         ], 'build');
 
         $this->assertSame('assets/app.css', $merged['resources/css/app.css']['file']);
-        $this->assertArrayNotHasKey('resources/themes/plaza/css/theme.css', $merged);
+        $this->assertArrayNotHasKey('resources/themes/sample/css/theme.css', $merged);
         $this->assertArrayNotHasKey('extensions/other-tools/js/x.js', $merged);
-        $this->assertSame('../packages/theme-plaza-clone/assets/own.css', $merged['resources/themes/plaza-clone/css/theme.css']['file']);
-        $this->assertSame(['_theme-plaza-clone/shared.js'], $merged['resources/themes/plaza-clone/css/theme.css']['imports']);
+        $this->assertSame('../packages/theme-sample-clone/assets/own.css', $merged['resources/themes/sample-clone/css/theme.css']['file']);
+        $this->assertSame(['_theme-sample-clone/shared.js'], $merged['resources/themes/sample-clone/css/theme.css']['imports']);
         $this->assertSame('../packages/sample-tools/assets/tools.js', $merged['extensions/sample-tools/js/tools.js']['file']);
     }
 

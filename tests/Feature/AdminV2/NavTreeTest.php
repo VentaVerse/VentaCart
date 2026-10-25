@@ -14,7 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The menu composer's data (Plaza plan, phase 4a): menus are records,
+ * The menu composer's data: menus are records,
  * items nest, every type resolves to a URL and a dropdown, and the header
  * draws the tree.
  */

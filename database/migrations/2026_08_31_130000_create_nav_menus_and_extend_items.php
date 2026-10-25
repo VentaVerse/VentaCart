@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The menu composer (Plaza plan, phase 4). Menus become records (a store may
+ * The menu composer. Menus become records (a store may
  * compose several: main, footer, a mobile one) and items gain a parent, so
  * a menu is a tree; a page to point at; and a settings bag for the richer
  * item types (mega menu columns, banner, brands, an HTML dropdown, accent).

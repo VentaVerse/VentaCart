@@ -12,7 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The menu composer (Plaza plan, phase 4b): menus as trees on a core page,
+ * The menu composer: menus as trees on a core page,
  * the arrangement saved as one page, each item its own record.
  */
 class MenuComposerTest extends TestCase
@@ -46,7 +46,7 @@ class MenuComposerTest extends TestCase
      * One menu, because the header draws that one and nothing can change it.
      * A second could only ever surface as a placed widget, so offering to
      * create one promised a choice the storefront does not have. Menus that
-     * do more than this are Plaza's to bring.
+     * do more than this are a theme's to bring.
      */
     public function test_a_second_menu_cannot_be_created_or_removed(): void
     {

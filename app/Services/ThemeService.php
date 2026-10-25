@@ -699,7 +699,8 @@ class ThemeService
 
     /**
      * A theme (or extension) that brings content of its own to a template,
-     * such as Plaza's sliders, registers how to install it.
+     * such as sliders it keeps in tables of its own, registers how to
+     * install it.
      */
     public static function onPresetContent(callable $installer): void
     {

@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """File hand made demo images into place.
 
-    python3 docs/tools/importimg.py ~/Downloads/plaza-shots
+    python3 docs/tools/importimg.py ~/Downloads/demo-shots [manifest]
 
-Each file only has to start with the shot number from
-docs/plaza-demo-prompts.md (so "07.png", "07 (1).jpeg" and
-"07-atelier.jpg" all work). The importer moves it to the path the
-templates expect and reports anything it could not place.
+Each file only has to start with its shot number in the manifest
+(docs/tools/store-demo-shots.json unless another is given), so "07.png",
+"07 (1).jpeg" and "07-hero.jpg" all work. The importer moves it to the
+path the manifest names and reports anything it could not place.
 """
 import json, pathlib, re, shutil, sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-shots = json.loads((ROOT / "docs/tools/demo-shots.json").read_text())
+manifest = pathlib.Path(sys.argv[2]).expanduser() if len(sys.argv) > 2 else ROOT / "docs/tools/store-demo-shots.json"
+data = json.loads(manifest.read_text())
+shots = data["shots"] if isinstance(data, dict) else data
 
 src = pathlib.Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else None
 if not src or not src.is_dir():

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Re-encodes the generated Plaza demo artwork down to shipping weight.
+ * Re-encodes generated demo artwork down to shipping weight.
  *
  * The image API answers with PNG regardless of the .jpg the manifest asks for,
  * so every file arrives at 1-2MB with an extension that lies about its bytes.
@@ -13,10 +13,9 @@
  * Reading goes through imagecreatefromstring so the source format does not
  * matter: whatever the API returned, what lands in the theme is a JPEG.
  *
- *   php docs/tools/optimize-demo.php [--src DIR] [--dest DIR] [--dry]
+ *   php docs/tools/optimize-demo.php --src DIR --dest DIR [--dry]
  */
 
-$root = dirname(__DIR__, 2);
 
 $widths = [
     'hero'       => 1800,  // full-bleed slider, site width
@@ -33,8 +32,8 @@ $widths = [
 
 $quality = 86;
 
-$src  = $root . '/storage/app/public/plaza/demo';
-$dest = $root . '/resources/themes/plaza/demo';
+$src  = '';
+$dest = '';
 $dry  = false;
 
 for ($i = 1; $i < $argc; $i++) {
@@ -44,6 +43,11 @@ for ($i = 1; $i < $argc; $i++) {
         '--dry'  => $dry  = true,
         default  => fwrite(STDERR, "unknown argument {$argv[$i]}\n") && exit(1),
     };
+}
+
+if ($src === '' || $dest === '') {
+    fwrite(STDERR, "usage: php docs/tools/optimize-demo.php --src DIR --dest DIR [--dry]\n");
+    exit(1);
 }
 
 if (! is_dir($src)) {

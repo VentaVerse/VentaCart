@@ -170,7 +170,7 @@
                              can see. --}}
                         @php
                             // A theme may declare this page's own pieces as a
-                            // region (Plaza's product page): it is arranged
+                            // region (a two-column product page): it is arranged
                             // here, in place of the fixed page body.
                             $vOwnRegion = collect($regions)->filter(function ($spec, $key) use ($pageType) {
                                 return ! empty($spec['defaults']) && ($spec['page'] ?? '*') === $pageType && $pageType !== '*';

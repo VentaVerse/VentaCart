@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class LayoutColumns extends Model
 {
-    /** The row is eight columns wide. Journal's is twelve; eighths divide better. */
+    /** The row is eight columns wide: eighths divide into halves and quarters. */
     public const GRID = 8;
 
     /** Both sides together may not leave the content narrower than this. */

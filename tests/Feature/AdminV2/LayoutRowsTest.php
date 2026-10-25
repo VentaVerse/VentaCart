@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Rows and columns inside a region (Plaza plan, phase 1). A row groups
+ * Rows and columns inside a region. A row groups
  * placements into columns on the eight-column grid; a placement with no row
  * is an implicit one-column row and renders as it always did.
  */

@@ -14,7 +14,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The widget catalogue (Plaza plan, phase 3): every registered widget has a
+ * The widget catalogue: every registered widget has a
  * view in the theme, the product listing knows more ways to pick, and the
  * content, social, blog and review widgets render from their settings.
  */

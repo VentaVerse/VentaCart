@@ -11,7 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * A row's style (Plaza plan, phase 2): a closed set of choices the storefront
+ * A row's style: a closed set of choices the storefront
  * paints from custom properties, colours from the theme's own palette or a
  * hex, named presets a merchant keeps per theme.
  */

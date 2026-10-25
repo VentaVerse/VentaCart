@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Rows and columns inside a region (Plaza plan, phase 1).
+ * Rows and columns inside a region.
  *
  * A region used to be a flat list of placements, one under the other. A row
  * groups placements into columns on the storefront's eight-column grid, so a

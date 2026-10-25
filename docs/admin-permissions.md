@@ -154,7 +154,10 @@ in your migration with a `group` set and they appear under Extensions in
 User Groups.
 
 Core's own entries win any collision, and a declaration can never relax the
-super-admin-only list.
+super-admin-only list. A declared pattern must start with `admin.` and a
+literal segment of its own (`admin.my-theme`, `admin.my-theme.*`); a broader
+one such as `admin.*` is ignored. Core maps no theme's or extension's routes,
+so an editor whose package declares nothing stays super admin only.
 
 ## Checking permissions in code
 

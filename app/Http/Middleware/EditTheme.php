@@ -33,7 +33,7 @@ class EditTheme
 
         // The asked-for theme when it rides this editor, else the live one
         // when it does, else the first that does: a theme with its own
-        // editor (Plaza) is decoupled and never edited here.
+        // editor is decoupled and never edited here.
         $asked = trim((string) ($request->query('theme') ?? $request->input('theme') ?? ''));
         $slug = isset($rideable[$asked]) ? $asked : (isset($rideable[$live]) ? $live : (string) array_key_first($rideable));
 
