@@ -199,7 +199,9 @@
 :is(.layout-row--mb, .layout-col--mb, .layout-block--mb) { margin-bottom: var(--row-mb); }
 :is(.layout-row--padding, .layout-col--padding, .layout-block--padding) { padding: var(--row-padding); }
 :is(.layout-row--min-h, .layout-col--min-h, .layout-block--min-h) { min-height: var(--row-min-h); }
-.layout-row--gap { gap: var(--row-gap); }
+/* The gutter is also what a flex row's column widths subtract, so a row with
+   its own gap sets both or its columns wrap. */
+.layout-row--gap { gap: var(--row-gap); --layout-gap: var(--row-gap); }
 
 /* Content edge to edge as well as the background. */
 .layout-row--edge {
