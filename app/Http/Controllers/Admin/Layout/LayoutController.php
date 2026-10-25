@@ -12,9 +12,12 @@ use App\Support\RowStyle;
 use App\Services\ThemeService;
 use App\Support\Regions;
 use App\Support\StorefrontPageType;
+use App\Support\AdminPermissions;
+use App\Support\WidgetConfig;
 use App\Support\Widgets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * The layout editor: what renders where, on which pages.
@@ -401,6 +404,21 @@ class LayoutController extends Controller
         $rows = LayoutTemplate::cleanRows($data['rows']);
         if ($rows === []) {
             return response()->json(['message' => 'Nothing here could be copied.'], 422);
+        }
+
+        // A copy writes new placements without passing through Save, so the
+        // rule Save applies to code fields (the HTML block) is applied here:
+        // only someone who may write storefront code may place one.
+        if (Gate::denies(AdminPermissions::STOREFRONT_CODE)) {
+            foreach ($rows as $row) {
+                foreach ($row['placements'] as $p) {
+                    foreach (WidgetConfig::codeFields($p['widget']) as $field) {
+                        if (trim((string) ($p['config'][$field] ?? '')) !== '') {
+                            return response()->json(['message' => 'Only a super admin can copy an HTML block.'], 403);
+                        }
+                    }
+                }
+            }
         }
 
         $theme = LayoutPlacement::scopeTheme();

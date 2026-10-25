@@ -9,6 +9,7 @@ use App\Models\LayoutRow;
 use App\Support\Regions;
 use App\Support\AdminPermissions;
 use App\Support\RowStyle;
+use App\Support\WidgetConfig;
 use App\Support\Widgets;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
@@ -148,8 +149,8 @@ class LayoutSaver
                             'row_id' => $layoutRow->id,
                             'column_index' => max(0, min((int) ($row['column'] ?? 0), count($widths) - 1)),
                             'widget' => $widget,
-                            'title' => $row['title'] ?? null,
-                            'config' => $row['config'] ?? [],
+                            'title' => isset($row['title']) && is_scalar($row['title']) ? mb_substr((string) $row['title'], 0, 255) : null,
+                            'config' => WidgetConfig::clean($widget, $row['config'] ?? []),
                             'style' => isset($row['style']) && is_array($row['style']) ? RowStyle::normalize($row['style']) : null,
                             'sort_order' => $order++,
                             'is_enabled' => (bool) ($row['enabled'] ?? true),

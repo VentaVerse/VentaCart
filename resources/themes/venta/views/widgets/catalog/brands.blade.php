@@ -4,8 +4,8 @@
         <div class="reveal">
 @php
     $config = $placement->config ?? [];
-    $autoplay = $config['autoplay'] ?? false;
-    $speed = $config['speed'] ?? 3000;
+    $autoplay = filter_var($config['autoplay'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $speed = max(1000, min(30000, (int) ($config['speed'] ?? 3000)));
 @endphp
 
 @if ($brands->isNotEmpty())

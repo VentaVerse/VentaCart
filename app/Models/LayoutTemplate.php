@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\RowStyle;
+use App\Support\WidgetConfig;
 use App\Support\Widgets;
 use Illuminate\Database\Eloquent\Model;
 
@@ -19,7 +20,8 @@ class LayoutTemplate extends Model
 
     /**
      * Rows as they may be stored or handed to the editor: shapes normalised,
-     * styles normalised, only registered widgets, no ids. The same cleaner
+     * styles normalised, only registered widgets, each widget's settings
+     * kept to its schema (WidgetConfig), no ids. The same cleaner
      * serves a template save, a JSON import, and a copy to another page.
      *
      * @return list<array{columns: list<int>, enabled: bool, style: array, responsive: array, placements: list<array>}>
@@ -44,7 +46,7 @@ class LayoutTemplate extends Model
                     'widget' => (string) $p['widget'],
                     'title' => isset($p['title']) ? mb_substr((string) $p['title'], 0, 255) : null,
                     'enabled' => (bool) ($p['enabled'] ?? true),
-                    'config' => is_array($p['config'] ?? null) ? $p['config'] : [],
+                    'config' => WidgetConfig::clean((string) $p['widget'], $p['config'] ?? []),
                     'style' => is_array($p['style'] ?? null) && RowStyle::hasAnything($p['style']) ? RowStyle::normalize($p['style']) : null,
                 ];
             }

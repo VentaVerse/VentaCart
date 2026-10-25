@@ -100,6 +100,11 @@ class CoreWidgets
             // Full width only. A carousel with side arrows in a 1/8 rail is
             // not a smaller carousel, it is a broken one.
             'regions' => ['header_top', 'content_top', 'content_bottom', 'footer_top'],
+            'schema' => [
+                'autoplay' => ['type' => 'select', 'label' => 'Scroll on its own', 'default' => '0',
+                    'options' => ['0' => 'No', '1' => 'Yes']],
+                'speed' => ['type' => 'number', 'label' => 'Pause between moves (ms)', 'default' => 3000, 'min' => 1000, 'max' => 30000],
+            ],
             'resolve' => fn () => ['brands' => Brand::where('is_active', true)
                 ->whereNotNull('image')->where('image', '!=', '')
                 ->orderBy('sort_order')->orderBy('name')->get()],
@@ -162,6 +167,7 @@ class CoreWidgets
             'module' => 'content',
             'view' => 'widgets.content.text',
             'schema' => [
+                'content' => ['type' => 'textarea', 'label' => 'Text'],
                 'alignment' => ['type' => 'select', 'label' => 'Alignment',
                     'options' => ['left' => 'Left', 'center' => 'Center', 'right' => 'Right']],
             ],

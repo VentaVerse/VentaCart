@@ -289,6 +289,8 @@ Core keeps the catalogue (`App\Support\Widgets`, registered by `App\Storefront\W
 
 The install check requires a view for every widget registered at the time, except system pieces for regions the theme does not declare.
 
+A placement's `config` holds only the keys its widget's `schema` declares, each in its field type's shape (`App\Support\WidgetConfig`): numbers clamped to `min`/`max`, selects from their options, `url` fields (and text fields named `url`, `link`, `href` or `*_url`) as safe links, colours as hex or a palette name, images as storage paths. This applies to the layout editor's Save, templates, copies and a theme's own layout files alike. A widget that reads a setting must declare it, or the setting is dropped on the next save. A theme's own field types keep bounded plain data; clean them for their own use, and cast in the view anyway (`(int)`, `@js()`).
+
 ### 5.2 System pieces
 
 A theme's own parts become widgets when the theme declares the region they belong to. Core names them; the theme draws them.
