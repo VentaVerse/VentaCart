@@ -291,7 +291,7 @@
                         </span>
                         <span class="text-xs font-bold text-white px-2 py-0.5 rounded"
                               style="background-color: var(--color-secondary); font-family: var(--font-heading); letter-spacing: 0.1em;"
-                              x-text="'-' + Math.round((1 - activeVariant.price / activeVariant.regular_price) * 100) + '%'"></span>
+                              x-text="activeVariant?.regular_price ? '-' + Math.round((1 - activeVariant.price / activeVariant.regular_price) * 100) + '%' : ''"></span>
                     </div>
                     @endif
 
