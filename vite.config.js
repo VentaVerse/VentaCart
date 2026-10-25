@@ -49,6 +49,13 @@ function getExtensionEntries() {
 }
 
 export default defineConfig({
+    // A theme or extension may be a link to a folder outside the app (a
+    // package being developed in its own repository). Resolve its imports
+    // from the app, where the dependencies are installed, not from the
+    // folder the link points to.
+    resolve: {
+        preserveSymlinks: true,
+    },
     plugins: [
         laravel({
             input: [
