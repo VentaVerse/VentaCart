@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'VentaCart'),
 
     'store_id' => (int) env('STORE_ID', 1),
 

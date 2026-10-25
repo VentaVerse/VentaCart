@@ -62,7 +62,7 @@ class StoreIdentity
         $theme = app(ThemeService::class);
 
         return static::$memo = [
-            'name' => $theme->get('identity.site_name') ?: config('app.name', 'Venta'),
+            'name' => $theme->get('identity.site_name') ?: config('app.name', 'VentaCart'),
             'logo' => static::url($theme->get('identity.logo')),
             'favicon' => static::url($theme->get('identity.favicon')),
         ];
