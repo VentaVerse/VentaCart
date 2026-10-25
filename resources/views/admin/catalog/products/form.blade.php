@@ -549,7 +549,7 @@
                         @endif
 
                         <div x-show="specials.length > 0" class="v-tablewrap">
-                            <table class="v-table">
+                            <table class="v-table v-table--cards">
                                 <thead>
                                     <tr>
                                         <th>Customer group</th>
@@ -565,7 +565,7 @@
                                 <tbody>
                                     <template x-for="(special, sIndex) in specials" :key="sIndex">
                                         <tr>
-                                            <td>
+                                            <td data-label="Customer group" class="v-cell-wide">
                                                 <select x-model="special.customer_group_id" :name="'specials['+sIndex+'][customer_group_id]'"
                                                         aria-label="Customer group" class="v-control v-control--sm">
                                                     <option value="">All groups</option>
@@ -574,22 +574,22 @@
                                                     @endforeach
                                                 </select>
                                             </td>
-                                            <td><input type="number" x-model="special.price" :name="'specials['+sIndex+'][price]'" step="0.01" min="0" required aria-label="Special price" class="v-control v-control--sm v-mono v-w-name"></td>
-                                            <td><input type="number" x-model="special.quantity" :name="'specials['+sIndex+'][quantity]'" min="1" aria-label="Minimum quantity" class="v-control v-control--sm v-mono v-w-sort"></td>
-                                            <td>
+                                            <td data-label="Price"><input type="number" x-model="special.price" :name="'specials['+sIndex+'][price]'" step="0.01" min="0" required aria-label="Special price" class="v-control v-control--sm v-mono v-w-name"></td>
+                                            <td data-label="Minimum qty"><input type="number" x-model="special.quantity" :name="'specials['+sIndex+'][quantity]'" min="1" aria-label="Minimum quantity" class="v-control v-control--sm v-mono v-w-sort"></td>
+                                            <td data-label="Display">
                                                 <select x-model="special.display_mode" :name="'specials['+sIndex+'][display_mode]'" aria-label="Display mode" class="v-control v-control--sm">
                                                     <option value="sale">Sale (slashed)</option>
                                                     <option value="override">Override (clean)</option>
                                                 </select>
                                             </td>
-                                            <td><input type="number" x-model="special.priority" :name="'specials['+sIndex+'][priority]'" min="0" aria-label="Priority" class="v-control v-control--sm v-mono v-w-sort"></td>
-                                            <td>
+                                            <td data-label="Priority"><input type="number" x-model="special.priority" :name="'specials['+sIndex+'][priority]'" min="0" aria-label="Priority" class="v-control v-control--sm v-mono v-w-sort"></td>
+                                            <td data-label="Start ({{ \App\Support\DateWindow::timezone() }})" class="v-cell-wide">
                                                 <div class="v-datetime">
                                                     <input type="date" x-model="special.date_start" :name="'specials['+sIndex+'][date_start]'" aria-label="Start date" class="v-control v-control--sm v-mono">
                                                     <input type="time" x-model="special.time_start" :name="'specials['+sIndex+'][time_start]'" aria-label="Start time (empty: start of the day)" title="Empty: start of the day" class="v-control v-control--sm v-mono">
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="End ({{ \App\Support\DateWindow::timezone() }})" class="v-cell-wide">
                                                 <div class="v-datetime">
                                                     <input type="date" x-model="special.date_end" :name="'specials['+sIndex+'][date_end]'" aria-label="End date" class="v-control v-control--sm v-mono">
                                                     <input type="time" x-model="special.time_end" :name="'specials['+sIndex+'][time_end]'" aria-label="End time (empty: end of the day)" title="Empty: end of the day" class="v-control v-control--sm v-mono">
