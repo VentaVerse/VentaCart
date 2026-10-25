@@ -55,12 +55,16 @@ trait UsesSampleTheme
             symlink($file->getPathname(), $build.'/views/'.$file->getFilename());
         }
         foreach (File::directories($default.'/views/widgets') as $dir) {
-            symlink($dir, $build.'/views/widgets/'.basename($dir));
+            // The sample draws its own system pieces, below.
+            if (basename($dir) !== 'system') {
+                symlink($dir, $build.'/views/widgets/'.basename($dir));
+            }
         }
         // A placeholder for every system piece its regions take, so the
         // sample passes the contract however many pieces core registers.
+        // Pieces core draws itself are left to core.
         foreach (\App\Support\Widgets::all() as $key => $spec) {
-            if (! empty($spec['system']) && empty($spec['theme']) && str_starts_with($key, 'system.')
+            if (! empty($spec['system']) && empty($spec['theme']) && empty($spec['optional']) && str_starts_with($key, 'system.')
                 && array_intersect((array) $spec['regions'], array_keys($manifest['regions'])) !== []) {
                 $piece = substr($key, strlen('system.'));
                 file_put_contents($build."/views/widgets/system/{$piece}.blade.php", "<div class=\"sample-{$piece}\"></div>\n");

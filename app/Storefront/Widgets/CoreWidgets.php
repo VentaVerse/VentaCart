@@ -282,6 +282,9 @@ class CoreWidgets
             'system.product_share' => ['title' => 'Share buttons', 'shape' => 'strip'],
             'system.product_description' => ['title' => 'Description', 'shape' => 'text'],
             'system.product_reviews' => ['title' => 'Reviews', 'shape' => 'text'],
+            // Core draws a plain table of the attribute groups; a theme may
+            // draw its own, and need not.
+            'system.product_attributes' => ['title' => 'Specifications', 'shape' => 'text', 'optional' => true],
             'system.product_buy' => ['title' => 'Gallery and buy box (all in one)', 'shape' => 'block'],
             'system.product_tabs' => ['title' => 'Description and reviews', 'shape' => 'block'],
             'system.product_related' => ['title' => 'Related products', 'shape' => 'strip'],

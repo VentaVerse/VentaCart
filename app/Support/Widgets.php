@@ -47,6 +47,9 @@ class Widgets
             // The theme package that registers this widget, when one does;
             // another theme is not asked to draw it.
             'theme' => null,
+            // Core ships a plain view of its own (resources/views/widgets),
+            // so a theme that declares the region need not draw it.
+            'optional' => false,
             // How this widget lays out, so the picker can DRAW it instead of
             // naming it. A merchant choosing between "Category tabs" and
             // "Brand strip" is choosing between two shapes, and the words are

@@ -149,6 +149,10 @@ final class ThemeContract
             if (empty($spec['view']) || str_contains($spec['view'], '::')) {
                 continue;
             }
+            // Core draws this one when the theme does not.
+            if (! empty($spec['optional'])) {
+                continue;
+            }
             // Another theme's own block is that theme's to draw.
             if (! empty($spec['theme']) && $spec['theme'] !== $slug) {
                 continue;
