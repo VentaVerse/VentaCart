@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Support\ColumnGrid;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
 /**
- * One row inside a region: columns on the eight-column grid, each holding
+ * One row inside a region: columns on its theme's grid (eight parts unless
+ * the theme declares another, see App\Support\ColumnGrid), each holding
  * placements in order.
  *
  * Rows are the merchant's arrangement and belong to a page type of one theme,
@@ -16,83 +18,40 @@ use Illuminate\Support\Collection;
  */
 class LayoutRow extends Model
 {
-    /** The row is eight columns wide, the same grid as the page's rails. */
-    public const GRID = 8;
+    /**
+     * The default grid: eight parts, the same grid as the page's rails. A
+     * theme may put its rows on another one (App\Support\ColumnGrid).
+     */
+    public const GRID = ColumnGrid::DEFAULT_UNITS;
 
-    public const MAX_COLUMNS = 6;
+    public const MAX_COLUMNS = ColumnGrid::DEFAULT_MAX_COLUMNS;
 
     /**
-     * The column layouts the editor offers, in eighths. A merchant picks a
-     * shape, not numbers; anything else that sums to eight is still accepted
-     * from an import.
+     * The column layouts core's editor offers, in eighths. A merchant picks
+     * a shape, not numbers; anything else that sums to eight is still
+     * accepted from an import.
      *
      * @var list<list<int>>
      */
-    public const LAYOUTS = [
-        [8],
-        [4, 4],
-        [3, 5],
-        [5, 3],
-        [2, 6],
-        [6, 2],
-        [3, 3, 2],
-        [2, 3, 3],
-        [2, 4, 2],
-        [2, 2, 2, 2],
-    ];
+    public const LAYOUTS = ColumnGrid::DEFAULT_SHAPES;
 
     protected $fillable = ['theme', 'page_type', 'region', 'sort_order', 'columns', 'style', 'responsive', 'is_enabled'];
 
     /**
-     * A row's columns on smaller screens, every value allowed. Widths are in
-     * eighths: a tablet width of null keeps the desktop width, a phone width
-     * of null stacks the column full width. Orders are 1-based positions per
-     * device. Every list is as long as the row has columns.
+     * A row's columns on smaller screens, on the given grid (the default
+     * eight parts when none is given). See ColumnGrid::normalizeResponsive().
      *
-     * @return array{tablet: list<int|null>, phone: list<int|null>, tablet_order: list<int>, phone_order: list<int>}
+     * @return array{tablet: list<int|string|null>, phone: list<int|string|null>, tablet_order: list<int>, phone_order: list<int>}
      */
-    public static function normalizeResponsive(mixed $in, int $count): array
+    public static function normalizeResponsive(mixed $in, int $count, ?ColumnGrid $grid = null): array
     {
-        $in = is_array($in) ? $in : [];
-        $count = max(1, $count);
-        $out = ['tablet' => [], 'phone' => [], 'tablet_order' => [], 'phone_order' => []];
-        for ($i = 0; $i < $count; $i++) {
-            foreach (['tablet', 'phone'] as $device) {
-                $w = $in[$device][$i] ?? null;
-                $out[$device][] = is_numeric($w) && (int) $w >= 1 && (int) $w <= self::GRID ? (int) $w : null;
-            }
-            foreach (['tablet_order', 'phone_order'] as $key) {
-                $o = $in[$key][$i] ?? ($i + 1);
-                $out[$key][] = is_numeric($o) ? max(1, min($count, (int) $o)) : $i + 1;
-            }
-        }
-
-        return $out;
+        return ($grid ?? ColumnGrid::default())->normalizeResponsive($in, $count);
     }
 
     /** Whether any column departs from the default on a smaller screen. */
-    public static function isResponsive(?array $responsive, int $count): bool
+    public static function isResponsive(?array $responsive, int $count, ?ColumnGrid $grid = null): bool
     {
-        if (! $responsive) {
-            return false;
-        }
-        $n = self::normalizeResponsive($responsive, $count);
-        foreach (['tablet', 'phone'] as $device) {
-            foreach ($n[$device] as $w) {
-                if ($w !== null) {
-                    return true;
-                }
-            }
-        }
-        foreach (['tablet_order', 'phone_order'] as $key) {
-            foreach ($n[$key] as $i => $o) {
-                if ($o !== $i + 1) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return ($grid ?? ColumnGrid::default())->isResponsive($responsive, $count);
     }
 
     protected $casts = [
@@ -110,21 +69,16 @@ class LayoutRow extends Model
     }
 
     /**
-     * Widths a row may carry: one to six integers, each at least one, summing
-     * to the grid. Anything else collapses to one full-width column rather
-     * than rendering a grid nothing adds up in.
+     * Widths a row may carry on the given grid (the default eight parts when
+     * none is given): on the default, one to six whole numbers, each at least
+     * one, summing to eight. Anything else collapses to one full-width column
+     * rather than rendering a grid nothing adds up in.
      *
-     * @return list<int>
+     * @return list<int|string>
      */
-    public static function normalizeColumns(mixed $columns): array
+    public static function normalizeColumns(mixed $columns, ?ColumnGrid $grid = null): array
     {
-        $widths = array_values(array_map('intval', array_filter((array) $columns, 'is_numeric')));
-
-        if ($widths === [] || count($widths) > self::MAX_COLUMNS || min($widths) < 1 || array_sum($widths) !== self::GRID) {
-            return [self::GRID];
-        }
-
-        return $widths;
+        return ($grid ?? ColumnGrid::default())->normalizeColumns($columns);
     }
 
     /** Does this row have more than one column to draw? */
@@ -183,8 +137,9 @@ class LayoutRow extends Model
             ];
         }
 
+        $grid = ColumnGrid::forTheme($theme);
         foreach ($rows as $row) {
-            $widths = static::normalizeColumns($row->columns);
+            $widths = static::normalizeColumns($row->columns, $grid);
             $columns = array_fill(0, count($widths), []);
 
             foreach ($byRow->get((string) $row->id, collect()) as $placement) {

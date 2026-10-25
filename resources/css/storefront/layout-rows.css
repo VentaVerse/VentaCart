@@ -34,6 +34,32 @@
     .layout-col { grid-column: span 1 !important; }
 }
 
+/* ---- a row on a theme's own grid ------------------------------------ */
+/* A theme that declares another grid (12 parts, percentages, fill and auto
+   columns: App\Support\ColumnGrid) gets a wrapping flex row. Each column
+   carries its flex value in --col-flex, and on tablets and phones in
+   --col-flex-tablet and --col-flex-phone when the row sets them; a phone
+   column without one stacks full width. --layout-gap is the gutter. */
+.layout-row--flex {
+    --layout-gap: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--layout-gap);
+}
+.layout-row--flex > .layout-col {
+    flex: var(--col-flex, 1 1 0%);
+    max-width: 100%;
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+    .layout-row--flex > .layout-col {
+        flex: var(--col-flex-tablet, var(--col-flex, 1 1 0%));
+        order: var(--col-tablet-order, 0);
+    }
+}
+@media (max-width: 767px) {
+    .layout-row--flex > .layout-col { flex: var(--col-flex-phone, 0 0 100%); }
+}
+
 /* ---- a styled row --------------------------------------------------- */
 
 .layout-row--styled { color: var(--row-text, inherit); }

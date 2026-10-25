@@ -112,8 +112,8 @@ final class ThemeContract
             foreach (is_array($spec['defaults'] ?? null) ? $spec['defaults'] : [] as $entry) {
                 if (is_array($entry) && isset($entry['cols'])) {
                     $widths = array_values((array) ($entry['columns'] ?? []));
-                    if (! is_array($entry['cols']) || \App\Models\LayoutRow::normalizeColumns($widths) !== $widths || count($widths) !== count($entry['cols'])) {
-                        $problems[] = "Region [{$region}] has a default row whose columns do not add up to eight, one list of pieces per column.";
+                    if (! is_array($entry['cols']) || ColumnGrid::fromManifest($meta['grid'] ?? null)->normalizeColumns($widths) !== $widths || count($widths) !== count($entry['cols'])) {
+                        $problems[] = "Region [{$region}] has a default row whose columns do not add up on the theme's grid (eight parts unless theme.json declares a grid), one list of pieces per column.";
                     }
                 }
             }

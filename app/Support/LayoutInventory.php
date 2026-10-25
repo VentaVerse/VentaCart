@@ -18,6 +18,7 @@ final class LayoutInventory
     public static function units(string $pageType): object
     {
         $theme = LayoutPlacement::scopeTheme();
+        $grid = \App\Support\ColumnGrid::forTheme($theme);
 
         $placements = LayoutPlacement::where('theme', $theme)
             ->where('page_type', $pageType)
@@ -52,7 +53,7 @@ final class LayoutInventory
 
             if (! isset($units[$unitKey])) {
                 $row = $rowId ? $rows->get($rowId) : null;
-                $widths = $row ? LayoutRow::normalizeColumns($row->columns) : [LayoutRow::GRID];
+                $widths = $row ? $grid->normalizeColumns($row->columns) : $grid->full();
                 $units[$unitKey] = [
                     'region' => $placement->region,
                     'sort' => $row ? [$row->sort_order, $row->id] : [$placement->sort_order, $placement->id],
@@ -60,7 +61,7 @@ final class LayoutInventory
                     'columns' => $widths,
                     'enabled' => $row ? (bool) $row->is_enabled : true,
                     'style' => \App\Support\RowStyle::normalizeRow($row?->style),
-                    'responsive' => LayoutRow::normalizeResponsive($row?->responsive, count($widths)),
+                    'responsive' => $grid->normalizeResponsive($row?->responsive, count($widths)),
                     'cols' => array_fill(0, count($widths), []),
                 ];
             }
@@ -72,7 +73,7 @@ final class LayoutInventory
         // A row with nothing in it yet is still a row the merchant made.
         foreach ($rows as $row) {
             if (! isset($units['row-' . $row->id])) {
-                $widths = LayoutRow::normalizeColumns($row->columns);
+                $widths = $grid->normalizeColumns($row->columns);
                 $units['row-' . $row->id] = [
                     'region' => $row->region,
                     'sort' => [$row->sort_order, $row->id],
@@ -80,7 +81,7 @@ final class LayoutInventory
                     'columns' => $widths,
                     'enabled' => (bool) $row->is_enabled,
                     'style' => \App\Support\RowStyle::normalizeRow($row->style),
-                    'responsive' => LayoutRow::normalizeResponsive($row->responsive, count($widths)),
+                    'responsive' => $grid->normalizeResponsive($row->responsive, count($widths)),
                     'cols' => array_fill(0, count($widths), []),
                 ];
             }
@@ -108,7 +109,7 @@ final class LayoutInventory
                     'columns' => $shipped['columns'],
                     'enabled' => true,
                     'style' => \App\Support\RowStyle::normalizeRow([]),
-                    'responsive' => LayoutRow::normalizeResponsive($shipped['responsive'], count($shipped['columns'])),
+                    'responsive' => $grid->normalizeResponsive($shipped['responsive'], count($shipped['columns'])),
                     'shipped' => true,
                     'cols' => array_map(fn ($pieces) => array_map(fn ($d) => [
                         'id' => null,

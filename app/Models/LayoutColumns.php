@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class LayoutColumns extends Model
 {
-    /** The row is eight columns wide: eighths divide into halves and quarters. */
-    public const GRID = 8;
+    /** The page is eight columns wide: eighths divide into halves and quarters. */
+    public const GRID = \App\Support\ColumnGrid::DEFAULT_UNITS;
 
     /** Both sides together may not leave the content narrower than this. */
     public const MIN_CONTENT = 3;

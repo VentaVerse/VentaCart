@@ -64,9 +64,15 @@
 
     // A row with one column is drawn as its placements, nothing around them,
     // so a store that never split a row renders exactly as it did. A split
-    // row is core markup on the theme's eight-column grid: the theme styles
+    // row is core markup on the theme's grid: the theme styles
     // .layout-row and .layout-col, and decides nothing about what is inside.
     $vOut = '';
+    // The grid the rows are on. The default eight parts draws with span
+    // classes, exactly as it always has; any other grid a theme declares is
+    // a wrapping flex row whose column widths travel as custom properties
+    // (App\Support\ColumnGrid::flex()).
+    $vGrid = \App\Support\ColumnGrid::forTheme(\App\Models\LayoutPlacement::scopeTheme());
+    $vFlex = ! $vGrid->isDefault();
     foreach ($vUnits as $vIndex => $vUnit) {
         $vRow = $vUnit['row'];
         $vStyled = $vRow && \App\Support\RowStyle::isStyled($vRow->style);
@@ -74,12 +80,12 @@
         $vHtml = '';
 
         if ($vRow && ($vRow->isSplit() || $vStyled || $vColStyled)) {
-            $vWidths = \App\Models\LayoutRow::normalizeColumns($vRow->columns);
-            $vResp = \App\Models\LayoutRow::isResponsive($vRow->responsive, count($vWidths))
-                ? \App\Models\LayoutRow::normalizeResponsive($vRow->responsive, count($vWidths)) : null;
-            $vBase = ['layout-row', 'layout-row--' . count($vWidths)];
+            $vWidths = $vGrid->normalizeColumns($vRow->columns);
+            $vResp = $vGrid->isResponsive($vRow->responsive, count($vWidths))
+                ? $vGrid->normalizeResponsive($vRow->responsive, count($vWidths)) : null;
+            $vBase = $vFlex ? ['layout-row', 'layout-row--flex', 'layout-row--' . count($vWidths)] : ['layout-row', 'layout-row--' . count($vWidths)];
             // Columns given a phone width keep a grid on phones instead of stacking.
-            if ($vResp && array_filter($vResp['phone'], fn ($w) => $w !== null) !== []) {
+            if (! $vFlex && $vResp && array_filter($vResp['phone'], fn ($w) => $w !== null) !== []) {
                 $vBase[] = 'layout-row--phone-cols';
             }
             // The style attribute carries the merchant's chosen values as
@@ -90,11 +96,13 @@
                     : ' class="' . e(implode(' ', $vBase)) . '"')
                 . ' data-layout-row="' . e((string) $vRow->id) . '">';
             foreach ($vWidths as $vCol => $vWidth) {
-                $vColVars = [];
+                $vColVars = $vFlex ? ['--col-flex: ' . $vGrid->flex($vWidth)] : [];
                 if ($vResp) {
                     foreach (['tablet' => '--col-tablet', 'phone' => '--col-phone'] as $vDevice => $vVar) {
                         if ($vResp[$vDevice][$vCol] !== null) {
-                            $vColVars[] = $vVar . ': ' . (int) $vResp[$vDevice][$vCol];
+                            $vColVars[] = $vFlex
+                                ? '--col-flex-' . $vDevice . ': ' . $vGrid->flex($vResp[$vDevice][$vCol])
+                                : $vVar . ': ' . (int) $vResp[$vDevice][$vCol];
                         }
                     }
                     // Once any column on a device moves, every column states
@@ -106,7 +114,9 @@
                         }
                     }
                 }
-                $vColBase = ['layout-col', 'layout-col--' . (int) $vWidth];
+                $vColBase = $vFlex
+                    ? (is_int($vWidth) ? ['layout-col'] : ['layout-col', 'layout-col--' . $vWidth])
+                    : ['layout-col', 'layout-col--' . (int) $vWidth];
                 $vColStyle = \App\Support\RowStyle::columnStyle($vRow->style, $vCol);
                 // A column's own style shares the style attribute with its
                 // device widths and orders.

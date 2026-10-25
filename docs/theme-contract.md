@@ -212,6 +212,26 @@ renders the rows for the current page type plus the rows placed on every page. R
 
 Row style (background colour keyed to the vocabulary, background image, padding, text tone, full bleed) is written as custom properties on the row; the shared stylesheet applies them.
 
+### 3.3.1 Column grids
+
+Rows sit on eight parts unless the theme declares its own grid, which only a theme that brings its own row editor should do (core's Layout editor offers eighths). Declare it in `theme.json`:
+
+```json
+"grid": {"units": 12, "fill": true, "auto": true, "max_columns": 12, "shapes": [[12], [6, 6], [4, 4, 4], ["fill", "auto"]]}
+```
+
+or from the theme's provider, which wins over the manifest:
+
+```php
+ColumnGrid::register('my-theme', ColumnGrid::make([...]));
+```
+
+`App\Support\ColumnGrid` settings: `units` (the parts a row splits into), `widths` (the numbers a column may take, 1 to units by default), `fill` (a column may take the space left), `auto` (a column may fit its content), `wrap` (false: numbers add up to units exactly, or to at most units when the row holds a fill or auto column; true: any total, extra columns wrap to the next line), `shares` (a width's true share where width / units is not it, e.g. `{"33": 0.333333, "66": 0.666667}` on a percent grid), `max_columns` and `shapes`. Tablet and phone widths follow the same rules. A percentage builder, for example: `{"units": 100, "widths": [100, 95, 90, 85, 80, 75, 70, 66, 60, 55, 50, 45, 40, 33, 30, 25, 20, 15, 10, 5], "wrap": true, "shares": {"33": 0.333333, "66": 0.666667}, "max_columns": 20}`.
+
+What reads it: `ColumnGrid::forTheme($slug)` returns the grid; `$grid->normalizeColumns()`, `normalizeResponsive()`, `isResponsive()`, `width()`, `share()` and `flex()` are the rules; `LayoutSaver::save($page, $data, $trusted, $grid)`, `LayoutTemplate::cleanRows($rows, $grid)` and `toUnits($rows, $grid)` take a grid and default to the scoped theme's; `LayoutRow::forRegion()`, `Regions::defaultRows()`, the layout inventory and the install check use the theme's grid. The `LayoutRow` statics and constants keep the eight-part grid for code that names none.
+
+On the storefront a row on a declared grid is `layout-row layout-row--flex`, a wrapping flex row; each column carries `--col-flex` (and `--col-flex-tablet`, `--col-flex-phone` when set) and fill and auto columns add `layout-col--fill` or `layout-col--auto`. The gutter is `--layout-gap`. A row on the default grid keeps its span classes.
+
 ### 3.4 Page types
 
 `home`, `category`, `product`, `search`, `brand`, `blog`, `page`, `cart`, `checkout`, `account`, `auth`, and `*` for everywhere. `App\Support\StorefrontPageType::current()` resolves the current one from the route.

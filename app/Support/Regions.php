@@ -84,9 +84,10 @@ class Regions
     {
         $rows = [];
         $loose = [];
-        $flush = function () use (&$rows, &$loose) {
+        $grid = ColumnGrid::forTheme($theme);
+        $flush = function () use (&$rows, &$loose, $grid) {
             if ($loose !== []) {
-                $rows[] = ['columns' => [\App\Models\LayoutRow::GRID], 'responsive' => null, 'cols' => [$loose]];
+                $rows[] = ['columns' => $grid->full(), 'responsive' => null, 'cols' => [$loose]];
                 $loose = [];
             }
         };
@@ -98,9 +99,9 @@ class Regions
                     fn ($pieces) => array_values(array_filter(array_map([static::class, 'piece'], (array) $pieces))),
                     $entry['cols']
                 ));
-                $widths = \App\Models\LayoutRow::normalizeColumns($entry['columns'] ?? []);
+                $widths = $grid->normalizeColumns($entry['columns'] ?? []);
                 if (count($widths) !== count($cols)) {
-                    $widths = [\App\Models\LayoutRow::GRID];
+                    $widths = $grid->full();
                     $cols = [array_merge(...($cols ?: [[]]))];
                 }
                 $rows[] = ['columns' => $widths, 'responsive' => is_array($entry['responsive'] ?? null) ? $entry['responsive'] : null, 'cols' => $cols];

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ColumnGrid;
 use App\Support\RowStyle;
 use App\Support\WidgetConfig;
 use App\Support\Widgets;
@@ -23,18 +24,20 @@ class LayoutTemplate extends Model
      * styles normalised, only registered widgets, each widget's settings
      * kept to its schema (WidgetConfig), no ids. The same cleaner
      * serves a template save, a JSON import, and a copy to another page.
+     * Columns follow $grid, the scoped theme's grid when none is given.
      *
      * @return list<array{columns: list<int>, enabled: bool, style: array, responsive: array, placements: list<array>}>
      */
-    public static function cleanRows(mixed $rows): array
+    public static function cleanRows(mixed $rows, ?ColumnGrid $grid = null): array
     {
+        $grid ??= ColumnGrid::forTheme(LayoutPlacement::scopeTheme());
         $out = [];
 
         foreach (is_array($rows) ? $rows : [] as $row) {
             if (! is_array($row)) {
                 continue;
             }
-            $widths = LayoutRow::normalizeColumns($row['columns'] ?? [LayoutRow::GRID]);
+            $widths = $grid->normalizeColumns($row['columns'] ?? $grid->full());
             $placements = [];
 
             foreach (is_array($row['placements'] ?? null) ? $row['placements'] : [] as $p) {
@@ -55,7 +58,7 @@ class LayoutTemplate extends Model
                 'columns' => $widths,
                 'enabled' => (bool) ($row['enabled'] ?? true),
                 'style' => RowStyle::normalizeRow($row['style'] ?? []),
-                'responsive' => LayoutRow::normalizeResponsive($row['responsive'] ?? [], count($widths)),
+                'responsive' => $grid->normalizeResponsive($row['responsive'] ?? [], count($widths)),
                 'placements' => $placements,
             ];
         }
@@ -64,11 +67,11 @@ class LayoutTemplate extends Model
     }
 
     /** The editor's shape for these rows: cards grouped per column, no ids. */
-    public static function toUnits(array $rows): array
+    public static function toUnits(array $rows, ?ColumnGrid $grid = null): array
     {
         $units = [];
 
-        foreach (self::cleanRows($rows) as $row) {
+        foreach (self::cleanRows($rows, $grid) as $row) {
             $cols = array_fill(0, count($row['columns']), []);
             foreach ($row['placements'] as $p) {
                 $widget = Widgets::get($p['widget']);

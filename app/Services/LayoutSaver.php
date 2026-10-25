@@ -8,6 +8,7 @@ use App\Models\LayoutPlacement;
 use App\Models\LayoutRow;
 use App\Support\Regions;
 use App\Support\AdminPermissions;
+use App\Support\ColumnGrid;
 use App\Support\RowStyle;
 use App\Support\WidgetConfig;
 use App\Support\Widgets;
@@ -35,20 +36,24 @@ class LayoutSaver
      * @param  bool  $trusted  true for a layout the store shipped with (a
      *                          theme's own files), which may carry code
      *                          fields whoever applies it
+     * @param  ColumnGrid|null  $grid  the rules the rows' columns follow;
+     *                          the scoped theme's grid when not given
      *
      * @throws RefusedSave when nothing sent could be placed
      * @throws AuthorizationException when someone who may not write
      *                                storefront code changed a code field
      */
-    public function save(string $pageType, array $data, bool $trusted = false): array
+    public function save(string $pageType, array $data, bool $trusted = false, ?ColumnGrid $grid = null): array
     {
+        $grid ??= ColumnGrid::forTheme(LayoutPlacement::scopeTheme());
+
         // The editor sends rows. A flat placements list (the shape before rows
         // existed, and what an import may still carry) is accepted too: each
         // placement becomes its own one-column row.
         $rows = isset($data['rows']) && is_array($data['rows'])
             ? collect($data['rows'])->values()
             : collect($data['placements'] ?? [])->values()->map(fn ($p) => [
-                'id' => null, 'region' => $p['region'] ?? '', 'columns' => [LayoutRow::GRID], 'enabled' => true,
+                'id' => null, 'region' => $p['region'] ?? '', 'columns' => $grid->full(), 'enabled' => true,
                 'placements' => [$p + ['column' => 0]],
             ]);
 
@@ -63,7 +68,7 @@ class LayoutSaver
         // currently see is how a screen earns distrust.
         $spared = [];
 
-        DB::transaction(function () use ($data, $pageType, $rows, &$kept, &$spared) {
+        DB::transaction(function () use ($data, $pageType, $rows, $grid, &$kept, &$spared) {
             // Placements this screen can show but cannot send back: a widget
             // whose module is switched off, and a region this theme no longer
             // declares. The editor renders both and PROMISES both are kept.
@@ -105,7 +110,7 @@ class LayoutSaver
                     continue;
                 }
 
-                $widths = LayoutRow::normalizeColumns($unit['columns'] ?? [LayoutRow::GRID]);
+                $widths = $grid->normalizeColumns($unit['columns'] ?? $grid->full());
 
                 // A row the editor sent under an id it does not own (another
                 // page, another theme) is written as a new row of this page.
@@ -121,7 +126,7 @@ class LayoutSaver
                         'region' => $region,
                         'columns' => $widths,
                         'style' => RowStyle::normalizeRow($unit['style'] ?? []),
-                        'responsive' => LayoutRow::normalizeResponsive($unit['responsive'] ?? [], count($widths)),
+                        'responsive' => $grid->normalizeResponsive($unit['responsive'] ?? [], count($widths)),
                         'sort_order' => $r,
                         'is_enabled' => (bool) ($unit['enabled'] ?? true),
                     ]
