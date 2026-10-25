@@ -169,10 +169,39 @@ class CoreWidgets
         foreach ([
             'system.header' => ['title' => 'Header (as arranged)', 'shape' => 'block'],
             'system.topbar' => ['title' => 'Top bar', 'shape' => 'strip'],
-            'system.logo' => ['title' => 'Logo', 'shape' => 'block'],
-            'system.search' => ['title' => 'Search', 'shape' => 'block'],
-            'system.cart' => ['title' => 'Cart', 'shape' => 'block'],
-            'system.nav' => ['title' => 'Main menu', 'shape' => 'strip'],
+            'system.logo' => ['title' => 'Logo', 'shape' => 'block', 'schema' => [
+                'align' => ['type' => 'select', 'label' => 'Alignment', 'default' => 'left',
+                    'options' => ['left' => 'Left', 'center' => 'Center', 'right' => 'Right']],
+            ]],
+            // Empty choices follow the theme's own header settings, so a
+            // placed piece matches the rest of the header until it is told
+            // otherwise.
+            'system.search' => ['title' => 'Search', 'shape' => 'block', 'schema' => [
+                'placeholder' => ['type' => 'text', 'label' => 'Hint inside the field'],
+                'style' => ['type' => 'select', 'label' => 'Style', 'default' => '',
+                    'options' => ['' => 'As the header settings', 'bar' => 'Field with a button', 'pill' => 'Rounded field, icon inside', 'underline' => 'Underlined, no box']],
+            ]],
+            'system.cart' => ['title' => 'Cart', 'shape' => 'block', 'schema' => [
+                'style' => ['type' => 'select', 'label' => 'Style', 'default' => '',
+                    'options' => ['' => 'As the header settings', 'text' => 'Item count and total', 'icon' => 'Icon with a count', 'total' => 'Icon and total', 'button' => 'Filled button']],
+                'label' => ['type' => 'text', 'label' => 'Button label'],
+                'account' => ['type' => 'select', 'label' => 'Account link beside it', 'default' => '',
+                    'options' => ['' => 'As the header settings', 'none' => 'None', 'icon' => 'Icon', 'label' => 'Icon and label']],
+                'align' => ['type' => 'select', 'label' => 'Alignment', 'default' => 'right',
+                    'options' => ['left' => 'Left', 'center' => 'Center', 'right' => 'Right']],
+            ]],
+            'system.nav' => ['title' => 'Main menu', 'shape' => 'strip', 'schema' => [
+                'align' => ['type' => 'select', 'label' => 'Alignment', 'default' => '',
+                    'options' => ['' => 'As the header settings', 'left' => 'Left', 'center' => 'Center', 'right' => 'Right']],
+            ]],
+            // The shopper's account link: Sign in for visitors, their first
+            // name once signed in.
+            'system.account' => ['title' => 'Account link', 'shape' => 'block', 'schema' => [
+                'display' => ['type' => 'select', 'label' => 'Show as', 'default' => 'icon',
+                    'options' => ['icon' => 'An icon', 'label' => 'An icon and a label']],
+                'align' => ['type' => 'select', 'label' => 'Alignment', 'default' => 'right',
+                    'options' => ['left' => 'Left', 'center' => 'Center', 'right' => 'Right']],
+            ]],
             // The store's currency selector, as a piece of its own. It lists
             // the enabled currencies and draws nothing while there is one.
             'system.currency_menu' => ['title' => 'Currency menu', 'shape' => 'block', 'schema' => [
