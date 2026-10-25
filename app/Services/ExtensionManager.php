@@ -420,13 +420,17 @@ class ExtensionManager
         }
 
         if ($manifest) {
-            $this->runMigrations($manifest['path'], 'migrate:rollback');
+            // Every migration the package ever ran, whatever batch it ran
+            // in. A plain rollback only undoes the store's last batch, so a
+            // package migrated over several updates would leave its older
+            // tables behind. Reset with a path touches only the files in it.
+            $this->runMigrations($manifest['path'], 'migrate:reset');
         }
 
         Extension::where('name', $name)->delete();
         // An extension's scheduled jobs leave with it: their commands are
         // gone, and a row the heartbeat can no longer run is not a setting
-        // worth keeping (owner, 2026-08-30).
+        // worth keeping.
         if (\Illuminate\Support\Facades\Schema::hasTable('automations') && \Illuminate\Support\Facades\Schema::hasColumn('automations', 'extension')) {
             \App\Models\Automation::where('extension', $name)->delete();
         }
