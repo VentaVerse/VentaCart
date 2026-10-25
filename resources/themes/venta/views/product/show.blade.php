@@ -10,32 +10,27 @@
 
     @push('head')
         <meta name="product-id" content="{{ $product->id }}">
-        <script type="application/ld+json">
-        {
-            "@@context": "https://schema.org",
-            "@@type": "Product",
-            "name": "{{ e($product->name) }}",
-            "description": "{{ e(Str::limit(strip_tags($product->description), 200)) }}",
-            "sku": "{{ e($product->sku) }}",
-            "brand": {
-                "@@type": "Brand",
-                "name": "{{ e($product->brand?->name ?? '') }}"
-            },
-            "offers": {
-                "@@type": "Offer",
-                "price": "{{ $effectivePrice }}",
-                "priceCurrency": @json((string) $defaultCurrency?->code),
-                "availability": "{{ $product->quantity > 0 || !$product->track_stock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}"
+        @php
+            // Built as data and encoded, so a quote or a backslash in a name
+            // cannot break the JSON. SKU is internal and is not published.
+            $vLd = [
+                '@context' => 'https://schema.org',
+                '@type' => 'Product',
+                'name' => (string) $product->name,
+                'description' => Str::limit(html_entity_decode(strip_tags((string) $product->description), ENT_QUOTES | ENT_HTML5), 200),
+                'brand' => ['@type' => 'Brand', 'name' => (string) ($product->brand?->name ?? '')],
+                'offers' => [
+                    '@type' => 'Offer',
+                    'price' => (string) $effectivePrice,
+                    'priceCurrency' => (string) $defaultCurrency?->code,
+                    'availability' => $product->quantity > 0 || ! $product->track_stock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                ],
+            ];
+            if ($reviewCount > 0) {
+                $vLd['aggregateRating'] = ['@type' => 'AggregateRating', 'ratingValue' => number_format($averageRating, 1), 'reviewCount' => (string) $reviewCount];
             }
-            @if ($reviewCount > 0)
-            ,"aggregateRating": {
-                "@@type": "AggregateRating",
-                "ratingValue": "{{ number_format($averageRating, 1) }}",
-                "reviewCount": "{{ $reviewCount }}"
-            }
-            @endif
-        }
-        </script>
+        @endphp
+        <script type="application/ld+json">{!! json_encode($vLd, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
     @endpush
 
     {{-- Breadcrumbs --}}
