@@ -101,8 +101,7 @@ class CoreWidgets
             // not a smaller carousel, it is a broken one.
             'regions' => ['header_top', 'content_top', 'content_bottom', 'footer_top'],
             'schema' => [
-                'autoplay' => ['type' => 'select', 'label' => 'Scroll on its own', 'default' => '0',
-                    'options' => ['0' => 'No', '1' => 'Yes']],
+                'autoplay' => ['type' => 'toggle', 'label' => 'Scroll on its own', 'default' => false],
                 'speed' => ['type' => 'number', 'label' => 'Pause between moves (ms)', 'default' => 3000, 'min' => 1000, 'max' => 30000],
             ],
             'resolve' => fn () => ['brands' => Brand::where('is_active', true)

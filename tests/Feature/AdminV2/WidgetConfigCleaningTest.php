@@ -63,7 +63,8 @@ class WidgetConfigCleaningTest extends TestCase
 
         $config = LayoutPlacement::where('widget', 'catalog.brands')->firstOrFail()->config;
 
-        $this->assertSame(['autoplay' => '1'], $config);
+        // The unreadable speed falls back to the field's default.
+        $this->assertSame(['autoplay' => true, 'speed' => 3000], $config);
         $this->get('/')->assertOk()->assertSee('brandCarousel({ autoplay: true, speed: 3000 })', false)
             ->assertDontSee('evil.example', false)->assertDontSee('fetch(', false);
     }
@@ -78,10 +79,10 @@ class WidgetConfigCleaningTest extends TestCase
         $brands = LayoutPlacement::where('widget', 'catalog.brands')->firstOrFail()->config;
         $products = LayoutPlacement::where('widget', 'catalog.products')->firstOrFail()->config;
 
-        $this->assertSame(['speed' => 30000], $brands);
+        $this->assertSame(['autoplay' => false, 'speed' => 30000], $brands);
         $this->assertSame(8, $products['limit']);
         $this->assertSame('4', $products['columns']);
-        $this->assertArrayNotHasKey('layout', $products);
+        $this->assertSame('grid', $products['layout'], 'A choice outside the list falls back to the default.');
         // Its options are the store's categories, looked up when the editor
         // opens: a short plain value is kept for the resolver to look up.
         $this->assertSame('12', $products['category']);
@@ -106,7 +107,7 @@ class WidgetConfigCleaningTest extends TestCase
         $placements = $rows[0]['placements'];
         $this->assertCount(3, $placements);
 
-        $this->assertSame(['text' => "Line one\nLine two", 'button' => 'Go', 'url' => ''], $placements[0]['config']);
+        $this->assertSame(['text' => "Line one\nLine two", 'button' => 'Go'], $placements[0]['config'], 'A refused link is dropped.');
 
         $items = $placements[1]['config']['items'];
         $this->assertCount(2, $items);
@@ -143,7 +144,8 @@ class WidgetConfigCleaningTest extends TestCase
         $this->assertTrue($clean['on']);
         $this->assertArrayNotHasKey('tint', $clean);
         $this->assertSame('primary', $clean['brand_tint']);
-        $this->assertSame('', $clean['link']);
+        $this->assertArrayNotHasKey('link', $clean);
+        $this->assertSame('', WidgetConfig::clean('test.shapes', ['link' => ''])['link'], 'A cleared link stays cleared.');
         $this->assertSame('https://example.com/a.jpg', $clean['photo']);
         $this->assertSame(['dark' => true, 'shade' => 3, 'deep' => [[[]]]], $clean['scheme']);
         $this->assertSame('<b>As written</b>', $clean['html']);

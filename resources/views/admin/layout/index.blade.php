@@ -285,6 +285,11 @@
                         <input type="number" :value="cfg(f.name)" @input="setCfg(f.name, $event.target.value)">
                     </template>
 
+                    <template x-if="f.type === 'toggle'">
+                        <input type="checkbox" :checked="[true, 1, '1', 'true', 'on'].includes(cfg(f.name) ?? f.default)"
+                               @change="setCfg(f.name, $event.target.checked)">
+                    </template>
+
                     <template x-if="f.type === 'textarea'">
                         <textarea :rows="f.code ? 10 : 4" :class="{ 'v-lay__code': f.code }" :spellcheck="f.code ? 'false' : 'true'"
                                   :value="cfg(f.name)" @input="setCfg(f.name, $event.target.value)"></textarea>
@@ -343,7 +348,7 @@
                         </span>
                     </template>
 
-                    <template x-if="!['select', 'number', 'textarea', 'image', 'images', 'rows'].includes(f.type)">
+                    <template x-if="!['select', 'number', 'toggle', 'textarea', 'image', 'images', 'rows'].includes(f.type)">
                         <input type="text" :value="cfg(f.name)" @input="setCfg(f.name, $event.target.value)">
                     </template>
                 </label>

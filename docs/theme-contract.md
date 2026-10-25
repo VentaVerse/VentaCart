@@ -289,7 +289,7 @@ Core keeps the catalogue (`App\Support\Widgets`, registered by `App\Storefront\W
 
 The install check requires a view for every widget registered at the time, except system pieces for regions the theme does not declare.
 
-A placement's `config` holds only the keys its widget's `schema` declares, each in its field type's shape (`App\Support\WidgetConfig`): numbers clamped to `min`/`max`, selects from their options, `url` fields (and text fields named `url`, `link`, `href` or `*_url`) as safe links, colours as hex or a palette name, images as storage paths. This applies to the layout editor's Save, templates, copies and a theme's own layout files alike. A widget that reads a setting must declare it, or the setting is dropped on the next save. A theme's own field types keep bounded plain data; clean them for their own use, and cast in the view anyway (`(int)`, `@js()`).
+A placement's `config` holds only the keys its widget's `schema` declares, each in its field type's shape (`App\Support\WidgetConfig`): numbers clamped to `min`/`max`, selects from their options, `url` fields (and text fields named `url`, `link`, `href` or `*_url`) as safe links, colours as hex or a palette name, images as storage paths. This applies to the layout editor's Save, templates, copies and a theme's own layout files alike. A value that does not fit falls back to the field's `default`, or is left out. A widget that reads a setting must declare it, or the setting is dropped on the next save. A `toggle` field is a true/false checkbox in the editor. A theme's own field types keep bounded plain data; clean them for their own use, and cast in the view anyway (`(int)`, `@js()`).
 
 ### 5.2 System pieces
 

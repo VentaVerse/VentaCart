@@ -28,6 +28,9 @@ namespace App\Support;
  *                   may change one (LayoutSaver checks)
  *   text and the rest   plain text, capped
  *
+ * A value that does not fit its field falls back to the field's declared
+ * default, or is left out when there is none.
+ *
  * A field type this class does not know (a theme's own) keeps a bounded
  * copy of plain data: short keys, capped text, numbers and booleans, no
  * deeper than a few levels. That theme still cleans it for its own use.
@@ -90,6 +93,13 @@ final class WidgetConfig
             }
 
             $value = self::field($name, $field, $values[$name], $depth);
+
+            // A value that cannot be read falls back to the field's own
+            // default, when that default is itself a valid value.
+            if ($value === null && array_key_exists('default', $field) && $field['default'] !== null) {
+                $value = self::field($name, $field, $field['default'], $depth);
+            }
+
             if ($value !== null) {
                 $out[$name] = $value;
             }
@@ -111,7 +121,7 @@ final class WidgetConfig
             'select' => self::select($field, $value),
             'number', 'range' => self::number($field, $value),
             'toggle', 'checkbox', 'boolean', 'switch' => self::boolean($value),
-            'url', 'link' => SafeInput::link($value),
+            'url', 'link' => self::link($value),
             'color', 'colour' => self::color($value),
             'image', 'media' => self::media($value),
             'images' => is_array($value) ? array_values(array_filter(array_map(self::media(...), array_slice(array_values($value), 0, self::LIST_MAX)), fn ($v) => $v !== '')) : null,
@@ -120,10 +130,18 @@ final class WidgetConfig
                 ? (is_string($value) ? substr($value, 0, self::CODE_MAX) : null)
                 : SafeInput::text($value, (int) ($field['max'] ?? self::TEXTAREA_MAX), true),
             'text', 'email', 'tel', 'date', 'datetime', 'time' => self::looksLikeLink($name)
-                ? SafeInput::link($value)
+                ? self::link($value)
                 : SafeInput::text($value, (int) ($field['max'] ?? self::TEXT_MAX)),
             default => self::plain($value, $depth),
         };
+    }
+
+    /** A safe link, '' when cleared, or null when one was given and refused. */
+    private static function link(mixed $value): ?string
+    {
+        $link = SafeInput::link($value);
+
+        return $link === '' && is_scalar($value) && trim((string) $value) !== '' ? null : $link;
     }
 
     private static function looksLikeLink(string $name): bool
