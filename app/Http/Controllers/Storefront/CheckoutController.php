@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\CustomerAddress;
+use App\Services\Address\DeepAddressRules;
 use App\Services\CartService;
 use App\Services\CheckoutService;
 use Illuminate\Http\Request;
@@ -111,6 +112,8 @@ class CheckoutController extends Controller
             'phone' => ['required', 'string', 'max:30'],
             'is_default' => ['nullable', 'boolean'],
         ]);
+
+        app(DeepAddressRules::class)->validate($validated);
 
         if ($request->boolean('is_default') || $customer->addresses()->count() === 0) {
             $customer->addresses()->update(['is_default' => false]);

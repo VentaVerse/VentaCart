@@ -96,10 +96,10 @@ class StockService
     /**
      * Move every line by $sign units.
      *
-     * A variant line moves the variant AND its parent, because a parent with
-     * variants carries the sum of them (ProductController::
-     * syncQuantityFromVariants). Moving one without the other is what makes a
-     * parent drift from its own children.
+     * A variant line moves the variant, then recomputes its parent from the
+     * switched-on variants (Product::syncStockFromVariants). Recomputing
+     * rather than moving the parent by the same units keeps it right when
+     * the variant is switched off: its units are not the parent's to count.
      *
      * @param  \Illuminate\Support\Collection|iterable  $lines
      */
@@ -118,12 +118,23 @@ class StockService
 
             $units = $sign * (int) $item->quantity;
 
-            if ($item->product_id) {
-                $product->increment('quantity', $units);
-            }
-
             if ($item->product_variant_id && $item->productVariant) {
                 $item->productVariant->increment('quantity', $units);
+
+                // A line can outlive its product's variants (the flag was
+                // turned off since): then the product's own stock moves, as
+                // a product without variants does.
+                if ($product->has_variants) {
+                    $product->syncStockFromVariants();
+                } else {
+                    $product->increment('quantity', $units);
+                }
+
+                continue;
+            }
+
+            if ($item->product_id) {
+                $product->increment('quantity', $units);
             }
         }
     }

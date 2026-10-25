@@ -35,6 +35,17 @@
                    :method="$customer ? 'PUT' : 'POST'" :guard="false" class="v-settle">
         <input type="hidden" name="store_id" value="1">
 
+            @if ($errors->any())
+                <div class="v-notice v-notice--bad">
+                    <p class="v-notice__title">Please fix the following</p>
+                    <ul class="v-notice__list">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="v-tabs" role="tablist">
                 <button type="button" class="v-tab" role="tab" :aria-selected="activeTab === 'general' ? 'true' : 'false'" @click="pick('general')">General</button>
                 <button type="button" class="v-tab" role="tab" :aria-selected="activeTab === 'addresses' ? 'true' : 'false'" @click="pick('addresses')">
@@ -183,8 +194,8 @@
                                     </select>
                                 </label>
                                 <label class="v-field" x-show="addrDropdowns[aIndex]?.hasProvider && (addrDropdowns[aIndex]?.districts || []).length > 0">
-                                    <span class="v-field__label">District</span>
-                                    <select x-model="addr.district" :name="'addresses['+aIndex+'][district]'"
+                                    <span class="v-field__label">District <span class="v-req">Required</span></span>
+                                    <select x-model="addr.district" :name="'addresses['+aIndex+'][district]'" :required="addrDropdowns[aIndex]?.hasProvider && (addrDropdowns[aIndex]?.districts || []).length > 0"
                                             @change="onAddrDistrictChange(aIndex)" class="v-control">
                                         <option value="">Select district</option>
                                         <template x-for="d in (addrDropdowns[aIndex]?.districts || [])" :key="d.id">
@@ -193,8 +204,8 @@
                                     </select>
                                 </label>
                                 <label class="v-field" x-show="addrDropdowns[aIndex]?.hasProvider && (addrDropdowns[aIndex]?.barangays || []).length > 0">
-                                    <span class="v-field__label">Barangay</span>
-                                    <select x-model="addr.barangay" :name="'addresses['+aIndex+'][barangay]'" class="v-control">
+                                    <span class="v-field__label">Barangay <span class="v-req">Required</span></span>
+                                    <select x-model="addr.barangay" :name="'addresses['+aIndex+'][barangay]'" :required="addrDropdowns[aIndex]?.hasProvider && (addrDropdowns[aIndex]?.barangays || []).length > 0" class="v-control">
                                         <option value="">Select barangay</option>
                                         <template x-for="b in (addrDropdowns[aIndex]?.barangays || [])" :key="b.id">
                                             <option :value="b.name" x-text="b.name"></option>
@@ -314,7 +325,7 @@
                     u.searchParams.set('tab', t);
                     history.replaceState(null, '', u);
                 },
-                addresses: @json($customer?->addresses ?? []),
+                addresses: @json(array_values(old('addresses', $customer?->addresses?->toArray() ?? []))),
                 addrDropdowns: {},
                 phoneCodes: @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'id')),
 

@@ -83,6 +83,31 @@ class CheckoutService
         ?string $shippingMethodName = null,
         ?float $shippingCostOverride = null
     ): array {
+        // A line switched off since it was added (its product or its
+        // variant) is not for sale, whatever stock it shows. Asked first:
+        // it is about the cart, whichever way the shopper pays.
+        $unavailable = $cart->items()->with(['product', 'productVariant'])->get()
+            ->filter(fn ($item) => $item->isUnavailable())
+            ->map(fn ($item) => $item->name . ($item->variant_label ? ' (' . $item->variant_label . ')' : ''));
+
+        if ($unavailable->isNotEmpty()) {
+            throw new \InvalidArgumentException(
+                'These items are no longer available: ' . $unavailable->implode(', ') . '. Please remove them from your cart before checkout.'
+            );
+        }
+
+        // A saved address from before district and barangay were required
+        // (a Manila address that skipped its district, say) cannot ship.
+        // Refused out loud, so the customer edits it instead of a parcel
+        // leaving without a barangay.
+        $rules = app(\App\Services\Address\DeepAddressRules::class);
+        $addressProblem = $rules->checkoutMessage($shippingAddress->country_id, $shippingAddress->only(['state', 'city', 'district', 'barangay']))
+            ?? ($billingAddress ? $rules->checkoutMessage($billingAddress['country_id'] ?? null, $billingAddress, 'billing') : null);
+
+        if ($addressProblem) {
+            throw new \InvalidArgumentException($addressProblem);
+        }
+
         $paymentMethod = $this->getPaymentMethod($paymentMethodKey);
         if (!$paymentMethod) {
             throw new \InvalidArgumentException('Invalid payment method.');

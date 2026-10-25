@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
+use App\Http\Controllers\Auth\FirstAdminController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -13,6 +14,13 @@ $adminPrefix = config('admin.prefix', 'admin');
 Route::prefix($adminPrefix)->group(function () {
 
     Route::middleware('guest')->group(function () {
+        // Only while no admin exists; see FirstAdminController.
+        Route::get('setup', [FirstAdminController::class, 'create'])
+            ->name('setup');
+
+        Route::post('setup', [FirstAdminController::class, 'store'])
+            ->name('setup.store');
+
         Route::get('login', [AuthenticatedSessionController::class, 'create'])
             ->name('login');
 

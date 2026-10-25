@@ -3,13 +3,16 @@
 namespace Tests\Feature\Install;
 
 use App\Models\Setting;
+use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\ThemeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
- * A fresh install opens as VentaCart: its name, its logo and its favicon.
+ * A fresh install opens as VentaCart: its name, its logo and its favicon,
+ * with no admin account waiting behind a default password.
  */
 class FreshInstallBrandingTest extends TestCase
 {
@@ -18,6 +21,15 @@ class FreshInstallBrandingTest extends TestCase
     private function identity(string $key): ?string
     {
         return Setting::where('group', 'identity')->where('key', $key)->value('value');
+    }
+
+    public function test_seeding_creates_no_admin(): void
+    {
+        Storage::fake('public');
+
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertSame(0, User::count());
     }
 
     public function test_a_fresh_store_is_named_ventacart_and_wears_its_logo_and_favicon(): void

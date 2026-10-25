@@ -1158,6 +1158,9 @@ class ReskinWaveTest extends TestCase
 
     public function test_admin_login_page_renders_in_new_shell(): void
     {
+        // An admin must exist, or the login hands over to setup.
+        User::factory()->create();
+
         $this->get(route('login'))
             ->assertOk()
             ->assertSee('v-admin', false)

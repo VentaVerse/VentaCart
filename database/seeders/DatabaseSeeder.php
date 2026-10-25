@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -43,20 +42,7 @@ class DatabaseSeeder extends Seeder
         // declines to arrange a store with nothing in it.
         $this->call(DemoLayoutSeeder::class);
 
-        // Create super admin user. Username is derived from the email
-        // local-part (the part before "@"), which is how every other admin
-        // account gets its username too (see the one-off backfill for
-        // existing installs and the Users CRUD's admin-entered value).
-        $superAdmin = \App\Models\Role::where('slug', 'super-admin')->first();
-        User::firstOrCreate(
-            ['email' => 'admin@venta.local'],
-            [
-                'name' => 'Admin',
-                'username' => 'admin',
-                'password' => bcrypt('password'),
-                'role_id' => $superAdmin?->id,
-                'is_active' => true,
-            ]
-        );
+        // No admin is seeded: the first visit to the admin creates one (see
+        // FirstAdminController), so a store never ships with a known login.
     }
 }

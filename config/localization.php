@@ -26,7 +26,8 @@ return [
     | Each level:
     |   key         frontend field key (also the address column it saves into)
     |   label       dropdown label
-    |   required    whether the field is required
+    |   required    whether the field is required. A conditional level is
+    |               required only where it has options (district: Manila).
     |   file        cleaned JSON file under database/data/<path>/
     |   parent      key of the parent level (null = root). May be "a|b" so a
     |               level can hang off either of two parents (PH barangay hangs
@@ -60,7 +61,7 @@ return [
                 [
                     'key'         => 'district',
                     'label'       => 'District',
-                    'required'    => false,
+                    'required'    => true,
                     'file'        => 'districts.json',
                     'parent'      => 'city',
                     'conditional' => true,
@@ -68,7 +69,7 @@ return [
                 [
                     'key'      => 'barangay',
                     'label'    => 'Barangay',
-                    'required' => false,
+                    'required' => true,
                     'file'     => 'barangays.json',
                     'parent'   => 'city|district',
                 ],

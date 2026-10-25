@@ -11,13 +11,18 @@
                 <a href="{{ route('home') }}" class="btn-checkout inline-block">CONTINUE SHOPPING</a>
             </div>
         @else
+            @if ($hasUnavailable)
+            <div class="bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] rounded-lg p-4 mb-6 reveal">
+                <p class="text-[var(--color-danger-text)] text-sm">Some items in your cart are no longer available. Please remove them before checking out.</p>
+            </div>
+            @endif
             @if ($hasOutOfStock)
             <div class="bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] rounded-lg p-4 mb-6 reveal">
                 <p class="text-[var(--color-danger-text)] text-sm">Some items in your cart are out of stock or have insufficient quantity. Please remove or update them before checking out.</p>
             </div>
         @endif
 
-        <div x-data="cartPage({{ $items->toJson() }}, {{ $subtotal }}, {{ json_encode($outOfStockIds) }})" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div x-data="cartPage({{ $items->toJson() }}, {{ $subtotal }}, {{ json_encode($outOfStockIds) }}, {{ json_encode($unavailableIds) }})" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {{-- Items List --}}
                 <div class="lg:col-span-2">
                     {{-- Stock Warning --}}
@@ -46,6 +51,9 @@
                                     <div class="cart-item-sku" x-show="item.sku" x-text="'SKU: ' + item.sku"></div>
                                     <div x-show="outOfStockIds.includes(item.id)" class="mt-1">
                                         <span class="text-xs font-medium text-[var(--color-danger-text)] bg-[var(--color-danger-bg)] px-2 py-0.5 rounded">OUT OF STOCK</span>
+                                    </div>
+                                    <div x-show="unavailableIds.includes(item.id)" class="mt-1">
+                                        <span class="text-xs font-medium text-[var(--color-danger-text)] bg-[var(--color-danger-bg)] px-2 py-0.5 rounded">NO LONGER AVAILABLE</span>
                                     </div>
                                 </div>
 
@@ -183,12 +191,12 @@
                             <span class="text-xl text-[var(--color-text-heading)]" class="font-heading"><span x-text="money(subtotal)">{{ number_format($subtotal, 2) }}</span></span>
                         </div>
 
-                        <template x-if="outOfStockIds.length > 0">
+                        <template x-if="outOfStockIds.length + unavailableIds.length > 0">
                             <div class="btn-checkout block text-center mb-3 opacity-50 cursor-not-allowed">
                                 PROCEED TO CHECKOUT
                             </div>
                         </template>
-                        <template x-if="outOfStockIds.length === 0">
+                        <template x-if="outOfStockIds.length + unavailableIds.length === 0">
                             <div>
                                 @auth('customer')
                                     <a href="{{ route('checkout.index') }}" class="btn-checkout block text-center mb-3"

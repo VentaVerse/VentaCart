@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\OrderNotificationService;
 use App\Models\ShippingCourier;
+use App\Services\Address\DeepAddressRules;
 use Illuminate\Http\Request;
 use App\Services\OrderStatusChanger;
 use App\Services\StockService;
@@ -762,7 +763,7 @@ class OrderController extends Controller
         $isCreate = $orderId === null;
         $r = $isCreate ? 'required' : 'nullable';
 
-        return $request->validate([
+        $validated = $request->validate([
             'store_id' => ['required', 'exists:stores,id'],
             'customer_id' => ['nullable', 'exists:customers,id'],
             'order_status_id' => ['required', 'exists:order_statuses,id'],
@@ -803,6 +804,34 @@ class OrderController extends Controller
             'items.*.price' => ['required', 'numeric', 'min:0'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
         ]);
+
+        // A new order, or an address edited here, must be complete. An old
+        // order left as it was (imported ones never had a barangay) is not
+        // held hostage to a rule written after it.
+        $existing = $orderId ? Order::find($orderId) : null;
+        $rules = app(DeepAddressRules::class);
+        foreach (['shipping_', 'billing_'] as $prefix) {
+            if (empty($validated[$prefix . 'country_id'])) {
+                continue;
+            }
+            if ($existing && !$this->addressChanged($existing, $validated, $prefix)) {
+                continue;
+            }
+            $rules->validate($validated, $prefix);
+        }
+
+        return $validated;
+    }
+
+    private function addressChanged(Order $order, array $validated, string $prefix): bool
+    {
+        foreach (['country_id', 'state', 'city', 'district', 'barangay'] as $field) {
+            if ((string) ($validated[$prefix . $field] ?? '') !== (string) ($order->{$prefix . $field} ?? '')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function resolveDisplayMode(Product $product, ?int $customerGroupId): ?string

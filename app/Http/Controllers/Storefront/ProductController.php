@@ -23,8 +23,21 @@ class ProductController extends Controller
             'tags',
             'specials',
             'variantTypes.values',
-            'variants',
+            // A switched-off variant is not for sale, so the page never hears of it.
+            'variants' => fn ($query) => $query->where('is_active', true),
         ]);
+
+        // Offer only the values a switched-on variant actually uses: a value
+        // left in the picker whose variants are all off would lead the
+        // shopper to a choice that cannot be bought.
+        if ($product->has_variants) {
+            $product->loadMissing('variants.values');
+            $offeredValueIds = $product->variants->flatMap(fn ($variant) => $variant->values->pluck('id'))->unique();
+            foreach ($product->variantTypes as $type) {
+                $type->setRelation('values', $type->values->whereIn('id', $offeredValueIds)->values());
+            }
+            $product->setRelation('variantTypes', $product->variantTypes->filter(fn ($type) => $type->values->isNotEmpty())->values());
+        }
 
         if (\App\Support\Reviews::enabled()) {
             $product->load('approvedReviews.images');
@@ -32,6 +45,13 @@ class ProductController extends Controller
 
         // Increment views
         $product->increment('views');
+
+        // What the shopper can actually buy. A parent's stored quantity is the
+        // sum of all its variants, switched-off ones included, so the page
+        // counts only the variants it offers. Display only: never saved.
+        if ($product->has_variants) {
+            $product->setAttribute('quantity', (int) $product->variants->sum('quantity'));
+        }
 
         // Active special (sale or override pricing).
         // Guests are treated as the default customer group so Default-targeted

@@ -97,8 +97,15 @@ class CartService
         if ($variantId) {
             $variant = ProductVariant::where('id', $variantId)
                 ->where('product_id', $productId)
-                ->where('is_active', true)
-                ->firstOrFail();
+                ->first();
+
+            // Switched off since the page was opened: say so, rather than
+            // the bare "not found" a shopper cannot act on.
+            if (! $variant || ! $variant->is_active) {
+                throw ValidationException::withMessages([
+                    'variant_id' => 'That option is no longer available.',
+                ]);
+            }
 
             $variant->load('values');
             $price = $variant->price;

@@ -39,8 +39,6 @@ services:
       BROADCAST_CONNECTION: log
       MAIL_MAILER: log
       VENTA_RUN_SEEDERS: "${VENTA_RUN_SEEDERS:-false}"
-      VENTA_ADMIN_EMAIL: "${VENTA_ADMIN_EMAIL:-}"
-      VENTA_ADMIN_PASSWORD: "${VENTA_ADMIN_PASSWORD:-}"
     volumes:
       - app_storage:/var/www/html/storage/app
       - app_logs:/var/www/html/storage/logs

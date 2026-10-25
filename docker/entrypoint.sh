@@ -59,22 +59,6 @@ if [ "${VENTA_RUN_SEEDERS:-false}" = "true" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Bootstrap an initial admin user if requested (first install only).
-# Both env vars must be present; otherwise we skip.
-# ---------------------------------------------------------------------------
-if [ -n "${VENTA_ADMIN_EMAIL:-}" ] && [ -n "${VENTA_ADMIN_PASSWORD:-}" ]; then
-    if php artisan tinker --execute="echo \App\Models\User::where('email','${VENTA_ADMIN_EMAIL}')->exists() ? 'yes' : 'no';" 2>/dev/null | grep -q '^no$'; then
-        echo "[entrypoint] Creating initial admin user ${VENTA_ADMIN_EMAIL}..."
-        php artisan tinker --execute="\App\Models\User::create([
-            'name' => 'Admin',
-            'email' => '${VENTA_ADMIN_EMAIL}',
-            'password' => bcrypt('${VENTA_ADMIN_PASSWORD}'),
-            'email_verified_at' => now(),
-        ]);" || echo "[entrypoint] WARN: admin user creation failed (non-fatal)"
-    fi
-fi
-
-# ---------------------------------------------------------------------------
 # Production caches — recompute on every container start so config/code
 # changes from the new image take effect immediately. Cheap (~1 second).
 # ---------------------------------------------------------------------------

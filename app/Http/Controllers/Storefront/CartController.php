@@ -40,9 +40,16 @@ class CartController extends Controller
             }
         }
 
-        $hasOutOfStock = !empty($outOfStockIds);
+        // Lines that cannot be bought at all any more (product or variant
+        // switched off since they were added). Blocked whatever the
+        // out-of-stock setting says: there is nothing to sell.
+        $unavailableIds = $items->filter(fn ($item) => $item->isUnavailable())->pluck('id')->values()->all();
+        $outOfStockIds = array_values(array_diff($outOfStockIds, $unavailableIds));
 
-        return view('cart.index', compact('items', 'subtotal', 'hasOutOfStock', 'outOfStockIds'));
+        $hasOutOfStock = !empty($outOfStockIds);
+        $hasUnavailable = !empty($unavailableIds);
+
+        return view('cart.index', compact('items', 'subtotal', 'hasOutOfStock', 'outOfStockIds', 'hasUnavailable', 'unavailableIds'));
     }
 
     public function add(Request $request): JsonResponse

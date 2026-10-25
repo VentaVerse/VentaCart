@@ -304,8 +304,8 @@
                                 </div>
                                 {{-- Provider: District --}}
                                 <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.districts || []).length > 0">
-                                    <x-admin.field name="shipping_district" label="District">
-                                        <select name="shipping_district" x-model="shipping.district" @change="onShippingDistrictChange()" class="v-control">
+                                    <x-admin.field name="shipping_district" label="District" :required="true">
+                                        <select name="shipping_district" x-model="shipping.district" :required="shippingDropdowns.hasProvider && (shippingDropdowns.districts || []).length > 0" @change="onShippingDistrictChange()" class="v-control">
                                             <option value="">Select district</option>
                                             <template x-for="d in (shippingDropdowns.districts || [])" :key="d.id">
                                                 <option :value="d.name" x-text="d.name"></option>
@@ -315,8 +315,8 @@
                                 </div>
                                 {{-- Provider: Barangay --}}
                                 <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.barangays || []).length > 0">
-                                    <x-admin.field name="shipping_barangay" label="Barangay">
-                                        <select name="shipping_barangay" x-model="shipping.barangay" class="v-control">
+                                    <x-admin.field name="shipping_barangay" label="Barangay" :required="true">
+                                        <select name="shipping_barangay" x-model="shipping.barangay" :required="shippingDropdowns.hasProvider && (shippingDropdowns.barangays || []).length > 0" class="v-control">
                                             <option value="">Select barangay</option>
                                             <template x-for="b in (shippingDropdowns.barangays || [])" :key="b.id">
                                                 <option :value="b.name" x-text="b.name"></option>
@@ -409,8 +409,8 @@
                                     </div>
                                     {{-- Provider: District --}}
                                     <div x-show="billingDropdowns.hasProvider && (billingDropdowns.districts || []).length > 0">
-                                        <x-admin.field name="billing_district" label="District">
-                                            <select name="billing_district" x-model="billing.district" @change="onBillingDistrictChange()" class="v-control">
+                                        <x-admin.field name="billing_district" label="District" :required="true">
+                                            <select name="billing_district" x-model="billing.district" :required="differentBilling && billingDropdowns.hasProvider && (billingDropdowns.districts || []).length > 0" @change="onBillingDistrictChange()" class="v-control">
                                                 <option value="">Select district</option>
                                                 <template x-for="d in (billingDropdowns.districts || [])" :key="d.id">
                                                     <option :value="d.name" x-text="d.name"></option>
@@ -420,8 +420,8 @@
                                     </div>
                                     {{-- Provider: Barangay --}}
                                     <div x-show="billingDropdowns.hasProvider && (billingDropdowns.barangays || []).length > 0">
-                                        <x-admin.field name="billing_barangay" label="Barangay">
-                                            <select name="billing_barangay" x-model="billing.barangay" class="v-control">
+                                        <x-admin.field name="billing_barangay" label="Barangay" :required="true">
+                                            <select name="billing_barangay" x-model="billing.barangay" :required="differentBilling && billingDropdowns.hasProvider && (billingDropdowns.barangays || []).length > 0" class="v-control">
                                                 <option value="">Select barangay</option>
                                                 <template x-for="b in (billingDropdowns.barangays || [])" :key="b.id">
                                                     <option :value="b.name" x-text="b.name"></option>
