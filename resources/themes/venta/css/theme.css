@@ -2829,3 +2829,45 @@ button.wgallery__item:focus-visible { outline: 2px solid var(--color-primary); o
 .free-shipping-note { color: var(--color-primary); }
 .free-shipping-note__icon { width: 16px; height: 16px; }
 .free-shipping-note__label { font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ============================================
+   Banner, block group, map and HTML blocks
+   ============================================ */
+.wbanner { position: relative; display: flex; overflow: hidden; border-radius: 0.75rem; background: var(--color-card-bg); color: #fff; isolation: isolate; }
+.wbanner--plain { color: var(--color-text-heading); border: 1px solid var(--color-border); }
+.wbanner--sm { min-height: 12rem; }
+.wbanner--md { min-height: 20rem; }
+.wbanner--lg { min-height: 30rem; }
+.wbanner__img { display: block; width: 100%; height: auto; transition: transform 0.6s ease; }
+.wbanner--sm .wbanner__img, .wbanner--md .wbanner__img, .wbanner--lg .wbanner__img { position: absolute; inset: 0; height: 100%; object-fit: cover; }
+.wbanner--zoom:hover .wbanner__img { transform: scale(1.05); }
+.wbanner::after { content: ''; position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 0; }
+.wbanner--plain::after { display: none; }
+.wbanner--shade-15::after { opacity: 0.15; }
+.wbanner--shade-30::after { opacity: 0.3; }
+.wbanner--shade-50::after { opacity: 0.5; }
+.wbanner--shade-70::after { opacity: 0.7; }
+.wbanner__copy { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; gap: 0.75rem; padding: clamp(1.25rem, 4vw, 3rem); }
+.wbanner--plain .wbanner__copy { position: relative; }
+.wbanner--top .wbanner__copy { justify-content: flex-start; }
+.wbanner--middle .wbanner__copy { justify-content: center; }
+.wbanner--bottom .wbanner__copy { justify-content: flex-end; }
+.wbanner--left .wbanner__copy { align-items: flex-start; text-align: left; }
+.wbanner--center .wbanner__copy { align-items: center; text-align: center; }
+.wbanner--right .wbanner__copy { align-items: flex-end; text-align: right; }
+.wbanner__heading { font-family: var(--font-heading); font-size: clamp(1.5rem, 4vw, 2.75rem); line-height: 1.1; font-weight: 700; text-wrap: balance; }
+.wbanner__text { max-width: 50ch; font-size: clamp(0.9rem, 1.6vw, 1.1rem); }
+.wbanner__btn { display: inline-block; padding: 0.7rem 1.4rem; border-radius: 0.375rem; font-family: var(--font-heading); font-weight: 700; background: var(--color-primary); color: var(--color-btn-text); transition: filter 0.2s; }
+.wbanner:hover .wbanner__btn { filter: brightness(1.1); }
+a.wbanner:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+
+.wgroup--tabs .wgroup__bar { margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); }
+.wgroup--accordion { max-width: none; }
+.wgroup__panel > section, .wgroup__panel > div > section { padding-top: 1rem; padding-bottom: 1rem; }
+.wgroup__panel .container-store { max-width: none; padding-left: 0; padding-right: 0; }
+
+.wmap { overflow: hidden; border-radius: 0.75rem; border: 1px solid var(--color-border); background: var(--color-card-bg); }
+.wmap__frame { display: block; width: 100%; border: 0; }
+
+.whtml { overflow-wrap: anywhere; }
+.whtml img, .whtml iframe, .whtml video { max-width: 100%; }

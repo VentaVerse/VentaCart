@@ -40,15 +40,17 @@
     // One placement, rendered by its widget's view. A placement whose module
     // is disabled or uninstalled renders NOTHING on the storefront, and is
     // reported in the layout editor instead. A shopper must never meet a
-    // broken slot because an admin turned an extension off.
-    $vRender = function ($placement) use ($name) {
+    // broken slot because an admin turned an extension off. A column is
+    // walked by App\Support\BlockGroup, so a block group can take the
+    // blocks it holds.
+    $vRender = function ($placement, array $vExtra = []) use ($name) {
         $vWidget = \App\Support\Widgets::get($placement->widget);
         $vView = \App\Support\Widgets::view($placement->widget);
         if (! $vWidget || ! $vView) {
             return \App\Support\LayoutHooks::wrapPlacement('', $placement, $name);
         }
         $vData = \App\Support\Widgets::resolve($placement->widget, $placement->config ?? []);
-        $vHtml = view($vView, array_merge(['placement' => $placement], $vData))->render();
+        $vHtml = view($vView, array_merge(['placement' => $placement], $vData, $vExtra))->render();
 
         // A block styled on its own (box padding, background, border,
         // corners, shadow, tone, title alignment) is wrapped in core markup
@@ -93,16 +95,12 @@
                     }
                 }
                 $vHtml .= '<div class="layout-col layout-col--' . (int) $vWidth . '"' . ($vColVars !== '' ? ' style="' . e(trim($vColVars)) . '"' : '') . '>';
-                foreach ($vUnit['columns'][$vCol] ?? [] as $placement) {
-                    $vHtml .= $vRender($placement);
-                }
+                $vHtml .= \App\Support\BlockGroup::renderColumn($vUnit['columns'][$vCol] ?? [], $vRender);
                 $vHtml .= '</div>';
             }
             $vHtml .= '</div>';
         } else {
-            foreach ($vUnit['columns'][0] ?? [] as $placement) {
-                $vHtml .= $vRender($placement);
-            }
+            $vHtml .= \App\Support\BlockGroup::renderColumn($vUnit['columns'][0] ?? [], $vRender);
         }
 
         $vOut .= \App\Support\LayoutHooks::wrapRow($vHtml, $vRow, $name, (int) $vIndex, $vPageType);

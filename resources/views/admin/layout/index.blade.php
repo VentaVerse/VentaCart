@@ -286,7 +286,8 @@
                     </template>
 
                     <template x-if="f.type === 'textarea'">
-                        <textarea rows="4" :value="cfg(f.name)" @input="setCfg(f.name, $event.target.value)"></textarea>
+                        <textarea :rows="f.code ? 10 : 4" :class="{ 'v-lay__code': f.code }" :spellcheck="f.code ? 'false' : 'true'"
+                                  :value="cfg(f.name)" @input="setCfg(f.name, $event.target.value)"></textarea>
                     </template>
 
                     {{-- One image, or several: chosen through the page's one

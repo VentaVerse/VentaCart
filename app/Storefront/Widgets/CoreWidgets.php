@@ -173,6 +173,22 @@ class CoreWidgets
             'system.search' => ['title' => 'Search', 'shape' => 'block'],
             'system.cart' => ['title' => 'Cart', 'shape' => 'block'],
             'system.nav' => ['title' => 'Main menu', 'shape' => 'strip'],
+            // The store's currency selector, as a piece of its own. It lists
+            // the enabled currencies and draws nothing while there is one.
+            'system.currency_menu' => ['title' => 'Currency menu', 'shape' => 'block', 'schema' => [
+                'label' => ['type' => 'text', 'label' => 'Label before it'],
+                'display' => ['type' => 'select', 'label' => 'Show as', 'default' => 'dropdown',
+                    'options' => ['dropdown' => 'A dropdown', 'list' => 'A row of links']],
+                'show' => ['type' => 'select', 'label' => 'Each currency as', 'default' => 'code',
+                    'options' => ['code' => 'Code (USD)', 'symbol' => 'Symbol and code ($ USD)', 'name' => 'Name (US Dollar)']],
+            ]],
+            // A greeting, with the shopper's first name once signed in.
+            'system.welcome_text' => ['title' => 'Welcome text', 'shape' => 'block', 'schema' => [
+                'guest' => ['type' => 'text', 'label' => 'For visitors', 'default' => 'Welcome to our store'],
+                'customer' => ['type' => 'text', 'label' => 'For signed-in customers ({name} is their first name)', 'default' => 'Welcome back, {name}'],
+                'links' => ['type' => 'select', 'label' => 'Sign in and register links', 'default' => 'show',
+                    'options' => ['show' => 'Show to visitors', 'hide' => 'Hide']],
+            ]],
         ] as $key => $spec) {
             Widgets::register($key, $spec + [
                 'module' => 'theme',
@@ -338,6 +354,86 @@ class CoreWidgets
             ],
         ]);
 
+        // One picture with words over it, linked: the single promotional tile
+        // a banner group is too much machinery for.
+        $align = ['left' => 'Left', 'center' => 'Center', 'right' => 'Right'];
+        Widgets::register('content.banner', [
+            'title' => 'Banner',
+            'shape' => 'banner',
+            'module' => 'content',
+            'view' => 'widgets.content.banner',
+            'schema' => [
+                'image' => ['type' => 'image', 'label' => 'Image', 'root' => 'banners'],
+                'heading' => ['type' => 'text', 'label' => 'Heading'],
+                'text' => ['type' => 'textarea', 'label' => 'Text'],
+                'button' => ['type' => 'text', 'label' => 'Button'],
+                'url' => ['type' => 'text', 'label' => 'Link'],
+                'target' => ['type' => 'select', 'label' => 'Open the link', 'default' => 'same',
+                    'options' => ['same' => 'In the same tab', 'new' => 'In a new tab']],
+                'alignment' => ['type' => 'select', 'label' => 'Text alignment', 'default' => 'center', 'options' => $align],
+                'position' => ['type' => 'select', 'label' => 'Text position', 'default' => 'middle',
+                    'options' => ['top' => 'Top', 'middle' => 'Middle', 'bottom' => 'Bottom']],
+                'overlay' => ['type' => 'select', 'label' => 'Darken the image', 'default' => '30',
+                    'options' => ['0' => 'Not at all', '15' => 'A little', '30' => 'Some', '50' => 'Half', '70' => 'A lot']],
+                'height' => ['type' => 'select', 'label' => 'Height', 'default' => 'image',
+                    'options' => ['image' => 'As the image', 'sm' => 'Short', 'md' => 'Medium', 'lg' => 'Tall']],
+                'hover' => ['type' => 'select', 'label' => 'On hover', 'default' => 'zoom',
+                    'options' => ['zoom' => 'Zoom the image', 'none' => 'Nothing']],
+            ],
+        ]);
+
+        // Other blocks shown as tabs or an accordion. The group holds the
+        // blocks placed directly below it in the same column (see
+        // App\Support\BlockGroup), so each one keeps its own settings form
+        // and nothing about how a placement is stored changes.
+        Widgets::register('content.block_group', [
+            'title' => 'Block group',
+            'shape' => 'tabs',
+            'module' => 'content',
+            'view' => 'widgets.content.block_group',
+            'schema' => [
+                'display' => ['type' => 'select', 'label' => 'Show as', 'default' => 'tabs',
+                    'options' => ['tabs' => 'Tabs', 'accordion' => 'Accordion']],
+                'count' => ['type' => 'number', 'label' => 'Blocks it holds (the ones below it)', 'default' => 2],
+                'open' => ['type' => 'select', 'label' => 'Accordion at first', 'default' => 'first',
+                    'options' => ['first' => 'First section open', 'none' => 'All closed']],
+            ],
+        ]);
+
+        // A map from an address or a pair of coordinates, through the
+        // public embed address, so a store needs no API key for it.
+        Widgets::register('content.google_map', [
+            'title' => 'Google map',
+            'shape' => 'block',
+            'module' => 'content',
+            'view' => 'widgets.content.google_map',
+            'schema' => [
+                'location' => ['type' => 'text', 'label' => 'Address or coordinates (latitude, longitude)'],
+                'zoom' => ['type' => 'number', 'label' => 'Zoom (1 to 21)', 'default' => 15],
+                'height' => ['type' => 'number', 'label' => 'Height in pixels', 'default' => 400],
+                'map_type' => ['type' => 'select', 'label' => 'Map', 'default' => 'roadmap',
+                    'options' => ['roadmap' => 'Streets', 'satellite' => 'Satellite']],
+            ],
+            'resolve' => fn (array $config) => ['mapUrl' => self::mapUrl($config)],
+        ]);
+
+        // Raw HTML, drawn unescaped on purpose: it is how a merchant pastes
+        // an embed or markup no other block offers. That is safe only
+        // because of who can write it. A placement's config is written by
+        // App\Services\LayoutSaver alone, which only the layout editors call,
+        // and those sit behind the staff sign-in (the 'web' guard) and the
+        // layout routes; no storefront or customer form reaches a placement.
+        // Any new path that writes placements must keep this block to staff.
+        Widgets::register('content.html', [
+            'title' => 'HTML',
+            'shape' => 'text',
+            'module' => 'content',
+            'view' => 'widgets.content.html',
+            'schema' => [
+                'html' => ['type' => 'textarea', 'label' => 'HTML', 'code' => true],
+            ],
+        ]);
+
         // Any composed menu, anywhere: a footer menu under the content, a
         // second bar above the header.
         Widgets::register('nav.menu', [
@@ -410,6 +506,32 @@ class CoreWidgets
         'truck' => 'Delivery', 'shield' => 'Guarantee', 'refresh' => 'Returns', 'chat' => 'Support',
         'star' => 'Star', 'box' => 'Parcel', 'card' => 'Payment', 'clock' => 'Time', 'pin' => 'Location', 'gift' => 'Gift',
     ];
+
+    /**
+     * The embed address for a map block, or null when there is nothing to
+     * show. Coordinates are recognised and passed as numbers; anything else
+     * is searched for as an address. Google's public embed endpoint takes
+     * either without a key.
+     */
+    public static function mapUrl(array $config): ?string
+    {
+        $location = trim((string) ($config['location'] ?? ''));
+        if ($location === '') {
+            return null;
+        }
+
+        if (preg_match('/^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/', $location, $m)
+            && abs((float) $m[1]) <= 90 && abs((float) $m[2]) <= 180) {
+            $location = (float) $m[1] . ',' . (float) $m[2];
+        }
+
+        return 'https://maps.google.com/maps?' . http_build_query([
+            'q' => mb_substr($location, 0, 200),
+            'z' => max(1, min(21, (int) ($config['zoom'] ?? 15) ?: 15)),
+            't' => ($config['map_type'] ?? 'roadmap') === 'satellite' ? 'k' : 'm',
+            'output' => 'embed',
+        ]);
+    }
 
     /**
      * Products that shared an order with the product being viewed, most

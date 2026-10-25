@@ -1133,6 +1133,7 @@
 .v-lay__rowsacts button { min-width: 24px; height: 24px; border: 1px solid var(--v-line); background: var(--v-sheet); border-radius: 4px; cursor: pointer; color: var(--v-ink-3); }
 .v-lay__rowsacts button:disabled { opacity: .35; cursor: default; }
 .v-lay__field textarea { width: 100%; }
+.v-lay__field textarea.v-lay__code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
 
 /* ---- the menu composer --------------------------------------------------- */
 
