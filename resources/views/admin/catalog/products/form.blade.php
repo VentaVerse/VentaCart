@@ -26,6 +26,17 @@
         }
     }
 
+    // The special pricing rows as last submitted when the save was refused,
+    // so the merchant fixes their input instead of retyping it; otherwise
+    // the rows as stored.
+    $specialRows = is_array(old('specials')) ? array_values(old('specials')) : $existingSpecials;
+    $specialErrors = [];
+    foreach ($errors->messages() as $key => $messages) {
+        if (str_starts_with($key, 'specials.')) {
+            $specialErrors[] = $messages[0];
+        }
+    }
+
     // Which variant rows the server refused, so each one can say so where the
     // merchant is looking rather than as a string at the top of another tab.
     $variantErrors = [];
@@ -520,7 +531,7 @@
                 {{-- ===================== PRICING ===================== --}}
                 <div x-show="tab === 'pricing'" class="v-settle" role="tabpanel" id="panel-pricing" aria-labelledby="tab-pricing" tabindex="0">
                     <x-admin.panel title="Special pricing"
-                        note="The lowest priority number wins when two rows both qualify.">
+                        note="The lowest priority number wins when two rows both qualify. Times are store time; with no time, a special starts at the beginning of its start date and runs to the end of its end date.">
                         <x-slot:acts>
                             <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="addSpecial(); touch()">Add special</button>
                         </x-slot:acts>
@@ -528,6 +539,14 @@
                         <div x-show="specials.length === 0" class="v-empty">
                             <p class="v-empty__title">No special pricing rules</p>
                         </div>
+
+                        @if ($specialErrors !== [])
+                            <ul class="v-field__error v-special-errors" role="alert">
+                                @foreach ($specialErrors as $message)
+                                    <li>{{ $message }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
 
                         <div x-show="specials.length > 0" class="v-tablewrap">
                             <table class="v-table">
@@ -538,8 +557,8 @@
                                         <th>Qty</th>
                                         <th>Display</th>
                                         <th>Priority</th>
-                                        <th>Start</th>
-                                        <th>End</th>
+                                        <th>Start <span class="v-cell-quiet">({{ \App\Support\DateWindow::timezone() }})</span></th>
+                                        <th>End <span class="v-cell-quiet">({{ \App\Support\DateWindow::timezone() }})</span></th>
                                         <th class="v-cell-act"><span class="v-sr">Actions</span></th>
                                     </tr>
                                 </thead>
@@ -564,8 +583,18 @@
                                                 </select>
                                             </td>
                                             <td><input type="number" x-model="special.priority" :name="'specials['+sIndex+'][priority]'" min="0" aria-label="Priority" class="v-control v-control--sm v-mono v-w-sort"></td>
-                                            <td><input type="date" x-model="special.date_start" :name="'specials['+sIndex+'][date_start]'" aria-label="Start date" class="v-control v-control--sm v-mono"></td>
-                                            <td><input type="date" x-model="special.date_end" :name="'specials['+sIndex+'][date_end]'" aria-label="End date" class="v-control v-control--sm v-mono"></td>
+                                            <td>
+                                                <div class="v-datetime">
+                                                    <input type="date" x-model="special.date_start" :name="'specials['+sIndex+'][date_start]'" aria-label="Start date" class="v-control v-control--sm v-mono">
+                                                    <input type="time" x-model="special.time_start" :name="'specials['+sIndex+'][time_start]'" aria-label="Start time (empty: start of the day)" title="Empty: start of the day" class="v-control v-control--sm v-mono">
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="v-datetime">
+                                                    <input type="date" x-model="special.date_end" :name="'specials['+sIndex+'][date_end]'" aria-label="End date" class="v-control v-control--sm v-mono">
+                                                    <input type="time" x-model="special.time_end" :name="'specials['+sIndex+'][time_end]'" aria-label="End time (empty: end of the day)" title="Empty: end of the day" class="v-control v-control--sm v-mono">
+                                                </div>
+                                            </td>
                                             <td class="v-cell-act">
                                                 <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="specials.splice(sIndex, 1); touch()" aria-label="Remove price rule">Remove</button>
                                             </td>
@@ -708,7 +737,7 @@
         function productForm() {
             const existingTypes = @json($existingTypes);
             const existingVariants = @json($existingVariants);
-            const existingSpecials = @json($existingSpecials);
+            const existingSpecials = @json($specialRows);
 
             return {
                 variantTypes: existingTypes,
@@ -732,7 +761,9 @@
                         display_mode: 'sale',
                         priority: this.specials.length,
                         date_start: '',
+                        time_start: '',
                         date_end: '',
+                        time_end: '',
                     });
                 },
 

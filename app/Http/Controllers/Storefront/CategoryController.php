@@ -53,13 +53,7 @@ class CategoryController extends Controller
         }
         if ($request->filled('on_sale')) {
             $query->whereHas('specials', function ($q) {
-                $q->where('display_mode', 'sale')
-                    ->where(function ($q2) {
-                        $q2->whereNull('date_start')->orWhere('date_start', '<=', now());
-                    })
-                    ->where(function ($q2) {
-                        $q2->whereNull('date_end')->orWhere('date_end', '>=', now());
-                    });
+                $q->where('display_mode', 'sale')->activeAt();
             });
         }
         if ($request->filled('tag')) {

@@ -272,8 +272,7 @@ class OrderController extends Controller
                 $item->product->loadMissing('specials');
                 $bestSpecial = $item->product->specials
                     ->filter(function ($s) use ($now, $customerGroupId) {
-                        if ($s->date_start && $s->date_start > $now) return false;
-                        if ($s->date_end && $s->date_end < $now) return false;
+                        if (! $s->isActiveAt($now)) return false;
                         if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
                         return true;
                     })
@@ -839,8 +838,7 @@ class OrderController extends Controller
         $now = now();
         $best = $product->specials
             ->filter(function ($s) use ($now, $customerGroupId) {
-                if ($s->date_start && $s->date_start > $now) return false;
-                if ($s->date_end && $s->date_end < $now) return false;
+                if (! $s->isActiveAt($now)) return false;
                 if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
                 return true;
             })

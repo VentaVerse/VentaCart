@@ -467,6 +467,17 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
 .v-table--tight .v-cell-name { width: 11rem; min-width: 11rem; }
 .v-table--tight .v-cell-name .v-control { min-width: 0; }
 .v-w-name { max-width: 200px; }
+/* A date and an optional time of day in one table cell: side by side
+   where there is room, stacked on a phone so each stays a full tap
+   target inside the scrolling table. */
+.v-datetime { display: flex; flex-wrap: wrap; gap: 6px; min-width: 9.5rem; }
+.v-datetime .v-control { flex: 1 1 8.5rem; min-width: 0; }
+.v-datetime input[type="time"] { flex-basis: 6.5rem; }
+@media (max-width: 719px) {
+    .v-datetime { flex-direction: column; }
+    .v-datetime .v-control { flex-basis: auto; }
+}
+.v-special-errors { margin: 0 0 10px; padding-left: 18px; }
 .v-cell-url { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--v-ink-2); }
 .v-rowedit { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
 .v-rowedit__line { display: flex; align-items: center; gap: 10px; }

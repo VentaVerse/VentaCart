@@ -91,7 +91,7 @@ class BadgeService
         return [
             'percent' => $price->savingPercent(),
             'sale_price' => $price->price,
-            'end_date' => $price->endsAt?->toISOString(),
+            'end_date' => $price->endsAt?->toIso8601String(),
         ];
     }
 

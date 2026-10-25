@@ -174,8 +174,7 @@ class ProductController extends Controller
         // sorted ascending. Drives the tier table + reactive price on the page.
         $priceTiers = $product->specials
             ->filter(function ($s) use ($customerGroupId) {
-                if ($s->date_start && $s->date_start > now()) return false;
-                if ($s->date_end && $s->date_end < now()) return false;
+                if (! $s->isActiveAt()) return false;
                 if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
                 return true;
             })

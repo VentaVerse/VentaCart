@@ -672,9 +672,7 @@ class CoreWidgets
                 break;
             case 'specials':
                 $query->whereHas('specials', function ($q) {
-                    $q->where('display_mode', 'sale')
-                        ->where(fn ($q2) => $q2->whereNull('date_start')->orWhere('date_start', '<=', now()))
-                        ->where(fn ($q2) => $q2->whereNull('date_end')->orWhere('date_end', '>=', now()));
+                    $q->where('display_mode', 'sale')->activeAt();
                 });
                 break;
             case 'most_viewed':

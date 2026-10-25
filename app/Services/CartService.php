@@ -394,8 +394,7 @@ class CartService
 
         $applicable = $product->specials
             ->filter(function ($s) use ($now, $customerGroupId, $qty) {
-                if ($s->date_start && $s->date_start > $now) return false;
-                if ($s->date_end && $s->date_end < $now) return false;
+                if (! $s->isActiveAt($now)) return false;
                 if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
                 if ($s->quantity > $qty) return false;
                 return true;

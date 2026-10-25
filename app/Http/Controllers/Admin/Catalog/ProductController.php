@@ -11,6 +11,7 @@ use App\Models\ProductVariant;
 use App\Models\Tag;
 use App\Models\VariantType;
 use App\Models\VariantTypeValue;
+use App\Support\DateWindow;
 use App\Support\LowStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,9 @@ use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
+    /** HH:MM, or HH:MM:SS, on a 24-hour clock. */
+    private const TIME_OF_DAY = '/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/';
+
     public function index(Request $request)
     {
         // categories was eager-loaded and never read by the view. variants
@@ -254,8 +258,7 @@ class ProductController extends Controller
                 'quantity' => $s->quantity ?? 1,
                 'display_mode' => $s->display_mode,
                 'priority' => $s->priority,
-                'date_start' => $s->date_start?->format('Y-m-d') ?? '',
-                'date_end' => $s->date_end?->format('Y-m-d') ?? '',
+                ...$this->specialWindowFields($s),
             ];
         })->toArray();
 
@@ -412,12 +415,31 @@ class ProductController extends Controller
             'variants.*.is_active' => ['nullable', 'boolean'],
             'variants.*.image' => ['nullable', 'string', 'max:2048'],
             'variants.*.value_keys' => ['nullable', 'array'],
+
+            // Special pricing rows. A start or end is a date with an optional
+            // time; a date with no time covers the whole day.
+            'specials' => ['nullable', 'array'],
+            'specials.*.customer_group_id' => ['nullable', 'exists:customer_groups,id'],
+            'specials.*.price' => ['nullable', 'numeric', 'min:0'],
+            'specials.*.quantity' => ['nullable', 'integer', 'min:1'],
+            'specials.*.display_mode' => ['nullable', 'in:sale,override'],
+            'specials.*.priority' => ['nullable', 'integer', 'min:0'],
+            'specials.*.date_start' => ['nullable', 'date_format:Y-m-d'],
+            'specials.*.time_start' => ['nullable', 'regex:' . self::TIME_OF_DAY],
+            'specials.*.date_end' => ['nullable', 'date_format:Y-m-d'],
+            'specials.*.time_end' => ['nullable', 'regex:' . self::TIME_OF_DAY],
         ], [
             // Named by row, because the generic message points at the General
             // tab and leaves a merchant hunting thirty-six rows for the one
             // that is empty.
             'variants.*.sku.required' => 'Every variant needs its own SKU. Row :position has none.',
+            'specials.*.date_start.date_format' => 'Special pricing row :position: the start date is not a date.',
+            'specials.*.date_end.date_format' => 'Special pricing row :position: the end date is not a date.',
+            'specials.*.time_start.regex' => 'Special pricing row :position: the start time must be a time of day, such as 18:00.',
+            'specials.*.time_end.regex' => 'Special pricing row :position: the end time must be a time of day, such as 21:30.',
         ]);
+
+        $this->validateSpecialWindows($request);
 
         // Validate SKU uniqueness across products + variants in this store
         $this->validateSkuUniqueness($request, $storeId, $productId);
@@ -671,21 +693,83 @@ class ProductController extends Controller
     {
         $product->specials()->delete();
 
-        $specialsData = $request->input('specials', []);
+        $specialsData = (array) $request->input('specials', []);
         foreach ($specialsData as $data) {
             if (!isset($data['price']) || $data['price'] === '') {
                 continue;
             }
 
+            // A date with no time is passed as the date alone, which the
+            // model reads as the start (00:00) or the end (23:59:59) of
+            // that day.
             $product->specials()->create([
-                'customer_group_id' => $data['customer_group_id'] ?: null,
+                'customer_group_id' => ($data['customer_group_id'] ?? null) ?: null,
                 'price' => $data['price'],
                 'quantity' => max(1, (int) ($data['quantity'] ?? 1)),
                 'display_mode' => $data['display_mode'] ?? 'sale',
-                'priority' => $data['priority'] ?? 0,
-                'date_start' => $data['date_start'] ?: null,
-                'date_end' => $data['date_end'] ?: null,
+                'priority' => (int) ($data['priority'] ?? 0),
+                'date_start' => DateWindow::combine($data['date_start'] ?? null, $data['time_start'] ?? null),
+                'date_end' => DateWindow::combine($data['date_end'] ?? null, $data['time_end'] ?? null),
             ]);
+        }
+    }
+
+    /**
+     * A special's start and end as the form edits them: a date, and a time
+     * that stays empty when the value is the start (00:00:00) or the end
+     * (23:59:59) of its day, so saving the form again keeps the whole day.
+     *
+     * @return array{date_start: string, time_start: string, date_end: string, time_end: string}
+     */
+    private function specialWindowFields(\App\Models\ProductSpecial $special): array
+    {
+        $time = function (?\Carbon\CarbonInterface $moment, string $wholeDay): string {
+            if ($moment === null || $moment->format('H:i:s') === $wholeDay) {
+                return '';
+            }
+
+            return $moment->format($moment->second === 0 ? 'H:i' : 'H:i:s');
+        };
+
+        return [
+            'date_start' => $special->date_start?->format('Y-m-d') ?? '',
+            'time_start' => $time($special->date_start, '00:00:00'),
+            'date_end' => $special->date_end?->format('Y-m-d') ?? '',
+            'time_end' => $time($special->date_end, '23:59:59'),
+        ];
+    }
+
+    /**
+     * Each special row's time needs a date, and its end must not come
+     * before its start. Runs after the field rules, so every value here is
+     * already a valid date or time.
+     */
+    private function validateSpecialWindows(Request $request): void
+    {
+        $errors = [];
+
+        foreach ((array) $request->input('specials', []) as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $position = (int) $index + 1;
+
+            foreach (['start', 'end'] as $side) {
+                if (! empty($row['time_' . $side]) && empty($row['date_' . $side])) {
+                    $errors['specials.' . $index . '.date_' . $side] = "Special pricing row {$position}: pick a {$side} date for the {$side} time.";
+                }
+            }
+
+            $start = DateWindow::start(DateWindow::combine($row['date_start'] ?? null, $row['time_start'] ?? null));
+            $end = DateWindow::end(DateWindow::combine($row['date_end'] ?? null, $row['time_end'] ?? null));
+
+            if ($start !== null && $end !== null && $end->lessThan($start)) {
+                $errors['specials.' . $index . '.date_end'] = "Special pricing row {$position}: the end is before the start.";
+            }
+        }
+
+        if ($errors !== []) {
+            throw \Illuminate\Validation\ValidationException::withMessages($errors);
         }
     }
 

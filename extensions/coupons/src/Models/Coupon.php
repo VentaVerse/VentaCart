@@ -53,8 +53,13 @@ class Coupon extends Model
         return $query->where('is_active', true);
     }
 
+    /**
+     * Past its end date. date_end is a whole day: the coupon redeems through
+     * the end of it (see CouponService::validate), so it is not expired
+     * until that day is over.
+     */
     public function getIsExpiredAttribute(): bool
     {
-        return $this->date_end !== null && $this->date_end->isPast();
+        return $this->date_end !== null && $this->date_end->copy()->endOfDay()->isPast();
     }
 }

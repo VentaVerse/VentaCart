@@ -281,10 +281,11 @@ It returns an `App\Support\DisplayPrice`:
 | `regularPrice` (float) | the product's or variant's own price, before any special |
 | `special` (`ProductSpecial` or null) | the special the cart applies |
 | `displayMode` (`'sale'`, `'override'` or null) | how the special asks to be shown |
-| `endsAt` (date or null) | the special's last day, for a countdown |
+| `endsAt` (Carbon or null) | the special's last moment, inclusive, in the store's time zone: count down to this, never to the end of its day |
+| `endsAtIso()` | `endsAt` as ISO 8601 with the store's offset (`2026-10-31T21:30:00+08:00`), for a countdown script |
 | `isSale()` | true when the regular price should be struck through beside `price` |
 | `savingPercent()` | the saving as a whole percentage, 0 when none |
-| `toArray()` | the same as plain values, for JSON and script data |
+| `toArray()` | the same as plain values, for JSON and script data (`ends_at` is `endsAtIso()`) |
 
 Format amounts with `money()`. A card draws:
 
@@ -296,6 +297,8 @@ Format amounts with `money()`. A card draws:
     {{ money($price->price) }}
 @endif
 ```
+
+A special runs from `date_start` to `date_end` (both datetimes, store time, either may be empty). A special saved with a date and no time covers that whole day: it starts at 00:00:00 and ends at 23:59:59. To ask whether a special applies, use `$special->isActiveAt()` or the `ProductSpecial::activeAt()` query scope rather than comparing the dates in a view.
 
 Core's listings eager load `specials`, so a grid costs no extra query. The product page also publishes the result as `$displayPrice` (and in `PageContext`), with `$activeSpecial` set when it is a sale and `$overrideSpecial` for any other special.
 
