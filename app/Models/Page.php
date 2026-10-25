@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasRichText;
 use Illuminate\Database\Eloquent\Model;
 
 class Page extends Model
 {
+    use HasRichText;
+
     protected $fillable = [
         'store_id', 'title', 'slug', 'body',
         'meta_title', 'meta_description', 'og_title', 'og_description',
@@ -27,5 +30,11 @@ class Page extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    /** Fields themes print as HTML (see App\Support\RichText). */
+    public function richTextFields(): array
+    {
+        return ['body'];
     }
 }

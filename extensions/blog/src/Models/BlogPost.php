@@ -3,6 +3,7 @@
 namespace Extensions\Blog\Models;
 
 use App\Models\Tag;
+use App\Models\Concerns\HasRichText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class BlogPost extends Model
 {
+    use HasRichText;
+
     protected $fillable = [
         'title', 'slug', 'content', 'excerpt', 'featured_image',
         'blog_category_id', 'view_count', 'is_published', 'published_at',
@@ -37,5 +40,11 @@ class BlogPost extends Model
     public function seoSuggestions(): MorphMany
     {
         return $this->morphMany(\Extensions\Seo\Models\SeoSuggestion::class, 'entity', 'entity_type', 'entity_id');
+    }
+
+    /** Fields themes print as HTML (see App\Support\RichText). */
+    public function richTextFields(): array
+    {
+        return ['content'];
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Models\Concerns\HasRichText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
+    use HasRichText;
+
     protected $fillable = [
         'store_id', 'name', 'slug', 'sku', 'brand_id', 'description',
         'price', 'cost', 'quantity', 'weight', 'weight_unit',
@@ -194,5 +197,11 @@ class Product extends Model
     public function reviewCount(): int
     {
         return \App\Support\Reviews::enabled() ? $this->approvedReviews()->count() : 0;
+    }
+
+    /** Fields themes print as HTML (see App\Support\RichText). */
+    public function richTextFields(): array
+    {
+        return ['description'];
     }
 }

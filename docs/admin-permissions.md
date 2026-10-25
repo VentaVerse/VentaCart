@@ -85,6 +85,17 @@ These stay with Super Admin whatever a role holds:
   layout block, a custom HTML menu item, and any theme's custom code field.
   This is the `storefront.code` gate.
 
+Rich text (a product's or category's description, a page's body, a blog
+post's content) is edited by whoever holds those groups, a Store Manager
+included. A change saved without `storefront.code` passes through an
+allow-list (`App\Support\RichText`): headings, paragraphs, lists, links,
+images, tables, quotes, code, video and audio, and inline styles for text
+and box formatting stay; script, event handlers, forms, `javascript:` links
+and styles that load anything are removed, and the admin is told so. Frames
+are kept only from the hosts in `RICH_TEXT_EMBED_HOSTS`. Content nobody
+changes is left as written, and commands and queued jobs are trusted. A
+model opts in with `App\Models\Concerns\HasRichText`.
+
 The route list is `super_admin_only` in `config/admin-permissions.php`. It
 applies to writes; reading a reserved screen still follows the role.
 

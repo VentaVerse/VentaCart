@@ -4,6 +4,9 @@
     @if (session('success'))
         <div x-init="$store.toasts.push(@js(session('success')), 'success')" hidden>{{ session('success') }}</div>
     @endif
+    @if (session('warning'))
+        <div x-init="$store.toasts.push(@js(session('warning')), 'danger')" hidden>{{ session('warning') }}</div>
+    @endif
     @if (session('error'))
         <div x-init="$store.toasts.push(@js(session('error')), 'danger')" hidden>{{ session('error') }}</div>
     @endif
