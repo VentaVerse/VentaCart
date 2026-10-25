@@ -47,14 +47,33 @@ class NavTreeTest extends TestCase
         $cat = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals', 'is_active' => true]);
         $page = Page::create(['store_id' => 1, 'title' => 'About', 'slug' => 'about', 'body' => 'x', 'is_active' => true]);
 
-        $this->assertSame(route('category.show', 'pedals'), $this->item(['label' => 'Pedals', 'type' => 'category', 'category_id' => $cat->id])->resolved_url);
-        $this->assertSame(route('page.show', 'about'), $this->item(['label' => 'About', 'type' => 'page', 'page_id' => $page->id])->resolved_url);
-        $this->assertSame(url('/'), $this->item(['label' => 'Home', 'type' => 'home'])->resolved_url);
-        $this->assertSame(route('brand.index'), $this->item(['label' => 'Brands', 'type' => 'brands'])->resolved_url);
-        $this->assertSame(route('cart.index'), $this->item(['label' => 'Cart', 'type' => 'system', 'config' => ['page' => 'cart']])->resolved_url);
+        // Relative, so the cached menu works on whatever address the store is reached by.
+        $this->assertSame('/category/pedals', $this->item(['label' => 'Pedals', 'type' => 'category', 'category_id' => $cat->id])->resolved_url);
+        $this->assertSame('/about', $this->item(['label' => 'About', 'type' => 'page', 'page_id' => $page->id])->resolved_url);
+        $this->assertSame('/', $this->item(['label' => 'Home', 'type' => 'home'])->resolved_url);
+        $this->assertSame(route('brand.index', absolute: false), $this->item(['label' => 'Brands', 'type' => 'brands'])->resolved_url);
+        $this->assertSame(route('cart.index', absolute: false), $this->item(['label' => 'Cart', 'type' => 'system', 'config' => ['page' => 'cart']])->resolved_url);
         $this->assertSame('https://shopee.ph/x', $this->item(['label' => 'Shopee', 'type' => 'custom', 'url' => 'https://shopee.ph/x'])->resolved_url);
         $this->assertNull($this->item(['label' => 'More', 'type' => 'title'])->resolved_url);
         $this->assertNull($this->item(['label' => '', 'type' => 'separator'])->resolved_url);
+    }
+
+    public function test_a_menu_cached_under_one_address_still_works_on_another(): void
+    {
+        $parent = Category::create(['store_id' => 1, 'name' => 'Guitars', 'slug' => 'guitars', 'is_active' => true]);
+        Category::create(['store_id' => 1, 'name' => 'Electric', 'slug' => 'electric', 'parent_id' => $parent->id, 'is_active' => true]);
+        $this->item(['label' => 'Guitars', 'type' => 'category', 'category_id' => $parent->id]);
+
+        // The menu is cached forever, so whichever address builds it first
+        // must not end up in every visitor's links.
+        \Illuminate\Support\Facades\URL::forceRootUrl('http://127.0.0.1:8002');
+        NavTree::forget();
+        $tree = NavTree::for();
+        \Illuminate\Support\Facades\URL::forceRootUrl(null);
+
+        $this->assertSame('/category/guitars', $tree[0]['url']);
+        $this->assertSame('/category/electric', $tree[0]['dropdown']['columns'][0]['url']);
+        $this->assertStringNotContainsString('127.0.0.1', json_encode($tree));
     }
 
     public function test_the_tree_nests_children_and_attaches_a_categorys_subcategories(): void

@@ -129,7 +129,7 @@ final class NavTree
 
         return $level->map(fn ($c) => [
             'name' => $c->name,
-            'url' => \Illuminate\Support\Facades\Route::has('category.show') ? route('category.show', $c->slug) : '/category/' . $c->slug,
+            'url' => \Illuminate\Support\Facades\Route::has('category.show') ? route('category.show', $c->slug, false) : '/category/' . $c->slug,
             'image' => $c->image ?: null,
             'children' => $depth > 1 ? self::subcategories($c->id, $depth - 1) : [],
         ])->all();
@@ -141,7 +141,7 @@ final class NavTree
         return Brand::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get()
             ->map(fn ($b) => [
                 'name' => $b->name,
-                'url' => \Illuminate\Support\Facades\Route::has('brand.show') ? route('brand.show', $b->slug) : '/brand/' . $b->slug,
+                'url' => \Illuminate\Support\Facades\Route::has('brand.show') ? route('brand.show', $b->slug, false) : '/brand/' . $b->slug,
                 'image' => $b->image ?: null,
             ])->all();
     }

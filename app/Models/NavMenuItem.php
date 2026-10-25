@@ -79,15 +79,21 @@ class NavMenuItem extends Model
         return $this->belongsTo(Page::class);
     }
 
-    /** Where the item leads, or null for the kinds that lead nowhere. */
+    /**
+     * Where the item leads, or null for the kinds that lead nowhere.
+     *
+     * Store links are relative: the menu is cached, and a full URL would
+     * carry whichever address built the cache (an IP, http instead of https)
+     * into every visitor's links.
+     */
     public function getResolvedUrlAttribute(): ?string
     {
-        $route = fn (string $name, array $params = [], string $fallback = '#') => Route::has($name) ? route($name, $params) : $fallback;
+        $route = fn (string $name, array $params = [], string $fallback = '#') => Route::has($name) ? route($name, $params, false) : $fallback;
 
         return match ($this->type) {
             'category' => $this->category ? $route('category.show', [$this->category->slug], '/category/' . $this->category->slug) : '#',
             'page' => $this->page ? $route('page.show', [$this->page->slug], '/' . $this->page->slug) : '#',
-            'home' => url('/'),
+            'home' => '/',
             'categories', 'brands' => $this->type === 'brands' ? $route('brand.index') : '#',
             'system' => ($sys = self::SYSTEM[$this->config['page'] ?? ''] ?? null) ? $route($sys['route']) : '#',
             'title', 'separator' => null,
