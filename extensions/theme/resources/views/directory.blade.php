@@ -13,6 +13,9 @@
             <h1 class="v-head__title">Themes</h1>
         </div>
         <div class="v-head__actions">
+            @if (auth()->user()?->isSuperAdmin() && \Illuminate\Support\Facades\Route::has('admin.extensions.upload'))
+                <a href="{{ route('admin.extensions.upload') }}" class="v-btn">Upload a theme</a>
+            @endif
             <x-admin.extension-switch name="theme" />
         </div>
     </div>

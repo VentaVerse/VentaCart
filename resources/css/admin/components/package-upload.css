@@ -1,0 +1,11 @@
+/* Extensions > Upload: the package form and the list of recent uploads. */
+
+.v-upload { display: grid; gap: 12px; max-width: 560px; }
+.v-upload__acts { display: flex; justify-content: flex-start; }
+.v-upload__file { overflow-wrap: anywhere; }
+.v-upload__why { display: block; margin-top: 4px; font-size: 12px; color: var(--v-ink-2); max-width: 46ch; }
+
+@media (max-width: 719px) {
+    .v-upload { max-width: none; }
+    .v-upload__acts .v-btn { width: 100%; justify-content: center; }
+}

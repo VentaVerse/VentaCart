@@ -100,6 +100,10 @@ return [
         // Extensions: the directory, modules, and each module's own
         // configuration pages.
         'admin.extensions.*' => 'extensions',
+        // Uploading a package installs code: even the screen is super
+        // admin only.
+        'admin.extensions.upload' => '@super-admin',
+        'admin.extensions.upload.*' => '@super-admin',
         'admin.payment-settings.*' => 'extensions',
         'admin.payment-restrictions.*' => 'extensions',
         'admin.bank-accounts.*' => 'extensions',
@@ -131,6 +135,8 @@ return [
         'admin.user-groups.*',
         'admin.extensions.install',
         'admin.extensions.uninstall',
+        'admin.extensions.upload',
+        'admin.extensions.upload.*',
         'admin.theme.package.*',
         'admin.theme.presets.import',
         'admin.layout.templates.import',

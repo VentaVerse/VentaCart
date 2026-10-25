@@ -76,3 +76,4 @@ countries-states-cities-database-3.1-export.2/
 # test fixtures a theme-extension test writes and removes
 resources/themes/*/extensions/zz-test-*
 docs/plaza-snapshot/
+/public/packages

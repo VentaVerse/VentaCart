@@ -16,6 +16,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(AddressProviderRegistry::class);
+
+        // Vite that also serves the builds uploaded packages bring with them.
+        $this->app->singleton(\Illuminate\Foundation\Vite::class, \App\Support\PackageVite::class);
     }
 
     /**
@@ -26,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
         // What can be placed in a theme's regions. Registered at boot, never
         // per request: the registry is process-global, like the courier one.
         \App\Storefront\Widgets\CoreWidgets::register();
+
+        // Package uploads install code; a few a minute is plenty for a person.
+        \Illuminate\Support\Facades\RateLimiter::for('package-uploads', fn (\Illuminate\Http\Request $request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('extensions.upload.per_minute', 5)))
+            ->by('package-uploads:' . ($request->user()?->id ?: $request->ip())));
 
         // The sidebar's work-waiting counts (Fulfillment to ship, Reviews
         // pending). Bound here so the shell never learns which entries

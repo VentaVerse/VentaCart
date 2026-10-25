@@ -75,6 +75,8 @@ These stay with Super Admin whatever a role holds:
   lets a role read the lists);
 - installing and uninstalling extensions, and installing or removing theme
   packages;
+- uploading a theme or extension as a .zip (Extensions > Upload), which
+  installs code; the screen itself is super admin only too;
 - importing a theme preset or a layout template (both can carry HTML);
 - revealing a stored secret, and issuing or revoking API keys;
 - writing raw HTML, CSS or script that the storefront prints: the HTML

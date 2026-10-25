@@ -11,6 +11,11 @@
             <h1 class="v-head__title">{{ $heading }}</h1>
             <p class="v-head__standing">{{ $standing }}</p>
         </div>
+        @if (auth()->user()?->isSuperAdmin())
+            <div class="v-head__actions">
+                <a href="{{ route('admin.extensions.upload') }}" class="v-btn">Upload</a>
+            </div>
+        @endif
     </div>
 
     {{-- One list (owner ruling 2026-08-17), one standard button set per

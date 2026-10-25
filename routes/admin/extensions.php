@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ExtensionsController;
+use App\Http\Controllers\Admin\PackageUploadController;
 use App\Http\Controllers\Admin\Settings\ShippingSettingController;
 use App\Http\Controllers\Admin\Settings\ShippingTestController;
 use App\Http\Controllers\Admin\Settings\PaymentMethodPageController;
@@ -27,6 +28,12 @@ Route::prefix('extensions')->group(function () {
     // total) is core and deliberately NOT listed here: OpenCart let you
     // uninstall Sub-Total and break every checkout; Venta does not.
     Route::get('/order-totals', [ExtensionsController::class, 'orderTotals'])->name('extensions.order-totals');
+    // Upload a theme or extension as a .zip ('upload' is reserved the same
+    // way). Super admin only: it installs code.
+    Route::get('/upload', [PackageUploadController::class, 'show'])->name('extensions.upload');
+    Route::post('/upload', [PackageUploadController::class, 'store'])
+        ->middleware('throttle:package-uploads')
+        ->name('extensions.upload.store');
     Route::post('/{name}/install', [ExtensionsController::class, 'install'])->name('extensions.install');
     Route::post('/{name}/enable', [ExtensionsController::class, 'enable'])->name('extensions.enable');
     Route::post('/{name}/disable', [ExtensionsController::class, 'disable'])->name('extensions.disable');

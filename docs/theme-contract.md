@@ -16,13 +16,31 @@ resources/themes/{slug}/
   views/              every view in section 4
   presets/*.json      looks shipped with the theme (optional)
   layouts/*.json      shipped arrangements the Layout editor offers as templates (optional)
+  build/              the compiled stylesheets and scripts, for a theme sold as a download (optional)
 ```
 
 Vite discovers `css/theme.css` and `js/theme.js` on its own; run `npm run build` after adding a theme.
 
+A theme sold as a download cannot count on the store running that build, so it may carry one: `build/manifest.json` (a Vite manifest whose keys are the theme's entries, `resources/themes/{slug}/css/theme.css` and so on) beside the files it names. Installing or updating the theme copies `build/` to `public/packages/theme-{slug}/`, keeping only stylesheets, scripts, fonts, pictures, maps and JSON, and `@vite` serves an entry from there whenever the store's own build lacks it. A store that builds its front end compiles the theme with everything else, and its own build wins. Uninstalling removes the copy. An extension may carry a `build/` the same way (`public/packages/{name}/`).
+
 ### Install, uninstall, live
 
 Themes are discovered like extensions and recorded in the same registry under the name `theme-{slug}`. The Themes page (Extensions > Themes) lists every package on disk with Install, Use this theme and Uninstall. Installing runs the contract check and refuses a package that fails it, naming what is missing. Uninstalling rolls back every migration the theme ran (whichever batch each ran in, so tables from an earlier version go too) and removes the registry row. The folder, the theme's layout rows in core and its settings in core stay, so installing it again finds them. A theme's own extensions follow the same rule when they are uninstalled.
+
+### Upload
+
+A super admin installs a theme or an extension from a `.zip` on **Extensions > Upload** (`admin.extensions.upload`), and updates it by uploading a newer one. The zip holds one folder named after the package (`plaza/` for a theme with slug `plaza`), with its `theme.json` or `extension.json` directly inside; an extension's `name` must equal its folder. `App\Services\PackageUploader` does the work:
+
+1. The archive is read without unpacking it (`App\Support\PackageArchive`) and refused when it is not a zip, holds an absolute path, a `..` segment, a link or a device file, more entries than `extensions.upload.max_files`, a file over `max_file_mb` or more than `max_unpacked_mb` in all, or more than one top folder, or when its manifest is missing, is not JSON, has no version or names a provider in the application's or the framework's namespace. The upload itself is capped at `max_size_mb` (`config/extensions.php`) and by PHP's own upload limits.
+2. The target folder is checked: the default theme, a name core keeps for its own pages under `extensions/`, a folder that is a link, a folder on disk that no earlier upload put there, and a version older than the one on disk are refused. An extension the package brings must not take a name another package already uses.
+3. The archive is unpacked byte by byte into a hidden folder beside the target, and a theme is checked against the contract (`ThemeContract::check`).
+4. The folder is moved into place with a rename (the previous files are moved aside), and the package is installed through `ExtensionManager::install`, the same code as the Install and Update buttons, which runs its migrations and publishes its `build/`. When that fails, the previous files are put back.
+
+Nothing in the archive is run while it is checked. Every upload, installed, updated or refused, is recorded in `package_uploads` (who, the file name and its SHA-256, the package, the version before and after) and in the log. Uploads are limited to `extensions.upload.per_minute` a minute per admin.
+
+The web server needs write access to `resources/themes`, `extensions` and `public/packages` for uploads to work.
+
+### Updates
 
 When a theme's files carry a higher `version` than the one installed, the theme is awaiting an update. The storefront keeps drawing with it, and the Themes and Extensions screens show "Update available" with an Update button, which records the new version and runs any migrations the new files bring (`database/migrations`). Only a theme whose new files fail the contract check stops being served until it is updated or fixed.
 

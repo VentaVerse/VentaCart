@@ -130,6 +130,12 @@ class ExtensionManager
         return $this->discoveredCache = $manifests->concat($owned)->concat($themes)->keyBy('name');
     }
 
+    /** Forget what discovered() found, so the next call reads the disk again. */
+    public function rescan(): void
+    {
+        $this->discoveredCache = null;
+    }
+
     /**
      * DB registry rows, keyed by extension name. Empty-safe pre-migration
      * (fresh install mid-`migrate`, or migrations rolled back) so nothing in
@@ -346,6 +352,10 @@ class ExtensionManager
 
         $this->runMigrations($manifest['path'], 'migrate');
 
+        // A package sold as a download carries its built stylesheets and
+        // scripts; they go where the browser can load them.
+        \App\Support\PackageAssets::publish($name, $manifest['path']);
+
         // Installing over an existing row is an update: the files moved to a
         // newer version. It records that version and keeps the switch where
         // the merchant left it, so updating never turns a disabled
@@ -428,6 +438,7 @@ class ExtensionManager
         }
 
         Extension::where('name', $name)->delete();
+        \App\Support\PackageAssets::remove($name);
         // An extension's scheduled jobs leave with it: their commands are
         // gone, and a row the heartbeat can no longer run is not a setting
         // worth keeping.
