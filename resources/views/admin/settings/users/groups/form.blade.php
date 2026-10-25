@@ -91,6 +91,9 @@
                                                        @checked($locked || in_array($permission->id, $checked))>
                                                 {{ ucfirst(Str::afterLast($permission->slug, '.')) }}
                                             </label>
+                                            @if ($permission->slug === 'extensions.upload')
+                                                <p class="v-field__hint">Installs a package's PHP code on the server; grant it only to people you would trust with the server itself.</p>
+                                            @endif
                                         @endforeach
                                     </div>
                                 </fieldset>

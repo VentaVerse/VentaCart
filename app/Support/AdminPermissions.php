@@ -83,7 +83,7 @@ class AdminPermissions
         'menus' => self::CRUD,
         'layout' => ['view', 'edit'],
         'themes' => ['view', 'edit'],
-        'extensions' => ['view', 'edit'],
+        'extensions' => ['view', 'edit', 'upload'],
         'settings' => ['view', 'edit'],
         'users' => self::CRUD,
     ];

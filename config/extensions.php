@@ -44,16 +44,13 @@ return [
     | than max_files, a file larger than max_file_mb, or more than
     | max_unpacked_mb in all.
     |
-    | enabled switches the Upload screen on or off. Installing code from
-    | the admin needs the web server to be able to write to the themes,
-    | extensions and public/packages folders; a store that deploys from
-    | git or CI can switch uploads off and keep those folders read-only.
-    | To make uploads opt-in, change the default below to false.
+    | Installing code from the admin needs the web server to be able to
+    | write to the themes, extensions and public/packages folders. Who may
+    | upload is the extensions.upload permission.
     |
     */
 
     'upload' => [
-        'enabled' => (bool) env('PACKAGE_UPLOAD_ENABLED', true),
         'max_size_mb' => (int) env('PACKAGE_UPLOAD_MAX_MB', 64),
         'max_files' => (int) env('PACKAGE_UPLOAD_MAX_FILES', 5000),
         'max_file_mb' => (int) env('PACKAGE_UPLOAD_MAX_FILE_MB', 32),

@@ -38,12 +38,6 @@
             </div>
         @endif
 
-        @if (! $enabled)
-            <div class="v-notice v-notice--bad" role="status">
-                <p class="v-notice__title">Package uploads are switched off on this store</p>
-                <p class="v-notice__text">Themes and extensions are installed from the server's files instead. To allow uploads, set PACKAGE_UPLOAD_ENABLED=true in the store's .env and give the web server write access to resources/themes, extensions and public/packages.</p>
-            </div>
-        @else
         <x-admin.panel title="Package file" :note="'A .zip of one folder named after the package, with its theme.json or extension.json inside. At most ' . $uploadLimit . '.'">
             <p class="v-field__hint">Installing runs the package's code on this store: its migrations at once, and its provider on every request after. Upload only packages from someone you trust.</p>
             <form method="POST" action="{{ route('admin.extensions.upload.store') }}" enctype="multipart/form-data"
@@ -62,7 +56,6 @@
                 </div>
             </form>
         </x-admin.panel>
-        @endif
 
         <x-admin.panel title="Recent uploads" flush>
             <div class="v-tablewrap">

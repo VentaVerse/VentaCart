@@ -59,7 +59,6 @@ trait BuildsPackageUploads
 
         app()->forgetInstance(ExtensionManager::class);
         $this->actingAs(User::factory()->create(['name' => 'Maria Santos']));
-        $this->withSession(['auth.password_confirmed_at' => time()]);
     }
 
     protected function themePath(string $path = ''): string

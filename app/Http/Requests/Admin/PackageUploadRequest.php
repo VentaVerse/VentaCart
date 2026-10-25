@@ -10,9 +10,11 @@ class PackageUploadRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // The route is super admin only (config/admin-permissions.php);
+        // The route needs extensions.upload (config/admin-permissions.php);
         // checked again here because this request installs code.
-        return (bool) $this->user()?->isSuperAdmin();
+        $user = $this->user();
+
+        return $user !== null && ($user->isSuperAdmin() || $user->hasPermission('extensions.upload'));
     }
 
     public function rules(): array

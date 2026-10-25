@@ -338,12 +338,12 @@ class PackageUploadTest extends TestCase
         $this->assertDirectoryDoesNotExist($published);
     }
 
-    public function test_only_a_super_admin_reaches_the_upload(): void
+    public function test_an_admin_without_the_upload_permission_is_refused(): void
     {
         $this->seed(RolePermissionSeeder::class);
-        $role = Role::create(['name' => 'Everything', 'slug' => 'everything']);
-        $role->permissions()->sync(Permission::pluck('id'));
-        $this->actingAs(User::factory()->role('everything')->create());
+        $role = Role::create(['name' => 'Everything else', 'slug' => 'everything-else']);
+        $role->permissions()->sync(Permission::where('slug', '!=', 'extensions.upload')->pluck('id'));
+        $this->actingAs(User::factory()->role('everything-else')->create());
 
         $this->get(route('admin.extensions.upload'))->assertForbidden();
         $this->upload($this->themeZip('1.0.0'))->assertForbidden();
@@ -351,6 +351,34 @@ class PackageUploadTest extends TestCase
         $this->assertDirectoryDoesNotExist($this->themePath());
         $this->assertSame(0, PackageUpload::count());
         $this->get(route('admin.extensions.index'))->assertOk()->assertDontSee(route('admin.extensions.upload'));
+    }
+
+    public function test_an_admin_granted_the_upload_permission_installs_a_package(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+        $role = Role::create(['name' => 'Developers', 'slug' => 'developers']);
+        $role->permissions()->sync(Permission::whereIn('slug', ['extensions.view', 'extensions.upload'])->pluck('id'));
+        $user = User::factory()->role('developers')->create(['name' => 'Juan Dela Cruz']);
+        $this->actingAs($user);
+
+        $this->get(route('admin.extensions.index'))->assertOk()->assertSee(route('admin.extensions.upload'));
+        $this->get(route('admin.extensions.upload'))->assertOk()->assertSee('Upload and install');
+        $this->upload($this->themeZip('1.0.0'))->assertRedirect(route('admin.extensions.upload'));
+
+        $this->assertDirectoryExists($this->themePath());
+        $this->assertSame(PackageUpload::INSTALLED, PackageUpload::latest('id')->first()->result);
+        $this->assertSame($user->id, PackageUpload::latest('id')->first()->user_id);
+    }
+
+    public function test_no_shipped_role_but_super_admin_may_upload(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $this->assertSame('Upload Extensions', Permission::where('slug', 'extensions.upload')->value('name'));
+        foreach (['store-manager', 'staff'] as $slug) {
+            $this->assertFalse(Role::where('slug', $slug)->firstOrFail()->permissions()->where('slug', 'extensions.upload')->exists(), $slug);
+        }
+        $this->assertSame('extensions.upload', app(\App\Support\AdminPermissions::class)->requirementFor('admin.extensions.upload.store', 'POST'));
     }
 
     public function test_uploads_are_rate_limited(): void

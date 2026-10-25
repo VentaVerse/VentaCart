@@ -77,12 +77,6 @@ class PackageUploader
     ) {
     }
 
-    /** Whether the store accepts package uploads (extensions.upload.enabled). */
-    public static function enabled(): bool
-    {
-        return (bool) config('extensions.upload.enabled', true);
-    }
-
     /**
      * The limits an archive is checked against, in bytes and entries.
      *

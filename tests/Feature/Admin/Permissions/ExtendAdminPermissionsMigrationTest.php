@@ -33,6 +33,7 @@ class ExtendAdminPermissionsMigrationTest extends TestCase
     private function migrate(): void
     {
         (require database_path('migrations/2026_10_25_230000_extend_admin_permissions.php'))->up();
+        (require database_path('migrations/2026_10_26_100000_add_extensions_upload_permission.php'))->up();
     }
 
     /** A store as the original seeder left it. */

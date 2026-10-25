@@ -11,7 +11,7 @@
             <h1 class="v-head__title">{{ $heading }}</h1>
             <p class="v-head__standing">{{ $standing }}</p>
         </div>
-        @if (auth()->user()?->isSuperAdmin())
+        @if (auth()->user()?->isSuperAdmin() || auth()->user()?->hasPermission('extensions.upload'))
             <div class="v-head__actions">
                 <a href="{{ route('admin.extensions.upload') }}" class="v-btn">Upload</a>
             </div>

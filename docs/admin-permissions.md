@@ -33,7 +33,7 @@ A permission slug is `{group}.{action}`. Group names match the admin screens.
 | Content | `menus` | view, create, edit, delete |
 | Layout and themes | `layout` | view, edit |
 | Layout and themes | `themes` | view, edit (also every theme's own editor) |
-| Extensions | `extensions` | view, edit (the directory, modules, payments, shipping, and each module's settings page) |
+| Extensions | `extensions` | view, edit (the directory, modules, payments, shipping, and each module's settings page), upload (Extensions > Upload: installs a package's PHP code on the server, so no shipped role but Super Admin holds it) |
 | System | `settings` | view, edit |
 | System | `users` | view, create, edit, delete |
 
@@ -75,10 +75,6 @@ These stay with Super Admin whatever a role holds:
   lets a role read the lists);
 - installing and uninstalling extensions, and installing or removing theme
   packages;
-- uploading a theme or extension as a .zip (Extensions > Upload), which
-  installs code; the screen itself is super admin only too, and both ask
-  for the password again when it was last confirmed more than 15 minutes
-  ago;
 - importing a theme preset or a layout template (both can carry HTML);
 - revealing a stored secret, and issuing or revoking API keys;
 - writing raw HTML, CSS or script that the storefront prints: the HTML

@@ -397,31 +397,16 @@ class PackageUploadSafetyTest extends TestCase
         $lock->release();
     }
 
-    // Password, switch and lock --------------------------------------------
+    // Lock -----------------------------------------------------------------
 
-    public function test_the_upload_asks_for_the_password_first(): void
+    public function test_the_upload_needs_no_second_password_prompt(): void
     {
+        // A session whose password was confirmed long ago, or never.
         $this->withSession(['auth.password_confirmed_at' => time() - 3600]);
 
-        $this->get(route('admin.extensions.upload'))->assertRedirect(route('password.confirm'));
-        $this->upload($this->themeZip('1.0.0'))->assertRedirect(route('password.confirm'));
-
-        $this->assertSame(0, PackageUpload::count());
-        $this->assertNothingInstalled();
-    }
-
-    public function test_uploads_can_be_switched_off(): void
-    {
-        config(['extensions.upload.enabled' => false]);
-
-        $this->get(route('admin.extensions.upload'))
-            ->assertOk()
-            ->assertSee('Package uploads are switched off on this store')
-            ->assertDontSee('Upload and install');
-        $this->upload($this->themeZip('1.0.0'))->assertNotFound();
-
-        $this->assertSame(0, PackageUpload::count());
-        $this->assertNothingInstalled();
+        $this->get(route('admin.extensions.upload'))->assertOk()->assertSee('Upload and install');
+        $this->upload($this->themeZip('1.0.0'))->assertRedirect(route('admin.extensions.upload'));
+        $this->assertDirectoryExists($this->themePath());
     }
 
     public function test_a_second_upload_waits_for_the_lock_and_is_refused_while_it_is_held(): void
