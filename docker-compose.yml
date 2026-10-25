@@ -25,6 +25,9 @@ services:
       APP_DEBUG: "${APP_DEBUG:-false}"
       APP_KEY: "${APP_KEY}"
       APP_URL: "${APP_URL:-http://localhost:8080}"
+      # Empty: nothing in front of this compose file. Set private_ranges when
+      # a proxy on the same Docker network terminates HTTPS for it.
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-}"
       LOG_CHANNEL: stack
       LOG_LEVEL: info
       DB_CONNECTION: mysql

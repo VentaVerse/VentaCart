@@ -12,13 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Trust X-Forwarded-* headers from any proxy. Required when Venta runs
-        // behind a reverse proxy (Traefik on Coolify, Cloudflare, nginx, etc.)
-        // — without this, request()->isSecure() returns false even on HTTPS,
-        // and Laravel generates http:// URLs for assets, which browsers block
-        // as mixed content on an HTTPS page. The container should only ever
-        // be reachable via its proxy, so trusting all forwarded headers is safe.
-        $middleware->trustProxies(at: '*');
+        // Forwarded headers (client address, https, host) are believed only
+        // from the proxies TRUSTED_PROXIES names (config/trustedproxy.php),
+        // none by default. Trusting every caller would let anyone claim any
+        // address and step around the rate limits keyed on it.
 
         // The storefront currency selector sets a plain (JS) `currency` cookie, so
         // it must be exempt from Laravel's cookie encryption or it can't be read.

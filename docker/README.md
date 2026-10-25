@@ -46,7 +46,20 @@ DB_PASSWORD=...
 
 ```
 VENTA_RUN_SEEDERS=true            # run db:seed once on first boot (set to false / unset afterwards)
+TRUSTED_PROXIES=                  # none by default; see "Behind a proxy" below
 ```
+
+## Behind a proxy
+
+The image's nginx takes the client address from `X-Forwarded-For` only when
+the request comes from a private address (the proxy on the Docker network),
+and hands PHP the scheme from `X-Forwarded-Proto`. That is enough for Coolify's
+Traefik or a Caddy on the same host: links come out as `https` and rate limits
+count real visitors. Leave `TRUSTED_PROXIES` empty.
+
+Set `TRUSTED_PROXIES` only when Laravel itself must read the forwarded host or
+port, or when a proxy that connects from a public address (a CDN) sits in
+front; see `docs/deployment-proxies.md`.
 
 The first admin account is created in the browser: open the admin after the
 first boot and fill in the setup page. No admin is seeded.
