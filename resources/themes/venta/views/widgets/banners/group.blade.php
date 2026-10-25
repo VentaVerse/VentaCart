@@ -13,61 +13,61 @@
         <div class="hero-slider" x-data="imageSlider({ slides: {{ json_encode(array_map(function($s) { $c = $s; unset($c['layers']); return $c; }, $slides)) }}, autoplay: {{ $autoplay ? 'true' : 'false' }}, speed: {{ $speed }} })">
             @foreach ($slides as $i => $slide)
                 @php
-                    $hasLayers = !empty($slide['layers']);
-                    $bgImage = $slide['image'] ?? null;
-                    $bgColor = $slide['bg_color'] ?? '#000';
-                    $bgSize = $slide['bg_size'] ?? 'cover';
-                    $slideHeight = $slide['height'] ?? 500;
+                    // The banners module hands over checked values
+                    // (Extensions\Banners\BannerData); they are checked again
+                    // here because they print into styles and expressions.
+                    $layers = \Extensions\Banners\BannerData::layers($slide['layers'] ?? []);
+                    $hasLayers = $layers !== [];
+                    $bgImage = is_string($slide['image'] ?? null) && preg_match('#^/storage/[^\s"\'()<>\\\\]+$#', $slide['image']) ? $slide['image'] : null;
+                    $bgColor = \App\Support\SafeInput::color($slide['bg_color'] ?? '') ?: '#000';
+                    $bgSize = \Extensions\Banners\BannerData::bgSize($slide['bg_size'] ?? 'cover');
+                    $slideHeight = (int) ($slide['height'] ?? 500);
                     $isFullWidth = $slide['full_width'] ?? true;
-                    $layers = $slide['layers'] ?? [];
+                    $slideUrl = \App\Support\SafeInput::link($slide['url'] ?? '');
                     $widthStyle = !$isFullWidth ? ' max-width: 1280px; margin-left: auto; margin-right: auto;' : '';
                 @endphp
 
                 @if ($hasLayers)
                     {{-- Advanced banner slide with layers --}}
                     <div class="slide relative overflow-hidden banner-advanced-slide" :class="{ 'active': current === {{ $i }} }"
-                         style="--slide-height: {{ $slideHeight }}px; background-color: {{ $bgColor }}; background-size: {{ $bgSize }}; background-position: center; background-repeat: no-repeat;{{ $bgImage ? " background-image: url($bgImage);" : '' }}{{ $widthStyle }}">
+                         style="--slide-height: {{ $slideHeight }}px; background-color: {{ $bgColor }}; background-size: {{ $bgSize }}; background-position: center; background-repeat: no-repeat;{{ $bgImage ? " background-image: url('$bgImage');" : '' }}{{ $widthStyle }}">
 
-                        @if (!empty($slide['url']))
-                            <a href="{{ $slide['url'] }}" class="absolute inset-0 z-0" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif></a>
+                        @if ($slideUrl !== '')
+                            <a href="{{ $slideUrl }}" class="absolute inset-0 z-0" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif></a>
                         @endif
 
                         {{-- Centered stage container for layers — scales proportionally on mobile --}}
                         <div class="banner-layers-stage">
                             @foreach ($layers as $li => $layer)
                                 @php
-                                    $type = $layer['type'] ?? 'text';
-                                    $x = $layer['x'] ?? '0';
-                                    $y = $layer['y'] ?? '0';
-                                    $x = preg_match('/[%px]/', $x) ? $x : $x . 'px';
-                                    $y = preg_match('/[%px]/', $y) ? $y : $y . 'px';
-                                    $opacity = ($layer['opacity'] ?? 100) / 100;
-                                    $anim = $layer['animation'] ?? 'none';
-                                    $delay = $layer['delay'] ?? 0;
-                                @endphp
-
-                                @php
-                                    $duration = $layer['duration'] ?? 800;
-                                    $distance = $layer['distance'] ?? 30;
+                                    $type = $layer['type'];
+                                    $x = $layer['x'];
+                                    $y = $layer['y'];
+                                    $opacity = $layer['opacity'] / 100;
+                                    $anim = $layer['animation'];
+                                    $animClass = $anim !== 'none' ? 'banner-anim banner-anim-' . $anim : '';
+                                    $delay = $layer['delay'];
+                                    $duration = $layer['duration'];
+                                    $distance = $layer['distance'];
                                 @endphp
                                 <div class="absolute z-10"
                                      :class="{
-                                         '{{ $anim !== 'none' ? 'banner-anim banner-anim-' . $anim : '' }}': current === {{ $i }},
-                                         'banner-layer-hidden': current !== {{ $i }}
+                                         [@js($animClass)]: current === {{ (int) $i }},
+                                         'banner-layer-hidden': current !== {{ (int) $i }}
                                      }"
                                      style="left: {{ $x }}; top: {{ $y }}; opacity: {{ $opacity }}; animation-duration: {{ $duration }}ms; --anim-dist: {{ $distance }}px;{{ $delay ? " animation-delay: {$delay}ms;" : '' }}">
 
                                     @if ($type === 'text')
-                                        <span style="font-size: {{ $layer['fontSize'] ?? 24 }}px; font-weight: {{ $layer['fontWeight'] ?? 400 }}; color: {{ $layer['color'] ?? '#fff' }}; letter-spacing: {{ $layer['letterSpacing'] ?? 0 }}px; text-transform: {{ $layer['textTransform'] ?? 'none' }}; white-space: pre-line;">{{ $layer['content'] ?? '' }}</span>
+                                        <span style="font-size: {{ $layer['fontSize'] }}px; font-weight: {{ $layer['fontWeight'] }}; color: {{ $layer['color'] }}; letter-spacing: {{ $layer['letterSpacing'] }}px; text-transform: {{ $layer['textTransform'] }}; white-space: pre-line;">{{ $layer['content'] }}</span>
 
-                                    @elseif ($type === 'image')
-                                        <img src="{{ storage_url($layer['src'] ?? '') }}" alt=""
-                                             style="width: {{ $layer['width'] ?? 200 }}px;{{ !empty($layer['height']) ? " height: {$layer['height']}px;" : '' }} display: block; max-width: none;"
+                                    @elseif ($type === 'image' && $layer['src'] !== '')
+                                        <img src="{{ storage_url($layer['src']) }}" alt=""
+                                             style="width: {{ $layer['width'] }}px;{{ $layer['height'] ? ' height: ' . $layer['height'] . 'px;' : '' }} display: block; max-width: none;"
                                              loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
 
                                     @elseif ($type === 'button')
-                                        <a href="{{ $layer['url'] ?? '#' }}" class="inline-block"
-                                           style="background: {{ $layer['bgColor'] ?? '#fff' }}; color: {{ $layer['color'] ?? '#000' }}; padding: {{ $layer['paddingY'] ?? 12 }}px {{ $layer['paddingX'] ?? 32 }}px; border-radius: {{ $layer['borderRadius'] ?? 0 }}px; font-size: {{ $layer['fontSize'] ?? 14 }}px; font-weight: {{ $layer['fontWeight'] ?? 600 }}; letter-spacing: {{ $layer['letterSpacing'] ?? 1 }}px; text-transform: {{ $layer['textTransform'] ?? 'none' }}; text-decoration: none; position: relative; z-index: 20;">{{ $layer['content'] ?? 'Button' }}</a>
+                                        <a href="{{ $layer['url'] !== '' ? $layer['url'] : '#' }}" class="inline-block"
+                                           style="background: {{ $layer['bgColor'] }}; color: {{ $layer['color'] }}; padding: {{ $layer['paddingY'] }}px {{ $layer['paddingX'] }}px; border-radius: {{ $layer['borderRadius'] }}px; font-size: {{ $layer['fontSize'] }}px; font-weight: {{ $layer['fontWeight'] }}; letter-spacing: {{ $layer['letterSpacing'] }}px; text-transform: {{ $layer['textTransform'] }}; text-decoration: none; position: relative; z-index: 20;">{{ $layer['content'] !== '' ? $layer['content'] : 'Button' }}</a>
                                     @endif
                                 </div>
                             @endforeach
@@ -76,9 +76,9 @@
                 @else
                     {{-- Simple banner slide (background image, no layers) --}}
                     <div class="slide banner-advanced-slide" :class="{ 'active': current === {{ $i }} }"
-                         style="--slide-height: {{ $slideHeight }}px; background-color: {{ $bgColor }}; background-size: {{ $bgSize }}; background-position: center; background-repeat: no-repeat;{{ $bgImage ? " background-image: url($bgImage);" : '' }}{{ $widthStyle }}">
-                        @if (!empty($slide['url']))
-                            <a href="{{ $slide['url'] }}" class="absolute inset-0 z-0" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif></a>
+                         style="--slide-height: {{ $slideHeight }}px; background-color: {{ $bgColor }}; background-size: {{ $bgSize }}; background-position: center; background-repeat: no-repeat;{{ $bgImage ? " background-image: url('$bgImage');" : '' }}{{ $widthStyle }}">
+                        @if ($slideUrl !== '')
+                            <a href="{{ $slideUrl }}" class="absolute inset-0 z-0" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif></a>
                         @endif
                     </div>
                 @endif

@@ -2,6 +2,7 @@
 
 namespace Extensions\Banners;
 
+use App\Support\SafeInput;
 use Extensions\Banners\Models\BannerGroup;
 
 /**
@@ -12,6 +13,10 @@ use Extensions\Banners\Models\BannerGroup;
  * simply never received $bannerGroups. Now the widget resolves it, so a banner
  * group renders wherever a merchant places it, and the home page stops paying
  * for the query when it has no banner on it.
+ *
+ * Every field passes through SafeInput and BannerData on the way out, so a
+ * theme receives links, colours, paths and layer values in their checked
+ * shapes even for a slide saved before those checks existed.
  */
 class BannerPayload
 {
@@ -32,23 +37,23 @@ class BannerPayload
     private static function flatten(BannerGroup $group): array
     {
         return [
-            'autoplay' => $group->autoplay,
-            'speed' => $group->speed,
-            'height' => $group->height,
-            'height_mobile' => $group->height_mobile,
-            'full_width' => $group->full_width,
+            'autoplay' => (bool) $group->autoplay,
+            'speed' => SafeInput::int($group->speed, 1000, 30000, 5000),
+            'height' => (int) $group->height,
+            'height_mobile' => (int) $group->height_mobile,
+            'full_width' => (bool) $group->full_width,
             'slides' => $group->activeSlides->map(fn ($banner) => [
                 'image' => $banner->bg_image_url,
                 'image_mobile' => $banner->bg_image_mobile_url,
-                'url' => $banner->link,
-                'new_tab' => $banner->link_new_tab,
-                'alt' => $banner->name ?? '',
-                'bg_color' => $banner->bg_color,
-                'bg_size' => $banner->bg_size,
-                'height' => $group->height,
-                'height_mobile' => $group->height_mobile,
-                'full_width' => $group->full_width,
-                'layers' => $banner->layers ?? [],
+                'url' => SafeInput::link($banner->link),
+                'new_tab' => (bool) $banner->link_new_tab,
+                'alt' => SafeInput::text($banner->name ?? '', 255),
+                'bg_color' => SafeInput::color($banner->bg_color) ?: null,
+                'bg_size' => BannerData::bgSize($banner->bg_size),
+                'height' => (int) $group->height,
+                'height_mobile' => (int) $group->height_mobile,
+                'full_width' => (bool) $group->full_width,
+                'layers' => BannerData::layers($banner->layers ?? []),
             ])->toArray(),
         ];
     }

@@ -2,6 +2,7 @@
 
 namespace Extensions\Banners\Models;
 
+use App\Support\SafeInput;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -46,13 +47,22 @@ class Banner extends Model
         return $query->orderBy('sort_order')->orderBy('id');
     }
 
+    /**
+     * The public address of the background image, encoded, or null. A path
+     * that is not a plain storage path gives null rather than a URL a theme
+     * would print into a style.
+     */
     public function getBgImageUrlAttribute(): ?string
     {
-        return $this->bg_image ? '/storage/' . $this->bg_image : null;
+        $path = SafeInput::storagePath($this->bg_image);
+
+        return $path !== '' ? storage_url($path) : null;
     }
 
     public function getBgImageMobileUrlAttribute(): ?string
     {
-        return $this->bg_image_mobile ? '/storage/' . $this->bg_image_mobile : null;
+        $path = SafeInput::storagePath($this->bg_image_mobile);
+
+        return $path !== '' ? storage_url($path) : null;
     }
 }

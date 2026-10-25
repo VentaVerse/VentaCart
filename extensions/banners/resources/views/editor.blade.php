@@ -326,8 +326,8 @@
             return {
                 layers: @json($banner?->layers ?? []),
                 selectedLayer: null,
-                bgColor: '{{ $banner?->bg_color ?? '#000000' }}',
-                bgSize: '{{ $banner?->bg_size ?? 'cover' }}',
+                bgColor: @js($banner?->bg_color ?? '#000000'),
+                bgSize: @js($banner?->bg_size ?? 'cover'),
                 bgImage: @js($banner?->bg_image ?? ''),
                 bgImageMobile: @js($banner?->bg_image_mobile ?? ''),
                 height: {{ $group->height ?? 500 }},

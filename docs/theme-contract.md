@@ -368,6 +368,7 @@ The main menu is composed in Layout > Menus (`nav_menus`, nested `nav_menu_items
 - Phone numbers print with the country dialling code (`App\Support\Phone::display`).
 - Order status badges use the status's tone (`App\Support\StatusTone`).
 - Every page works on phone, tablet and desktop.
+- Banner slides (`banners.group`) arrive checked by `Extensions\Banners\BannerData`: a slide's `url` and a button layer's `url` are a path, an anchor or an http(s), mailto or tel address, or empty; colours are hex; positions are `Npx` or `N%`; numbers are clamped; `animation` is one of `BannerData::ANIMATIONS`; `image` is an encoded `/storage/` address. Print them with `{{ }}`, never `{!! !!}`, quote `url('…')` in a style, and pass anything that goes into an Alpine expression through `@js()`. `App\Support\SafeInput` has the same checks for a theme's own data.
 - No CSS or JavaScript inline in Blade; everything goes through `css/theme.css` and `js/theme.js`. The only exception is a merchant's own `custom_css` setting, which a theme prints filtered.
 
 ## 8. Checklist for a new theme

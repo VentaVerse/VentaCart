@@ -3,10 +3,14 @@
 namespace Extensions\Banners\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Support\SafeInput;
+use Extensions\Banners\BannerData;
 use Extensions\Banners\Models\Banner;
 use Extensions\Banners\Models\BannerGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class BannerController extends Controller
 {
@@ -34,7 +38,7 @@ class BannerController extends Controller
             // The first image, uploaded here. Creating a group and then hunting
             // for Slides was three pages of ceremony before anything appeared.
             'image' => 'nullable|image|max:8192',
-            'link' => 'nullable|string|max:2000',
+            'link' => ['nullable', 'string', 'max:' . SafeInput::LINK_MAX, $this->linkRule()],
             'autoplay' => 'boolean',
             'speed' => 'required|integer|min:1000|max:30000',
             'height' => 'required|integer|min:100|max:2000',
@@ -51,7 +55,7 @@ class BannerController extends Controller
         $validated['slug'] = Str::slug(($validated['slug'] ?? null) ?: $validated['name']);
 
         $image = $request->file('image');
-        $link = $validated['link'] ?? null;
+        $link = SafeInput::link($validated['link'] ?? '') ?: null;
         unset($validated['image'], $validated['link']);
 
         $group = BannerGroup::create($validated);
@@ -139,11 +143,13 @@ class BannerController extends Controller
 
     public function edit(BannerGroup $group, Banner $banner)
     {
+        $this->ownedBy($group, $banner);
         return view('banners::editor', compact('group', 'banner'));
     }
 
     public function update(Request $request, BannerGroup $group, Banner $banner)
     {
+        $this->ownedBy($group, $banner);
         $validated = $this->validateBanner($request);
         $banner->update($validated);
 
@@ -158,6 +164,7 @@ class BannerController extends Controller
 
     public function duplicate(BannerGroup $group, Banner $banner)
     {
+        $this->ownedBy($group, $banner);
         $copy = $banner->replicate();
         $copy->name = ($banner->name ?: 'Untitled') . ' (Copy)';
         $copy->is_active = false;
@@ -168,34 +175,67 @@ class BannerController extends Controller
 
     public function destroy(BannerGroup $group, Banner $banner)
     {
+        $this->ownedBy($group, $banner);
         $banner->delete();
         return redirect()->route('admin.banners.slides', $group)->with('success', 'Slide deleted.');
     }
 
     private function validateBanner(Request $request): array
     {
+        $path = function (string $attribute, mixed $value, \Closure $fail): void {
+            if (is_string($value) && trim($value) !== '' && SafeInput::storagePath($value) === '') {
+                $fail('Choose the image from the media library.');
+            }
+        };
+
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'max:255'],
-            'bg_image' => ['nullable', 'string', 'max:500'],
-            'bg_image_mobile' => ['nullable', 'string', 'max:500'],
-            'bg_color' => ['nullable', 'string', 'max:30'],
-            'bg_size' => ['nullable', 'string', 'max:20'],
-            'link' => ['nullable', 'string', 'max:500'],
+            'bg_image' => ['nullable', 'string', 'max:' . SafeInput::PATH_MAX, $path],
+            'bg_image_mobile' => ['nullable', 'string', 'max:' . SafeInput::PATH_MAX, $path],
+            'bg_color' => ['nullable', 'string', 'regex:/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/'],
+            'bg_size' => ['nullable', 'string', Rule::in(BannerData::BG_SIZES)],
+            'link' => ['nullable', 'string', 'max:' . SafeInput::LINK_MAX, $this->linkRule()],
             'link_new_tab' => ['nullable', 'boolean'],
-            'layers' => ['nullable', 'string'],
-            'sort_order' => ['nullable', 'integer'],
+            'layers' => ['nullable', 'string', 'max:200000'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'is_active' => ['nullable', 'boolean'],
             'starts_at' => ['nullable', 'date'],
-            'ends_at' => ['nullable', 'date'],
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+        ], [
+            'bg_color.regex' => 'The colour must be a hex colour such as #000000.',
         ]);
+
+        $layers = json_decode($validated['layers'] ?? '[]', true);
+        $problems = BannerData::problems($layers);
+        if ($problems !== []) {
+            throw ValidationException::withMessages(['layers' => $problems]);
+        }
 
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['link_new_tab'] = $request->boolean('link_new_tab');
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
-        $validated['layers'] = json_decode($validated['layers'] ?? '[]', true);
-        $validated['bg_image'] = $validated['bg_image'] ?: null;
-        $validated['bg_image_mobile'] = $validated['bg_image_mobile'] ?: null;
+        $validated['layers'] = BannerData::layers($layers);
+        $validated['link'] = SafeInput::link($validated['link'] ?? '') ?: null;
+        $validated['bg_color'] = SafeInput::color($validated['bg_color'] ?? '') ?: null;
+        $validated['bg_image'] = SafeInput::storagePath($validated['bg_image'] ?? '') ?: null;
+        $validated['bg_image_mobile'] = SafeInput::storagePath($validated['bg_image_mobile'] ?? '') ?: null;
 
         return $validated;
+    }
+
+    /** A slide link must be one a theme can put in an href safely. */
+    private function linkRule(): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
+            if (is_string($value) && trim($value) !== '' && SafeInput::link($value) === '') {
+                $fail('The link must be a path such as /sale, an anchor such as #top, or an http(s) address, with no spaces.');
+            }
+        };
+    }
+
+    /** A slide is only reached through its own group's address. */
+    private function ownedBy(BannerGroup $group, Banner $banner): void
+    {
+        abort_unless((int) $banner->banner_group_id === (int) $group->id, 404);
     }
 }
