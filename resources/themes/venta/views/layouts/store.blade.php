@@ -141,6 +141,7 @@
         window.__countryIso2Map = @json(\App\Models\Country::where('is_active', true)->pluck('iso2', 'id'));
         window.__phoneCodes = @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'id'));
         window.__addressProviders = @json($addressProviders ?? []);
+        window.__wishlist = @json($wishlistIds ?? []);
         window.storageUrl = function(path) {
             if (!path) return '';
             return '/storage/' + path.split('/').map(encodeURIComponent).join('/');

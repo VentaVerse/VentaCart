@@ -81,6 +81,8 @@ class StoreLayout extends Component
             return $result;
         });
 
+        $wishlistIds = app(\App\Services\WishlistService::class)->ids();
+
         // System widgets (a theme's own header pieces as rows) render through
         // the region component, outside this view's own data; they read the
         // same bundle from the shared pool.
@@ -95,6 +97,8 @@ class StoreLayout extends Component
             'cartSubtotal' => $cartService->getSubtotal(),
             'customerLoggedIn' => auth('customer')->check(),
             'customerUser' => auth('customer')->user(),
+            'wishlistIds' => $wishlistIds,
+            'wishlistCount' => count($wishlistIds),
         ]);
 
         return view('layouts.store', [
@@ -116,6 +120,8 @@ class StoreLayout extends Component
             'cartSubtotal' => $cartService->getSubtotal(),
             'customerLoggedIn' => auth('customer')->check(),
             'customerUser' => auth('customer')->user(),
+            'wishlistIds' => $wishlistIds,
+            'wishlistCount' => count($wishlistIds),
             'defaultMetaDescription' => $seoDefaults['default_meta_description'] ?? '',
             'defaultMetaKeywords' => $seoDefaults['default_meta_keywords'] ?? '',
             'googleSiteVerification' => $seoDefaults['google_site_verification'] ?? '',

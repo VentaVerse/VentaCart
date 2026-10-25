@@ -48,8 +48,11 @@ final class ThemeContract
         'reviews' => ['review.submit', 'review.thankyou'],
     ];
 
-    /** Views a theme may leave out; core answers 404 or draws nothing. */
-    public const OPTIONAL_VIEWS = ['product.quick-view', 'maintenance', 'sitemap'];
+    /**
+     * Views a theme may leave out; core answers 404, draws nothing, or (for
+     * the wishlist) draws its own view inside the theme's layout.
+     */
+    public const OPTIONAL_VIEWS = ['product.quick-view', 'maintenance', 'sitemap', 'wishlist.index'];
 
     /** Setting types the looks editor draws (extensions/theme index view). */
     public const SETTING_TYPES = ['layout', 'select', 'toggle', 'text', 'textarea', 'number', 'color', 'font', 'media', 'box', 'multi', 'rules', 'images'];

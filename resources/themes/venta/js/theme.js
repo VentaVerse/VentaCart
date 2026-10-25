@@ -280,23 +280,45 @@ Alpine.data('searchAutocomplete', () => ({
 /* ============================================
    Wishlist Button (localStorage)
    ============================================ */
+// The heart on a product: the store's wishlist, stored for signed-in
+// customers and kept in the session for guests. The page starts from the
+// ids the layout prints; every change answers with the new state and is
+// announced so the header count can follow.
 Alpine.data('wishlistBtn', (productId) => ({
     wishlisted: false,
+    busy: false,
 
     init() {
-        const list = JSON.parse(localStorage.getItem('ngd_wishlist') || '[]');
-        this.wishlisted = list.includes(productId);
+        this.wishlisted = (window.__wishlist || []).includes(productId);
+        window.addEventListener('wishlist-updated', (e) => {
+            if (e.detail && e.detail.productId === productId) this.wishlisted = e.detail.in;
+        });
     },
 
-    toggle() {
-        let list = JSON.parse(localStorage.getItem('ngd_wishlist') || '[]');
-        if (this.wishlisted) {
-            list = list.filter(id => id !== productId);
-        } else {
-            list.push(productId);
+    async toggle() {
+        if (this.busy) return;
+        this.busy = true;
+        const adding = !this.wishlisted;
+        try {
+            const resp = await fetch(adding ? '/wishlist/items' : `/wishlist/items/${productId}`, {
+                method: adding ? 'POST' : 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                },
+                body: adding ? JSON.stringify({ product_id: productId }) : null,
+            });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            this.wishlisted = !!data.in;
+            const ids = new Set(window.__wishlist || []);
+            data.in ? ids.add(productId) : ids.delete(productId);
+            window.__wishlist = [...ids];
+            window.dispatchEvent(new CustomEvent('wishlist-updated', { detail: { productId, in: !!data.in, count: data.count } }));
+        } finally {
+            this.busy = false;
         }
-        localStorage.setItem('ngd_wishlist', JSON.stringify(list));
-        this.wishlisted = !this.wishlisted;
     }
 }));
 

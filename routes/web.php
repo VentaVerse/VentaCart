@@ -16,6 +16,7 @@ use App\Http\Controllers\Storefront\AddressLookupController as StorefrontAddress
 use App\Http\Controllers\Storefront\DeepAddressLookupController;
 use App\Http\Controllers\Storefront\BrandController as StorefrontBrandController;
 use App\Http\Controllers\Storefront\RecentlyViewedController;
+use App\Http\Controllers\Storefront\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 // Storefront
@@ -24,6 +25,13 @@ Route::get('/search/autocomplete', [StorefrontSearchController::class, 'autocomp
 Route::get('/search', [StorefrontSearchController::class, 'results'])->middleware('noindex:follow')->name('search.results');
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
+// The wishlist: a page, its state for heart buttons, and add / remove.
+Route::get('/wishlist', [WishlistController::class, 'index'])->middleware('noindex')->name('wishlist.index');
+Route::get('/wishlist/state', [WishlistController::class, 'state'])->name('wishlist.state');
+Route::middleware('throttle:30,1')->group(function () {
+    Route::post('/wishlist/items', [WishlistController::class, 'add'])->name('wishlist.add');
+    Route::delete('/wishlist/items/{product}', [WishlistController::class, 'remove'])->whereNumber('product')->name('wishlist.remove');
+});
 Route::get('/recently-viewed', [RecentlyViewedController::class, 'index'])->middleware('noindex')->name('recently-viewed');
 Route::get('/brand', [StorefrontBrandController::class, 'index'])->name('brand.index');
 Route::get('/brand/{brand:slug}', [StorefrontBrandController::class, 'show'])->name('brand.show');

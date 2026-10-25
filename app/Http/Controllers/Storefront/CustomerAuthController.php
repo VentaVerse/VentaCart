@@ -71,6 +71,7 @@ class CustomerAuthController extends Controller
 
         $customer = Auth::guard('customer')->user();
         app(CartService::class)->migrateGuestCart($oldSessionId, $customer);
+        app(\App\Services\WishlistService::class)->mergeInto($customer);
 
         \App\Services\ActivityLogger::log($customer->id, 'login', 'Logged in');
 
@@ -122,7 +123,7 @@ class CustomerAuthController extends Controller
         $request->session()->regenerate();
 
         app(CartService::class)->migrateGuestCart($oldSessionId, $customer);
-
+        app(\App\Services\WishlistService::class)->mergeInto($customer);
         \App\Services\ActivityLogger::log($customer->id, 'registered', 'Account created');
 
         \App\Services\TemplateMailService::send('welcome', $customer->email, [

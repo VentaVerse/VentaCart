@@ -185,7 +185,7 @@ partials.product-card
 
 While the extension exists on disk: `blog.index`, `blog.show` (blog); `review.submit`, `review.thankyou` (reviews).
 
-Optional: `product.quick-view` (the quick view fragment; core answers 404 without it), `maintenance`, `sitemap`.
+Optional: `product.quick-view` (the quick view fragment; core answers 404 without it), `maintenance`, `sitemap`, `wishlist.index` (core draws its own inside the theme's layout with `partials.product-card`).
 
 Every widget in the catalogue (section 5) needs its view.
 
@@ -246,6 +246,15 @@ Products carry attributes (Catalog > Attributes): named facts in groups, one val
 - `ProductAttributes::card($product)`: the attributes marked "show on product cards", in order, as `[['name' => 'Origin', 'value' => 'Sagada'], …]`. Core's listings (category, search, brand, product grids, related products) eager load the `cardAttributes` relation (`ProductAttributes::CARD_RELATION`), so a grid costs no extra query.
 - `$attributeGroups` on the product page (and in `PageContext`): `[['name' => 'Farm', 'attributes' => [['name' => 'Origin', 'value' => 'Sagada'], …]], …]`.
 - `$availableAttributes` on category pages: the filterable attributes among the category's products, `[['slug' => 'origin', 'name' => 'Origin', 'values' => [['value' => 'Sagada', 'count' => 3], …]], …]`. A filter form sends `attr[{slug}][]={value}`; values of one attribute widen the match, different attributes narrow it.
+
+## 5.4 Wishlist
+
+The wishlist is stored for signed-in customers and kept in the session for guests; signing in merges the guest's list into the account (`App\Services\WishlistService`).
+
+- Page: `GET /wishlist` (`wishlist.index`), view `wishlist.index` with `$products`.
+- State: `GET /wishlist/state` (`wishlist.state`) answers `{"ids": [12, 7], "count": 2}`.
+- Add: `POST /wishlist/items` (`wishlist.add`) with `product_id`; remove: `DELETE /wishlist/items/{product}` (`wishlist.remove`). Both need the CSRF token, are limited to 30 a minute, and answer `{"in": true|false, "count": n}`. Only an active product the shopper may see can be added.
+- Every storefront view has `$wishlistIds` and `$wishlistCount` (shared by `x-store-layout`). The default theme prints the ids as `window.__wishlist` and its `wishlistBtn` Alpine component dispatches `wishlist-updated` with `{productId, in, count}` after each change.
 
 ## 6. Menus
 

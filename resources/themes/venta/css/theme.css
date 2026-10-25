@@ -2883,3 +2883,14 @@ a.wbanner:focus-visible { outline: 2px solid var(--color-primary); outline-offse
 .product-attributes__table caption { text-align: left; font-weight: 600; color: var(--color-text-heading); padding-bottom: 0.5rem; }
 .product-attributes__table th, .product-attributes__table td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); vertical-align: top; }
 .product-attributes__table th { width: 35%; font-weight: 500; color: var(--color-text-muted); }
+
+/* ============================================
+ Wishlist page (core's view, drawn with this theme's card)
+ ============================================ */
+.wishlist-page { padding-top: 2rem; padding-bottom: 3rem; }
+.wishlist-page__title { font-family: var(--font-heading); font-size: 1.75rem; font-weight: 700; color: var(--color-text-heading); margin-bottom: 1.5rem; }
+.wishlist-page__empty { color: var(--color-text-muted); margin-bottom: 0.75rem; }
+.wishlist-page__link { color: var(--color-primary); text-decoration: underline; }
+.wishlist-page__grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 768px) { .wishlist-page__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .wishlist-page__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
