@@ -4,7 +4,7 @@
                     <input
                         type="text"
                         name="q"
-                        placeholder="Search pedals, cables, parts..."
+                        placeholder="Search products"
                         value="{{ request('q') }}"
                         x-model="query"
                         @input.debounce.300ms="search()"
