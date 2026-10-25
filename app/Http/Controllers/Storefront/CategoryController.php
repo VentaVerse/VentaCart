@@ -24,7 +24,7 @@ class CategoryController extends Controller
         $perPage = max(4, min(96, (int) ($settings['products_per_page'] ?? \App\Support\ThemeOptions::get('listing_per_page', 12))));
 
         // Collect this category + all descendant category IDs
-        $categoryIds = $this->getCategoryAndDescendantIds($category);
+        $categoryIds = $category->selfAndDescendantIds();
 
         $query = Product::where('is_active', true)
             ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds))
@@ -128,23 +128,6 @@ class CategoryController extends Controller
         \App\Support\PageContext::set($data);
 
         return view('category.index', $data);
-    }
-
-    private function getCategoryAndDescendantIds(Category $category): array
-    {
-        return Cache::remember("cat_descendants_{$category->id}", 3600, function () use ($category) {
-            $ids = [$category->id];
-            $children = Category::where('parent_id', $category->id)->where('is_active', true)->pluck('id');
-            foreach ($children as $childId) {
-                $ids[] = $childId;
-                // Level 3 grandchildren
-                $grandchildren = Category::where('parent_id', $childId)->where('is_active', true)->pluck('id');
-                foreach ($grandchildren as $gcId) {
-                    $ids[] = $gcId;
-                }
-            }
-            return $ids;
-        });
     }
 
     private function buildBreadcrumbs(Category $category): array

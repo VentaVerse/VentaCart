@@ -151,6 +151,21 @@ class Widgets
                 }
             }
 
+            // The fields of a repeating row may list their choices the same
+            // way, and they must reach the editor as plain lists too.
+            if (isset($field['fields']) && is_array($field['fields'])) {
+                foreach ($field['fields'] as $sub => $subField) {
+                    if (is_array($subField) && isset($subField['options']) && is_callable($subField['options'])) {
+                        try {
+                            $field['fields'][$sub]['options'] = (array) call_user_func($subField['options']);
+                        } catch (\Throwable $e) {
+                            $field['fields'][$sub]['options'] = [];
+                            $field['fields'][$sub]['unavailable'] = true;
+                        }
+                    }
+                }
+            }
+
             $field['name'] = $name;
             $field['type'] = $field['type'] ?? 'text';
             $field['label'] = $field['label'] ?? ucfirst(str_replace('_', ' ', $name));

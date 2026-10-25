@@ -43,6 +43,27 @@ class Category extends Model
         return $this->belongsToMany(Product::class, 'category_product');
     }
 
+    /**
+     * This category and its active children and grandchildren: what a
+     * shopper means by "everything in Phones" is the whole branch.
+     *
+     * @return list<int>
+     */
+    public function selfAndDescendantIds(): array
+    {
+        return \Illuminate\Support\Facades\Cache::remember("cat_descendants_{$this->id}", 3600, function () {
+            $ids = [$this->id];
+            foreach (self::where('parent_id', $this->id)->where('is_active', true)->pluck('id') as $childId) {
+                $ids[] = $childId;
+                foreach (self::where('parent_id', $childId)->where('is_active', true)->pluck('id') as $grandchildId) {
+                    $ids[] = $grandchildId;
+                }
+            }
+
+            return $ids;
+        });
+    }
+
     public function seoSuggestions(): MorphMany
     {
         return $this->morphMany(\Extensions\Seo\Models\SeoSuggestion::class, 'entity', 'entity_type', 'entity_id');

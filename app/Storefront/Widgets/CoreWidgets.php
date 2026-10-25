@@ -30,6 +30,8 @@ class CoreWidgets
                 'filter' => ['type' => 'select', 'label' => 'Show',
                     'options' => ['new' => 'Newest', 'featured' => 'Featured', 'specials' => 'On sale', 'best_sellers' => 'Best sellers',
                         'most_viewed' => 'Most viewed', 'random' => 'Random']],
+                'category' => ['type' => 'select', 'label' => 'From category', 'default' => '', 'options' => fn () => self::categoryChoices()],
+                'brand' => ['type' => 'select', 'label' => 'From brand', 'default' => '', 'options' => fn () => self::brandChoices()],
                 'limit' => ['type' => 'number', 'label' => 'How many', 'default' => 12],
                 'layout' => ['type' => 'select', 'label' => 'Layout', 'default' => 'grid',
                     'options' => ['grid' => 'Grid', 'slider' => 'Slider']],
@@ -52,6 +54,7 @@ class CoreWidgets
                 'tabs' => ['type' => 'rows', 'label' => 'Tabs', 'fields' => [
                     'title' => ['type' => 'text', 'label' => 'Tab'],
                     'filter' => ['type' => 'select', 'label' => 'Show', 'options' => ['new' => 'Newest', 'featured' => 'Featured', 'specials' => 'On sale', 'best_sellers' => 'Best sellers', 'most_viewed' => 'Most viewed', 'random' => 'Random']],
+                    'category' => ['type' => 'select', 'label' => 'From category', 'options' => fn () => self::categoryChoices()],
                     'limit' => ['type' => 'number', 'label' => 'How many'],
                 ]],
                 'columns' => ['type' => 'select', 'label' => 'Per row', 'default' => '4',
@@ -65,7 +68,7 @@ class CoreWidgets
                     }
                     $tabs[] = [
                         'title' => (string) ($tab['title'] ?? ''),
-                        'products' => self::products(['filter' => $tab['filter'] ?? 'new', 'limit' => $tab['limit'] ?? 8]),
+                        'products' => self::products(['filter' => $tab['filter'] ?? 'new', 'category' => $tab['category'] ?? '', 'limit' => $tab['limit'] ?? 8]),
                     ];
                 }
 
@@ -599,12 +602,59 @@ class CoreWidgets
             ->sortBy(fn ($p) => $ids->search($p->id))->values();
     }
 
+    /** Active categories by slug, indented by depth, for a block's select. @return array<string, string> */
+    private static function categoryChoices(): array
+    {
+        $all = Category::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'parent_id', 'name', 'slug']);
+        $byParent = $all->groupBy(fn ($c) => (int) $c->parent_id);
+        $out = ['' => 'Any category'];
+        $walk = function (int $parentId, int $depth) use (&$walk, $byParent, &$out) {
+            foreach ($byParent->get($parentId, collect()) as $c) {
+                if ($c->slug) {
+                    $out[$c->slug] = str_repeat('- ', $depth) . $c->name;
+                }
+                if ($depth < 2) {
+                    $walk((int) $c->id, $depth + 1);
+                }
+            }
+        };
+        $walk(0, 0);
+
+        return $out;
+    }
+
+    /** Active brands by slug, for a block's select. @return array<string, string> */
+    private static function brandChoices(): array
+    {
+        return ['' => 'Any brand'] + Brand::where('is_active', true)->whereNotNull('slug')->orderBy('name')->pluck('name', 'slug')->all();
+    }
+
     private static function products(array $config)
     {
         $limit = max(1, min(48, (int) ($config['limit'] ?? 12)));
         $filter = $config['filter'] ?? 'new';
 
         $query = Product::where('is_active', true)->with(['images', 'specials']);
+
+        // A category or brand is named by its slug, so a layout or preset
+        // carries over between stores that use the same names. One that no
+        // longer exists shows nothing rather than everything.
+        if (is_string($config['category'] ?? null) && $config['category'] !== '') {
+            $category = Category::where('slug', $config['category'])->where('is_active', true)->first();
+            if (! $category) {
+                return collect();
+            }
+            $ids = $category->selfAndDescendantIds();
+            $query->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $ids));
+        }
+        if (is_string($config['brand'] ?? null) && $config['brand'] !== '') {
+            $brand = Brand::where('slug', $config['brand'])->where('is_active', true)->first();
+            if (! $brand) {
+                return collect();
+            }
+            $query->where('brand_id', $brand->id);
+        }
+
         // Ratings ride along only while the reviews extension is present: the
         // relation names its model, and a store that switched reviews off
         // must still list products.
