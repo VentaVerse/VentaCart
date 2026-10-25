@@ -82,6 +82,17 @@ class LayoutSaver
                 ]
             );
 
+            // Placement ids this save may reuse: those already on this theme
+            // and page. Any other id the payload names (another page's,
+            // another theme's, an id sent twice) is written as a new
+            // placement, so a crafted save cannot move or overwrite a
+            // placement it does not own.
+            $ownedPlacements = LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
+                ->where('page_type', $pageType)
+                ->pluck('id')
+                ->flip()
+                ->all();
+
             $keptRows = [];
             $order = 0;
 
@@ -122,8 +133,14 @@ class LayoutSaver
                     if (! Widgets::has($widget)) {
                         continue;
                     }
+                    $placementId = isset($row['id']) && is_numeric($row['id']) ? (int) $row['id'] : null;
+                    if ($placementId !== null && isset($ownedPlacements[$placementId])) {
+                        unset($ownedPlacements[$placementId]);
+                    } else {
+                        $placementId = null;
+                    }
                     $placement = LayoutPlacement::updateOrCreate(
-                        ['id' => isset($row['id']) && is_numeric($row['id']) ? (int) $row['id'] : null],
+                        ['id' => $placementId],
                         [
                             'theme' => LayoutPlacement::scopeTheme(),
                             'page_type' => $pageType,
