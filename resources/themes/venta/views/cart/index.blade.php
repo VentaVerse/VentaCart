@@ -48,7 +48,6 @@
                                 <div class="cart-item-details">
                                     <a :href="item.product ? '/product/' + item.product.slug : '#'" class="cart-item-name hover:text-[var(--color-primary)] transition-colors" x-text="item.name"></a>
                                     <div class="cart-item-variant" x-show="item.variant_label" x-text="item.variant_label"></div>
-                                    <div class="cart-item-sku" x-show="item.sku" x-text="'SKU: ' + item.sku"></div>
                                     <div x-show="outOfStockIds.includes(item.id)" class="mt-1">
                                         <span class="text-xs font-medium text-[var(--color-danger-text)] bg-[var(--color-danger-bg)] px-2 py-0.5 rounded">OUT OF STOCK</span>
                                     </div>
