@@ -544,6 +544,9 @@ body:has(.v-bench.is-wide) .v-slab {
     color: var(--v-act-ink);
 }
 
+/* A pending update: what is on disk against what is installed. */
+.v-theme__note { margin: 0 0 8px; font-size: 13px; color: var(--v-ink-2); }
+
 .v-theme__facts { display: flex; flex-wrap: wrap; gap: 0 26px; margin: 0; }
 .v-theme__facts div { display: flex; gap: 6px; align-items: baseline; }
 .v-theme__facts dt { color: var(--v-ink-3); font-size: 12px; }

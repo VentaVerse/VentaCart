@@ -17,6 +17,9 @@ class ThemeService
     protected array $settings = [];
     protected const CACHE_KEY = 'theme_settings';
 
+    /** Contract results for themes awaiting an update, by slug, version and file time. */
+    private array $servable = [];
+
     /** Per-request memo for the active currency (false = not yet resolved). */
     protected Currency|null|false $activeCurrency = false;
 
@@ -262,8 +265,9 @@ class ThemeService
 
     /**
      * Whether the storefront has a theme to draw with: the one it is
-     * pointed at is installed and its folder is on disk. When not, core
-     * shows its plain "No theme installed" page.
+     * pointed at is installed and its folder is on disk. A theme awaiting an
+     * update counts as installed while its files keep the contract. When
+     * not, core shows its plain "No theme installed" page.
      */
     public function hasActiveTheme(): bool
     {
@@ -308,14 +312,40 @@ class ThemeService
             $meta['slug'] = $slug;
             $meta['name'] = $meta['name'] ?? ucfirst(str_replace('-', ' ', $slug));
             $meta['is_default'] = $slug === self::THEME;
-            $meta['state'] = app(ExtensionManager::class)->state(self::registryName($slug));
-            $meta['installed'] = $meta['state'] === 'enabled';
+            $extensions = app(ExtensionManager::class);
+            $meta['state'] = $extensions->state(self::registryName($slug));
+            $meta['update_available'] = $meta['state'] === 'needs_migration';
+            $meta['installed_version'] = $extensions->registry()->get(self::registryName($slug))?->version;
+            $meta['installed'] = $meta['state'] === 'enabled'
+                || ($meta['update_available'] && $this->servableWhileAwaitingUpdate($slug, $meta['installed_version']));
             $themes[$slug] = $meta;
         }
 
         ksort($themes);
 
         return $themes;
+    }
+
+    /**
+     * Whether a theme whose files are newer than its installed version may
+     * keep drawing the storefront until the update is run. It may, so that
+     * copying new files over a live theme never takes the shop down, unless
+     * the new files no longer keep the theme contract: a package missing a
+     * view the store renders would break pages, and the plain page is the
+     * safer answer. The check reads files, so it runs once per theme and
+     * version for the life of this service.
+     */
+    private function servableWhileAwaitingUpdate(string $slug, ?string $installedVersion): bool
+    {
+        $row = app(ExtensionManager::class)->registry()->get(self::registryName($slug));
+        if (! $row || ! $row->enabled) {
+            return false;
+        }
+
+        $path = resource_path("themes/{$slug}");
+        $key = $slug . '@' . $installedVersion . '@' . (string) @filemtime($path . '/theme.json');
+
+        return $this->servable[$key] ??= \App\Support\ThemeContract::check($path) === [];
     }
 
     /** Keep a theme's look (colours, fonts, vars, preset) under its own name. */

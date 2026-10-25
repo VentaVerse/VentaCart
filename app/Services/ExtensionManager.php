@@ -320,9 +320,8 @@ class ExtensionManager
 
     /**
      * Validates the manifest, runs the extension's migrations, then upserts
-     * the registry row (enabled). TEST-ONLY against the live install until the
-     * owner runs it deliberately — this method itself never touches the live
-     * DB unless explicitly invoked.
+     * the registry row. A first install is enabled; an install over an
+     * existing row (an update, state needs_migration) keeps its switch.
      */
     public function install(string $name): void
     {
@@ -347,12 +346,18 @@ class ExtensionManager
 
         $this->runMigrations($manifest['path'], 'migrate');
 
+        // Installing over an existing row is an update: the files moved to a
+        // newer version. It records that version and keeps the switch where
+        // the merchant left it, so updating never turns a disabled
+        // extension back on.
+        $existing = Extension::where('name', $name)->first();
+
         Extension::updateOrCreate(
             ['name' => $name],
             [
                 'version' => $manifest['version'] ?? '0.0.0',
-                'enabled' => true,
-                'installed_at' => now(),
+                'enabled' => $existing ? (bool) $existing->enabled : true,
+                'installed_at' => $existing?->installed_at ?? now(),
             ]
         );
 

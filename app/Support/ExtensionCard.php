@@ -50,11 +50,16 @@ class ExtensionCard
             'description' => $manifest['description'] ?? '',
             'icon' => $manifest['icon'] ?? 'categories',
             'version' => $registryRow->version ?? ($manifest['version'] ?? null),
+            // The version on disk, when it is newer than the installed one.
+            'update_to' => $state === 'needs_migration' ? ($manifest['version'] ?? null) : null,
             'state' => $state,
             'state_label' => $stateMeta['label'],
             'state_tone' => $stateMeta['tone'],
             'actions' => self::actionsForState($state),
-            'configure' => $state === 'enabled' ? self::configureUrl($manifest, $name) : null,
+            // An extension awaiting its update keeps running, so its settings stay reachable.
+            'configure' => $state === 'enabled' || ($state === 'needs_migration' && $registryRow?->enabled)
+                ? self::configureUrl($manifest, $name)
+                : null,
         ];
     }
 

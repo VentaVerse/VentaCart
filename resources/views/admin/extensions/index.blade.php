@@ -37,13 +37,17 @@
                     @endif
                     @if ($module['kind'] === 'extension')
                         {{-- No state badge: the buttons say the state
-                             (owner ruling 2026-08-18 — Install means not
-                             installed, Disable means enabled). The one
-                             exception is a broken state no button can
-                             express. --}}
+                             (Install means not installed, Disable means
+                             enabled). The exceptions are a broken state no
+                             button can express, and a pending update, whose
+                             badge names the version waiting on disk. --}}
                         @if ($module['state'] === 'missing_files')
                             <span class="v-dir__state">
                                 <span class="v-badge v-badge--bad">{{ $module['state_label'] }}</span>
+                            </span>
+                        @elseif ($module['state'] === 'needs_migration')
+                            <span class="v-dir__state">
+                                <span class="v-badge v-badge--warn">{{ $module['state_label'] }}@if (! empty($module['update_to'])): v{{ $module['update_to'] }}@endif</span>
                             </span>
                         @endif
                         @include('admin.extensions.partials.lifecycle-actions')

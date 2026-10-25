@@ -24,6 +24,8 @@ Vite discovers `css/theme.css` and `js/theme.js` on its own; run `npm run build`
 
 Themes are discovered like extensions and recorded in the same registry under the name `theme-{slug}`. The Themes page (Extensions > Themes) lists every package on disk with Install, Use this theme and Uninstall. Installing runs the contract check and refuses a package that fails it, naming what is missing. Uninstalling removes the registry row and nothing else: the folder, the theme's layout rows and its settings stay, so installing it again finds them.
 
+When a theme's files carry a higher `version` than the one installed, the theme is awaiting an update. The storefront keeps drawing with it, and the Themes and Extensions screens show "Update available" with an Update button, which records the new version and runs any migrations the new files bring (`database/migrations`). Only a theme whose new files fail the contract check stops being served until it is updated or fixed.
+
 Exactly one installed theme is live (`identity.active_theme`). When the live theme is not installed, the storefront answers every GET with core's plain "No theme installed" page (HTTP 503); the admin keeps working, and POSTs (webhooks, callbacks) pass through.
 
 The shipped default theme is installed with the other essentials on a fresh store. Stores updated from before this contract get their default and live themes registered by a continuity migration.

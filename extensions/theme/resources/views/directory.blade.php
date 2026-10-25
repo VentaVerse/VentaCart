@@ -25,21 +25,44 @@
                         <h2>{{ $meta['name'] }}</h2>
                         @if ($slug === $active && $meta['installed'])
                             <span class="v-theme__live">Live</span>
-                        @elseif (! $meta['installed'])
+                        @elseif (! $meta['installed'] && empty($meta['update_available']))
                             <span class="v-tag">Not installed</span>
+                        @endif
+                        @if (! empty($meta['update_available']))
+                            <span class="v-badge v-badge--warn">Update available</span>
                         @endif
                     </div>
 
+                    @if (! empty($meta['update_available']))
+                        <p class="v-theme__note">
+                            Version {{ $meta['version'] ?? '' }} is on disk; version {{ $meta['installed_version'] }} is installed.
+                            @if ($meta['installed'])
+                                The storefront keeps running the installed theme until you update.
+                            @else
+                                The new files do not keep the theme contract, so the storefront shows a plain page. Update to see what is missing.
+                            @endif
+                        </p>
+                    @endif
+
                     <dl class="v-theme__facts">
                         <div><dt>Folder</dt><dd>resources/themes/{{ $slug }}</dd></div>
-                        <div><dt>Version</dt><dd>{{ $meta['version'] ?? '1.0.0' }}</dd></div>
+                        <div><dt>Version</dt><dd>{{ ! empty($meta['update_available']) ? $meta['installed_version'] : ($meta['version'] ?? '1.0.0') }}</dd></div>
                         <div><dt>Colours</dt><dd>{{ count($meta['colors'] ?? []) }}</dd></div>
                         <div><dt>Regions</dt><dd>{{ count($meta['regions'] ?? []) }}</dd></div>
                     </dl>
                 </div>
 
                 <div class="v-theme__acts">
-                    @if (! $meta['installed'])
+                    @if (! empty($meta['update_available']))
+                        <form method="POST" action="{{ route('admin.theme.package.install') }}">
+                            @csrf
+                            <input type="hidden" name="theme" value="{{ $slug }}">
+                            <button type="submit" class="v-btn v-btn--primary v-btn--sm">Update</button>
+                        </form>
+                    @endif
+                    @if (! $meta['installed'] && ! empty($meta['update_available']))
+                        {{-- Nothing else to offer until the update runs. --}}
+                    @elseif (! $meta['installed'])
                         <form method="POST" action="{{ route('admin.theme.package.install') }}">
                             @csrf
                             <input type="hidden" name="theme" value="{{ $slug }}">

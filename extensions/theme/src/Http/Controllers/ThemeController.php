@@ -384,8 +384,10 @@ class ThemeController extends Controller
     }
 
     /**
-     * Install a theme package found on disk. The kernel checks the contract
-     * and refuses a package that would not draw every page.
+     * Install a theme package found on disk, or update one whose files are
+     * newer than its installed version. The kernel checks the contract,
+     * refuses a package that would not draw every page, and runs the
+     * theme's migrations.
      */
     public function install(Request $request, ThemeService $theme, \App\Services\ExtensionManager $extensions)
     {
@@ -396,15 +398,25 @@ class ThemeController extends Controller
             return back()->with('error', 'That theme is not on disk.');
         }
 
+        $updating = ! empty($meta['update_available']);
+
         try {
             $extensions->install(ThemeService::registryName($slug));
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            // A failed migration may carry driver and schema details that do
+            // not belong on an admin screen.
+            \Illuminate\Support\Facades\Log::error("Theme {$slug}: " . ($updating ? 'update' : 'install') . ' failed', ['exception' => $e]);
+
+            return back()->with('error', ($updating ? 'Updating ' : 'Installing ') . $meta['name'] . ' failed. Check the application log for details.');
         }
 
         $theme->clearCache();
 
-        return back()->with('success', $meta['name'] . ' is installed.');
+        return back()->with('success', $updating
+            ? $meta['name'] . ' is updated to version ' . ($meta['version'] ?? '') . '.'
+            : $meta['name'] . ' is installed.');
     }
 
     /**

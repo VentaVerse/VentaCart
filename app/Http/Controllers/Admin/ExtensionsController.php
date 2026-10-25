@@ -151,7 +151,10 @@ class ExtensionsController extends Controller
             return back()->with('error', ucfirst($action) . ' failed. Check the application log for details.');
         }
 
-        $message = "{$manifest['title']} {$verbPast}.";
+        // Install over a pending update is the update.
+        $message = $state === 'needs_migration' && $action === 'install'
+            ? "{$manifest['title']} updated to version {$manifest['version']}."
+            : "{$manifest['title']} {$verbPast}.";
 
         if ($wasCacheStale) {
             $message .= ' The compiled route cache was stale and has been automatically cleared, so its routes are live immediately.';
