@@ -21,6 +21,16 @@ function getThemeEntries() {
                 const entry = `resources/themes/${theme}/${rel}`;
                 if (fs.existsSync(path.resolve(__dirname, entry))) entries.push(entry);
             }
+
+            // Page stylesheets: CSS that only some pages need (checkout, the
+            // account pages) stays out of the bundle every page loads. Each
+            // css/pages/*.css is its own entry, pulled in by the page's view.
+            const pagesDir = path.join(themeDir, 'css/pages');
+            if (fs.existsSync(pagesDir) && fs.statSync(pagesDir).isDirectory()) {
+                for (const file of fs.readdirSync(pagesDir)) {
+                    if (file.endsWith('.css')) entries.push(`resources/themes/${theme}/css/pages/${file}`);
+                }
+            }
         }
     }
 

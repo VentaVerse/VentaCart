@@ -207,6 +207,16 @@ Every widget in the catalogue (section 5) needs its view.
 
 Pages start with `<x-store-layout :title="…">` and yield their content inside it.
 
+### 4.2 Stylesheets
+
+`css/theme.css` and `js/theme.js` are the theme's bundles, loaded on every page. CSS that only some pages need may live in `css/pages/*.css`; each file is its own build entry, and the page's view loads it, so the shared bundle stays small:
+
+```blade
+@push('head')
+    @vite('resources/themes/{slug}/css/pages/checkout.css')
+@endpush
+```
+
 ## 5. Widgets
 
 Core keeps the catalogue (`App\Support\Widgets`, registered by `App\Storefront\Widgets\CoreWidgets` and by extensions). A widget is a key, a title, a schema for its settings, and a view name; the theme supplies the view under `views/widgets/{module}/{key}.blade.php`, receiving `$config` (the placement's settings, resolved against the schema) and `$placement`.
