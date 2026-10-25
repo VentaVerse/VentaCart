@@ -97,8 +97,11 @@
                             $vColVars[] = $vVar . ': ' . (int) $vResp[$vDevice][$vCol];
                         }
                     }
+                    // Once any column on a device moves, every column states
+                    // its place, or an unmoved one would sort to the front.
                     foreach (['tablet_order' => '--col-tablet-order', 'phone_order' => '--col-phone-order'] as $vKey => $vVar) {
-                        if ($vResp[$vKey][$vCol] !== $vCol + 1) {
+                        $vMoved = array_filter($vResp[$vKey], fn ($o, $i) => $o !== $i + 1, ARRAY_FILTER_USE_BOTH) !== [];
+                        if ($vMoved) {
                             $vColVars[] = $vVar . ': ' . (int) $vResp[$vKey][$vCol];
                         }
                     }

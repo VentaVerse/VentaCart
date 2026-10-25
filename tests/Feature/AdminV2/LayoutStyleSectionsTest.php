@@ -194,6 +194,23 @@ class LayoutStyleSectionsTest extends TestCase
         $this->assertStringContainsString('Titled Brands', $html);
     }
 
+    public function test_an_unmoved_column_keeps_its_place_once_another_column_moves(): void
+    {
+        $row = $this->row([
+            'columns' => [3, 3, 2],
+            'responsive' => ['phone_order' => [2, 1, 3]],
+        ]);
+        $this->place($row, 'Ordered Brands');
+
+        $html = $this->get('/')->assertOk()->getContent();
+
+        // The third column stays third. Without an order of its own it would
+        // sort as 0 and jump ahead of the two that swapped.
+        $this->assertStringContainsString('class="layout-col layout-col--3" style="--col-phone-order: 2"', $html);
+        $this->assertStringContainsString('class="layout-col layout-col--3" style="--col-phone-order: 1"', $html);
+        $this->assertStringContainsString('class="layout-col layout-col--2" style="--col-phone-order: 3"', $html);
+    }
+
     public function test_a_one_column_row_with_only_a_column_style_still_gets_its_grid(): void
     {
         $row = $this->row(['style' => ['column_styles' => [['shadow' => 'md']]]]);
