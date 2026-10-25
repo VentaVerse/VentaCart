@@ -523,6 +523,10 @@
                 <div class="product-description">
                     {!! $product->description !!}
                 </div>
+                @if (! empty($attributeGroups))
+                    <h2 class="product-attributes__title">Specifications</h2>
+                    @include('product.partials.attributes')
+                @endif
                 {{-- Reviews belong to the reviews extension. ProductController
                      already gates the QUERY on the same helper; without this the
                      markup still rendered "Reviews (0)" over an empty panel on a
@@ -541,6 +545,11 @@
                     <button @click="tab = 'description'" :class="tab === 'description' ? 'active' : ''" class="product-tab-btn">
                         DESCRIPTION
                     </button>
+                    @if (! empty($attributeGroups))
+                        <button @click="tab = 'specifications'" :class="tab === 'specifications' ? 'active' : ''" class="product-tab-btn">
+                            SPECIFICATIONS
+                        </button>
+                    @endif
                     @if (\App\Support\Reviews::enabled() && \App\Support\PageSetting::on('show_reviews'))
                         <button @click="tab = 'reviews'" :class="tab === 'reviews' ? 'active' : ''" class="product-tab-btn">
                             REVIEWS ({{ $reviewCount }})
@@ -551,6 +560,11 @@
                     <div x-show="tab === 'description'" class="product-description">
                         {!! $product->description !!}
                     </div>
+                    @if (! empty($attributeGroups))
+                        <div x-show="tab === 'specifications'" x-cloak>
+                            @include('product.partials.attributes')
+                        </div>
+                    @endif
                     @if (\App\Support\Reviews::enabled() && \App\Support\PageSetting::on('show_reviews'))
                         <div x-show="tab === 'reviews'" x-cloak x-data="{ reviewPage: 1, perPage: 20 }">
                             @include('product.partials.reviews')

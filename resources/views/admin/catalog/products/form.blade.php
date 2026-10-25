@@ -2,7 +2,7 @@
     $errorTab = 'general';
     if ($errors->any()) {
         $tabFields = [
-            'general' => ['name', 'slug', 'sku', 'brand_id', 'description', 'date_available', 'price', 'quantity', 'weight', 'is_active', 'track_stock', 'minimum_quantity'],
+            'general' => ['name', 'slug', 'sku', 'brand_id', 'description', 'date_available', 'price', 'quantity', 'weight', 'is_active', 'track_stock', 'minimum_quantity', 'attribute_values'],
             'images' => ['images_json'],
             'pricing' => ['specials'],
             'links' => ['category_ids', 'tag_ids', 'customer_group_ids'],
@@ -216,6 +216,25 @@
                                 <span>Track stock</span>
                             </label>
                         </div>
+                    </x-admin.panel>
+
+                    <x-admin.panel title="Attributes"
+                        note="Facts about the product, listed under their groups on the product page. Leave a value empty to leave it out.">
+                        @if (($attributeGroups ?? collect())->isEmpty())
+                            <p class="v-note">No attributes yet. <a href="{{ route('admin.attributes.create') }}" class="v-link">Create one</a> under Catalog, Attributes.</p>
+                        @else
+                            @foreach ($attributeGroups as $group)
+                                <p class="v-field__label">{{ $group->name }}</p>
+                                <div class="v-grid v-grid--2">
+                                    @foreach ($group->attributes as $attribute)
+                                        <x-admin.field :name="'attribute_values.' . $attribute->id" :label="$attribute->name">
+                                            <input type="text" name="attribute_values[{{ $attribute->id }}]" maxlength="255" class="v-control"
+                                                   value="{{ old('attribute_values.' . $attribute->id, $attributeValues[$attribute->id] ?? '') }}">
+                                        </x-admin.field>
+                                    @endforeach
+                                </div>
+                            @endforeach
+                        @endif
                     </x-admin.panel>
                 </div>
 

@@ -2871,3 +2871,15 @@ a.wbanner:focus-visible { outline: 2px solid var(--color-primary); outline-offse
 
 .whtml { overflow-wrap: anywhere; }
 .whtml img, .whtml iframe, .whtml video { max-width: 100%; }
+
+/* ============================================
+ Product attributes: chips on cards, tables on the product page
+ ============================================ */
+.product-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 6px; padding: 0; list-style: none; }
+.product-chips li { font-size: 11px; line-height: 1.4; padding: 1px 6px; border: 1px solid var(--color-border); border-radius: 999px; color: var(--color-text-muted); }
+.product-attributes { display: grid; gap: 1.5rem; }
+.product-attributes__title { font-family: var(--font-heading); font-size: 1.125rem; font-weight: 700; color: var(--color-text-heading); margin: 2.5rem 0 1rem; }
+.product-attributes__table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.product-attributes__table caption { text-align: left; font-weight: 600; color: var(--color-text-heading); padding-bottom: 0.5rem; }
+.product-attributes__table th, .product-attributes__table td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); vertical-align: top; }
+.product-attributes__table th { width: 35%; font-weight: 500; color: var(--color-text-muted); }

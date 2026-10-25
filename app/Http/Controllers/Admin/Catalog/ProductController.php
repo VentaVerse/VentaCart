@@ -107,6 +107,8 @@ class ProductController extends Controller
 
         return view('admin.catalog.products.form', [
             'product' => null,
+            'attributeGroups' => \App\Models\AttributeGroup::with('attributes')->orderBy('sort_order')->orderBy('name')->get(),
+            'attributeValues' => [],
             'categories' => $categories,
             'customerGroups' => $customerGroups,
             'tags' => $tags,
@@ -172,6 +174,7 @@ class ProductController extends Controller
             $this->syncQuantityFromVariants($product);
             $this->syncSpecials($product, $request);
             $this->syncImagesFromJson($product, $request);
+            $this->syncAttributes($product, $request);
         });
 
         return redirect()->route('admin.products.edit', $product)
@@ -258,7 +261,10 @@ class ProductController extends Controller
 
         $pimToken = (string) Str::uuid();
 
-        return view('admin.catalog.products.form', compact('product', 'categories', 'customerGroups', 'tags', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken'));
+        $attributeGroups = \App\Models\AttributeGroup::with('attributes')->orderBy('sort_order')->orderBy('name')->get();
+        $attributeValues = $product->productAttributes()->pluck('value', 'attribute_id')->all();
+
+        return view('admin.catalog.products.form', compact('product', 'categories', 'customerGroups', 'tags', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken', 'attributeGroups', 'attributeValues'));
     }
 
     public function update(Request $request, Product $product)
@@ -295,6 +301,7 @@ class ProductController extends Controller
             $this->syncQuantityFromVariants($product);
             $this->syncSpecials($product, $request);
             $this->syncImagesFromJson($product, $request);
+            $this->syncAttributes($product, $request);
         });
 
         return redirect()->route('admin.products.edit', $product)
@@ -327,6 +334,28 @@ class ProductController extends Controller
             ->with('success', 'Product deleted successfully.');
     }
 
+    /**
+     * One value per attribute, from the Attributes panel. A value left empty
+     * removes it; a form without the panel leaves the values alone.
+     */
+    protected function syncAttributes(Product $product, Request $request): void
+    {
+        if (! $request->has('attribute_values')) {
+            return;
+        }
+        foreach ((array) $request->input('attribute_values', []) as $attributeId => $value) {
+            $value = trim((string) $value);
+            if ($value === '') {
+                $product->productAttributes()->where('attribute_id', (int) $attributeId)->delete();
+            } else {
+                \App\Models\ProductAttribute::updateOrCreate(
+                    ['product_id' => $product->id, 'attribute_id' => (int) $attributeId],
+                    ['value' => mb_substr($value, 0, 255)]
+                );
+            }
+        }
+    }
+
     protected function validateProduct(Request $request, ?int $productId = null): array
     {
         $storeId = $request->input('store_id');
@@ -357,6 +386,13 @@ class ProductController extends Controller
             'images_json' => ['nullable', 'string'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['exists:categories,id'],
+            'attribute_values' => ['nullable', 'array', function ($attribute, $value, $fail) {
+                $ids = array_map('intval', array_keys((array) $value));
+                if ($ids !== [] && \App\Models\Attribute::whereIn('id', $ids)->count() !== count(array_unique($ids))) {
+                    $fail('One of the attributes no longer exists. Reload the page and try again.');
+                }
+            }],
+            'attribute_values.*' => ['nullable', 'string', 'max:255'],
 
             // The variants payload had no rules at all, so a row with a blank
             // SKU was accepted, silently dropped by the writer, and reported

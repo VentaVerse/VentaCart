@@ -104,7 +104,7 @@ class ProductController extends Controller
             $relatedProducts = Product::where('is_active', true)
                 ->where('id', '!=', $product->id)
                 ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds))
-                ->with('images', 'specials')
+                ->with('images', 'specials', \App\Support\ProductAttributes::CARD_RELATION)
                 ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
 
                     ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
@@ -119,7 +119,7 @@ class ProductController extends Controller
             $sameBrandProducts = Product::where('is_active', true)
                 ->where('id', '!=', $product->id)
                 ->where('brand_id', $product->brand_id)
-                ->with('images', 'specials')
+                ->with('images', 'specials', \App\Support\ProductAttributes::CARD_RELATION)
                 ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
 
                     ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
@@ -233,7 +233,10 @@ class ProductController extends Controller
 
         view()->share('canonical', route('product.show', $product->slug));
 
+        $attributeGroups = \App\Support\ProductAttributes::groups($product);
+
         $page = compact(
+            'attributeGroups',
             'product', 'activeSpecial', 'overrideSpecial', 'settings',
             'relatedProducts', 'sameBrandProducts',
             'breadcrumbs', 'belowModules',

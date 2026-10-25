@@ -28,7 +28,7 @@ class CategoryController extends Controller
 
         $query = Product::where('is_active', true)
             ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds))
-            ->with(['images', 'specials', 'brand'])
+            ->with(['images', 'specials', 'brand', \App\Support\ProductAttributes::CARD_RELATION])
             ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
 
                 ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
@@ -66,6 +66,8 @@ class CategoryController extends Controller
             $tags = (array) $request->input('tag');
             $query->whereHas('tags', fn ($q) => $q->whereIn('tags.id', $tags));
         }
+
+        \App\Support\ProductAttributes::applyFilters($query, $request);
 
         // Sorting
         $sort = $request->input('sort', 'date_added');
@@ -105,6 +107,8 @@ class CategoryController extends Controller
             $q->where('is_active', true)->whereHas('categories', fn ($q2) => $q2->whereIn('categories.id', $categoryIds));
         })->orderBy('name')->get();
 
+        $availableAttributes = \App\Support\ProductAttributes::filters(clone $allProducts);
+
         // Subcategories
         $subcategories = $category->children()->where('is_active', true)->orderBy('sort_order')->get();
 
@@ -119,7 +123,7 @@ class CategoryController extends Controller
 
         $data = compact(
             'category', 'products', 'availableBrands', 'priceRange',
-            'availableTags', 'subcategories', 'breadcrumbs', 'sort', 'settings',
+            'availableTags', 'availableAttributes', 'subcategories', 'breadcrumbs', 'sort', 'settings',
             'ogTitle', 'ogDescription'
         );
 

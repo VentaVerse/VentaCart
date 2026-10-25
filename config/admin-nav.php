@@ -47,6 +47,7 @@ return [
             ['key' => 'brands', 'label' => 'Brands', 'route' => 'admin.brands.index', 'icon' => 'brands', 'permission' => null, 'keywords' => ['manufacturers']],
             ['key' => 'media', 'label' => 'Media', 'route' => 'admin.media.index', 'icon' => 'media', 'permission' => null, 'keywords' => ['images', 'files']],
             ['key' => 'tags', 'label' => 'Tags', 'route' => 'admin.tags.index', 'icon' => 'tags', 'permission' => null, 'keywords' => []],
+            ['key' => 'attributes', 'label' => 'Attributes', 'route' => 'admin.attributes.index', 'icon' => 'tags', 'permission' => null, 'keywords' => ['specifications', 'specs', 'filters']],
         ],
     ],
     [

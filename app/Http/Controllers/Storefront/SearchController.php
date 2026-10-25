@@ -47,7 +47,7 @@ class SearchController extends Controller
                 $products->latest();
         }
 
-        $products = $products->with(['images', 'specials', 'brand'])
+        $products = $products->with(['images', 'specials', 'brand', \App\Support\ProductAttributes::CARD_RELATION])
             ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
 
                 ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')

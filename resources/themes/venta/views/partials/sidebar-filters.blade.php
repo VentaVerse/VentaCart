@@ -56,6 +56,21 @@
         </div>
     @endif
 
+    {{-- Attributes the store marked as filterable --}}
+    @foreach (($availableAttributes ?? []) as $vAttr)
+        <div class="border-b border-[var(--color-border)] pb-4">
+            <h3 class="text-sm font-semibold mb-3 font-heading">{{ $vAttr['name'] }}</h3>
+            <div class="space-y-1.5 max-h-48 overflow-y-auto">
+                @foreach ($vAttr['values'] as $vVal)
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" name="attr[{{ $vAttr['slug'] }}][]" value="{{ $vVal['value'] }}" @checked(in_array($vVal['value'], (array) data_get(request('attr'), $vAttr['slug'], []), true)) class="rounded border-[var(--color-input-border)] text-[var(--color-primary)]">
+                        {{ $vVal['value'] }} <span class="text-[var(--color-text-muted)]">({{ $vVal['count'] }})</span>
+                    </label>
+                @endforeach
+            </div>
+        </div>
+    @endforeach
+
     {{-- Tags --}}
     @if (($filterSettings['tags_enabled'] ?? true) && $availableTags->isNotEmpty())
         <div class="border-b border-[var(--color-border)] pb-4">
@@ -77,7 +92,7 @@
         Apply Filters
     </button>
 
-    @if (request()->hasAny(['min_price', 'max_price', 'brand', 'in_stock', 'on_sale', 'tag']))
+    @if (request()->hasAny(['min_price', 'max_price', 'brand', 'in_stock', 'on_sale', 'tag', 'attr']))
         <a href="{{ url()->current() }}{{ request('sort') ? '?sort=' . request('sort') : '' }}" class="block text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] mt-2">
             Clear Filters
         </a>

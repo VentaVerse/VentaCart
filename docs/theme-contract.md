@@ -239,6 +239,14 @@ Views live at `views/widgets/system/{key}.blade.php`. Product pieces read the pa
 
 The price, variants, volume pricing and add to cart pieces change together when a variant or a quantity is chosen. A theme that draws them as separate pieces gives them one shared script scope around the whole `product_main` region, so they keep working in whatever rows and columns the merchant puts them.
 
+## 5.3 Product attributes
+
+Products carry attributes (Catalog > Attributes): named facts in groups, one value per product. Themes read them through `App\Support\ProductAttributes`:
+
+- `ProductAttributes::card($product)`: the attributes marked "show on product cards", in order, as `[['name' => 'Origin', 'value' => 'Sagada'], …]`. Core's listings (category, search, brand, product grids, related products) eager load the `cardAttributes` relation (`ProductAttributes::CARD_RELATION`), so a grid costs no extra query.
+- `$attributeGroups` on the product page (and in `PageContext`): `[['name' => 'Farm', 'attributes' => [['name' => 'Origin', 'value' => 'Sagada'], …]], …]`.
+- `$availableAttributes` on category pages: the filterable attributes among the category's products, `[['slug' => 'origin', 'name' => 'Origin', 'values' => [['value' => 'Sagada', 'count' => 3], …]], …]`. A filter form sends `attr[{slug}][]={value}`; values of one attribute widen the match, different attributes narrow it.
+
 ## 6. Menus
 
 The main menu is composed in Layout > Menus (`nav_menus`, nested `nav_menu_items` with ten item kinds and mega menu options). The theme draws it from `$navTree` (`App\Support\NavTree::for('main')`), a list of resolved nodes with `label`, `url`, `children`, `accent`, `mega`, `banner`, `html`. Other menus are placed with the `nav.menu` widget.

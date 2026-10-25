@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\Catalog\MediaLibraryController;
 use App\Http\Controllers\Admin\Catalog\ProductController;
 use App\Http\Controllers\Admin\Catalog\ProductImageController;
 use App\Http\Controllers\Admin\Catalog\TagController;
+use App\Http\Controllers\Admin\Catalog\AttributeController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('catalog')->group(function () {
@@ -44,4 +45,5 @@ Route::prefix('catalog')->group(function () {
 
     // Tags
     Route::resource('tags', TagController::class)->except(['show']);
+    Route::resource('attributes', AttributeController::class)->except(['show']);
 });

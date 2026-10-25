@@ -110,6 +110,20 @@ class Product extends Model
         return $this->belongsToMany(CustomerGroup::class, 'customer_group_product');
     }
 
+    /** This product's attribute values (origin, weight ...), one per attribute. */
+    public function productAttributes(): HasMany
+    {
+        return $this->hasMany(ProductAttribute::class);
+    }
+
+    /** The values of attributes marked to show on product cards, with their attribute. */
+    public function cardAttributes(): HasMany
+    {
+        return $this->hasMany(ProductAttribute::class)
+            ->whereHas('attribute', fn ($q) => $q->where('show_on_card', true))
+            ->with('attribute');
+    }
+
     public function images(): HasMany
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');

@@ -99,6 +99,14 @@
             <a href="{{ route('product.show', $product->slug) }}">{{ $product->name }}</a>
         </div>
 
+        @if ($vChips = \App\Support\ProductAttributes::card($product))
+            <ul class="product-chips">
+                @foreach ($vChips as $vChip)
+                    <li title="{{ $vChip['name'] }}">{{ $vChip['value'] }}</li>
+                @endforeach
+            </ul>
+        @endif
+
         @if (($product->reviews_count ?? 0) > 0)
             <div class="product-rating">
                 @php $avg = round($product->reviews_avg_rating ?? 0, 1); @endphp

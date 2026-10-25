@@ -598,7 +598,7 @@ class CoreWidgets
             return collect();
         }
 
-        return Product::where('is_active', true)->whereIn('id', $ids)->with(['images', 'specials'])->get()
+        return Product::where('is_active', true)->whereIn('id', $ids)->with(['images', 'specials', \App\Support\ProductAttributes::CARD_RELATION])->get()
             ->sortBy(fn ($p) => $ids->search($p->id))->values();
     }
 
@@ -634,7 +634,7 @@ class CoreWidgets
         $limit = max(1, min(48, (int) ($config['limit'] ?? 12)));
         $filter = $config['filter'] ?? 'new';
 
-        $query = Product::where('is_active', true)->with(['images', 'specials']);
+        $query = Product::where('is_active', true)->with(['images', 'specials', \App\Support\ProductAttributes::CARD_RELATION]);
 
         // A category or brand is named by its slug, so a layout or preset
         // carries over between stores that use the same names. One that no
