@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\LayoutPlacement;
 use App\Models\LayoutRow;
 use App\Models\Product;
+use App\Services\ThemeService;
 use App\Support\RowStyle;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,14 @@ class DemoLayoutSeeder extends Seeder
     {
         $theme = (string) (DB::table('settings')
             ->where('group', 'identity')->where('key', 'active_theme')->value('value') ?: 'venta');
+
+        // Core's layout tables hold the layout of themes that keep it in core.
+        // A theme with storage of its own arranges its pages in its own tables.
+        if (app(ThemeService::class)->keepsOwnStorage($theme)) {
+            $this->command?->info("The live theme ({$theme}) keeps its layout in its own storage, layout skipped.");
+
+            return;
+        }
 
         // Only ever into an empty page. A merchant who has arranged their own
         // home page, or emptied it on purpose, is left alone.

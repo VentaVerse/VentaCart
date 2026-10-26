@@ -3,11 +3,15 @@
 namespace Tests\Feature\AdminV2;
 
 use App\Models\LayoutPlacement;
+use App\Models\LayoutColumns;
 use App\Models\LayoutRow;
+use App\Models\Product;
 use App\Models\Setting;
 use App\Services\ExtensionManager;
 use App\Services\ThemeService;
+use Database\Seeders\DemoLayoutSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Tests\Support\UsesSampleTheme;
 use Tests\TestCase;
 
@@ -99,5 +103,78 @@ class ThemeOwnStorageTest extends TestCase
         $themes->activateTheme(ThemeService::THEME);
         $this->assertSame('#123456', Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
         $this->assertSame('#0a0b0c', Setting::where('group', 'colors__theme_'.$this->sampleTheme)->where('key', 'primary')->value('value'));
+    }
+    /** @return array<string, string> core's settings and layout tables, as JSON */
+    private function coreSnapshot(): array
+    {
+        return [
+            'settings' => json_encode($this->settingsSnapshot()),
+            'rows' => LayoutRow::query()->orderBy('id')->get()->toJson(),
+            'placements' => LayoutPlacement::query()->orderBy('id')->get()->toJson(),
+            'columns' => LayoutColumns::query()->orderBy('id')->get()->toJson(),
+        ];
+    }
+
+    private function product(): void
+    {
+        Product::create(['store_id' => 1, 'name' => 'Demo Lamp', 'slug' => 'demo-lamp', 'sku' => 'DEMO-001', 'price' => 1500, 'quantity' => 5, 'is_active' => true]);
+    }
+
+    public function test_the_demo_layout_seeder_builds_nothing_while_a_self_storing_theme_is_live(): void
+    {
+        $this->product();
+        $this->installSampleTheme(activate: true, manifest: ['storage' => 'own']);
+        $before = $this->coreSnapshot();
+
+        $this->seed(DemoLayoutSeeder::class);
+
+        $this->assertSame($before, $this->coreSnapshot(), 'No home page is built into core for a theme that keeps its own.');
+        $this->assertFalse(LayoutRow::where('theme', $this->sampleTheme)->exists());
+        $this->assertFalse(LayoutPlacement::where('theme', $this->sampleTheme)->exists());
+    }
+
+    public function test_the_demo_layout_seeder_still_builds_for_a_theme_whose_layout_lives_in_core(): void
+    {
+        $this->product();
+        $this->installSampleTheme(activate: true);
+
+        $this->seed(DemoLayoutSeeder::class);
+
+        $this->assertGreaterThan(0, LayoutRow::where('theme', $this->sampleTheme)->where('page_type', 'home')->count());
+        $this->assertGreaterThan(0, LayoutPlacement::where('theme', $this->sampleTheme)->where('page_type', 'home')->count());
+    }
+
+    public function test_applying_a_preset_while_a_self_storing_theme_is_live_writes_no_core_look_or_layout(): void
+    {
+        $this->liveStore();
+        $this->installSampleTheme(activate: true, manifest: ['storage' => 'own']);
+        $dir = storage_path('app/themes/'.$this->sampleTheme.'/presets');
+        File::ensureDirectoryExists($dir);
+        file_put_contents($dir.'/demo-look.json', json_encode([
+            'name' => 'Demo look',
+            'colors' => ['primary' => '#0a0b0c'],
+            'fonts' => ['heading' => 'Demo Face'],
+            'options' => ['sticky_header' => true],
+            'layouts' => ['home' => ['content_top' => [['columns' => [8], 'placements' => [['column' => 0, 'widget' => 'content.text', 'config' => ['content' => 'Demo row']]]]]]],
+        ]));
+        $this->beforeApplicationDestroyed(fn () => File::deleteDirectory(storage_path('app/themes/'.$this->sampleTheme)));
+
+        // The theme's own installer is still handed the preset, for its own tables.
+        $installers = new \ReflectionProperty(ThemeService::class, 'presetContentInstallers');
+        $kept = $installers->getValue();
+        $this->beforeApplicationDestroyed(fn () => $installers->setValue(null, $kept));
+        $received = [];
+        ThemeService::onPresetContent(function (array $preset) use (&$received) {
+            $received[] = $preset['slug'] ?? null;
+        });
+
+        $themes = app(ThemeService::class);
+        $before = $this->coreSnapshot();
+
+        $themes->applyPreset('demo-look');
+        $themes->applyPresetContent($themes->getInstalledPresets()['demo-look']);
+
+        $this->assertSame($before, $this->coreSnapshot(), "Core's settings and layout rows are exactly as they were.");
+        $this->assertSame(['demo-look', 'demo-look'], $received);
     }
 }

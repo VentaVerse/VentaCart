@@ -582,6 +582,17 @@ class ThemeService
         }
 
         $theme = $this->getActiveTheme();
+
+        // A theme with storage of its own keeps its looks and layouts in its
+        // own tables, so core writes none of its settings or layout rows. It
+        // only hands the preset to what the theme registered for its content.
+        if ($this->keepsOwnStorage($theme)) {
+            $this->runPresetContentInstallers($presets[$slug]);
+            $this->clearCache();
+
+            return;
+        }
+
         $themeJson = json_decode((string) file_get_contents($this->getThemePath($theme) . '/theme.json'), true) ?: [];
         $old = $this->getActivePreset();
 
@@ -709,9 +720,7 @@ class ThemeService
 
     public function applyPresetContent(array $preset, string $slug = ''): void
     {
-        foreach (self::$presetContentInstallers as $installer) {
-            $installer($preset);
-        }
+        $this->runPresetContentInstallers($preset);
 
         // The products and posts the arrangement is there to show. This is the
         // only part of a template that can decline to install itself: it never
@@ -753,7 +762,9 @@ class ThemeService
             }
         }
 
-        foreach ((array) ($preset['layouts'] ?? []) as $pageType => $regions) {
+        // Core's layout rows belong to themes that keep their layout in core.
+        $layouts = $this->keepsOwnStorage($this->getActiveTheme()) ? [] : (array) ($preset['layouts'] ?? []);
+        foreach ($layouts as $pageType => $regions) {
             if ($pageType !== \App\Models\LayoutPlacement::EVERYWHERE && ! \App\Support\StorefrontPageType::exists((string) $pageType)) {
                 continue;
             }
@@ -775,6 +786,14 @@ class ThemeService
         }
 
         \App\Support\NavTree::forget();
+    }
+
+    /** Hand a preset to every installer a theme or extension registered for its own content. */
+    private function runPresetContentInstallers(array $preset): void
+    {
+        foreach (self::$presetContentInstallers as $installer) {
+            $installer($preset);
+        }
     }
 
     /**
