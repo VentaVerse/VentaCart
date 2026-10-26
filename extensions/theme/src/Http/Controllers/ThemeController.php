@@ -450,10 +450,6 @@ class ThemeController extends Controller
 
         try {
             $extensions->uninstall(ThemeService::registryName($slug));
-        } catch (\RuntimeException $e) {
-            // A theme's own extensions hold data of their own, so they are
-            // removed on purpose first rather than taken down with the theme.
-            return back()->with('error', $e->getMessage() . ' They are listed under Extensions > All Extensions.');
         } finally {
             $lock->release();
         }

@@ -414,19 +414,13 @@ class ExtensionManager
     {
         $manifest = $this->discovered()->get($name);
 
-        // A theme leaves after its own extensions; a package whose theme
-        // is gone would have no panel, no views and no way back.
+        // A theme's own extensions live in its folder and are part of it, so
+        // they go first, with their data: once the theme's folder is gone
+        // nothing would be left to roll their tables back.
         if (! empty($manifest['theme'])) {
-            $stillInstalled = $this->discovered()
+            $this->discovered()
                 ->filter(fn (array $m) => ($m['for_theme'] ?? null) === $manifest['theme'] && $this->state($m['name']) !== 'not_installed')
-                ->pluck('title')
-                ->all();
-
-            if ($stillInstalled !== []) {
-                throw new \RuntimeException(
-                    ($manifest['title'] ?? $name) . ' still has extensions installed: ' . implode(', ', $stillInstalled) . '. Remove them first.'
-                );
-            }
+                ->each(fn (array $m) => $this->uninstall($m['name']));
         }
 
         if ($manifest) {

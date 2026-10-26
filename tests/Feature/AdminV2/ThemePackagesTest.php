@@ -89,21 +89,34 @@ class ThemePackagesTest extends TestCase
         $this->assertFalse(Extension::where('name', 'theme-sample')->exists());
     }
 
-    public function test_a_theme_with_its_own_extension_installed_is_refused_with_a_message(): void
+    public function test_uninstalling_a_theme_takes_its_own_extensions_and_their_data_with_it(): void
     {
         $this->makeSampleTheme();
-        File::ensureDirectoryExists(resource_path('themes/sample/extensions/notes'));
-        File::put(resource_path('themes/sample/extensions/notes/extension.json'), json_encode(['name' => 'sample-notes', 'title' => 'Sample Notes', 'version' => '1.0.0', 'type' => 'feature']));
+        $ext = resource_path('themes/sample/extensions/notes');
+        File::ensureDirectoryExists($ext.'/database/migrations');
+        File::put($ext.'/extension.json', json_encode(['name' => 'sample-notes', 'title' => 'Sample Notes', 'version' => '1.0.0', 'type' => 'feature']));
+        File::put($ext.'/database/migrations/2026_01_01_000000_create_sample_notes.php', <<<'PHP'
+            <?php
+            use Illuminate\Database\Migrations\Migration;
+            use Illuminate\Database\Schema\Blueprint;
+            use Illuminate\Support\Facades\Schema;
+            return new class extends Migration {
+                public function up(): void { Schema::create('sample_notes', fn (Blueprint $t) => $t->id()); }
+                public function down(): void { Schema::dropIfExists('sample_notes'); }
+            };
+            PHP);
         $this->admin();
 
         $this->post(route('admin.theme.package.install'), ['theme' => 'sample'])->assertSessionHas('success');
         app(ExtensionManager::class)->forgetRegistry();
         app(ExtensionManager::class)->install('sample-notes');
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('sample_notes'));
 
-        $this->post(route('admin.theme.package.uninstall'), ['theme' => 'sample'])
-            ->assertRedirect()
-            ->assertSessionHas('error', fn (string $m) => str_contains($m, 'Sample Notes') && str_contains($m, 'All Extensions'));
-        $this->assertTrue(Extension::where('name', 'theme-sample')->exists(), 'The theme stays until its extensions are removed.');
+        $this->post(route('admin.theme.package.uninstall'), ['theme' => 'sample'])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertFalse(Extension::where('name', 'theme-sample')->exists());
+        $this->assertFalse(Extension::where('name', 'sample-notes')->exists(), 'The theme\'s own extension goes with it.');
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasTable('sample_notes'), 'And so does its data.');
     }
 
     public function test_a_store_without_an_installed_theme_shows_the_plain_page_and_the_admin_still_works(): void
