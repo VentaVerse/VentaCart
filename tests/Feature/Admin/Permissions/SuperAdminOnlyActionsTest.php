@@ -104,6 +104,23 @@ class SuperAdminOnlyActionsTest extends TestCase
         $this->assertSame('<p>Demo</p>', $item->fresh()->config['html']);
     }
 
+    public function test_the_item_editor_shows_custom_html_read_only_to_anyone_else(): void
+    {
+        $item = NavMenuItem::create([
+            'menu_id' => NavMenu::main()->id, 'type' => 'html', 'label' => 'Demo',
+            'config' => ['html' => '<p>Demo</p>'], 'sort_order' => 1, 'is_enabled' => true,
+        ]);
+
+        $this->actingAs($this->everythingButSuperAdmin());
+        $this->get(route('admin.menus.items.edit', $item))->assertOk()
+            ->assertSee('Only a super admin can change custom HTML.')
+            ->assertSee('readonly', false);
+
+        $this->actingAs(User::factory()->create());
+        $this->get(route('admin.menus.items.edit', $item))->assertOk()
+            ->assertDontSee('Only a super admin can change custom HTML.');
+    }
+
     public function test_only_a_super_admin_writes_an_html_block(): void
     {
         $payload = fn (?int $id, string $html) => ['payload' => json_encode([

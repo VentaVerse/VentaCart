@@ -140,6 +140,74 @@ class MenuComposerTest extends TestCase
         $this->assertNull($item->fresh()->parent_id, 'Children of a deleted item move up, they do not vanish.');
     }
 
+    /**
+     * The storefront prints a link item in an href. A javascript: link would
+     * run script for every visitor, which only custom HTML, a super admin
+     * power, may do. Paths, anchors and http(s), mailto and tel addresses stay
+     * accepted.
+     */
+    public function test_a_link_must_be_a_path_or_a_web_address(): void
+    {
+        $add = fn (array $data) => $this->post(route('admin.menus.items.store', $this->main), $data + ['type' => 'custom', 'label' => 'Demo']);
+
+        foreach (['javascript:alert(1)', 'JavaScript:alert(1)', 'data:text/html,hi', '//example.com/x', 'java script:alert(1)'] as $bad) {
+            $add(['url' => $bad])->assertSessionHasErrors('url');
+        }
+        $this->assertSame(0, NavMenuItem::count());
+
+        foreach (['/sale', '#top', 'https://example.com/x', 'mailto:hello@example.com', 'tel:+639170000000', ' /trimmed '] as $good) {
+            $add(['url' => $good])->assertSessionHasNoErrors();
+        }
+        $this->assertSame(6, NavMenuItem::count());
+        $this->assertSame('/trimmed', NavMenuItem::orderByDesc('id')->first()->url);
+
+        $item = NavMenuItem::first();
+        $this->put(route('admin.menus.items.update', $item), ['type' => 'custom', 'label' => 'Demo', 'url' => 'javascript:alert(1)'])
+            ->assertSessionHasErrors('url');
+        $this->assertSame('/sale', $item->fresh()->url);
+
+        $cat = Category::create(['store_id' => 1, 'name' => 'Demo', 'slug' => 'demo', 'is_active' => true]);
+        $add(['type' => 'category', 'category_id' => $cat->id, 'banner_url' => 'javascript:alert(1)'])->assertSessionHasErrors('banner_url');
+        $add(['type' => 'category', 'category_id' => $cat->id, 'banner_url' => '/sale'])->assertSessionHasNoErrors();
+    }
+
+    /**
+     * The header menu is two levels deep. The tree's buttons keep it so, and
+     * the item editor must too: an item with sub-items stays at the top level,
+     * and an item can only go under a top-level one.
+     */
+    public function test_the_item_editor_keeps_the_menu_two_levels_deep(): void
+    {
+        $host = $this->item(['label' => 'Host']);
+        $parent = $this->item(['label' => 'Parent']);
+        $child = $this->item(['label' => 'Child', 'parent_id' => $parent->id]);
+        $loose = $this->item(['label' => 'Loose']);
+
+        $this->get(route('admin.menus.items.edit', $parent))->assertOk()
+            ->assertSee('It has sub-items of its own, so it stays at the top level.');
+
+        $this->put(route('admin.menus.items.update', $parent), ['type' => 'custom', 'label' => 'Parent', 'url' => '/p', 'parent_id' => $host->id])
+            ->assertSessionHasNoErrors();
+        $this->assertNull($parent->fresh()->parent_id, 'An item with sub-items stays at the top level.');
+
+        $this->put(route('admin.menus.items.update', $loose), ['type' => 'custom', 'label' => 'Loose', 'url' => '/l', 'parent_id' => $child->id])
+            ->assertSessionHasNoErrors();
+        $this->assertNull($loose->fresh()->parent_id, 'A sub-item cannot host a third level.');
+
+        $this->put(route('admin.menus.items.update', $loose), ['type' => 'custom', 'label' => 'Loose', 'url' => '/l', 'parent_id' => $host->id]);
+        $this->assertSame($host->id, $loose->fresh()->parent_id);
+    }
+
+    /** The page has an empty state, and its styles and script come from the admin bundle. */
+    public function test_an_empty_menu_says_how_to_start(): void
+    {
+        $this->get(route('admin.menus'))->assertOk()
+            ->assertSee('No items in this menu yet')
+            ->assertSee('vMenuTree', false)
+            ->assertDontSee('layout-editor', false)
+            ->assertDontSee('function menuTree', false);
+    }
+
     public function test_the_composer_is_behind_admin_auth(): void
     {
         auth()->logout();

@@ -10,6 +10,7 @@ use App\Models\NavMenuItem;
 use App\Models\Page;
 use App\Services\ThemeService;
 use App\Support\AdminPermissions;
+use App\Support\SafeInput;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -148,7 +149,8 @@ class MenuController extends Controller
             'system' => NavMenuItem::SYSTEM,
             'categories' => $this->categoryChoices(),
             'pages' => Page::where('is_active', true)->orderBy('title')->get(['id', 'title']),
-            'parents' => $item->menu->items()->where('id', '!=', $item->id)->whereNull('parent_id')->get(['id', 'label']),
+            'parents' => $item->menu->items()->where('id', '!=', $item->id)->whereNull('parent_id')->get(['id', 'label', 'type']),
+            'hasChildren' => $item->children()->exists(),
         ]);
     }
 
@@ -173,12 +175,21 @@ class MenuController extends Controller
     /** One set of rules for adding and editing: a type says which fields count. */
     private function validated(Request $request, ?NavMenuItem $item = null): array
     {
+        // A link the storefront prints in an href: a path, an anchor or an
+        // http(s), mailto or tel address. A javascript: link would run script
+        // for every visitor, which only custom HTML (super admin only) may do.
+        $link = function (string $attribute, mixed $value, \Closure $fail) {
+            if (is_string($value) && trim($value) !== '' && ! SafeInput::isLink(trim($value))) {
+                $fail('Enter a path such as /sale, or a full address starting with https://.');
+            }
+        };
+
         $data = $request->validate([
             'type' => ['required', Rule::in(array_keys(NavMenuItem::TYPES))],
             'label' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn () => $request->input('type') !== 'separator')],
             'category_id' => ['nullable', 'integer', Rule::exists('categories', 'id'), Rule::requiredIf(fn () => $request->input('type') === 'category')],
             'page_id' => ['nullable', 'integer', Rule::exists('pages', 'id'), Rule::requiredIf(fn () => $request->input('type') === 'page')],
-            'url' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn () => $request->input('type') === 'custom')],
+            'url' => ['nullable', 'string', 'max:255', Rule::requiredIf(fn () => $request->input('type') === 'custom'), $link],
             'system_page' => ['nullable', Rule::in(array_keys(NavMenuItem::SYSTEM)), Rule::requiredIf(fn () => $request->input('type') === 'system')],
             'html' => ['nullable', 'string', 'max:20000'],
             'dropdown' => ['nullable', Rule::in(['subcategories', 'none'])],
@@ -186,7 +197,7 @@ class MenuController extends Controller
             'mega' => ['nullable', Rule::in(['yes', 'no'])],
             'brands' => ['nullable', Rule::in(['yes', 'no'])],
             'banner' => ['nullable', 'string', 'max:500'],
-            'banner_url' => ['nullable', 'string', 'max:500'],
+            'banner_url' => ['nullable', 'string', 'max:500', $link],
             'accent' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'new_tab' => ['nullable', 'boolean'],
             'is_enabled' => ['nullable', 'boolean'],
@@ -227,13 +238,18 @@ class MenuController extends Controller
         if ($parent && $item && ! $item->menu->items()->where('id', $parent)->exists()) {
             $parent = null;
         }
+        // The header menu is two levels deep: an item with sub-items of its
+        // own stays at the top level, and only a top-level item can host one.
+        if ($parent && $item && ($item->children()->exists() || NavMenuItem::whereKey($parent)->whereNotNull('parent_id')->exists())) {
+            $parent = null;
+        }
 
         return [
             'type' => $type,
             'label' => $type === 'separator' ? '' : (string) $data['label'],
             'category_id' => $type === 'category' ? (int) $data['category_id'] : null,
             'page_id' => $type === 'page' ? (int) $data['page_id'] : null,
-            'url' => $type === 'custom' ? (string) $data['url'] : null,
+            'url' => $type === 'custom' ? trim((string) $data['url']) : null,
             'config' => $config,
             'new_tab' => (bool) ($data['new_tab'] ?? false),
             'is_enabled' => $item ? (bool) ($data['is_enabled'] ?? true) : true,

@@ -1136,33 +1136,3 @@
 .v-lay__rowsacts button:disabled { opacity: .35; cursor: default; }
 .v-lay__field textarea { width: 100%; }
 .v-lay__field textarea.v-lay__code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
-
-/* ---- the menu composer --------------------------------------------------- */
-
-.v-menus { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 900px) { .v-menus { grid-template-columns: 1fr; } }
-.v-menus__rail { display: grid; gap: 2px; background: var(--v-sheet); border: 1px solid var(--v-line); border-radius: 8px; padding: 10px; }
-.v-menus__rail a { display: grid; gap: 1px; padding: 6px 8px; border-radius: 6px; color: var(--v-ink); text-decoration: none; font-size: 13px; }
-.v-menus__rail a .mono { font-size: 11px; color: var(--v-ink-3); }
-.v-menus__rail a:hover { background: var(--v-paper); }
-.v-menus__rail a.is-on { background: var(--v-act-wash); color: var(--v-act-ink); }
-.v-menus__new { display: grid; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--v-line); }
-.v-menus__body { display: grid; gap: 16px; }
-
-.v-tree { display: grid; gap: 4px; }
-.v-tree__row {
-    display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--v-line); border-radius: 6px; background: var(--v-sheet);
-    margin-left: calc(var(--depth, 0) * 28px);
-}
-.v-tree__row.is-child { border-style: dashed; }
-.v-tree__row.is-off { opacity: 0.55; }
-.v-tree__row:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
-.v-tree__grip { color: var(--v-ink-3); cursor: grab; }
-.v-tree__body { display: grid; gap: 2px; min-width: 0; flex: 1; }
-.v-tree__name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.v-tree__where { font-size: 11px; color: var(--v-ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.v-tree__accent { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
-.v-tree__acts { display: inline-flex; gap: 2px; align-items: center; }
-.v-tree__acts button:not(.v-row__x) { min-width: 26px; height: 26px; border: 1px solid var(--v-line); background: transparent; border-radius: 4px; color: var(--v-ink-3); cursor: pointer; }
-.v-tree__acts button:not(.v-row__x):hover:not(:disabled) { color: var(--v-ink); background: var(--v-paper); }
-.v-tree__acts button:disabled { opacity: 0.35; cursor: default; }

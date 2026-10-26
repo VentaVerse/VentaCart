@@ -3,10 +3,14 @@
 // bundle (admin/admin.js) is the one host, registering these on the one
 // Alpine that app.js boots. No page loads a second Alpine.
 import { registerMediaPicker } from './media-picker.js';
+import { registerMenuTree } from './menu-tree.js';
 
 export function registerV(Alpine) {
     // The one image browser, replacing five hand-rolled copies.
     registerMediaPicker(Alpine);
+
+    // Content > Menus: the arrangeable tree and the item fields.
+    registerMenuTree(Alpine);
 
     // ------------------------------------------------------------------
     // The save doctrine. One page is one save scope: a vForm snapshots
