@@ -89,6 +89,23 @@ class ThemePackagesTest extends TestCase
         $this->assertFalse(Extension::where('name', 'theme-sample')->exists());
     }
 
+    public function test_a_theme_with_its_own_extension_installed_is_refused_with_a_message(): void
+    {
+        $this->makeSampleTheme();
+        File::ensureDirectoryExists(resource_path('themes/sample/extensions/notes'));
+        File::put(resource_path('themes/sample/extensions/notes/extension.json'), json_encode(['name' => 'sample-notes', 'title' => 'Sample Notes', 'version' => '1.0.0', 'type' => 'feature']));
+        $this->admin();
+
+        $this->post(route('admin.theme.package.install'), ['theme' => 'sample'])->assertSessionHas('success');
+        app(ExtensionManager::class)->forgetRegistry();
+        app(ExtensionManager::class)->install('sample-notes');
+
+        $this->post(route('admin.theme.package.uninstall'), ['theme' => 'sample'])
+            ->assertRedirect()
+            ->assertSessionHas('error', fn (string $m) => str_contains($m, 'Sample Notes') && str_contains($m, 'All Extensions'));
+        $this->assertTrue(Extension::where('name', 'theme-sample')->exists(), 'The theme stays until its extensions are removed.');
+    }
+
     public function test_a_store_without_an_installed_theme_shows_the_plain_page_and_the_admin_still_works(): void
     {
         $this->admin();
