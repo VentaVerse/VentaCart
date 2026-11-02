@@ -16,13 +16,48 @@ use App\Services\ThemeService;
  * the whole theme: a merchant sees a control for some colours and hardcoded
  * results for others, with nothing on screen to say which is which.
  * ThemeTokenCoverageTest enforces both directions.
+ *
+ * Each colour also has exactly one control. Two controls for one key post
+ * the same field, so editing one silently changes the other. The core map
+ * lists every key once, and all() keeps it that way when a theme adds
+ * groups of its own.
  */
 class ColorGroups
 {
-    /** @return array<string, array<string, string>> group label => [token => control label] */
-    public static function all(): array
+    /**
+     * Core's groups with the theme's laid over them, each colour exactly once.
+     *
+     * A theme's group is the more specific home for a colour, so a key the
+     * theme places is taken out of whichever core group listed it. A theme
+     * group named like a core group joins it, the theme's controls first.
+     * Within the result a key keeps its first place; a group left with no
+     * controls is dropped.
+     *
+     * @return array<string, array<string, string>> group label => [token => control label]
+     */
+    public static function all(?string $theme = null): array
     {
-        return array_merge(self::core(), self::themeGroups());
+        $themeGroups = self::themeGroups($theme);
+        $placed = [];
+        foreach ($themeGroups as $tokens) {
+            $placed += $tokens;
+        }
+
+        $groups = [];
+        foreach (self::core() as $label => $tokens) {
+            $groups[$label] = array_diff_key($tokens, $placed);
+        }
+        foreach ($themeGroups as $label => $tokens) {
+            $groups[$label] = $tokens + ($groups[$label] ?? []);
+        }
+
+        $seen = [];
+        foreach ($groups as $label => $tokens) {
+            $groups[$label] = array_diff_key($tokens, $seen);
+            $seen += $groups[$label];
+        }
+
+        return array_filter($groups, fn (array $tokens) => $tokens !== []);
     }
 
     /**
@@ -69,13 +104,17 @@ class ColorGroups
                 'bg' => 'Page Background',
                 'card_bg' => 'Product Card Background',
                 'border' => 'Lines & Dividers',
-                'input_bg' => 'Form Field Background',
-                'input_border' => 'Form Field Borders',
                 'breadcrumb_bg' => 'Breadcrumb Bar',
-                'dropdown_bg' => 'Dropdown & Popup Background',
                 'sidebar_bg' => 'Sidebar Background',
                 'success' => 'Success / In Stock',
                 'error' => 'Error / Out of Stock',
+            ],
+            'Forms' => [
+                'input_bg' => 'Form Field Background',
+                'input_border' => 'Form Field Borders',
+            ],
+            'Dropdowns' => [
+                'dropdown_bg' => 'Dropdown & Popup Background',
             ],
             'Checkout' => [
                 'checkout_option_bg' => 'Payment & Shipping Cards',
@@ -115,9 +154,9 @@ class ColorGroups
     }
 
     /** Every token the editor exposes, flattened. */
-    public static function tokens(): array
+    public static function tokens(?string $theme = null): array
     {
-        return array_merge(...array_values(array_map('array_keys', self::all())));
+        return array_merge(...array_values(array_map('array_keys', self::all($theme))));
     }
 
     /** Every colour the active theme declares in its theme.json. */
