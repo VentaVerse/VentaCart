@@ -29,7 +29,7 @@
     ];
 @endphp
 <div class="v-laypick" role="radiogroup">
-    @foreach ($options as $option)
+    @foreach (\App\Support\ThemeOptions::choices($options, fn (string $o) => ucfirst(str_replace('-', ' ', $o))) as $option => $optionLabel)
         @php $svg = $d["{$kind}:{$option}"] ?? null; @endphp
         <label class="v-laypick__tile">
             <input type="radio" name="{{ $name }}" value="{{ $option }}" @checked((string) $value === (string) $option)>
@@ -39,7 +39,7 @@
                 @else
                     <span class="v-laypick__art v-laypick__art--blank" aria-hidden="true"></span>
                 @endif
-                <span class="v-laypick__name">{{ ucfirst(str_replace('-', ' ', $option)) }}</span>
+                <span class="v-laypick__name">{{ $optionLabel }}</span>
             </span>
         </label>
     @endforeach

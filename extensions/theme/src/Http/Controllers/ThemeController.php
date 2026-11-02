@@ -7,7 +7,9 @@ use App\Models\Category;
 use App\Models\Currency;
 use App\Models\FooterColumn;
 use App\Models\Setting;
+use App\Http\Middleware\EditTheme;
 use App\Services\ThemeService;
+use App\Support\ThemeOptions;
 use Illuminate\Http\Request;
 
 class ThemeController extends Controller
@@ -16,9 +18,11 @@ class ThemeController extends Controller
     {
         // A theme with an editor of its own is customised there, not here.
         $editSlug = $theme->getActiveTheme();
-        $meta = json_decode((string) @file_get_contents($theme->getThemePath($editSlug) . '/theme.json'), true) ?: [];
-        if (! empty($meta['editor']) && \Illuminate\Support\Facades\Route::has($meta['editor'])) {
-            return redirect()->route($meta['editor']);
+        if ($away = $this->ownStorageAnswer($theme, $editSlug)) {
+            return $away;
+        }
+        if ($editor = $theme->editorRoute($editSlug)) {
+            return redirect()->route($editor);
         }
         $liveSlug = (string) (Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?: ThemeService::THEME);
         $editingNonLive = $editSlug !== $liveSlug;
@@ -63,9 +67,13 @@ class ThemeController extends Controller
 
     public function updateSettings(Request $request)
     {
-        // v doctrine: one save carries every settings tab at once
+        // One save carries every settings tab at once
         // (groups[colors][...], groups[fonts][...], ...). Per-theme
         // snapshots still happen at switch time, unchanged.
+        if ($away = $this->ownStorageAnswer(app(ThemeService::class))) {
+            return $away;
+        }
+
         if (is_array($request->input('groups'))) {
             // The look groups follow the theme being edited: live groups for
             // the live theme, its stash otherwise (EditTheme middleware).
@@ -195,6 +203,10 @@ class ThemeController extends Controller
 
     public function revertThemeColors(ThemeService $themeService)
     {
+        if ($away = $this->ownStorageAnswer($themeService)) {
+            return $away;
+        }
+
         $activeTheme = $themeService->getActiveTheme();
         $themePath = resource_path("themes/{$activeTheme}/theme.json");
 
@@ -236,10 +248,33 @@ class ThemeController extends Controller
     public function updateThemeSettings(Request $request)
     {
         $themeService = app(ThemeService::class);
-        $schema = $themeService->getThemeSettingsSchema();
+        if ($away = $this->ownStorageAnswer($themeService)) {
+            return $away;
+        }
 
-        foreach ($request->input('theme_settings', []) as $key => $value) {
-            if (array_key_exists($key, $schema)) {
+        $schema = $themeService->getThemeSettingsSchema();
+        $input = $request->input('theme_settings', []);
+        if (! is_array($input)) {
+            $input = [];
+        }
+
+        // A select or layout choice must be one the manifest offers. The
+        // form sends the value, never the label, so anything else is refused
+        // before a single option is written.
+        $errors = [];
+        foreach ($input as $key => $value) {
+            $type = $schema[$key]['type'] ?? null;
+            if (in_array($type, ['select', 'layout'], true) && isset($schema[$key]['options'])
+                && ! array_key_exists((string) (is_scalar($value) ? $value : ''), ThemeOptions::choices($schema[$key]['options']))) {
+                $errors["theme_settings.{$key}"] = 'Choose one of the listed options for ' . ($schema[$key]['label'] ?? $key) . '.';
+            }
+        }
+        if ($errors !== []) {
+            return back()->withErrors($errors)->withInput()->with('tab', 'theme_settings');
+        }
+
+        foreach ($input as $key => $value) {
+            if (array_key_exists($key, $schema) && (is_scalar($value) || $value === null)) {
                 $themeService->setThemeSetting($key, $value);
             }
         }
@@ -261,6 +296,10 @@ class ThemeController extends Controller
      */
     public function preview(ThemeService $theme)
     {
+        if ($away = $this->ownStorageAnswer($theme)) {
+            return $away;
+        }
+
         $meta = json_decode((string) @file_get_contents($theme->getThemePath() . '/theme.json'), true) ?: [];
         $defaults = $meta['colors'] ?? [];
 
@@ -296,6 +335,10 @@ class ThemeController extends Controller
      */
     public function savePreview(Request $request, ThemeService $theme)
     {
+        if ($away = $this->ownStorageAnswer($theme)) {
+            return $away;
+        }
+
         $data = json_decode((string) $request->input('payload'), true);
 
         if (! is_array($data)) {
@@ -363,6 +406,18 @@ class ThemeController extends Controller
         }
 
         return $parts === [] ? 'Nothing changed.' : ucfirst(implode(', ', $parts)) . ' saved.';
+    }
+
+    /**
+     * A theme that keeps its settings in storage of its own is edited in its
+     * own panel, never on these pages: the answer that sends the request
+     * there (or 404) for the theme being edited, null for any other theme.
+     */
+    private function ownStorageAnswer(ThemeService $theme, ?string $slug = null): ?\Symfony\Component\HttpFoundation\Response
+    {
+        $slug ??= $theme->getActiveTheme();
+
+        return $theme->keepsOwnStorage($slug) ? EditTheme::sendAway($theme, $slug) : null;
     }
 
     /**

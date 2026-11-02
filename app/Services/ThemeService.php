@@ -446,6 +446,18 @@ class ThemeService
         return is_array($meta) && ($meta['storage'] ?? null) === 'own';
     }
 
+    /**
+     * The route of a theme's own editor (`"editor"` in theme.json), when it
+     * declares one and the route is registered.
+     */
+    public function editorRoute(string $slug): ?string
+    {
+        $meta = json_decode((string) @file_get_contents($this->getThemePath($slug) . '/theme.json'), true);
+        $route = is_array($meta) ? ($meta['editor'] ?? null) : null;
+
+        return is_string($route) && $route !== '' && \Illuminate\Support\Facades\Route::has($route) ? $route : null;
+    }
+
     /** Point the storefront at another installed theme. */
     public function activateTheme(string $slug): void
     {

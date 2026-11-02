@@ -74,6 +74,8 @@
                     @elseif ($slug === $active)
                         @if (! empty($meta['editor']) && \Illuminate\Support\Facades\Route::has($meta['editor']))
                             <a href="{{ route($meta['editor']) }}" class="v-btn v-btn--primary v-btn--sm">Edit</a>
+                        @elseif (($meta['storage'] ?? null) === 'own')
+                            {{-- Its settings live in its own storage, so core's editors have nothing to offer. --}}
                         @else
                             <a href="{{ route('admin.theme.customise') }}" class="v-btn v-btn--primary v-btn--sm">Customise</a>
                             @if (empty($meta['editor']))
@@ -89,6 +91,8 @@
                     @else
                         @if (! empty($meta['editor']) && \Illuminate\Support\Facades\Route::has($meta['editor']))
                             <a href="{{ route($meta['editor']) }}" class="v-btn v-btn--sm">Edit</a>
+                        @elseif (($meta['storage'] ?? null) === 'own')
+                            {{-- Its settings live in its own storage, so core's editors have nothing to offer. --}}
                         @else
                             <a href="{{ route('admin.theme.customise', ['theme' => $slug]) }}" class="v-btn v-btn--sm">Customise</a>
                             <a href="{{ route('admin.layout', ['theme' => $slug]) }}" class="v-btn v-btn--sm">Arrange pages</a>

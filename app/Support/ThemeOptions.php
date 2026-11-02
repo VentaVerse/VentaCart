@@ -57,6 +57,38 @@ final class ThemeOptions
         return self::$resolved = $out;
     }
 
+    /**
+     * The choices of a select or layout option as value => label. A manifest
+     * may list bare values (`["grid", "list"]`) or label them
+     * (`{"grid": "Grid", "list": "List"}`); either way the form sends the
+     * value and shows the label.
+     *
+     * @param  callable(string): string|null  $label  how to label a bare value
+     * @return array<string, string>
+     */
+    public static function choices(mixed $options, ?callable $label = null): array
+    {
+        if (! is_array($options)) {
+            return [];
+        }
+
+        $label ??= fn (string $value) => ucfirst($value);
+        $out = [];
+
+        foreach ($options as $key => $text) {
+            if (! is_scalar($text)) {
+                continue;
+            }
+            if (array_is_list($options)) {
+                $out[(string) $text] = $label((string) $text);
+            } else {
+                $out[(string) $key] = (string) $text;
+            }
+        }
+
+        return $out;
+    }
+
     public static function forget(): void
     {
         self::$resolved = null;

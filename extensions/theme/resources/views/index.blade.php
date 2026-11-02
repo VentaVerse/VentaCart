@@ -9,7 +9,10 @@
             <h1 class="v-head__title">Theme</h1>
                     </div>
         <div class="v-head__actions">
-            <a href="{{ route('admin.theme.preview') }}" class="v-btn v-btn--sm">Live preview</a>
+            {{-- The preview edits the live theme's colors, which a theme with storage of its own keeps in its own panel. --}}
+            @unless (app(\App\Services\ThemeService::class)->keepsOwnStorage(app(\App\Services\ThemeService::class)->getActiveTheme()))
+                <a href="{{ route('admin.theme.preview') }}" class="v-btn v-btn--sm">Live preview</a>
+            @endunless
             <x-admin.extension-switch name="theme" />
         </div>
     </div>
@@ -558,8 +561,8 @@
                                                 :value="$themeSettingValues[$key] ?? ($schema['default'] ?? '')" />
                                         @elseif (($schema['type'] ?? '') === 'select')
                                             <select name="theme_settings[{{ $key }}]" class="v-control">
-                                                @foreach ($schema['options'] ?? [] as $option)
-                                                    <option value="{{ $option }}" @selected(($themeSettingValues[$key] ?? ($schema['default'] ?? '')) == $option)>{{ ucfirst($option) }}</option>
+                                                @foreach (\App\Support\ThemeOptions::choices($schema['options'] ?? []) as $optionValue => $optionLabel)
+                                                    <option value="{{ $optionValue }}" @selected((string) ($themeSettingValues[$key] ?? ($schema['default'] ?? '')) === (string) $optionValue)>{{ $optionLabel }}</option>
                                                 @endforeach
                                             </select>
                                         @elseif (($schema['type'] ?? '') === 'toggle')
