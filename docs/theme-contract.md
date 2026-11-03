@@ -163,6 +163,18 @@ A theme that declares `"storage": "own"` keeps its look and layouts in tables of
 
 `editor` and `storage` are separate: a theme may bring an editor of its own and still keep its data in core. A theme with storage of its own needs an editor of its own, since the core looks and Layout editors write core's tables. Without the key, or with any other value, a theme keeps today's behaviour.
 
+Such a theme hands its rows to core's region renderer through `App\Support\LayoutHooks::units()`, and its pages' side column widths and page settings (the `page_settings` it declares) through `App\Models\LayoutColumns::register()`. Core's `x-storefront.columns` and `PageSetting::on()` then read the theme's answer instead of `layout_columns`:
+
+```php
+LayoutColumns::register('my-theme', fn (?string $pageKey) => [
+    'left' => 2,            // parts of the page's eight; 0 for none
+    'right' => 0,
+    'settings' => ['show_breadcrumbs' => false],
+]);
+```
+
+The resolver gets the page key being drawn (a page type such as `category`, or a more specific key such as `category:12`) and returns null when it has nothing for it. Widths are clamped so the content keeps at least three parts, and a side column is drawn only when its region has something in it.
+
 ## 3. Regions and Layout
 
 Layout is core. The merchant arranges rows of widgets per page type and region; the theme declares which regions it draws and draws them with the `x-storefront.region` component.

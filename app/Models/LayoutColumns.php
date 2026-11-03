@@ -22,6 +22,31 @@ class LayoutColumns extends Model
         'settings' => 'array',
     ];
 
+    /** @var array<string, \Closure(?string): ?array> per theme, what its own storage answers */
+    private static array $resolvers = [];
+
+    /**
+     * Let a theme that keeps its own storage answer for its pages: the side
+     * column widths (in the page grid's parts) and the page settings, as
+     * {left, right, settings}. Core then reads neither from this table for
+     * that theme. The resolver gets the page key being drawn (null for a
+     * page with none) and returns null when it has nothing for it.
+     *
+     * @param  callable(?string): ?array  $resolver
+     */
+    public static function register(string $theme, callable $resolver): void
+    {
+        self::$resolvers[$theme] = \Closure::fromCallable($resolver);
+        \App\Support\PageSetting::flush();
+    }
+
+    /** Forget registered resolvers. For tests. */
+    public static function flushResolvers(): void
+    {
+        self::$resolvers = [];
+        \App\Support\PageSetting::flush();
+    }
+
     /**
      * The widths for one page type, always a complete answer.
      *
@@ -37,6 +62,12 @@ class LayoutColumns extends Model
     public static function forPage(?string $pageType, ?string $theme = null): array
     {
         $theme = $theme ?: app(\App\Services\ThemeService::class)->getActiveTheme();
+
+        if (isset(self::$resolvers[$theme])) {
+            $own = (self::$resolvers[$theme])($pageType) ?? [];
+
+            return self::complete((int) ($own['left'] ?? 0), (int) ($own['right'] ?? 0), is_array($own['settings'] ?? null) ? $own['settings'] : []);
+        }
 
         // A specific page (one category, one level) takes its own columns
         // when it has them, else the nearest key up its chain.
@@ -67,11 +98,19 @@ class LayoutColumns extends Model
         $hasOwn = $row && ($row->left_width > 0 || $row->right_width > 0);
         $widths = $hasOwn ? $row : ($every ?: $row);
 
-        $left = $widths->left_width ?? 0;
-        $right = $widths->right_width ?? 0;
+        // Merged key by key, not row by row: a merchant who hid the footer
+        // everywhere and the breadcrumbs on one page has answered two
+        // different questions and must keep both answers.
+        return self::complete($widths->left_width ?? 0, $widths->right_width ?? 0, array_merge($every->settings ?? [], $row->settings ?? []));
+    }
 
-        // Clamped rather than trusted. A bad row must not be able to render a
-        // page whose content column is zero or negative columns wide.
+    /**
+     * The full answer from two widths and the settings. Widths are clamped
+     * rather than trusted: a bad row must not be able to render a page
+     * whose content column is zero or negative columns wide.
+     */
+    private static function complete(int $left, int $right, array $settings): array
+    {
         $left = max(0, min($left, self::GRID - self::MIN_CONTENT));
         $right = max(0, min($right, self::GRID - self::MIN_CONTENT - $left));
 
@@ -79,10 +118,7 @@ class LayoutColumns extends Model
             'left' => $left,
             'right' => $right,
             'content' => self::GRID - $left - $right,
-            // Merged key by key, not row by row: a merchant who hid the
-            // footer everywhere and the breadcrumbs on one page has answered
-            // two different questions and must keep both answers.
-            'settings' => array_merge($every->settings ?? [], $row->settings ?? []),
+            'settings' => $settings,
         ];
     }
 }
