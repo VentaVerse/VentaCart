@@ -3,23 +3,25 @@
 namespace Extensions\Blog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Extensions\Blog\Http\Requests\BlogIndexRequest;
 use Extensions\Blog\Models\BlogCategory;
 use Extensions\Blog\Models\BlogPost;
 use App\Models\Tag;
 use App\Services\ThemeService;
-use Illuminate\Http\Request;
 
 class StorefrontBlogController extends Controller
 {
-    public function index(Request $request, ThemeService $theme)
+    public function index(BlogIndexRequest $request, ThemeService $theme)
     {
         $settings = $theme->getGroup('blog');
         $perPage = $settings['posts_per_page'] ?? 12;
 
-        $query = BlogPost::where('is_published', true)
-            ->whereNotNull('published_at')
-            ->where('published_at', '<=', now())
-            ->with('category', 'tags');
+        $query = BlogPost::query()->published()->with('category', 'tags');
+
+        $search = $request->search();
+        if ($search !== null) {
+            $query->matching($search);
+        }
 
         if ($request->filled('category')) {
             $query->whereHas('category', fn ($q) => $q->where('slug', $request->input('category')));
@@ -29,7 +31,7 @@ class StorefrontBlogController extends Controller
             $query->whereHas('tags', fn ($q) => $q->where('slug', $request->input('tag')));
         }
 
-        $posts = $query->latest('published_at')->paginate($perPage)->withQueryString();
+        $posts = $query->latest('published_at')->orderByDesc('id')->paginate($perPage)->withQueryString();
 
         $categories = BlogCategory::withCount(['posts' => function ($q) {
             $q->where('is_published', true)->where('published_at', '<=', now());
@@ -43,8 +45,12 @@ class StorefrontBlogController extends Controller
 
         $page = (int) request()->query('page', 1);
         view()->share('canonical', route('blog.index') . ($page > 1 ? '?page=' . $page : ''));
+        // Search results are not pages of their own for search engines.
+        if ($search !== null) {
+            view()->share('robotsMeta', 'noindex, follow');
+        }
 
-        return view('blog.index', compact('posts', 'categories', 'tags', 'view', 'settings'));
+        return view('blog.index', compact('posts', 'categories', 'tags', 'view', 'settings', 'search'));
     }
 
     public function show(BlogPost $post, ThemeService $theme)

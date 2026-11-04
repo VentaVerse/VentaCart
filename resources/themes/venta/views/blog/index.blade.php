@@ -20,7 +20,34 @@
 
             {{-- Main Content --}}
             <div class="flex-1 min-w-0">
-                <h1 class="text-2xl font-semibold mb-6" class="font-heading">Blog</h1>
+                <h1 class="text-2xl font-semibold mb-4" class="font-heading">Blog</h1>
+
+                {{-- Search: the other filters ride along so a search stays inside the chosen category or tag. --}}
+                <form method="GET" action="{{ route('blog.index') }}" role="search" class="mb-6 max-w-xl">
+                    <label for="blog-search" class="block text-sm font-medium mb-1.5">Search the blog</label>
+                    <div class="flex gap-2">
+                        @foreach (['category', 'tag', 'view'] as $keep)
+                            @if (is_string(request()->query($keep)) && request()->query($keep) !== '')
+                                <input type="hidden" name="{{ $keep }}" value="{{ request()->query($keep) }}">
+                            @endif
+                        @endforeach
+                        <input type="search" id="blog-search" name="q" value="{{ old('q', $search) }}"
+                            minlength="{{ \Extensions\Blog\Models\BlogPost::SEARCH_MIN }}" maxlength="{{ \Extensions\Blog\Models\BlogPost::SEARCH_MAX }}"
+                            placeholder="Search posts" autocomplete="off" @error('q') aria-invalid="true" aria-describedby="blog-search-error" @enderror
+                            class="flex-1 min-w-0 min-h-11 px-3 text-sm border border-[var(--color-input-border)] rounded bg-transparent">
+                        <button type="submit" class="min-h-11 px-4 text-sm font-medium rounded bg-[var(--color-primary)] text-[var(--color-btn-text)]">Search</button>
+                    </div>
+                    @error('q')
+                        <p id="blog-search-error" class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </form>
+
+                @if ($search !== null)
+                    <p class="text-sm text-[var(--color-text-muted)] mb-6" role="status">
+                        {{ $posts->total() }} {{ \Illuminate\Support\Str::plural('post', $posts->total()) }} found for &ldquo;{{ $search }}&rdquo;.
+                        <a href="{{ route('blog.index', array_filter(request()->only('category', 'tag', 'view'), 'is_string')) }}" class="underline">Clear search</a>
+                    </p>
+                @endif
 
                 @if ($posts->isNotEmpty())
                     <div class="{{ $view === 'list' ? 'space-y-6' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' }}">
@@ -91,7 +118,7 @@
                     </div>
                 @else
                     <div class="text-center py-12 text-[var(--color-text-muted)]">
-                        <p>No blog posts yet.</p>
+                        <p>{{ $search !== null ? 'No posts match your search.' : 'No blog posts yet.' }}</p>
                     </div>
                 @endif
             </div>
