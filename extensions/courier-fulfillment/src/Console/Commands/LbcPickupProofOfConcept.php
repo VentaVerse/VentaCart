@@ -39,7 +39,7 @@ class LbcPickupProofOfConcept extends Command
         {--width=15 : Width in cm}
         {--height=10 : Height in cm}
         {--declared-value=500 : Declared value, at least 500}
-        {--mode=REGULAR : REGULAR (a rider collects) or "DROP OFF" (the parcel is brought to a branch)}
+        {--mode=REGULAR : REGULAR (a rider collects) or DROPOFF (the parcel is brought to a branch)}
         {--business-days=3 : Preferred date, in business days from today}
         {--preferred-time=10:00:00 : Preferred time on that date, Asia/Manila}
         {--output= : Also write the masked request XML to this file}
@@ -72,7 +72,7 @@ class LbcPickupProofOfConcept extends Command
         }
 
         $mode = strtoupper(trim((string) $this->option('mode')));
-        if ($mode === 'DROPOFF' || $mode === 'DROP-OFF') {
+        if (in_array($mode, ['DROPOFF', 'DROP OFF', 'DROP-OFF'], true)) {
             $mode = LbcPickupRequestBuilder::MODE_DROP_OFF;
         }
 

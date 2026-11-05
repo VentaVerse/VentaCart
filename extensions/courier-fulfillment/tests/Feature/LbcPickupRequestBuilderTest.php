@@ -162,7 +162,7 @@ class LbcPickupRequestBuilderTest extends TestCase
     public function test_pickup_mode_defaults_to_regular_and_can_be_drop_off(): void
     {
         $this->assertSame(['MODE', 'REGULAR'], [$this->build()['AttachmentNameTwo'], $this->build()['ReferenceNoTwo']]);
-        $this->assertSame('DROP OFF', $this->build(['mode' => LbcPickupRequestBuilder::MODE_DROP_OFF])['ReferenceNoTwo']);
+        $this->assertSame('DROPOFF', $this->build(['mode' => LbcPickupRequestBuilder::MODE_DROP_OFF])['ReferenceNoTwo']);
 
         $this->expectException(LbcException::class);
         $this->build(['mode' => 'EXPRESS']);

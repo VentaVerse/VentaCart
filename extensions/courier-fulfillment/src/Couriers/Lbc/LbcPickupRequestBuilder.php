@@ -18,7 +18,7 @@ use Extensions\CourierFulfillment\Support\PhPhone;
  * consignee SMS flag is 1, because LBC refuses 0 there (code 127) although
  * the table calls it optional; the shipper flag is 0. Attachment slot one
  * carries the order number; slot two carries the pickup mode (REGULAR or
- * DROP OFF); the unused slots are "0", as the sample does.
+ * DROPOFF); the unused slots are "0", as the sample does.
  *
  * Dates are Asia/Manila in LBC's MM/DD/YYYY HH:MM:SS form.
  */
@@ -32,7 +32,9 @@ class LbcPickupRequestBuilder
     public const MODE_REGULAR = 'REGULAR';
 
     /** The store brings the parcel to an LBC branch; no rider is sent. */
-    public const MODE_DROP_OFF = 'DROP OFF';
+    // The gateway accepts only DROPOFF, without a space, although the
+    // published field table spells it with one (code 146 otherwise).
+    public const MODE_DROP_OFF = 'DROPOFF';
 
     public const MODES = [self::MODE_REGULAR, self::MODE_DROP_OFF];
 
@@ -64,7 +66,7 @@ class LbcPickupRequestBuilder
         string $mode = self::MODE_REGULAR,
     ): array {
         if (!in_array($mode, self::MODES, true)) {
-            throw new LbcException('The pickup mode must be REGULAR or DROP OFF.');
+            throw new LbcException('The pickup mode must be REGULAR or DROPOFF.');
         }
         if ($origin->areaCode === null || $destination->areaCode === null) {
             throw new LbcException('The LBC area code of the pickup or delivery address is not known.');

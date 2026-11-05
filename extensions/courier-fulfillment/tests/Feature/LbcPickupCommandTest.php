@@ -49,7 +49,7 @@ class LbcPickupCommandTest extends TestCase
         $this->artisan('courier:lbc-poc', ['order' => $order->id, '--mode' => 'DROP OFF', '--output' => $output])
             ->expectsOutputToContain('DRY RUN')
             ->expectsOutputToContain('Tracking number it would use: ' . self::SERIES_FIRST)
-            ->expectsOutputToContain('<ReferenceNoTwo>DROP OFF</ReferenceNoTwo>')
+            ->expectsOutputToContain('<ReferenceNoTwo>DROPOFF</ReferenceNoTwo>')
             ->assertSuccessful();
 
         Http::assertNotSent(fn (Request $request) => self::isPickup($request));
