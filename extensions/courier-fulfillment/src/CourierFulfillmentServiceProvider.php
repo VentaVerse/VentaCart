@@ -8,6 +8,9 @@ use Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment;
 use Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment;
 use App\Support\SettingsNav;
 use Extensions\CourierFulfillment\Console\Commands\ImportPickupAddressFromSettings;
+use Extensions\CourierFulfillment\Console\Commands\LbcPickupProofOfConcept;
+use Extensions\CourierFulfillment\Console\Commands\LbcTrack;
+use Extensions\CourierFulfillment\Console\Commands\LbcWaybill;
 use Extensions\CourierFulfillment\Console\Commands\MigrateLbcKeysToModes;
 use Extensions\CourierFulfillment\Database\Seeders\CourierFulfillmentAutomationSeeder;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -73,6 +76,9 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
             PollCourierStatus::class,
             ImportPickupAddressFromSettings::class,
             MigrateLbcKeysToModes::class,
+            LbcPickupProofOfConcept::class,
+            LbcTrack::class,
+            LbcWaybill::class,
         ]);
 
         // Who may configure this module. Same answer FulfillmentController
