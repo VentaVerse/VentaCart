@@ -33,14 +33,29 @@ class LbcClient
 
     private const TIMEOUT_SECONDS = 30;
 
+    private int $timeout = self::TIMEOUT_SECONDS;
+
     public function __construct(private readonly LbcFulfillment $lbc = new LbcFulfillment())
     {
     }
 
+    /**
+     * The same client with a shorter budget per request, for questions asked
+     * while somebody waits (the booking modal's coverage check). Never used
+     * for the pickup request itself, whose answer decides a tracking number.
+     */
+    public function withTimeout(int $seconds): self
+    {
+        $copy = clone $this;
+        $copy->timeout = max(1, min($seconds, self::TIMEOUT_SECONDS));
+
+        return $copy;
+    }
+
     // --- Common API: address search and serviceability (read-only) ---------
 
-    /** @return array<int, array> LBC's city rows, or [] when the call failed */
-    public function searchCities(string $term, ?int $provinceId = null, int $limit = 20): array
+    /** @return array<int, array>|null LBC's city rows, or null when LBC did not answer */
+    public function searchCities(string $term, ?int $provinceId = null, int $limit = 20): ?array
     {
         $response = $this->get('common', self::CITY_SEARCH_PATH, array_filter([
             'searchTerm' => $term,
@@ -51,8 +66,8 @@ class LbcClient
         return $this->jsonList($response);
     }
 
-    /** @return array<int, array> LBC's barangay rows, or [] when the call failed */
-    public function searchBarangays(string $term, ?int $cityId = null, int $limit = 20): array
+    /** @return array<int, array>|null LBC's barangay rows, or null when LBC did not answer */
+    public function searchBarangays(string $term, ?int $cityId = null, int $limit = 20): ?array
     {
         $response = $this->get('common', self::BARANGAY_SEARCH_PATH, array_filter([
             'searchTerm' => $term,
@@ -197,8 +212,8 @@ class LbcClient
 
         try {
             $response = $call(Http::withHeaders([$this->lbc->authHeader($api) => $key])
-                ->connectTimeout(self::TIMEOUT_SECONDS)
-                ->timeout(self::TIMEOUT_SECONDS));
+                ->connectTimeout($this->timeout)
+                ->timeout($this->timeout));
         } catch (\Throwable $e) {
             Log::warning('LBC request got no answer', ['api' => $api, 'error' => $e->getMessage()]);
 
@@ -212,11 +227,12 @@ class LbcClient
         return $response;
     }
 
-    private function jsonList(?Response $response): array
+    /** The rows of a search answer; null when there was no readable answer at all. */
+    private function jsonList(?Response $response): ?array
     {
         $data = $response?->successful() ? $response->json() : null;
 
-        return is_array($data) && array_is_list($data) ? $data : [];
+        return is_array($data) && array_is_list($data) ? $data : null;
     }
 
     private function url(string $path): string

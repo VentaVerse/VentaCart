@@ -56,10 +56,8 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         // Register couriers. Adding a competitor later = one more line here.
         CourierManager::register(QuadXFulfillment::class);
         CourierManager::register(SpxFulfillment::class);
-        // LBC is registered for its settings page alone: it can never be
-        // enabled (LbcFulfillment::isEnabled() is false unconditionally), so
-        // registering it adds a place to keep its subscription keys (four per
-        // mode) and nothing that can book a parcel.
+        // LBC books once its settings are complete. Every LBC request is
+        // live and LBC has no cancel endpoint; see LbcFulfillment.
         CourierManager::register(LbcFulfillment::class);
 
         // Status updates use the pull/fetch model. The poll runs as a managed

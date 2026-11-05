@@ -4,39 +4,79 @@ namespace Extensions\CourierFulfillment\Couriers\Lbc;
 
 /**
  * LBC's packaging products by PKG code, from Table 2.0 "PKG or PRODUCT ID
- * LIST" of the Pickup Request API. The Air Waybill names the product line
- * (CARGO or DOCUMENTS) and the product by name, so both are kept here.
+ * LIST" of the Pickup Request API. Every row there is ProductLine 2; the
+ * CARGO / DOCUMENTS split is what the Air Waybill prints as the product, so
+ * it is kept beside the product name LBC prints.
+ *
+ * LBC publishes no standard dimensions for its own packaging, so none are
+ * kept here: the booking form leaves dimensions for the packer to measure,
+ * and requires them for BOX (see LbcParcel).
  */
 final class LbcPackaging
 {
-    /** @var array<int, array{0:string,1:string}> PKG => [product line, product name] */
-    public const NAMES = [
-        2 => ['CARGO', 'PLASTIC'],
-        4 => ['CARGO', 'CRATE'],
-        6 => ['CARGO', 'KILOBOX-S'],
-        7 => ['CARGO', 'KILOBOX-L'],
-        16 => ['CARGO', 'BOX'],
-        63 => ['CARGO', 'KILOBOX-M'],
-        64 => ['CARGO', 'KILOBOX-XL'],
-        79 => ['CARGO', 'PIECE'],
-        80 => ['CARGO', 'SACK'],
-        164 => ['CARGO', 'KILOBOX SLIM'],
-        165 => ['CARGO', 'KILOBOX MINI'],
-        3 => ['DOCUMENTS', 'N-POUCH REGULAR (NPR)'],
-        8 => ['DOCUMENTS', 'N-PACK LARGE'],
-        9 => ['DOCUMENTS', 'X POUCH'],
-        45 => ['DOCUMENTS', 'N-PACK SMALL'],
-        61 => ['DOCUMENTS', 'N-POUCH XL (NPXL)'],
-        62 => ['DOCUMENTS', 'N-POUCH SS (NPSS)'],
+    /** The PKG code for a parcel in the store's own box. */
+    public const OWN_BOX = 16;
+
+    /**
+     * PKG => [product line, LBC's product name, the name the packer reads],
+     * in the order the booking form lists them: the store's own box first,
+     * then LBC's boxes small to large, then pouches and packs, then the rest.
+     *
+     * @var array<int, array{0:string,1:string,2:string}>
+     */
+    public const PRODUCTS = [
+        16 => ['CARGO', 'BOX', 'Own box'],
+        165 => ['CARGO', 'KILOBOX MINI', 'Kilobox Mini'],
+        6 => ['CARGO', 'KILOBOX-S', 'Kilobox Small'],
+        164 => ['CARGO', 'KILOBOX SLIM', 'Kilobox Slim'],
+        63 => ['CARGO', 'KILOBOX-M', 'Kilobox Medium'],
+        7 => ['CARGO', 'KILOBOX-L', 'Kilobox Large'],
+        64 => ['CARGO', 'KILOBOX-XL', 'Kilobox XL'],
+        45 => ['DOCUMENTS', 'N-PACK SMALL', 'N-Pack Small'],
+        8 => ['DOCUMENTS', 'N-PACK LARGE', 'N-Pack Large'],
+        62 => ['DOCUMENTS', 'N-POUCH SS (NPSS)', 'N-Pouch SS'],
+        3 => ['DOCUMENTS', 'N-POUCH REGULAR (NPR)', 'N-Pouch Regular'],
+        61 => ['DOCUMENTS', 'N-POUCH XL (NPXL)', 'N-Pouch XL'],
+        9 => ['DOCUMENTS', 'X POUCH', 'X-Pouch'],
+        2 => ['CARGO', 'PLASTIC', 'Plastic'],
+        4 => ['CARGO', 'CRATE', 'Crate'],
+        79 => ['CARGO', 'PIECE', 'Piece'],
+        80 => ['CARGO', 'SACK', 'Sack'],
     ];
+
+    public static function exists(int $pkg): bool
+    {
+        return array_key_exists($pkg, self::PRODUCTS);
+    }
 
     public static function productLine(int $pkg): string
     {
-        return self::NAMES[$pkg][0] ?? 'CARGO';
+        return self::PRODUCTS[$pkg][0] ?? 'CARGO';
     }
 
     public static function productName(int $pkg): string
     {
-        return self::NAMES[$pkg][1] ?? (string) $pkg;
+        return self::PRODUCTS[$pkg][1] ?? (string) $pkg;
+    }
+
+    public static function label(int $pkg): string
+    {
+        return self::PRODUCTS[$pkg][2] ?? (string) $pkg;
+    }
+
+    /**
+     * The booking form's list. The value is the PKG code that goes into the
+     * request verbatim.
+     *
+     * @return array<int, array{value:string, label:string}>
+     */
+    public static function options(): array
+    {
+        $options = [];
+        foreach (self::PRODUCTS as $pkg => [, , $label]) {
+            $options[] = ['value' => (string) $pkg, 'label' => $label];
+        }
+
+        return $options;
     }
 }

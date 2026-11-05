@@ -3,36 +3,28 @@
 namespace Extensions\CourierFulfillment\Couriers\Lbc;
 
 use App\Models\Order;
+use App\Models\OrderHistory;
 use App\Models\Setting;
+use Carbon\CarbonImmutable;
+use Extensions\CourierFulfillment\Contracts\CancelsLocallyOnly;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
-use Extensions\CourierFulfillment\Support\AnswersUnknownServiceability;
+use Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl;
+use Extensions\CourierFulfillment\Contracts\ThrottlesStatusPolling;
+use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\Models\PickupAddress;
+use Extensions\CourierFulfillment\ServiceabilityService;
+use Extensions\CourierFulfillment\Support\OrderWeight;
+use Extensions\CourierFulfillment\Support\ServiceabilityVerdict;
+use Extensions\CourierFulfillment\TrackingNumbers\TrackingNumberSeriesException;
+use Extensions\CourierFulfillment\TrackingNumbers\TrackingNumberSeriesService;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 /**
- * LBC Express (a Philippine courier), registered so its credentials have a
- * home BEFORE any adapter exists.
+ * LBC Express (a Philippine courier).
  *
- * GROUND TRUTH is `docs/lbc/integration-notes.md`, written from a live
- * exercise of all four LBC APIs on 2026-08-14 with the owner's real keys.
- * The four vendor PDFs beside it are still the reference for payload shapes,
- * but where a PDF and the live gateway disagree the gateway wins, and this
- * class follows the notes. Three claims of the first build were disproven
- * there and are corrected below: the auth header is NOT uniform, the
- * environment split IS real, and the Pickup AppKey is NOT required.
- *
- * SCOPE, still deliberately narrow: this class carries settingsSchema() and
- * the constants a future client will read, and nothing else. Every
- * operational method below is an HONEST refusal, never a fake success, and
- * this courier can never be enabled: isEnabled() returns false
- * unconditionally, so CourierManager::enabled() never hands LBC an order and
- * the booking modal renders it in its existing "Not configured" state (an
- * inert card with a settings link) rather than offering a Book button that
- * cannot work. Nothing in this class makes an outbound call.
- *
- * FOUR APIS, FOUR SUBSCRIPTIONS, EIGHT KEYS. LBC ships four products on one
- * Azure-API-Management-style gateway, each subscribed to separately on the
- * developer portal (https://lbcapiservice.lbcapps.com/) as
- * `<CompanyName>_<ApiName>`, and each carrying its own subscription key:
+ * Four LBC APIs sit behind one gateway, each with its own subscription key:
  *
  *   | API                          | Transport | Auth header                  |
  *   |------------------------------|-----------|------------------------------|
@@ -41,62 +33,36 @@ use Illuminate\Support\Facades\Crypt;
  *   | Pickup Request V2            | XML/HTTP  | Ocp-Apim-Subscription-Key    |
  *   | Track and Trace V2           | SOAP      | lbcOAkey                     |
  *
- * See AUTH_HEADERS below: the header is per API, and sending the wrong one
- * answers `401 "Access denied due to missing subscription key"`, which reads
- * like a bad key rather than a wrong header name.
+ * Sending the wrong header answers `401 "Access denied due to missing
+ * subscription key"`, which reads like a bad key rather than a wrong header
+ * name, so the header is read from AUTH_HEADERS and nowhere else.
  *
- * TEST VERSUS LIVE IS A KEY, NOT A HOST. There is no sandbox, UAT or staging
- * gateway (the words appear in none of the four PDFs and every documented
- * endpoint sits on lbcapigateway.lbcapps.com). LBC instead issues a PRIMARY
- * and a SECONDARY key per subscription and treats the secondary as test, so
- * the environment is chosen by which key is sent. That is a genuine split,
- * so the page carries a Mode select and each API holds two keys, the same
- * mode_scoped shape QuadX and SPX already use. The first build read the
- * primary/secondary pair as Azure's rotation halves and omitted the mode;
- * the vendor's own convention overrules that reading.
+ * EVERY REQUEST IS LIVE. LBC runs no test system: both keys of a
+ * subscription reach the same live gateway, and a pickup request with
+ * either books a real pickup. LBC also has no cancel endpoint. So a booking
+ * is sent once and never retried, cancelling only resets the booking here
+ * (see localCancelNotice()), and the queue asks for confirmation before
+ * anything is sent.
  *
- * THE TRACKING NUMBER IS OURS TO ISSUE, unlike every other courier here.
- * The Air Waybill data dictionary calls TrackingNo the "LBC Tracking Number
- * series from sales assigned to clients": LBC hands a block to the merchant
- * and the merchant allocates from it, so booking does not return a number,
- * it consumes one. TRACKING_SERIES_KEYS below holds the assigned range, and
- * configurationIssues() names it outstanding until it is filled in. The
- * ALLOCATOR itself (issue the next unused number, never reuse one, warn
- * before the block runs out) is persistent state and belongs with the
- * adapter, not here.
+ * THE STORE ISSUES THE TRACKING NUMBER. LBC assigns a block of numbers and
+ * does not check uniqueness itself, so every booking takes the next number
+ * from TrackingNumberSeriesService: a definite rejection releases it, and an
+ * accepted or unknown answer spends it for good.
  *
- * NOT BUILT YET, and named here so it is not rediscovered: LBC's
- * `/camsbackend/validate/validateServicableArea` is a real pre-booking
- * serviceability check that answers status, rate and rate category for a
- * PSGC code, and `/camsbackend/{provinces,cities,barangays}/search` is the
- * fuzzy resolver that produces that code. Between them LBC is the best
- * equipped of the three couriers for checkServiceability(). See this class's
- * own checkServiceability(), which uses the sanctioned `unknown` default
- * until that client exists. Track and Trace is SOAP over .NET/tempuri.org
- * and will need its own client, unlike anything else in this module.
+ * Coverage comes from LBC's own address search and serviceability check
+ * (LbcAreaResolver), asked before booking. Tracking is polled (there is no
+ * webhook), with intervals from pollIntervalMinutes().
  */
-class LbcFulfillment implements CourierFulfillmentInterface
+class LbcFulfillment implements CourierFulfillmentInterface, ProvidesPublicTrackingUrl, CancelsLocallyOnly, ThrottlesStatusPolling
 {
-    use AnswersUnknownServiceability;
-
     /**
-     * The gateway every documented LBC endpoint sits behind (Air Waybill
-     * Section 4's URL REQUEST ENDPOINT, and all four Corporate PSGC Lookup
-     * URLs). Editable via `lbc_gateway_url` because a published base URL is
-     * exactly the kind of fact a vendor PDF outlives.
+     * The gateway every documented LBC endpoint sits behind. Editable via
+     * `lbc_gateway_url` because a published base URL is exactly the kind of
+     * fact a vendor PDF outlives.
      */
     public const DEFAULT_GATEWAY_URL = 'https://lbcapigateway.lbcapps.com/';
 
-    /**
-     * THE AUTH HEADER IS PER API, and this map is the only place that fact
-     * is allowed to live. Verified live on 2026-08-14 (see
-     * docs/lbc/integration-notes.md): Pickup Request authenticates on
-     * `Ocp-Apim-Subscription-Key`, the other three on `lbcOAkey`, and each
-     * rejects the other's header with
-     * `401 "Access denied due to missing subscription key"`, a message that
-     * names the key, not the header, so a wrong header costs an afternoon.
-     * Read it through authHeader(); never hardcode either string in a client.
-     */
+    /** The auth header each API authenticates on. Read through authHeader(). */
     public const AUTH_HEADERS = [
         'common'     => 'lbcOAkey',
         'airwaybill' => 'lbcOAkey',
@@ -105,10 +71,9 @@ class LbcFulfillment implements CourierFulfillmentInterface
     ];
 
     /**
-     * The two environments, which LBC selects by WHICH KEY is sent rather
-     * than by host. `test` first, because it is the safe default for a store
-     * that has not been approved for live traffic yet and because the
-     * settings page falls back to the mode select's first option.
+     * Which of a subscription's two keys is sent. Both reach the live
+     * gateway; LBC calls the secondary one "test", but a booking sent with it
+     * is still a real booking.
      */
     public const MODES = ['test', 'live'];
 
@@ -118,28 +83,38 @@ class LbcFulfillment implements CourierFulfillmentInterface
     public const TRACKING_SERIES_KEYS = ['lbc_tracking_series_start', 'lbc_tracking_series_end'];
 
     /**
-     * The last entry configurationIssues() always appends. Written as a noun
-     * phrase because the booking modal prints the list as
-     * "Missing {a / b / c}.", see index.blade.php's Not-configured card.
-     */
-    public const NOT_BUILT = 'a booking adapter, which is not built yet';
-
-    /**
-     * What configurationIssues() says instead of naming all four of the
-     * active mode's keys when not one of them is stored, which is the state
-     * LBC ships in. The booking modal prints that list on a card whose
-     * artwork gets whatever room the words leave, so four labels there
-     * shrink LBC's mark for no gain: "none of them" is one fact, not four.
+     * What configurationIssues() says instead of naming all four keys when
+     * none is stored: one fact rather than four labels on a small card.
      */
     public const NO_KEYS_AT_ALL = 'all four LBC keys';
 
-    /**
-     * LBC does not issue tracking numbers; sales assigns the merchant a
-     * block and the merchant allocates from it. Until that block is on file
-     * nothing can be booked, and no amount of correct credentials changes
-     * that, so it is named separately from the keys.
-     */
+    /** Named apart from the keys: no amount of credentials books without a block of numbers. */
     public const NO_TRACKING_SERIES = 'a tracking number series from LBC sales';
+
+    /** The PKG code for the store's own box, the one parcel that needs measured dimensions. */
+    public const OWN_PACKAGING_PKG = '16';
+
+    /** The one way of paying LBC: freight is charged to the store's LBC account. */
+    public const SHIPPING_PAYMENT_ACCOUNT = 'account';
+
+    /**
+     * Drop-off at an LBC branch is built (the gateway's value is DROPOFF) but
+     * not offered: the option shows disabled and a booking asking for it is
+     * refused until the store's contract with LBC is confirmed to allow it.
+     */
+    public const DROPOFF_ENABLED = false;
+
+    /** LBC's public tracker, addressed by the tracking number alone. */
+    public const PUBLIC_TRACKER_URL = 'https://www.lbcexpress.com/track/?tracking_no=';
+
+    /** How far ahead a pickup date may be chosen. */
+    public const PICKUP_DAYS_AHEAD = 30;
+
+    /** The time of day sent with the chosen pickup date, Manila time. */
+    public const PICKUP_TIME = '10:00:00';
+
+    /** How many pickup dates the pickup-slots answer lists. */
+    private const PICKUP_SLOT_COUNT = 10;
 
     public function getKey(): string
     {
@@ -148,63 +123,35 @@ class LbcFulfillment implements CourierFulfillmentInterface
 
     /**
      * "LBC", not "LBC Express", which is the name core's own
-     * `shipping_couriers` row carries for the MANUAL path. Two cards reading
+     * `shipping_couriers` row carries for the manual path. Two cards reading
      * "LBC Express" in one modal, one integrated and one not, would be a
-     * puzzle; the shorter name keeps them distinguishable.
+     * puzzle.
      */
     public function getName(): string
     {
         return 'LBC';
     }
 
-    /**
-     * Never enabled, whatever the toggle and the keys say. Nothing behind
-     * this class can carry a parcel yet, and isEnabled() is the ONE gate
-     * every real operation passes through (see CourierManager::enabled()),
-     * so returning true on a full credential set would put a Book button in
-     * front of an operator that could only fail after they committed.
-     *
-     * The `lbc_enabled` toggle is still real and still meaningful: it drives
-     * CourierManager::flagged(), which is what puts LBC in the booking
-     * modal's step 1 AT ALL, as the inert "Not configured" card this method
-     * guarantees. Off means LBC is not in that list; on means it is, greyed,
-     * with configurationIssues() saying why.
-     */
+    /** Turned on, and every setting a booking needs is present. */
     public function isEnabled(): bool
     {
-        return false;
+        $on = Setting::where('group', 'courier')->where('key', 'lbc_enabled')->value('value');
+
+        return (bool) $on && $this->configurationIssues() === [];
     }
 
     /**
-     * Everything still standing between this store and a first LBC booking:
-     * the ACTIVE MODE's missing subscription keys by the name of the API
-     * each unlocks, the two merchant constants the Pickup payload demands,
-     * the tracking-number series LBC sales has not assigned yet, and the
-     * fact that no adapter exists.
-     *
-     * Scoped to the active mode on purpose: the live and test halves carry
-     * the same four labels, so listing both would name "Air Waybill key"
-     * twice and tell an operator nothing about which one to go and get.
-     *
-     * Partial configuration is the normal state here, not an error: the keys
-     * arrive one subscription approval at a time (LBC approves each
-     * separately, 1-2 days per the Air Waybill doc), so this names which
-     * ones are outstanding instead of collapsing to one "not configured".
-     *
-     * Documented deviation from the interface's "field labels only" wording:
-     * NO_TRACKING_SERIES and NOT_BUILT are not schema field labels. A list
-     * that named only missing settings would tell an operator LBC starts
-     * working the moment the last box is filled, which is not true.
+     * Everything still standing between this store and an LBC booking: the
+     * active mode's missing subscription keys by the name of the API each
+     * unlocks, the two account values the pickup request requires, and the
+     * tracking number series. Empty means LBC can book.
      */
     public function configurationIssues(): array
     {
         $fields = array_merge($this->credentialFields(), $this->merchantFields());
 
         $stored = Setting::where('group', 'courier')
-            ->whereIn('key', array_merge(
-                array_column($fields, 'key'),
-                self::TRACKING_SERIES_KEYS
-            ))
+            ->whereIn('key', array_merge(array_column($fields, 'key'), self::TRACKING_SERIES_KEYS))
             ->pluck('value', 'key');
 
         $missingKeys = [];
@@ -214,40 +161,30 @@ class LbcFulfillment implements CourierFulfillmentInterface
             }
         }
 
-        // Nothing at all stored: one fact rather than four labels.
         if (count($missingKeys) === count($this->credentialFields()) && $missingKeys !== []) {
             $missingKeys = [self::NO_KEYS_AT_ALL];
         }
 
         $missing = $missingKeys;
 
-        // The merchant's own identifiers. Not secrets, but LBC refuses a
-        // pickup without them (error 152 "Client is required"), so they are
-        // as blocking as any key.
         foreach ($this->merchantFields() as $field) {
             if (blank($stored[$field['key']] ?? null)) {
                 $missing[] = $field['label'];
             }
         }
 
-        // Either end of the block missing means no number can be allocated,
-        // and a half-known range is not a range.
+        // A half-known range is not a range, and only digits make a number.
         foreach (self::TRACKING_SERIES_KEYS as $key) {
-            if (blank($stored[$key] ?? null)) {
+            if (!ctype_digit(trim((string) ($stored[$key] ?? '')))) {
                 $missing[] = self::NO_TRACKING_SERIES;
                 break;
             }
         }
 
-        $missing[] = self::NOT_BUILT;
-
         return $missing;
     }
 
-    /**
-     * The ACTIVE MODE's encrypted fields, in schema order: the four
-     * subscription keys that mode would send. @return array<int,array{key:string,label:string}>
-     */
+    /** The active mode's encrypted fields: the four keys that mode sends. */
     private function credentialFields(): array
     {
         $mode = $this->mode();
@@ -259,13 +196,7 @@ class LbcFulfillment implements CourierFulfillmentInterface
         ));
     }
 
-    /**
-     * The merchant constants LBC assigns and the Pickup payload requires:
-     * `Client` (error 152, sample "TEST") and the shipper account number
-     * (sample "2015062300003"). Neither is a credential, since they identify
-     * the account rather than authenticate it, so both are plain text fields,
-     * and both are mandatory for booking. @return array<int,array{key:string,label:string}>
-     */
+    /** The account values LBC assigns and the pickup request requires. */
     private function merchantFields(): array
     {
         return array_values(array_filter(
@@ -274,12 +205,7 @@ class LbcFulfillment implements CourierFulfillmentInterface
         ));
     }
 
-    /**
-     * Which set of keys this store sends. LBC has one gateway for both
-     * environments and splits them by key: the secondary key of each
-     * subscription is the test one. An unrecognised stored value falls back
-     * to `test` rather than quietly going live.
-     */
+    /** Which key set this store sends. An unrecognised value falls back to `test`. */
     public function mode(): string
     {
         $stored = (string) Setting::where('group', 'courier')->where('key', 'lbc_mode')->value('value');
@@ -288,21 +214,22 @@ class LbcFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * The header name this API authenticates on. See AUTH_HEADERS: it is not
-     * uniform, and the 401 it returns for the wrong one names the key rather
-     * than the header.
-     *
-     * @throws \InvalidArgumentException for an API this class does not know,
-     *         which is a programming error rather than a configuration one:
-     *         guessing a header would produce that same misleading 401.
+     * The booking modal's environment chip. Always "Live", whichever key is
+     * sent: a "Test" chip would suggest a booking that books nothing.
      */
+    public function bookingModeLabel(): string
+    {
+        return 'Live';
+    }
+
+    /** @throws \InvalidArgumentException for an API this class does not know */
     public function authHeader(string $api): string
     {
         return self::AUTH_HEADERS[$api]
             ?? throw new \InvalidArgumentException('Unknown LBC API: ' . $api);
     }
 
-    /** The settings key holding one API's subscription key for the given mode (default: the active one). */
+    /** The settings key holding one API's key for the given mode (default: the active one). */
     public function keySetting(string $api, ?string $mode = null): string
     {
         if (!array_key_exists($api, self::AUTH_HEADERS)) {
@@ -317,11 +244,7 @@ class LbcFulfillment implements CourierFulfillmentInterface
         return 'lbc_' . $mode . '_' . $api . '_key';
     }
 
-    /**
-     * One API's subscription key for the active mode, decrypted, or null
-     * when it is unset or undecryptable (a key encrypted under a previous
-     * APP_KEY). The seam the four clients will read; nothing sends it yet.
-     */
+    /** One API's key for the active mode, decrypted, or null when unset or unreadable. */
     public function subscriptionKey(string $api): ?string
     {
         $stored = (string) Setting::where('group', 'courier')
@@ -339,12 +262,7 @@ class LbcFulfillment implements CourierFulfillmentInterface
         }
     }
 
-    /**
-     * The gateway all four APIs are addressed against, always with a single
-     * trailing slash so a caller can concatenate a path without guessing.
-     * One host for both modes: the environment is the key, not the URL.
-     * Nothing calls this yet; it is the seam the four clients will read.
-     */
+    /** The gateway, always with one trailing slash. */
     public function gatewayUrl(): string
     {
         $stored = (string) Setting::where('group', 'courier')->where('key', 'lbc_gateway_url')->value('value');
@@ -353,25 +271,10 @@ class LbcFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * The whole point of this class today.
-     *
-     * Order is the order the values are useful in: the toggle, the mode,
-     * where the calls go, who LBC thinks we are, which numbers are ours to
-     * use, and then one key per API, twice, once per mode, in the sequence
-     * a booking would use them (resolve and check the address, generate the
-     * waybill, request the pickup, track what left). Each key's label names
-     * the LBC product it unlocks; which environment it belongs to is said
-     * once, by the group it sits in, rather than repeated on every field.
-     *
-     * The four `lbc_{mode}_{api}_key` names are built by keySetting(), so a
-     * client never spells one out.
-     *
-     * NO AppKey field. The Pickup sample payload carries an <AppKey> node
-     * and the first build inferred a required credential from it; a pickup
-     * was then created successfully with that node removed entirely,
-     * authenticating on the header alone. It was an older body-based auth
-     * style, superseded, and a field for it would be a box nobody can fill
-     * correctly.
+     * The settings, in the order they are useful: the toggle, the key set,
+     * where the calls go, who LBC thinks we are, which numbers are ours, and
+     * one key per API per mode. There is no AppKey field: a pickup is
+     * accepted with that node left out, authenticating on the header alone.
      */
     public function settingsSchema(): array
     {
@@ -380,7 +283,7 @@ class LbcFulfillment implements CourierFulfillmentInterface
                 'key'   => 'lbc_enabled',
                 'label' => 'Enable LBC',
                 'type'  => 'toggle',
-                'hint'  => 'Puts LBC on the booking modal. It stays unbookable until the adapter is built.',
+                'hint'  => 'Puts LBC on the booking modal once every setting below is filled in. Every LBC booking is live and cannot be cancelled through LBC.',
             ],
             [
                 'key'     => 'lbc_mode',
@@ -390,10 +293,7 @@ class LbcFulfillment implements CourierFulfillmentInterface
                     ['value' => 'test', 'label' => 'Test'],
                     ['value' => 'live', 'label' => 'Live'],
                 ],
-                // The one consequence nothing on this page can say in its own
-                // name: LBC has a single gateway, and the environment is
-                // decided by which of a subscription's two keys is sent.
-                'hint'    => 'LBC has one gateway for both. It issues a primary and a secondary key per subscription and treats the secondary as the test one, so the mode decides which key is sent.',
+                'hint'    => 'LBC has no test system. Both keys reach the live gateway, so every booking is real. The mode only chooses which of the two keys is sent.',
             ],
             [
                 'key'         => 'lbc_gateway_url',
@@ -402,24 +302,18 @@ class LbcFulfillment implements CourierFulfillmentInterface
                 'placeholder' => self::DEFAULT_GATEWAY_URL,
             ],
             [
-                // Pickup Request error 152, "Client is required". An
-                // identifier LBC assigns the merchant; the doc's sample is
-                // the literal string TEST.
                 'key'   => 'lbc_client_code',
                 'label' => 'Client code',
                 'type'  => 'text',
+                'hint'  => 'The code LBC assigned this store, up to five characters.',
             ],
             [
-                // The merchant's LBC account number, carried on every pickup
-                // (doc sample 2015062300003).
                 'key'   => 'lbc_shipper_account_no',
                 'label' => 'Shipper Account No',
                 'type'  => 'text',
+                'hint'  => 'Your LBC account number, from LBC sales.',
             ],
             [
-                // LBC issues no tracking numbers: sales assigns a block and
-                // the merchant allocates from it. Both ends are held here;
-                // the allocator that consumes them is adapter work.
                 'key'   => self::TRACKING_SERIES_KEYS[0],
                 'label' => 'Tracking series first number',
                 'type'  => 'text',
@@ -488,171 +382,720 @@ class LbcFulfillment implements CourierFulfillmentInterface
         ];
     }
 
-    // --- Everything below is honest refusal until the adapters exist -------
-
-    /** No booking form is reachable (isEnabled() is false), so there is nothing truthful to list. */
-    public function getServiceTypes(): array
-    {
-        return [];
-    }
+    // --- Booking options ------------------------------------------------------
 
     /**
-     * LBC's packaging products, as the packer names them.
-     *
-     * The value is the PKG code that goes into the payload verbatim, from
-     * Table 2.0 "PKG or PRODUCT ID LIST" on page 15 of
-     * LBC_Pickup_Request_API_V2 2026-02-04.pdf. Every row in that table
-     * carries ProductLineID 2, so the CARGO / DOCUMENTS split is descriptive
-     * and PKG alone selects the product.
-     *
-     * Only the products this store actually ships are listed (owner ruling
-     * 2026-09-09), not LBC's whole catalogue: PLASTIC, CRATE, PIECE and SACK
-     * are packaging shapes for goods NGD does not send, and offering them is
-     * a way to mis-book rather than a feature. Kilobox is shortened to KB
-     * because the packer reads this list twenty times an afternoon.
-     *
-     * Own packaging is PKG 16 (BOX), LBC's code for a parcel that fits none
-     * of their standard sizes. It is the one option whose dimensions cannot
-     * be defaulted, because there is no standard box behind it.
-     *
-     * NOT LISTED YET: N-Pack Sakto. The owner ships it, but it does not
-     * appear in Table 2.0 under that name, and guessing which of the four
-     * unclaimed pouch codes (3 N-POUCH REGULAR, 9 X POUCH, 61 N-POUCH XL,
-     * 62 N-POUCH SS) it maps to would silently book the wrong product.
-     * Pending LBC confirming the code.
+     * How the parcel reaches LBC. The values are the gateway's own (the
+     * pickup request's MODE reference). Drop-off is listed so the choice is
+     * visible, disabled until the store's contract allows it.
      */
-    public function getParcelOptions(): array
+    public function getServiceTypes(): array
     {
         return [
-            ['value' => '45',  'label' => 'N-Pack Small'],
-            ['value' => '8',   'label' => 'N-Pack Large'],
-            ['value' => '165', 'label' => 'KB Mini'],
-            ['value' => '6',   'label' => 'KB Small'],
-            ['value' => '164', 'label' => 'KB Slim'],
-            ['value' => '63',  'label' => 'KB Medium'],
-            ['value' => '7',   'label' => 'KB Large'],
-            ['value' => '64',  'label' => 'KB XL'],
-            ['value' => '16',  'label' => 'Own packaging'],
+            ['value' => LbcPickupRequestBuilder::MODE_REGULAR, 'label' => 'Rider pickup'],
+            [
+                'value' => LbcPickupRequestBuilder::MODE_DROP_OFF,
+                'label' => 'Drop off at an LBC branch',
+                'disabled' => !self::DROPOFF_ENABLED,
+            ],
         ];
     }
 
-    /** The PKG code for a parcel the store packs itself, so its dimensions are asked for. */
-    public const OWN_PACKAGING_PKG = '16';
+    /** LBC's packaging list, values being the PKG codes the request carries. */
+    public function getParcelOptions(): array
+    {
+        return LbcPackaging::options();
+    }
 
     public function getShippingPaymentOptions(): array
     {
-        return [];
+        return [
+            ['value' => self::SHIPPING_PAYMENT_ACCOUNT, 'label' => 'Charged to my LBC account'],
+        ];
     }
 
+    /**
+     * What a booking chooses when the caller chose nothing. The parcel has no
+     * default on purpose: a guessed packaging code books the wrong product.
+     *
+     * @return array{service: string, parcel: ?string, shipping_payment: string}
+     */
+    public function bookingDefaults(): array
+    {
+        return [
+            'service' => LbcPickupRequestBuilder::MODE_REGULAR,
+            'parcel' => null,
+            'shipping_payment' => self::SHIPPING_PAYMENT_ACCOUNT,
+        ];
+    }
+
+    /**
+     * What the booking modal's LBC fields need beyond the option lists: the
+     * pickup date range, the insured floor, which parcel needs dimensions,
+     * and the confirm step that names the tracking number about to be spent.
+     * Reads this store's own settings and series only; asks LBC nothing.
+     *
+     * @return array<string, mixed>
+     */
+    public function bookingFormContext(): array
+    {
+        $first = self::firstPickupDate();
+
+        return [
+            'pickupDateMin' => $first->format('Y-m-d'),
+            'pickupDateMax' => $first->addDays(self::PICKUP_DAYS_AHEAD)->format('Y-m-d'),
+            'pickupDateDefault' => $first->format('Y-m-d'),
+            'insureFloor' => LbcParcel::MIN_INSURED_DECLARED_VALUE,
+            'dimensionsRequiredFor' => [self::OWN_PACKAGING_PKG],
+            'confirm' => true,
+            'confirmNotice' => 'This sends a live pickup request to LBC. LBC has no cancel API, so once it is sent only a call to LBC can void it.',
+            'nextTrackingNumber' => $this->nextTrackingNumber(),
+        ];
+    }
+
+    /** A COD parcel is always insured, at the amount the rider collects. */
+    public function insuresCodOrders(): bool
+    {
+        return true;
+    }
+
+    /**
+     * The declared value sent with a booking.
+     *
+     * COD: always insured, at the order total, which includes the shipping
+     * the buyer paid. Prepaid: the order total when insured, otherwise 0.
+     * An insured value is never below LbcParcel::MIN_INSURED_DECLARED_VALUE.
+     * LBC still has to confirm that it accepts 0 for an uninsured parcel.
+     */
+    public static function declaredValueFor(Order $order, bool $insure, bool $cod): float
+    {
+        if (!$cod && !$insure) {
+            return 0.0;
+        }
+
+        return round(max((float) $order->total, (float) LbcParcel::MIN_INSURED_DECLARED_VALUE), 2);
+    }
+
+    /** What the rider collects: the whole order total on a COD order, nothing otherwise. */
+    public static function codAmountFor(Order $order, bool $cod): float
+    {
+        return $cod ? round((float) $order->total, 2) : 0.0;
+    }
+
+    /**
+     * Whether the buyer pays the rider. The caller may say so (the ERP's
+     * buyer_payment, as with QuadX); otherwise the store's own COD mapping
+     * decides.
+     */
+    public static function isCod(Order $order, array $opts): bool
+    {
+        $said = $opts['buyer_payment'] ?? null;
+
+        return $said !== null && $said !== ''
+            ? $said === 'cod'
+            : FulfillmentService::isCodOrder($order);
+    }
+
+    /** The first date a pickup may be asked for: the next business day (Monday to Saturday). */
+    public static function firstPickupDate(?CarbonImmutable $now = null): CarbonImmutable
+    {
+        return LbcPickupService::businessDaysAhead(1, '00:00:00', $now)->startOfDay();
+    }
+
+    /**
+     * The chosen pickup date (Y-m-d, Manila) as LBC's PreferredDate, or the
+     * next business day when none was chosen.
+     *
+     * @throws LbcException naming what is wrong with the date
+     */
+    public static function preferredDateFor(?string $chosen, ?CarbonImmutable $now = null): CarbonImmutable
+    {
+        $first = self::firstPickupDate($now);
+        [$h, $m, $s] = array_map('intval', explode(':', self::PICKUP_TIME));
+
+        $chosen = trim((string) $chosen);
+        if ($chosen === '') {
+            return $first->setTime($h, $m, $s);
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $chosen, new \DateTimeZone(LbcPickupRequestBuilder::TIMEZONE));
+        if ($date === false || $date->format('Y-m-d') !== $chosen) {
+            throw new LbcException('The pickup date must be a date (YYYY-MM-DD).');
+        }
+
+        $date = CarbonImmutable::instance($date);
+        if ($date->isSunday()) {
+            throw new LbcException('LBC does not collect on Sundays. Choose another pickup date.');
+        }
+        if ($date->lessThan($first)) {
+            throw new LbcException('The pickup date must be ' . $first->format('M j, Y') . ' or later.');
+        }
+        if ($date->greaterThan($first->addDays(self::PICKUP_DAYS_AHEAD))) {
+            throw new LbcException('The pickup date can be at most ' . self::PICKUP_DAYS_AHEAD . ' days ahead.');
+        }
+
+        return $date->setTime($h, $m, $s);
+    }
+
+    /**
+     * The parcel, mode and date one booking would send, from the order and
+     * the options chosen.
+     *
+     * @return array{parcel: LbcParcel, mode: string, preferred_at: CarbonImmutable, insured: bool, cod: bool, from: PickupAddress}
+     * @throws LbcException naming the first thing to fix
+     */
+    public function plan(Order $order, array $opts): array
+    {
+        $mode = strtoupper(trim((string) ($opts['service'] ?? ''))) ?: LbcPickupRequestBuilder::MODE_REGULAR;
+        if (!in_array($mode, LbcPickupRequestBuilder::MODES, true)) {
+            throw new LbcException('Choose how the parcel reaches LBC: Rider pickup.');
+        }
+        if ($mode === LbcPickupRequestBuilder::MODE_DROP_OFF && !self::DROPOFF_ENABLED) {
+            throw new LbcException('Drop off at an LBC branch is not offered yet. Choose Rider pickup.');
+        }
+
+        $pkg = trim((string) ($opts['parcel'] ?? ''));
+        if (!ctype_digit($pkg) || !LbcPackaging::exists((int) $pkg)) {
+            throw new LbcException('Choose an LBC parcel.');
+        }
+
+        $payment = (string) ($opts['shipping_payment'] ?? self::SHIPPING_PAYMENT_ACCOUNT);
+        if ($payment !== self::SHIPPING_PAYMENT_ACCOUNT) {
+            throw new LbcException('LBC freight is charged to your LBC account.');
+        }
+
+        $weight = isset($opts['weight_kg']) && is_numeric($opts['weight_kg'])
+            ? (float) $opts['weight_kg']
+            : OrderWeight::kg($order);
+        if ($weight === null || $weight <= 0) {
+            throw new LbcException('Enter the parcel weight in kg.');
+        }
+
+        $from = PickupAddress::resolveFor($opts);
+        if ($from === null) {
+            throw new LbcException('No pickup address on file. Add one under Fulfillment settings.');
+        }
+
+        $cod = self::isCod($order, $opts);
+        // COD is insured whatever the caller sent: the declared value is the
+        // cover for the money the rider collects.
+        $insured = $cod || filter_var($opts['insure'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        $parcel = new LbcParcel(
+            pkg: (int) $pkg,
+            weightKg: round($weight, 2),
+            lengthCm: (float) ($opts['length_cm'] ?? 0),
+            widthCm: (float) ($opts['width_cm'] ?? 0),
+            heightCm: (float) ($opts['height_cm'] ?? 0),
+            declaredValue: self::declaredValueFor($order, $insured, $cod),
+            codAmount: self::codAmountFor($order, $cod),
+        );
+
+        return [
+            'parcel' => $parcel,
+            'mode' => $mode,
+            'preferred_at' => self::preferredDateFor(isset($opts['pickup_slot']) ? (string) $opts['pickup_slot'] : null),
+            'insured' => $insured,
+            'cod' => $cod,
+            'from' => $from,
+        ];
+    }
+
+    // --- Booking ----------------------------------------------------------------
+
+    /**
+     * Book one LBC pickup. Address resolution and coverage are asked first;
+     * anything that would stop the booking refuses before a number is taken.
+     * The request is sent once. LBC's answer decides the number: saved
+     * (spent, booked), rejected (released, nothing booked) or unknown (spent,
+     * booked as unconfirmed so the order cannot be booked a second time
+     * before somebody checks with LBC).
+     */
     public function createShipment(Order $order, array $opts): array
     {
-        return ['success' => false, 'error' => $this->notBuilt('Booking')];
+        if (!$this->isEnabled()) {
+            return ['success' => false, 'error' => 'LBC is not configured. Fill in its settings first.'];
+        }
+
+        $order->loadMissing('products');
+
+        try {
+            $plan = $this->plan($order, $opts);
+        } catch (LbcException $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+
+        $service = app(LbcPickupService::class);
+
+        try {
+            $draft = $service->prepare($order, $plan['from'], $plan['parcel'], $plan['preferred_at'], $plan['mode']);
+        } catch (LbcException $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+
+        if ($draft->blockers !== []) {
+            return ['success' => false, 'error' => 'Not sent to LBC. ' . implode(' ', $draft->blockers)];
+        }
+
+        try {
+            $sent = $service->send($draft);
+        } catch (LbcException|TrackingNumberSeriesException $e) {
+            return ['success' => false, 'error' => 'Not sent to LBC. ' . $e->getMessage()];
+        }
+
+        /** @var LbcPickupResult $result */
+        $result = $sent['result'];
+        $number = (string) $sent['issued']->number;
+
+        if ($result->outcome === LbcPickupResult::REJECTED) {
+            return [
+                'success' => false,
+                'error' => 'LBC refused the booking. ' . $result->summary()
+                    . " Tracking number {$number} was not used and is the next one issued.",
+            ];
+        }
+
+        $confirmed = $result->outcome === LbcPickupResult::ACCEPTED;
+        $status = $confirmed ? LbcTrackingStatus::BOOKED : LbcTrackingStatus::UNCONFIRMED;
+
+        $notices = [];
+        if (!$confirmed) {
+            $notices[] = "LBC did not confirm pickup request {$number} ({$result->summary()}). Call LBC to check it before booking this order again.";
+            OrderHistory::create([
+                'order_id' => $order->id,
+                'order_status_id' => $order->order_status_id,
+                'comment' => "LBC did not confirm pickup request {$number}: {$result->summary()} The number is kept for this order. Check with LBC whether the pickup exists.",
+                'notify_customer' => false,
+            ]);
+        }
+        if ($sent['issued']->nearEnd) {
+            $notices[] = "Only {$sent['issued']->remaining} LBC tracking numbers are left. Request a new block from LBC.";
+        }
+
+        // Everything the waybill needs, as sent, so a label printed later
+        // always matches the booking. The account number is not kept: the
+        // waybill does not carry it.
+        $request = $sent['fields'];
+        unset($request['ShipperAccountNo']);
+
+        return [
+            'success' => true,
+            'tracking_number' => $number,
+            'status' => $status,
+            'notice' => $notices === [] ? null : implode(' ', $notices),
+            'meta' => [
+                'mode' => $this->mode(),
+                'service' => $plan['mode'],
+                'parcel' => (string) $plan['parcel']->pkg,
+                'shipping_payment' => self::SHIPPING_PAYMENT_ACCOUNT,
+                'pickup_date' => $plan['preferred_at']->format('Y-m-d'),
+                'insured' => $plan['insured'],
+                'cod' => $plan['cod'],
+                'declared_value' => $plan['parcel']->declaredValue,
+                'cod_amount' => $plan['parcel']->codAmount,
+                'weight_kg' => $plan['parcel']->weightKg,
+                'length_cm' => $plan['parcel']->lengthCm,
+                'width_cm' => $plan['parcel']->widthCm,
+                'height_cm' => $plan['parcel']->heightCm,
+                'rate_estimate' => $draft->destination->rate,
+                'delivery_area' => [
+                    'psgc' => $draft->destination->psgcCode,
+                    'location' => $draft->destination->fullLocationName,
+                    'area_code' => $draft->destination->areaCode,
+                ],
+                'pickup_request' => $request,
+                'lbc_answer' => [
+                    'outcome' => $result->outcome,
+                    'code' => $result->code(),
+                    'message' => mb_substr($result->summary(), 0, 500),
+                    'http_status' => $result->httpStatus,
+                ],
+            ],
+        ];
     }
 
+    /**
+     * LBC has no cancel endpoint, so this only lets the shared cancel reset
+     * the booking here. The tracking number stays spent: LBC may still hold
+     * the pickup, and reusing the number would give two parcels one
+     * identity. See localCancelNotice().
+     */
     public function cancelShipment(string $trackingNumber): array
     {
-        return ['success' => false, 'error' => $this->notBuilt('Cancelling a booking')];
+        // Once LBC has the parcel a reset here would put a moving parcel
+        // back in To Pack, so only a booking still waiting for its rider can
+        // be cancelled. QuadX and SPX refuse that case themselves; LBC
+        // cannot be asked, so it is refused here.
+        $status = Order::where('courier_tracking_number', $trackingNumber)
+            ->where('courier_provider', $this->getKey())
+            ->value('courier_status');
+        if ($status !== null && $status !== '' && !in_array($status, $this->cancelableStatuses(), true)) {
+            $said = LbcTrackingStatus::LABELS[$status] ?? $status;
+
+            return ['success' => false, 'error' => "LBC already has this parcel ({$said}), so it cannot be cancelled here. Call LBC to recall it."];
+        }
+
+        Log::info('LBC booking cancelled locally; LBC itself is not told', ['tracking_no' => $trackingNumber]);
+
+        return ['success' => true];
     }
 
-    /** LBC creates nothing yet, so no order can be sitting in courier_status='creating' for it. */
+    public function localCancelNotice(): string
+    {
+        return 'LBC has no cancel API. Call LBC to void this booking.';
+    }
+
+    /** LBC books synchronously, so no order is ever left in courier_status='creating'. */
     public function resolvePendingCreation(Order $order): ?string
     {
         return null;
     }
 
+    /**
+     * Track and Trace for one number. "No Record Found" is not a failure: it
+     * is what LBC answers until a rider first scans the parcel, so it reports
+     * success with no new status and leaves the booking as it is.
+     */
     public function getTracking(string $trackingNumber): array
     {
-        return ['success' => false, 'error' => $this->notBuilt('Tracking')];
-    }
+        try {
+            $answer = app(LbcClient::class)->track($trackingNumber);
+        } catch (LbcException $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
 
-    public function terminalStatuses(): array
-    {
-        return [];
-    }
+        $code = (string) ($answer['status_code'] ?? '');
 
-    public function cancelableStatuses(): array
-    {
-        return [];
+        if ($code === '201') {
+            return ['success' => true, 'status' => null, 'timeline' => [], 'raw' => ['status_code' => $code, 'status_message' => $answer['status_message']]];
+        }
+
+        if ($code !== '0001') {
+            $said = trim($code . ' ' . (string) ($answer['status_message'] ?? ''));
+
+            return ['success' => false, 'error' => $said !== '' ? "LBC answered {$said}." : 'LBC did not answer.'];
+        }
+
+        $read = LbcTrackingStatus::fromHistory($answer['history']);
+
+        return [
+            'success' => true,
+            'status' => $read['status'],
+            'timeline' => $read['timeline'],
+            'raw' => ['status_code' => $code, 'status_message' => $answer['status_message']],
+        ];
     }
 
     /**
-     * Unreachable: FulfillmentService::phaseFor() short-circuits to `to_pack`
-     * when no tracking number exists, and no LBC booking can exist. The
-     * interface forbids returning `to_pack` here and offers no "no opinion"
-     * value, so this returns the most neutral real bucket rather than
-     * inventing a state: it describes nothing, because there is nothing.
+     * Delivered, remitted, returned or cancelled: the poll stops asking. A
+     * failed attempt is not final, because LBC re-delivers.
      */
+    public function terminalStatuses(): array
+    {
+        return [LbcTrackingStatus::DELIVERED, LbcTrackingStatus::COD_REMITTED, LbcTrackingStatus::RETURNED, LbcTrackingStatus::CANCELED, 'cancelled'];
+    }
+
+    /** Before a rider has the parcel. The cancel is local only either way. */
+    public function cancelableStatuses(): array
+    {
+        return [LbcTrackingStatus::BOOKED, LbcTrackingStatus::UNCONFIRMED];
+    }
+
     public function statusPhase(?string $status): array
     {
-        return ['phase' => 'to_handover', 'step' => 1, 'failed' => false];
+        return LbcTrackingStatus::phase($status);
     }
 
-    /** LBC's rate card is not wired, and a figure nobody quoted is worse than no figure. */
+    /**
+     * Before pickup nothing changes until a rider scans the parcel, so an
+     * hour between questions is enough; once it moves, half an hour.
+     */
+    public function pollIntervalMinutes(?string $status): int
+    {
+        return in_array((string) $status, ['', LbcTrackingStatus::BOOKED, LbcTrackingStatus::UNCONFIRMED], true) ? 60 : 30;
+    }
+
+    /**
+     * LBC's rate for the delivery barangay, from the serviceability check.
+     * An estimate for the admin only: LBC bills against the account, and
+     * checkout never asks a courier for a rate.
+     */
     public function estimateFee(Order $order, array $options): ?object
     {
-        return null;
+        if (!$this->isEnabled()) {
+            return null;
+        }
+
+        try {
+            $area = $this->resolver(ServiceabilityService::TIMEOUT_SECONDS * 2)
+                ->resolve($order->shipping_barangay, $order->shipping_city, $order->shipping_state);
+        } catch (LbcException) {
+            return null;
+        }
+
+        if ($area->serviceable !== true || $area->rate === null || $area->rate <= 0) {
+            return null;
+        }
+
+        return (object) [
+            'amount' => $area->rate,
+            'currency' => 'PHP',
+            'label' => '₱' . number_format($area->rate, 2) . ' (LBC estimate)',
+            'shipping' => $area->rate,
+            'insurance' => null,
+            'total' => $area->rate,
+            'estimate' => true,
+            'category' => $area->category,
+        ];
     }
 
-    /*
-     * checkServiceability() is inherited from AnswersUnknownServiceability.
-     * LBC publishes a real coverage endpoint (/camsbackend/validate/
-     * validateServicableArea, which answers "Serviceable"/"Non-Serviceable"
-     * plus a rate and a rate category for a PSGC code), but nothing calls it
-     * yet, and `unknown` is the sanctioned way to say "we did not ask".
+    /**
+     * Whether LBC serves the delivery barangay, from its own search and
+     * serviceability check, asked by PSGC code. An address LBC's search
+     * cannot find, or a check that did not answer, is not a refusal.
      */
+    public function checkServiceability(Order $order): ServiceabilityVerdict
+    {
+        if (!$this->isEnabled()) {
+            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
+        }
 
-    /** LBC's pickup scheduling lives in the Pickup Request API, which is not wired. */
+        try {
+            $area = $this->resolver(ServiceabilityService::TIMEOUT_SECONDS)
+                ->resolve($order->shipping_barangay, $order->shipping_city, $order->shipping_state);
+        } catch (LbcException) {
+            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
+        }
+
+        if ($area->serviceable === true) {
+            return ServiceabilityVerdict::serviceable();
+        }
+
+        if ($area->serviceable === false) {
+            return ServiceabilityVerdict::notServiceable(ServiceabilityVerdict::KIND_DESTINATION, $area->status);
+        }
+
+        $problem = $area->problems[0] ?? null;
+        if ($problem === null || str_contains($problem, 'could not answer')) {
+            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
+        }
+
+        return ServiceabilityVerdict::unknown(null, $problem);
+    }
+
+    /**
+     * The dates a pickup can be asked for, Monday to Saturday from the next
+     * business day. The booking form uses a date picker; this list serves
+     * callers that choose from a list (the ERP). The value is what
+     * `pickup_slot` carries for LBC: a date, Y-m-d.
+     */
     public function getPickupSlots(Order $order): array
     {
-        return [];
+        $date = self::firstPickupDate();
+        $slots = [];
+
+        while (count($slots) < self::PICKUP_SLOT_COUNT) {
+            if (!$date->isSunday()) {
+                $slots[] = ['value' => $date->format('Y-m-d'), 'label' => $date->format('D, M j')];
+            }
+            $date = $date->addDay();
+        }
+
+        return $slots;
     }
 
+    /**
+     * The Air Waybill, rendered by LBC from the request this booking sent
+     * (kept in courier_meta), then stored so every later print serves the
+     * same file without asking LBC again. LBC renders whatever it is sent,
+     * so the label is never rebuilt from today's order or settings.
+     */
     public function printLabel(string $trackingNumber, string $format): array
     {
-        return ['success' => false, 'error' => $this->notBuilt('Printing a waybill')];
+        $order = Order::where('courier_tracking_number', $trackingNumber)
+            ->where('courier_provider', $this->getKey())
+            ->first();
+        if (!$order) {
+            return ['success' => false, 'error' => 'No LBC booking found for this tracking number.'];
+        }
+
+        if (($this->statusPhase($order->courier_status)['phase'] ?? null) === 'cancelled') {
+            return ['success' => false, 'error' => 'This LBC booking is cancelled, so its waybill is void.'];
+        }
+
+        $path = self::labelStoragePath($trackingNumber);
+        $disk = Storage::disk('local');
+
+        if (!$disk->exists($path)) {
+            $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+            $request = $meta['pickup_request'] ?? null;
+            if (!is_array($request) || ($request['TrackingNo'] ?? null) !== $trackingNumber) {
+                return ['success' => false, 'error' => 'This booking has no stored LBC request, so its waybill cannot be made.'];
+            }
+
+            try {
+                $label = (new LbcWaybillBuilder())->label($request, (string) ($request['Shipper'] ?? ''), (string) $order->courier_comment);
+                $pdf = app(LbcClient::class)->generateWaybill($label);
+            } catch (LbcException $e) {
+                return ['success' => false, 'error' => 'The LBC waybill could not be made. ' . $e->getMessage()];
+            } catch (\Throwable $e) {
+                Log::warning('LBC waybill failed', ['order' => $order->id, 'error' => $e->getMessage()]);
+
+                return ['success' => false, 'error' => 'The LBC waybill could not be made. Try again in a moment.'];
+            }
+
+            if ($pdf === null) {
+                return ['success' => false, 'error' => 'LBC returned no waybill PDF. Try again in a moment.'];
+            }
+
+            $disk->put($path, $pdf);
+        }
+
+        return [
+            'success' => true,
+            'url' => route('admin.fulfillment.label-file', ['order' => $order->id]),
+        ];
     }
 
-    /** No webhook is registered for LBC, and an event list invented here would be fiction. */
+    /** Where a rendered waybill is kept; FulfillmentController::labelFile() reads the same path. */
+    public static function labelStoragePath(string $trackingNumber): string
+    {
+        return 'courier-labels/lbc/' . $trackingNumber . '.pdf';
+    }
+
+    /** LBC pushes nothing: tracking is polled. */
     public function parseWebhook(array $payload): array
     {
         return [];
     }
 
-    public function trackingLinks(Order $order): array
+    public function publicTrackingUrl(string $trackingNumber, array $courierMeta): ?string
     {
-        return [];
+        $trackingNumber = trim($trackingNumber);
+
+        return $trackingNumber === '' ? null : self::PUBLIC_TRACKER_URL . rawurlencode($trackingNumber);
     }
 
-    /**
-     * Deliberately makes NO outbound call. There is no LBC client to test
-     * with, and a request built here would be guesswork against a live
-     * gateway using the owner's real subscription quota.
-     */
+    public function trackingLinks(Order $order): array
+    {
+        $url = $this->publicTrackingUrl((string) $order->courier_tracking_number, []);
+
+        return $url ? [['label' => 'Track', 'url' => $url]] : [];
+    }
+
+    /** A read-only city search on the Common API key. Books nothing. */
     public function testConnection(): array
     {
-        return ['ok' => false, 'message' => 'Nothing to test yet: LBC has settings but no client.'];
+        if ($this->subscriptionKey('common') === null) {
+            return ['ok' => false, 'message' => 'The Common API key is not set.'];
+        }
+
+        try {
+            $rows = app(LbcClient::class)->withTimeout(10)->searchCities('makati', null, 1);
+        } catch (LbcException $e) {
+            return ['ok' => false, 'message' => $e->getMessage()];
+        }
+
+        return $rows !== null
+            ? ['ok' => true, 'message' => 'Connected. LBC answered an address search.']
+            : ['ok' => false, 'message' => 'LBC did not answer an address search. Check the Common API key.'];
+    }
+
+    /** LBC publishes no status list; its words come from the Track and Trace guide. */
+    public function publishesStatusList(): bool
+    {
+        return false;
     }
 
     public function refreshStatusLabels(): array
     {
-        return ['ok' => false, 'error' => $this->notBuilt('Reading LBC statuses')];
+        return ['ok' => false, 'error' => 'LBC publishes no status list. Its statuses are listed below already.'];
+    }
+
+    /** @return array<string, string> */
+    public function statusLabels(): array
+    {
+        return LbcTrackingStatus::LABELS;
+    }
+
+    public function mappableStatuses(): array
+    {
+        return array_merge(...array_values($this->mappableStatusGroups()));
+    }
+
+    /** @return array<string, list<string>> */
+    public function mappableStatusGroups(): array
+    {
+        return [
+            'Before pickup' => [LbcTrackingStatus::BOOKED, LbcTrackingStatus::UNCONFIRMED],
+            'Picked up, moving' => [
+                LbcTrackingStatus::PICKED_UP, LbcTrackingStatus::ENCODED, LbcTrackingStatus::RECEIVED,
+                LbcTrackingStatus::FORWARDED, LbcTrackingStatus::IN_TRANSIT, LbcTrackingStatus::READY_FOR_PICKUP,
+                LbcTrackingStatus::OUT_FOR_DELIVERY, LbcTrackingStatus::DELAYED,
+            ],
+            'Delivered' => [LbcTrackingStatus::DELIVERED, LbcTrackingStatus::COD_REMITTED],
+            'Failed attempt' => [LbcTrackingStatus::FAILED_ATTEMPT, LbcTrackingStatus::NEEDS_ATTENTION, LbcTrackingStatus::DAMAGED],
+            'Return to sender' => [LbcTrackingStatus::RETURNING, LbcTrackingStatus::RETURNED],
+        ];
+    }
+
+    /** @return array<string, string> raw status => Venta status name, or '@booked' */
+    public function suggestedStatusMap(): array
+    {
+        $groups = $this->mappableStatusGroups();
+        $map = [];
+        foreach ($groups['Before pickup'] as $status) {
+            $map[$status] = '@booked';
+        }
+        foreach ($groups['Picked up, moving'] as $status) {
+            $map[$status] = 'Shipped';
+        }
+        $map[LbcTrackingStatus::DELIVERED] = 'Delivered';
+        $map[LbcTrackingStatus::COD_REMITTED] = 'Delivered';
+
+        return $map;
     }
 
     /**
-     * Empty on purpose, which hides the status-mapping table on this
-     * courier's settings page entirely (see settings-courier.blade.php).
-     * LBC's vocabulary IS documented (Track and Trace V2's Table 6.0 gate
-     * status IDs), but nothing reads a status map until the SOAP tracking
-     * client exists, and a table that persists choices nothing acts on is
-     * configuration theatre.
+     * How much of the tracking number block is left, for the settings page.
+     * Null until both ends are saved; carries an `error` when they do not
+     * make a block.
+     *
+     * @return array{first:int,last:int,size:int,remaining:int,next:?int,near_end:bool,after:string}|array{error:string,after:string}|null
      */
-    public function mappableStatuses(): array
+    public function trackingNumberSeriesStatus(): ?array
     {
-        return [];
+        $stored = Setting::where('group', 'courier')->whereIn('key', self::TRACKING_SERIES_KEYS)->pluck('value', 'key');
+        $first = trim((string) ($stored[self::TRACKING_SERIES_KEYS[0]] ?? ''));
+        $last = trim((string) ($stored[self::TRACKING_SERIES_KEYS[1]] ?? ''));
+
+        // Shown under the field that completes the block.
+        $after = ['after' => self::TRACKING_SERIES_KEYS[1]];
+
+        if ($first === '' || $last === '') {
+            return null;
+        }
+        if (!ctype_digit($first) || !ctype_digit($last)) {
+            return ['error' => 'The tracking series numbers must be digits only.'] + $after;
+        }
+
+        try {
+            return app(TrackingNumberSeriesService::class)->status($this->getKey(), (int) $first, (int) $last) + $after;
+        } catch (TrackingNumberSeriesException $e) {
+            return ['error' => $e->getMessage()] + $after;
+        }
     }
 
-    private function notBuilt(string $what): string
+    /** The tracking number the next booking would take, or null when none can be issued. */
+    public function nextTrackingNumber(): ?string
     {
-        return $what . ' with LBC is not implemented yet.';
+        $status = $this->trackingNumberSeriesStatus();
+
+        return isset($status['next']) && $status['remaining'] > 0 ? (string) $status['next'] : null;
+    }
+
+    private function resolver(int $timeout): LbcAreaResolver
+    {
+        return new LbcAreaResolver(app(LbcClient::class)->withTimeout($timeout));
     }
 }

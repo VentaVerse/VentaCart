@@ -3,6 +3,7 @@
 namespace Extensions\CourierFulfillment\Console\Commands;
 
 use App\Models\Order;
+use Extensions\CourierFulfillment\Contracts\ThrottlesStatusPolling;
 use Extensions\CourierFulfillment\CourierManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -34,6 +35,7 @@ class PollCourierStatus extends Command
         $checked = 0;
         $updated = 0;
         $failed = 0;
+        $skipped = 0;
 
         foreach ($couriers as $courier) {
             $terminal = $courier->terminalStatuses();
@@ -50,9 +52,20 @@ class PollCourierStatus extends Command
                 })
                 ->get();
 
+            $throttled = $courier instanceof ThrottlesStatusPolling;
+
             foreach ($orders as $order) {
-                $checked++;
                 $old = $order->courier_status;
+                $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+
+                // A courier that asks to be polled less often than this
+                // command runs is skipped until its interval has passed.
+                if ($throttled && self::polledRecently($meta, $courier->pollIntervalMinutes($old))) {
+                    $skipped++;
+                    continue;
+                }
+
+                $checked++;
 
                 try {
                     $result = $courier->getTracking($order->courier_tracking_number);
@@ -61,6 +74,7 @@ class PollCourierStatus extends Command
                     Log::warning('courier:poll-status getTracking threw', [
                         'order' => $order->id, 'courier' => $courier->getKey(), 'error' => $e->getMessage(),
                     ]);
+                    $this->markPolled($order, $meta, $throttled);
                     continue;
                 }
 
@@ -69,6 +83,7 @@ class PollCourierStatus extends Command
                     Log::info('courier:poll-status tracking failed', [
                         'order' => $order->id, 'courier' => $courier->getKey(), 'error' => $result['error'] ?? 'unknown',
                     ]);
+                    $this->markPolled($order, $meta, $throttled);
                     continue;
                 }
 
@@ -80,8 +95,11 @@ class PollCourierStatus extends Command
                 // actually differs — keeps this a no-op write on unchanged polls.
                 $links = $result['links'] ?? null;
                 $timeline = $result['timeline'] ?? null;
-                $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
                 $metaChanged = false;
+                if ($throttled) {
+                    $meta['last_polled_at'] = now()->toIso8601String();
+                    $metaChanged = true;
+                }
                 if (!empty($links) && ($meta['tracking_links'] ?? null) !== $links) {
                     $meta['tracking_links'] = $links;
                     $metaChanged = true;
@@ -147,13 +165,40 @@ class PollCourierStatus extends Command
             }
         }
 
-        $summary = "Polled {$checked} in-flight order(s): {$updated} updated, {$failed} failed.";
+        $summary = "Polled {$checked} in-flight order(s): {$updated} updated, {$failed} failed."
+            . ($skipped > 0 ? " {$skipped} not due yet." : '');
         if ($pendingChecked > 0) {
             $summary = "Resolved {$pendingResolved}/{$pendingChecked} pending async creation(s). " . $summary;
         }
         $this->info($summary);
 
         return self::SUCCESS;
+    }
+
+    /** Asked within the last $minutes, by the courier_meta stamp markPolled() writes. */
+    private static function polledRecently(array $meta, int $minutes): bool
+    {
+        $last = $meta['last_polled_at'] ?? null;
+        if (!is_string($last) || $last === '') {
+            return false;
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($last)->addMinutes(max(1, $minutes))->isFuture();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /** Stamp a throttled courier's order as asked, even when the answer failed. */
+    private function markPolled(Order $order, array $meta, bool $throttled): void
+    {
+        if (!$throttled) {
+            return;
+        }
+
+        $meta['last_polled_at'] = now()->toIso8601String();
+        $order->forceFill(['courier_meta' => json_encode($meta)])->save();
     }
 
     /**

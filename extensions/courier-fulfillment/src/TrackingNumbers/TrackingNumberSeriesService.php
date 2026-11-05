@@ -74,6 +74,51 @@ class TrackingNumberSeriesService
     }
 
     /**
+     * How much of a block is left, for the settings page. Reads only.
+     *
+     * `remaining` counts every number that can still be issued, the next one
+     * included: the never-issued tail of the block plus any released number.
+     *
+     * @return array{first:int, last:int, size:int, remaining:int, next:?int, near_end:bool}
+     */
+    public function status(string $courier, int $first, int $last): array
+    {
+        $this->assertRange($first, $last);
+
+        $size = $last - $first + 1;
+        $series = $this->series()->where('courier', $courier)->where('first_number', $first)->first();
+
+        if ($series === null) {
+            $this->assertNoOverlap($courier, $first, $last, null);
+            $remaining = $size;
+            $next = $first;
+        } else {
+            $this->assertSameEnd($series, $last);
+
+            $released = $this->numbers()
+                ->where('series_id', $series->id)
+                ->where('status', TrackingNumber::RELEASED);
+
+            $unissued = $series->last_issued_number === null ? $size : max(0, $last - $series->last_issued_number);
+            $remaining = $unissued + (clone $released)->count();
+
+            $lowestReleased = (clone $released)->min('number');
+            $next = $lowestReleased !== null
+                ? (int) $lowestReleased
+                : ($unissued > 0 ? ($series->last_issued_number === null ? $first : $series->last_issued_number + 1) : null);
+        }
+
+        return [
+            'first' => $first,
+            'last' => $last,
+            'size' => $size,
+            'remaining' => $remaining,
+            'next' => $next,
+            'near_end' => $remaining <= (int) ceil($size * self::WARN_REMAINING_FRACTION),
+        ];
+    }
+
+    /**
      * Take the next number for a request about to be sent.
      *
      * @throws TrackingNumberSeriesException when the block is used up or misconfigured

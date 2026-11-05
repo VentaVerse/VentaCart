@@ -31,32 +31,29 @@ class LbcParcelOptionsTest extends TestCase
         app(\App\Services\ExtensionManager::class)->bootEnabled();
     }
 
-    public function test_the_list_is_the_products_this_store_ships(): void
+    public function test_the_list_is_lbcs_packaging_table(): void
     {
         $options = (new LbcFulfillment())->getParcelOptions();
 
         $this->assertSame([
+            '16' => 'Own box',
+            '165' => 'Kilobox Mini',
+            '6' => 'Kilobox Small',
+            '164' => 'Kilobox Slim',
+            '63' => 'Kilobox Medium',
+            '7' => 'Kilobox Large',
+            '64' => 'Kilobox XL',
             '45' => 'N-Pack Small',
             '8' => 'N-Pack Large',
-            '165' => 'KB Mini',
-            '6' => 'KB Small',
-            '164' => 'KB Slim',
-            '63' => 'KB Medium',
-            '7' => 'KB Large',
-            '64' => 'KB XL',
-            '16' => 'Own packaging',
+            '62' => 'N-Pouch SS',
+            '3' => 'N-Pouch Regular',
+            '61' => 'N-Pouch XL',
+            '9' => 'X-Pouch',
+            '2' => 'Plastic',
+            '4' => 'Crate',
+            '79' => 'Piece',
+            '80' => 'Sack',
         ], array_column($options, 'label', 'value'));
-    }
-
-    /** LBC's catalogue also carries packaging this store does not send. */
-    public function test_packaging_the_store_does_not_ship_is_not_offered(): void
-    {
-        $codes = array_column((new LbcFulfillment())->getParcelOptions(), 'value');
-
-        // PLASTIC 2, CRATE 4, PIECE 79, SACK 80, and the document-only pouches.
-        foreach (['2', '4', '79', '80', '3', '9', '61', '62'] as $unshipped) {
-            $this->assertNotContains($unshipped, $codes, "PKG {$unshipped} should not be offered.");
-        }
     }
 
     /** Own packaging is the one with no standard box behind it. */

@@ -6,8 +6,8 @@ namespace Extensions\CourierFulfillment\Contracts;
  * A courier that says what the shipment actually cost the store.
  *
  * Optional, like ProvidesPublicTrackingUrl. Some couriers quote a price and
- * charge it; some bill against an account and never say; LBC issues no figure
- * at all because NGD is billed against advances. A courier that cannot answer
+ * charge it; some bill against an account and never say, as LBC does when it
+ * bills a store against its advances. A courier that cannot answer
  * leaves this unimplemented and the order simply has no shipping cost
  * recorded, which reads as "not known" rather than as free.
  *

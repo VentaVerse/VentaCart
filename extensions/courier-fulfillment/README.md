@@ -146,8 +146,9 @@ per-shipment links its API hands back. `FulfillmentService::resolveTrackingLink(
 same tracking number, so the two surfaces cannot disagree.
 
 A courier that does *not* implement `ProvidesPublicTrackingUrl` still falls
-back to its API's links, then to plain text. That path is unchanged: LBC and
-SPX are unaffected by this ruling.
+back to its API's links, then to plain text. SPX works that way. LBC
+implements it: its API returns no links, and every LBC parcel links to
+`https://www.lbcexpress.com/track/?tracking_no={number}`.
 
 ## What money reaches the courier
 
@@ -182,6 +183,69 @@ Insurance is separate and unaffected: `declared_value` stays 0 unless the
 admin ticks "Insure shipment", and it must always be sent explicitly, because
 omitting it makes QuadX silently default it to the order total and auto-insure
 every booking.
+
+## LBC
+
+Every LBC request is live. LBC runs no test system (both keys of a
+subscription reach the same live gateway, whatever LBC calls them) and has no
+cancel endpoint. So the adapter sends a pickup request once, never retries it,
+and the queue asks for a confirm step before anything is sent. The tests fake
+every LBC answer and refuse stray requests.
+
+**Tracking numbers come from the store.** LBC assigns a block; every booking
+takes the next number from `TrackingNumberSeriesService`. A definite rejection
+(LBC codes 101 to 152) releases the number for the next booking; an accepted
+or unknown answer spends it for good, and an unknown answer books the order as
+`unconfirmed` so it cannot be booked a second time before somebody checks with
+LBC. The courier's settings page shows how much of the block is left.
+
+**Cancel is local.** Cancelling resets the booking in this store, keeps the
+number spent, and says "LBC has no cancel API. Call LBC to void this booking."
+in the confirm dialog, the result, the order history and the ERP's answer. Once
+LBC has the parcel (any status after `booked` or `unconfirmed`), the cancel is
+refused.
+
+**Money.** When `FulfillmentService::isCodOrder()` says COD (the store's
+`cod_payment_methods` mapping), `CODAmount` and the waybill `Amount` are the
+order total, which includes the shipping the buyer paid, and the parcel is
+always insured. A prepaid parcel declares the order total when Insure is
+ticked and 0 when it is not. An insured value is never below ₱500
+(`LbcParcel::MIN_INSURED_DECLARED_VALUE`). LBC has still to confirm that it
+accepts a declared value of 0.
+
+**Rates.** LBC's serviceability check returns a rate for the delivery
+barangay. It is shown in the booking modal and returned by the estimate
+endpoint, labelled as an estimate. Checkout never asks for it.
+
+**Tracking** is polled (Track and Trace has no webhook): hourly before pickup,
+every half hour after, stopping at delivered, COD remitted or returned. Many
+LBC events share StatusId 0, so each event is read by its id and then by its
+text (`LbcTrackingStatus`).
+
+### What the ERP sends for an LBC booking
+
+The `api/v1` endpoints and their payload fields are the same as for QuadX;
+LBC reads them like this. Nothing new is added to the contract.
+
+| Field | For LBC |
+|---|---|
+| `courier` | `lbc` |
+| `service` | `REGULAR` (a rider collects; the default when omitted). `DROPOFF` is listed, disabled, and refused until drop-off is confirmed for the store. |
+| `parcel` | **Required.** LBC's PKG code from the `parcel_options` the serviceability answer lists, e.g. `16` own box, `165` Kilobox Mini, `6` Kilobox Small, `45` N-Pack Small. No default is guessed. |
+| `weight_kg` | The packed weight. When omitted, the products' own weights are used; when those are unknown the booking is refused. |
+| `length_cm`, `width_cm`, `height_cm` | Required for parcel `16`. Optional for LBC's own packaging (all three or none). |
+| `insure` | `true` declares the order total (at least ₱500). Ignored for COD, which is always insured. |
+| `pickup_slot` | The pickup date, `YYYY-MM-DD`, Monday to Saturday, from the next business day up to 30 days ahead. The `pickup-slots` endpoint lists the next ten. When omitted, the next business day. |
+| `shipping_payment` | `account` (freight is charged to the store's LBC account), the only option and the default. |
+| `buyer_payment` | `cod` or `prepaid`, as for QuadX. When omitted, the store's COD mapping decides. |
+| `pickup_address_id` | As for every courier. |
+
+`book-courier` answers `status: booked` (LBC saved it) or `status:
+unconfirmed` (LBC's answer was lost; check with LBC). `tracking` returns this
+module's status words (`picked_up`, `received`, `out_for_delivery`,
+`delivered`, ...), with each timeline event's LBC text in `detail`. `label`
+streams the waybill PDF. `cancel-booking` is local only (see above).
+`estimate` returns LBC's rate as `amount`, labelled `(LBC estimate)`.
 
 ## UAT / staging guidance
 

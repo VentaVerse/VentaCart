@@ -3,6 +3,7 @@
 namespace Extensions\CourierFulfillment\Couriers\Lbc;
 
 use App\Services\Address\DeepAddressData;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -45,6 +46,9 @@ class LbcAreaResolver
         '13' => 'MMA',
     ];
 
+    /** How long a matched barangay's PSGC code is remembered. */
+    private const LOCATION_CACHE_DAYS = 7;
+
     public function __construct(private readonly LbcClient $client)
     {
     }
@@ -61,17 +65,11 @@ class LbcAreaResolver
             return $area->withProblem('The address needs a barangay and a city for LBC.');
         }
 
-        $cityRow = $this->matchCity($city, $province);
-        if ($cityRow === null) {
-            return $this->withFallbackArea($area->withProblem("LBC's address search found no city matching \"{$city}\"."));
+        $location = $this->locate($barangay, $city, $province);
+        if (isset($location['problem'])) {
+            return $this->withFallbackArea($area->withProblem($location['problem']));
         }
-
-        $barangayRow = $this->matchBarangay($barangay, (int) $cityRow['cityId']);
-        if ($barangayRow === null) {
-            return $this->withFallbackArea($area->withProblem(
-                "LBC's address search found no barangay matching \"{$barangay}\" in {$cityRow['cityName']}."
-            ));
-        }
+        [$cityRow, $barangayRow] = [$location['city'], $location['barangay']];
 
         $psgc = self::padPsgc($barangayRow['barangayId']);
         $area = $area->withLocation(
@@ -102,6 +100,49 @@ class LbcAreaResolver
         }
 
         return $this->withFallbackArea($area);
+    }
+
+    /**
+     * LBC's city and barangay rows for an address, from its fuzzy search.
+     *
+     * A match is remembered for a week: a barangay's PSGC code does not move,
+     * and each booking and coverage check would otherwise spend two searches
+     * on an answer it already has. Whether LBC serves the barangay is never
+     * remembered here; that is asked again every time.
+     *
+     * @return array{city: array, barangay: array}|array{problem: string}
+     */
+    private function locate(string $barangay, string $city, string $province): array
+    {
+        $cacheKey = 'courier-fulfillment:lbc:psgc:' . sha1(implode('|', [
+            self::normalizeName($barangay), self::normalizeName($city), self::normalizeName($province),
+        ]));
+
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached) && isset($cached['city'], $cached['barangay'])) {
+            return $cached;
+        }
+
+        $cityRow = $this->matchCity($city, $province);
+        if ($cityRow === false) {
+            return ['problem' => 'LBC could not answer its address search.'];
+        }
+        if ($cityRow === null) {
+            return ['problem' => "LBC's address search found no city matching \"{$city}\"."];
+        }
+
+        $barangayRow = $this->matchBarangay($barangay, (int) $cityRow['cityId']);
+        if ($barangayRow === false) {
+            return ['problem' => 'LBC could not answer its address search.'];
+        }
+        if ($barangayRow === null) {
+            return ['problem' => "LBC's address search found no barangay matching \"{$barangay}\" in {$cityRow['cityName']}."];
+        }
+
+        $found = ['city' => $cityRow, 'barangay' => $barangayRow];
+        Cache::put($cacheKey, $found, now()->addDays(self::LOCATION_CACHE_DAYS));
+
+        return $found;
     }
 
     /** The area code a rate category names, or null when it names none. */
@@ -135,10 +176,14 @@ class LbcAreaResolver
         return trim($name);
     }
 
-    private function matchCity(string $city, string $province): ?array
+    /** @return array|null|false the one matching row, null for no single match, false when LBC did not answer */
+    private function matchCity(string $city, string $province): array|null|false
     {
         $wanted = self::normalizeName($city);
         $rows = $this->client->searchCities($wanted);
+        if ($rows === null) {
+            return false;
+        }
 
         $matches = array_values(array_filter($rows, fn ($r) => is_array($r)
             && isset($r['cityId'], $r['cityName'])
@@ -154,10 +199,14 @@ class LbcAreaResolver
         return count($matches) === 1 ? $matches[0] : null;
     }
 
-    private function matchBarangay(string $barangay, int $cityId): ?array
+    /** @return array|null|false the one matching row, null for no single match, false when LBC did not answer */
+    private function matchBarangay(string $barangay, int $cityId): array|null|false
     {
         $wanted = self::normalizeName($barangay);
         $rows = $this->client->searchBarangays($wanted, $cityId);
+        if ($rows === null) {
+            return false;
+        }
 
         $matches = array_values(array_filter($rows, fn ($r) => is_array($r)
             && isset($r['barangayId'], $r['barangayName'])

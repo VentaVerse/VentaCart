@@ -38,7 +38,7 @@ class LbcPickupProofOfConcept extends Command
         {--length=20 : Length in cm}
         {--width=15 : Width in cm}
         {--height=10 : Height in cm}
-        {--declared-value=500 : Declared value, at least 500}
+        {--declared-value=500 : Declared value: 0 (uninsured) or at least 500}
         {--mode=REGULAR : REGULAR (a rider collects) or DROPOFF (the parcel is brought to a branch)}
         {--business-days=3 : Preferred date, in business days from today}
         {--preferred-time=10:00:00 : Preferred time on that date, Asia/Manila}

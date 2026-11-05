@@ -13,6 +13,7 @@ use App\Support\NotifyChoice;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Extensions\CourierFulfillment\Contracts\CancelsLocallyOnly;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl;
 use Extensions\CourierFulfillment\Contracts\ReportsShippingCost;
@@ -610,6 +611,10 @@ class FulfillmentService
 
         $target = static::unbookedStatus($preBookingStatusId);
         $comment = 'Courier booking cancelled: ' . $tracking . ' (' . $courier->getName() . ').';
+        // A courier with no cancel endpoint was not told. Said in the history
+        // row and in the answer, so nobody believes the parcel is off.
+        $localNotice = $courier instanceof CancelsLocallyOnly ? ' ' . $courier->localCancelNotice() : '';
+        $comment .= $localNotice;
 
         if ($target && (int) $order->order_status_id !== (int) $target->id) {
             DB::transaction(function () use ($order, $target, $comment, $actorUserId) {
@@ -630,7 +635,7 @@ class FulfillmentService
                 'success' => true,
                 'tracking' => $tracking,
                 'order_status' => $target->name,
-                'message' => "Cancelled booking {$tracking} for order #{$order->id}. The order is back in To Ship, To Pack as {$target->name}.",
+                'message' => "Cancelled booking {$tracking} for order #{$order->id}. The order is back in To Ship, To Pack as {$target->name}." . $localNotice,
             ];
         }
 
@@ -646,9 +651,9 @@ class FulfillmentService
             'success' => true,
             'tracking' => $tracking,
             'order_status' => $order->status?->name,
-            'message' => $target
+            'message' => ($target
                 ? "Cancelled booking {$tracking} for order #{$order->id}. The order stays on {$currentName}, in To Ship, To Pack."
-                : "Cancelled booking {$tracking} for order #{$order->id}. No order status is placed under To Pack, so the order stays on {$currentName}. Place one under Extensions, Fulfillment, Status Mapping.",
+                : "Cancelled booking {$tracking} for order #{$order->id}. No order status is placed under To Pack, so the order stays on {$currentName}. Place one under Extensions, Fulfillment, Status Mapping.") . $localNotice,
         ];
     }
 
@@ -1011,6 +1016,9 @@ class FulfillmentService
             'courier'         => $courier->getKey(),
             'tracking_number' => $result['tracking_number'] ?? null,
             'status'          => $result['status'] ?? null,
+            // Something the operator must know about a booking that did go
+            // through (an unconfirmed answer, a tracking series running out).
+            'notice'          => $result['notice'] ?? null,
         ];
     }
 

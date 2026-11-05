@@ -531,6 +531,11 @@ class CourierSettingsController extends Controller
             'courierStatusGroups' => $courierStatusGroups,
             'statusMap'       => $statusMap,
             'orderStatuses'   => $orderStatuses,
+            // A courier that issues tracking numbers from a block of its own
+            // (LBC) says how much of it is left. Reads this store's data only.
+            'seriesStatus'    => method_exists($c, 'trackingNumberSeriesStatus') ? $c->trackingNumberSeriesStatus() : null,
+            // A courier that publishes no status list gets no Refresh button.
+            'canRefreshStatuses' => !method_exists($c, 'publishesStatusList') || $c->publishesStatusList(),
         ]);
     }
 

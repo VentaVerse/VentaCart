@@ -181,8 +181,10 @@ class FulfillmentController extends Controller
             ->with(['products' => function ($q) {
                 // Item rows for the two-tier table: snapshot name/sku/image on
                 // the line itself, live product image as the fallback.
-                $q->select('id', 'order_id', 'product_id', 'name', 'sku', 'image', 'variant_label', 'quantity')
-                    ->with('product:id,image');
+                // Weight columns too: the booking form prefills the parcel
+                // weight from them (Support\OrderWeight).
+                $q->select('id', 'order_id', 'product_id', 'product_variant_id', 'name', 'sku', 'image', 'variant_label', 'quantity')
+                    ->with(['product:id,image,weight,weight_unit', 'productVariant:id,weight']);
             }])
             ->withCount('products')
             ->latest();
@@ -263,6 +265,16 @@ class FulfillmentController extends Controller
                 'parcels'      => $c->getParcelOptions(),
                 'payments'     => $c->getShippingPaymentOptions(),
                 'mode'         => $courierSettings[$c->getKey() . '_mode'] ?? null,
+                // A courier may name its own environment chip (LBC always
+                // reads Live: it has no test system, whichever key is sent).
+                'modeLabel'    => method_exists($c, 'bookingModeLabel') ? $c->bookingModeLabel() : null,
+                // A courier that always insures a COD parcel: the form locks
+                // the Insure tickbox on for a COD order.
+                'insureLockedForCod' => method_exists($c, 'insuresCodOrders') && $c->insuresCodOrders(),
+                // Whatever else a courier's own step-2 fields need (LBC:
+                // pickup dates, the next tracking number, the confirm step).
+                // Only for a configured courier; reads this store's own data.
+                'booking'      => ($configured && method_exists($c, 'bookingFormContext')) ? $c->bookingFormContext() : null,
                 // The operator's configured defaults, so the booking form
                 // opens on what they chose rather than on whichever option
                 // happens to sit first in the courier's own list.
@@ -716,8 +728,13 @@ class FulfillmentController extends Controller
         // this flash key to auto-open the AWB in a new tab, with a visible
         // "Open AWB" button as the fallback for when a popup blocker
         // swallows the automatic open.
+        // A booking that went through but needs a follow-up (an unconfirmed
+        // answer, a tracking series running out) says so in the same toast,
+        // as a warning rather than a plain success.
+        $notice = trim((string) ($res['notice'] ?? ''));
+
         return back()
-            ->with('success', "Booked, tracking {$res['tracking_number']}.")
+            ->with($notice !== '' ? 'warning' : 'success', "Booked, tracking {$res['tracking_number']}." . ($notice !== '' ? ' ' . $notice : ''))
             ->with('label_url', route('admin.fulfillment.label', $order));
     }
 

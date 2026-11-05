@@ -149,3 +149,26 @@
 .v-ridertotal__sum {
     font-variant-numeric: tabular-nums;
 }
+
+/* LBC's parcel size: three short numbers on one line at every width, since
+   each holds at most a few digits and reading L x W x H together is the
+   point. */
+.v-lbcdims {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+/* The Insure tickbox when a courier insures every COD parcel: on, and
+   plainly not the operator's to change. */
+.v-toggle--locked { cursor: not-allowed; }
+.v-toggle--locked .v-toggle__track { opacity: .65; }
+
+/* The courier's own words under a timeline event, quieter than the status
+   they were read as. */
+.v-eventlist__detail {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--v-ink-3);
+}

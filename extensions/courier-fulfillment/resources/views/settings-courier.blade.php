@@ -108,6 +108,26 @@
                         'courierKey' => $courier->getKey(),
                         'isModeField' => $field['key'] === $modeFieldKey,
                     ])
+                    @if (!empty($seriesStatus) && ($seriesStatus['after'] ?? null) === $field['key'])
+                        {{-- How much of the courier's tracking number block is
+                             left, under the field that completes the block. --}}
+                        <div class="v-actrow v-gap-sm v-seriesline" data-series-status>
+                            @if (isset($seriesStatus['error']))
+                                <span class="v-badge v-badge--bad">{{ $seriesStatus['error'] }}</span>
+                            @else
+                                <span class="v-badge {{ $seriesStatus['near_end'] ? 'v-badge--warn' : 'v-badge--quiet' }}">{{ number_format($seriesStatus['remaining']) }} left of {{ number_format($seriesStatus['size']) }}</span>
+                                @if ($seriesStatus['remaining'] === 0)
+                                    <span class="v-tone-bad">Used up. Request a new block from {{ $courier->getName() }}.</span>
+                                @elseif ($seriesStatus['near_end'])
+                                    <span class="v-tone-warn">Running low. Request a new block from {{ $courier->getName() }}.</span>
+                                @endif
+                                @if ($seriesStatus['next'])
+                                    <span class="v-cell-quiet">Next <span class="v-mono">{{ $seriesStatus['next'] }}</span></span>
+                                @endif
+                                <x-admin.help text="{{ $courier->getName() }} does not issue a number per booking. It assigns this store a block, and each booking takes the next number from it. A number {{ $courier->getName() }} rejected is used again; one it accepted, or whose answer was lost, is never reused, even after a cancel. Ask for a new block well before this one runs out." />
+                            @endif
+                        </div>
+                    @endif
                 @endforeach
 
                 @if ($courier->getKey() === 'spx')
@@ -186,17 +206,19 @@
             </x-admin.panel>
 
             {{-- Order status mapping: courier status -> Venta order status.
-                 A courier that exposes no mappable vocabulary (LBC) gets no
-                 section at all rather than a table of column headings over
-                 nothing, and no "Refresh from" button for a list it cannot
-                 fetch. --}}
+                 A courier that exposes no mappable vocabulary gets no section
+                 at all rather than a table of column headings over nothing,
+                 and one that publishes no status list (LBC) gets no
+                 "Refresh from" button for a list it cannot fetch. --}}
             @if (!empty($courierStatuses))
                 <div class="v-gap">
                     <x-admin.panel title="Order status mapping" flush
                         note="A row left blank still tracks on the fulfillment page, it just never moves the order's own status.">
-                        <x-slot:acts>
-                            <button type="submit" form="refresh-statuses-form" class="v-btn v-btn--secondary v-btn--sm">Refresh from {{ $courier->getName() }}</button>
-                        </x-slot:acts>
+                        @if ($canRefreshStatuses ?? true)
+                            <x-slot:acts>
+                                <button type="submit" form="refresh-statuses-form" class="v-btn v-btn--secondary v-btn--sm">Refresh from {{ $courier->getName() }}</button>
+                            </x-slot:acts>
+                        @endif
                         <div class="v-tablewrap">
                             <table class="v-table">
                                 <thead>

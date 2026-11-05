@@ -13,20 +13,19 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
- * LBC, registered for its settings page and nothing else (owner directive,
- * 2026-08-14: "Create the settings UI first, I'll drop the keys, once drop,
- * you can test it").
+ * LBC's settings page and what it takes to switch LBC on. The booking,
+ * tracking and waybill flows are tested in the extension's own tests.
  *
  * Four things this file exists to pin, because all four are easy to break
  * later by accident:
  *
- *  1. LBC can never be enabled and never looks bookable. isEnabled() is
- *     false whatever the toggle and the keys say, and the booking modal
- *     therefore renders it in its existing inert "Not configured" state.
+ *  1. LBC is bookable only with every setting present: the toggle, the
+ *     active mode's four keys, the client code, the shipper account number
+ *     and the tracking number series. Anything less leaves it in the booking
+ *     modal's inert "Not configured" state, naming what is missing.
  *  2. Nothing here calls LBC. Http::preventStrayRequests() is on for the
- *     whole file, so a future adapter that starts reaching out from a
- *     settings-page code path fails this suite instead of spending the
- *     owner's real subscription quota.
+ *     whole file, so a settings-page code path that starts reaching out
+ *     fails this suite instead of sending a live request.
  *  3. The auth header is per API, not uniform (Pickup Request answers on
  *     Ocp-Apim-Subscription-Key, the other three on lbcOAkey). A wrong
  *     header returns a 401 that names the KEY, so this is pinned in a test
@@ -96,7 +95,7 @@ class FulfillmentLbcSettingsTest extends TestCase
     // The two honesty guarantees
     // ------------------------------------------------------------------
 
-    public function test_lbc_is_never_enabled_even_fully_credentialed(): void
+    public function test_keys_alone_do_not_enable_lbc(): void
     {
         $this->installExtension();
 
@@ -109,6 +108,7 @@ class FulfillmentLbcSettingsTest extends TestCase
 
         $lbc = CourierManager::get('lbc');
 
+        // No client code, account number or tracking series yet.
         $this->assertFalse($lbc->isEnabled());
         // The flag itself is still real: it is what puts LBC in the booking
         // modal's list at all, as the inert card.
@@ -123,7 +123,7 @@ class FulfillmentLbcSettingsTest extends TestCase
         ));
     }
 
-    public function test_configuration_issues_name_each_missing_key_and_always_the_missing_adapter(): void
+    public function test_configuration_issues_name_each_missing_setting_until_none_is_left(): void
     {
         $this->installExtension();
         $lbc = CourierManager::get('lbc');
@@ -138,7 +138,6 @@ class FulfillmentLbcSettingsTest extends TestCase
                 'Client code',
                 'Shipper Account No',
                 LbcFulfillment::NO_TRACKING_SERIES,
-                LbcFulfillment::NOT_BUILT,
             ],
             $lbc->configurationIssues()
         );
@@ -155,14 +154,21 @@ class FulfillmentLbcSettingsTest extends TestCase
         $this->assertContains('Track and Trace key', $issues);
         $this->assertContains('Pickup Request key', $issues);
 
-        // The adapter entry never leaves, whatever is filled in.
+        // Everything filled in: nothing is left to name, and LBC books.
         foreach ($this->schemaKeys() as $key) {
             Setting::updateOrCreate(
                 ['group' => 'courier', 'key' => $key],
-                ['value' => str_ends_with($key, '_key') ? Crypt::encryptString('k') : 'filled']
+                ['value' => match (true) {
+                    str_ends_with($key, '_key') => Crypt::encryptString('k'),
+                    $key === 'lbc_tracking_series_start' => '10000000000001',
+                    $key === 'lbc_tracking_series_end' => '10000000000100',
+                    $key === 'lbc_enabled' => '1',
+                    default => 'filled',
+                }]
             );
         }
-        $this->assertSame([LbcFulfillment::NOT_BUILT], $lbc->configurationIssues());
+        $this->assertSame([], $lbc->configurationIssues());
+        $this->assertTrue($lbc->isEnabled());
     }
 
     /**
@@ -208,43 +214,33 @@ class FulfillmentLbcSettingsTest extends TestCase
         $this->assertNotContains(LbcFulfillment::NO_TRACKING_SERIES, (new LbcFulfillment())->configurationIssues());
     }
 
-    public function test_every_operation_refuses_honestly_and_calls_nothing(): void
+    public function test_an_unconfigured_lbc_books_nothing_and_calls_nothing(): void
     {
         $this->installExtension();
         $lbc = CourierManager::get('lbc');
         $order = new \App\Models\Order();
 
         $this->assertFalse($lbc->createShipment($order, [])['success']);
-        $this->assertFalse($lbc->cancelShipment('X')['success']);
         $this->assertFalse($lbc->getTracking('X')['success']);
         $this->assertFalse($lbc->printLabel('X', 'zebra')['success']);
         $this->assertFalse($lbc->testConnection()['ok']);
-        $this->assertFalse($lbc->refreshStatusLabels()['ok']);
-
+        $this->assertFalse($lbc->refreshStatusLabels()['ok'], 'LBC publishes no status list to refresh from.');
         $this->assertNull($lbc->resolvePendingCreation($order));
         $this->assertNull($lbc->estimateFee($order, []));
         $this->assertSame([], $lbc->parseWebhook(['anything']));
-        $this->assertSame([], $lbc->trackingLinks($order));
-        $this->assertSame([], $lbc->getPickupSlots($order));
-        $this->assertSame([], $lbc->getServiceTypes());
-        $this->assertSame([], $lbc->getShippingPaymentOptions());
-
-        // Parcels are the ONE thing that is built: the packaging list was
-        // settled with the owner ahead of booking, so it is real here while
-        // everything around it still refuses. Its own contract lives in
-        // LbcParcelOptionsTest; this only asserts it is no longer empty, so
-        // the two do not restate each other.
-        $this->assertNotSame([], $lbc->getParcelOptions());
-        $this->assertSame([], $lbc->terminalStatuses());
-        $this->assertSame([], $lbc->cancelableStatuses());
-        $this->assertSame([], $lbc->mappableStatuses());
-
-        // The sanctioned "we did not ask" default, not a refusal: LBC's
-        // validateServicableArea exists but nothing calls it yet.
         $this->assertSame(
             \Extensions\CourierFulfillment\Support\ServiceabilityVerdict::UNKNOWN,
             $lbc->checkServiceability($order)->status
         );
+
+        // The booking form's lists are never empty, so a configured LBC can
+        // always be booked from them.
+        $this->assertNotSame([], $lbc->getServiceTypes());
+        $this->assertNotSame([], $lbc->getParcelOptions());
+        $this->assertNotSame([], $lbc->getShippingPaymentOptions());
+        $this->assertNotSame([], $lbc->mappableStatuses());
+        $this->assertContains('delivered', $lbc->terminalStatuses());
+        $this->assertSame(['booked', 'unconfirmed'], $lbc->cancelableStatuses());
     }
 
     // ------------------------------------------------------------------
@@ -385,7 +381,7 @@ class FulfillmentLbcSettingsTest extends TestCase
     // The page
     // ------------------------------------------------------------------
 
-    public function test_settings_page_renders_every_field_and_no_status_mapping_table(): void
+    public function test_settings_page_renders_every_field_and_the_status_mapping_table(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -410,10 +406,12 @@ class FulfillmentLbcSettingsTest extends TestCase
             // The gateway default is visible in the empty box, so the
             // operator can see where calls would go without saving first.
             ->assertSee(LbcFulfillment::DEFAULT_GATEWAY_URL, false)
-            // mappableStatuses() is empty, so the whole section is absent
-            // rather than a table of headings over nothing.
-            ->assertDontSee('lbc_status_map', false)
-            ->assertDontSee('Order status mapping')
+            // LBC's own status words, mappable to order statuses. LBC
+            // publishes no list of them, so there is nothing to refresh.
+            ->assertSee('lbc_status_map', false)
+            ->assertSee('Order status mapping')
+            ->assertSee('Picked up by LBC')
+            ->assertDontSee('Refresh from LBC')
             // No push API, so no webhook URL is offered for LBC anywhere.
             ->assertDontSee('/webhooks/courier/lbc', false);
 

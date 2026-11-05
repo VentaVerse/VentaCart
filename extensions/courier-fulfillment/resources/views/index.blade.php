@@ -381,6 +381,11 @@
                             // longer registered: it stays non-cancelable instead of erroring.
                             $cancelable = $activelyBooked && $orderCourier
                                 && (!$order->courier_status || in_array($order->courier_status, $orderCourier->cancelableStatuses(), true));
+                            // Cancelling with a courier that has no cancel
+                            // endpoint only resets the booking here.
+                            $localCancelNotice = $orderCourier instanceof \Extensions\CourierFulfillment\Contracts\CancelsLocallyOnly
+                                ? $orderCourier->localCancelNotice()
+                                : null;
 
                             // The row's tab: its core status placement, nothing
                             // else (FulfillmentService::tabBucket()). It is the
@@ -508,6 +513,10 @@
                                     $timeline[] = [
                                         'label' => $humanizeStatus((string) $event['status'], $order->courier_provider),
                                         'at' => \Carbon\Carbon::createFromTimestamp($event['at'])->timezone(config('app.timezone'))->format('M j, Y g:ia'),
+                                        // The courier's own words for the event, where it
+                                        // gives them (LBC: "Shipment has been received at
+                                        // its branch"), under the status they were read as.
+                                        'detail' => (isset($event['detail']) && is_string($event['detail']) && $event['detail'] !== '') ? $event['detail'] : null,
                                     ];
                                 }
                             }
@@ -562,6 +571,8 @@
                                 'trackingNumber' => $order->courier_tracking_number,
                                 'provider' => strtoupper((string) $order->courier_provider),
                                 'courierStatus' => $order->courier_status,
+                                // The same words the row's status cell uses.
+                                'courierStatusLabel' => $order->courier_status ? $humanizeStatus((string) $order->courier_status, $order->courier_provider) : null,
                                 'trackingUrl' => $trackingUrl,
                                 'estimatedDelivery' => $estimatedDelivery,
                                 'creating' => $creating,
@@ -576,6 +587,17 @@
                                 'phaseLabel' => $spineLabel,
                                 'timeline' => $timeline,
                                 'buyerPaymentLabel' => $buyerPaymentLabel,
+                                // For a courier that insures every COD parcel
+                                // (the Insure tickbox locks on) and prices the
+                                // declared value from the order total.
+                                'isCod' => $isCod,
+                                'total' => (float) $order->total,
+                                // A prefill for the booking form's weight, from
+                                // the products' own weights. Null asks instead.
+                                'weightKg' => \Extensions\CourierFulfillment\Support\OrderWeight::kg($order),
+                                // A courier with no cancel endpoint says so
+                                // wherever its booking can be cancelled.
+                                'localCancelNotice' => $localCancelNotice,
                                 // Where this parcel actually left from, snapshotted onto
                                 // courier_meta at booking time (FulfillmentService::book()),
                                 // so it stays true after the address is renamed or deleted.
@@ -786,7 +808,9 @@
                                         @endif
                                         @if ($offersCancelBooking)
                                             <x-admin.confirm name="cancel-fulfillment-{{ $order->id }}" title="Cancel booking for order #{{ $order->id }}?"
-                                                message="This cancels the courier booking. The order returns to To Pack for rebooking."
+                                                :message="$localCancelNotice
+                                                    ? 'This cancels the booking in this store only. ' . $localCancelNotice . ' The tracking number stays used, and the order returns to To Pack for rebooking.'
+                                                    : 'This cancels the courier booking. The order returns to To Pack for rebooking.'"
                                                 confirm="Cancel booking" :action="route('admin.fulfillment.cancel', $order)" method="POST" />
                                         @endif
                                         @if ($offersClearManual)
@@ -869,7 +893,12 @@
                                 <ul class="v-eventlist">
                                     <template x-for="(event, idx) in active.timeline" :key="idx">
                                         <li>
-                                            <span x-text="event.label"></span>
+                                            <span>
+                                                <span x-text="event.label"></span>
+                                                <template x-if="event.detail">
+                                                    <span class="v-eventlist__detail" x-text="event.detail"></span>
+                                                </template>
+                                            </span>
                                             <span x-text="event.at"></span>
                                         </li>
                                     </template>
@@ -975,7 +1004,7 @@
                                                 </template>
                                             </div>
                                             <div class="v-kv"><span>Courier</span><span x-text="active.provider"></span></div>
-                                            <div class="v-kv"><span>Status</span><span x-text="active.courierStatus || '-'"></span></div>
+                                            <div class="v-kv"><span>Status</span><span x-text="active.courierStatusLabel || active.courierStatus || '-'"></span></div>
                                             <template x-if="active.estimatedDelivery">
                                                 <div class="v-kv"><span>Est. delivery</span><span x-text="active.estimatedDelivery"></span></div>
                                             </template>
@@ -1007,6 +1036,13 @@
                                             <button type="button" class="v-btn v-btn--danger" @click="$dispatch('v-confirm', 'cancel-fulfillment-' + active.id)">Cancel booking</button>
                                         </template>
                                     </div>
+                                    {{-- Said beside the cancel it is about: this courier is not
+                                         told when a booking is cancelled here. --}}
+                                    <template x-if="active.canCancelBooking && active.localCancelNotice">
+                                        <div class="v-notice">
+                                            <span class="v-notice__text" x-text="active.localCancelNotice"></span>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
                         </div>
@@ -1109,7 +1145,9 @@
                                                         <span class="v-choicecard__mark v-choicecard__mark--drawn" aria-hidden="true"><x-admin.icon name="package" /></span>
                                                     @endif
                                                     <span class="v-choicecard__name">{{ $opt['name'] }}</span>
-                                                    @if (!empty($opt['mode']) && $opt['mode'] !== 'production')
+                                                    @if (!empty($opt['modeLabel']))
+                                                        <span class="v-choicecard__tags"><span class="v-choicecard__tag">{{ $opt['modeLabel'] }}</span></span>
+                                                    @elseif (!empty($opt['mode']) && $opt['mode'] !== 'production')
                                                         <span class="v-choicecard__tags"><span class="v-choicecard__tag">{{ ucfirst($opt['mode']) }}</span></span>
                                                     @endif
                                                     {{-- The cheapest parcel this courier quoted for
@@ -1220,9 +1258,14 @@
                                          additions to this form's own markup — both inert for
                                          submission. Every field name, value vocabulary, and the
                                          action URL stay byte-identical to the pre-T4 form. --}}
-                                    <form :action="bookAction" method="POST" class="v-settle" x-ref="bookForm" @change="onBookFormChange($event)">
+                                    {{-- @submit guards the one send: a second click while the
+                                         first request is on its way would book twice, and for a
+                                         courier with no cancel that cannot be undone. --}}
+                                    <form :action="bookAction" method="POST" class="v-settle" x-ref="bookForm" @change="onBookFormChange($event)"
+                                          @submit="if (submitting) { $event.preventDefault(); return; } submitting = true">
                                         @csrf
                                         <input type="hidden" name="courier" :value="courier">
+                                        <div class="v-settle" x-show="!confirming">
                                         <p class="v-panel__note">Shipping with <strong x-text="current.name"></strong></p>
                                         <template x-if="active.rebookable">
                                             <div class="v-well">
@@ -1271,7 +1314,7 @@
                                             <x-admin.field name="service" label="Schedule" required>
                                                 <select name="service" x-model="service" class="v-control">
                                                         <option value="">Choose one</option>
-                                                    <template x-for="o in current.services" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
+                                                    <template x-for="o in current.services" :key="o.value"><option :value="o.value" x-text="o.label" :disabled="!!o.disabled"></option></template>
                                                 </select>
                                             </x-admin.field>
                                             {{-- Each parcel carries the exact fee this
@@ -1288,11 +1331,22 @@
                                                 </select>
                                             </x-admin.field>
                                         </div>
-                                        <label class="v-toggle">
-                                            <input type="checkbox" name="insure" value="1">
+                                        {{-- Locked on for a COD order with a courier that always
+                                             insures COD (LBC): a disabled box posts nothing, so the
+                                             hidden twin carries the value, and the server forces it
+                                             anyway. --}}
+                                        <label class="v-toggle" :class="insureLocked && 'v-toggle--locked'">
+                                            <input type="checkbox" name="insure" value="1" x-model="insure" :disabled="insureLocked">
                                             <span class="v-toggle__track" aria-hidden="true"></span>
                                             <span>Insure shipment (declared at order total)</span>
+                                            <span class="v-req" x-show="insureLocked" x-cloak>Required for COD</span>
+                                            <template x-if="current.insureLockedForCod">
+                                                <x-admin.help text="A COD parcel is always insured, at the order total including shipping. An insured parcel is declared at no less than ₱{{ number_format(\Extensions\CourierFulfillment\Couriers\Lbc\LbcParcel::MIN_INSURED_DECLARED_VALUE) }}; an uninsured one at 0." />
+                                            </template>
                                         </label>
+                                        <template x-if="insureLocked">
+                                            <input type="hidden" name="insure" value="1">
+                                        </template>
                                         <div class="v-well">
                                             <div class="v-kv"><span>Buyer pays for goods</span><span x-text="active.buyerPaymentLabel"></span></div>
                                         </div>
@@ -1356,6 +1410,58 @@
                                              removes the fields from the DOM entirely whenever
                                              this courier isn't the chosen one — the ONLY safe way
                                              to make fields conditional on a shared <form>. --}}
+                                        {{-- LBC's own fields. x-if, never x-show, for the reason the
+                                             SPX block below gives: fields of a courier that is not
+                                             chosen must not post. The pickup date posts as
+                                             pickup_slot, the same field the ERP sends it in. --}}
+                                        @if (!empty($courierOptions['lbc']['booking']))
+                                        <template x-if="courier === 'lbc'">
+                                        <div class="v-settle">
+                                            <div class="v-grid v-grid--2">
+                                                <x-admin.field name="weight_kg" label="Weight (kg)" required hint="Prefilled from the products' own weights. Weigh the packed parcel and correct it.">
+                                                    <input name="weight_kg" type="number" step="0.01" min="0.01" inputmode="decimal" class="v-control" x-model="lbc.weight">
+                                                </x-admin.field>
+                                                <x-admin.field name="pickup_slot" label="Pickup date" required hint="The day an LBC rider collects, Monday to Saturday. The earliest is the next business day.">
+                                                    <input name="pickup_slot" type="date" class="v-control" x-model="lbc.pickupDate"
+                                                           :min="current.booking.pickupDateMin" :max="current.booking.pickupDateMax">
+                                                </x-admin.field>
+                                            </div>
+                                            <p class="v-subnote v-tone-bad" x-show="lbcSunday" x-cloak>LBC does not collect on Sundays. Choose another date.</p>
+
+                                            <div class="v-field" role="group" aria-labelledby="lbc-size-label">
+                                                <span class="v-field__label" id="lbc-size-label">
+                                                    Size (cm)
+                                                    <span class="v-req" x-show="lbcDimsRequired" x-cloak>Required</span>
+                                                    <x-admin.help text="Length, width and height of the packed parcel. Required for your own box. LBC publishes no standard sizes for its own packaging, so they can be left empty there." />
+                                                </span>
+                                                <div class="v-lbcdims">
+                                                    <input name="length_cm" type="number" step="0.1" min="0.1" inputmode="decimal" class="v-control" placeholder="Length" aria-label="Length (cm)" x-model="lbc.length">
+                                                    <input name="width_cm" type="number" step="0.1" min="0.1" inputmode="decimal" class="v-control" placeholder="Width" aria-label="Width (cm)" x-model="lbc.width">
+                                                    <input name="height_cm" type="number" step="0.1" min="0.1" inputmode="decimal" class="v-control" placeholder="Height" aria-label="Height (cm)" x-model="lbc.height">
+                                                </div>
+                                            </div>
+
+                                            {{-- LBC's own rate for the delivery barangay, from its
+                                                 coverage check. Admin only, and only ever an
+                                                 estimate: checkout never asks a courier for a rate,
+                                                 and LBC bills the store's account. --}}
+                                            <div class="v-well">
+                                                <div class="v-kv">
+                                                    <span>
+                                                        Rate estimate
+                                                        <x-admin.help text="LBC's rate for this barangay, from its coverage check. An estimate only: LBC bills your account, and the final charge can differ by parcel and weight." />
+                                                    </span>
+                                                    <span>
+                                                        <span class="v-mono" x-show="lbc.estimate" x-text="lbc.estimate"></span>
+                                                        <span class="v-subnote v-cell-quiet" x-show="lbc.estimateLoading" x-cloak>Checking&hellip;</span>
+                                                        <span class="v-subnote v-cell-quiet" x-show="!lbc.estimate && !lbc.estimateLoading" x-cloak x-text="lbc.estimateError || 'Not available'"></span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        </template>
+                                        @endif
+
                                         @if (isset($courierOptions['spx']))
                                         <template x-if="courier === 'spx'">
                                         <div class="v-settle">
@@ -1401,10 +1507,48 @@
 
                                         <div class="v-actrow">
                                             <button type="button" class="v-btn v-btn--ghost" @click="backToCouriers()">Back</button>
+                                            {{-- A courier that asks for a confirm step (every LBC
+                                                 request is live and cannot be cancelled) gets one
+                                                 here instead of the submit. --}}
                                             <button type="submit" class="v-btn v-btn--primary v-actrow__grow"
                                                     :disabled="!bookReady"
-                                                    :title="bookReady ? '' : 'Answer every choice above first'">Book shipment</button>
+                                                    :title="bookReady ? '' : 'Answer every choice above first'"
+                                                    @click="if (needsConfirm && !confirming) { $event.preventDefault(); confirming = true; }">Book shipment</button>
                                         </div>
+                                        </div>
+
+                                        {{-- The confirm step: what is about to be sent, and that it
+                                             is live. Inside the same form, so Send posts exactly the
+                                             fields the operator just checked. --}}
+                                        <template x-if="confirming">
+                                            <div class="v-settle" data-booking-confirm>
+                                                <div class="v-notice v-notice--bad">
+                                                    <span class="v-notice__title">Live booking.</span>
+                                                    <span class="v-notice__text" x-text="current.booking ? current.booking.confirmNotice : ''"></span>
+                                                </div>
+                                                <div class="v-well">
+                                                    <div class="v-kvs">
+                                                        <div class="v-kv"><span>Courier</span><span x-text="current.name"></span></div>
+                                                        <div class="v-kv"><span>Tracking number</span><span class="v-mono" x-text="(current.booking && current.booking.nextTrackingNumber) || 'None left in the series'"></span></div>
+                                                        <div class="v-kv"><span>Ships from</span><span x-text="pickupLabel"></span></div>
+                                                        <div class="v-kv"><span>Handover</span><span x-text="optionLabel(current.services, service)"></span></div>
+                                                        <div class="v-kv"><span>Pickup date</span><span x-text="lbcPickupDateLabel"></span></div>
+                                                        <div class="v-kv"><span>Parcel</span><span x-text="parcelName"></span></div>
+                                                        <div class="v-kv"><span>Weight</span><span class="v-mono" x-text="lbc.weight ? lbc.weight + ' kg' : ''"></span></div>
+                                                        <div class="v-kv"><span>Size</span><span class="v-mono" x-text="lbcSizeLabel"></span></div>
+                                                        <div class="v-kv"><span>Declared value</span><span class="v-mono" x-text="lbcDeclared > 0 ? peso(lbcDeclared) : 'None, uninsured'"></span></div>
+                                                        <div class="v-kv"><span>Buyer pays for goods</span><span x-text="active.buyerPaymentLabel"></span></div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-actrow">
+                                                    <button type="button" class="v-btn v-btn--ghost" @click="confirming = false">Back</button>
+                                                    <button type="submit" class="v-btn v-btn--primary v-actrow__grow" :disabled="submitting" data-booking-send>
+                                                        <span x-show="!submitting">Send to <span x-text="current.name"></span></span>
+                                                        <span x-show="submitting" x-cloak>Sending&hellip;</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </template>
                                     </form>
                                 </div>
 
@@ -1558,6 +1702,16 @@
                 spxEstimate: null,
                 spxEstimateError: null,
                 spxEstimateLoading: false,
+                // The Insure tickbox, held in state so a courier that always
+                // insures COD can lock it on (insureLocked).
+                insure: false,
+                // The confirm step a courier can ask for (needsConfirm), and
+                // the one-send guard the form's @submit sets.
+                confirming: false,
+                submitting: false,
+                // LBC's own step-2 fields. The estimate is LBC's rate for the
+                // delivery barangay, asked once when LBC is chosen.
+                lbc: { weight: '', pickupDate: '', length: '', width: '', height: '', estimate: null, estimateError: null, estimateLoading: false },
                 // Owner directive, 2026-08-19: what this shipment costs the
                 // store, quoted live for the choices currently on screen.
                 // riderSeq is the staleness guard — the quote is debounced and
@@ -1738,7 +1892,7 @@
                     return (fee === null || fee === undefined) ? option.label : (option.label + ' (' + this.peso(fee) + ')');
                 },
                 peso(amount) {
-                    return '₱' + Number(amount).toFixed(2);
+                    return '₱' + Number(amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 },
                 // Cash and GCash are handed over at pickup; net-off never is.
                 // The courier is named from its own registry entry rather than
@@ -1781,12 +1935,68 @@
                     if (!this.courier) return false;
                     // Only the choices that open unanswered gate the button.
                     // shipping_payment carries the courier's own default.
-                    return this.service !== '' && this.parcel !== '';
+                    if (this.service === '' || this.parcel === '') return false;
+                    // A courier with fields of its own (LBC) also needs a
+                    // weight, a pickup date it collects on, and either no
+                    // size or a whole one (required for the store's own box).
+                    if (this.current.booking) {
+                        if (!(Number(this.lbc.weight) > 0)) return false;
+                        if (!this.lbc.pickupDate || this.lbcSunday) return false;
+                        const given = this.lbcDimsGiven;
+                        if (given !== 0 && given !== 3) return false;
+                        if (this.lbcDimsRequired && given !== 3) return false;
+                    }
+                    return true;
+                },
+                get insureLocked() {
+                    return !!(this.current.insureLockedForCod && this.active && this.active.isCod);
+                },
+                get needsConfirm() {
+                    return !!(this.current.booking && this.current.booking.confirm);
+                },
+                get lbcSunday() {
+                    if (!this.lbc.pickupDate) return false;
+                    return new Date(this.lbc.pickupDate + 'T00:00:00').getDay() === 0;
+                },
+                get lbcDimsRequired() {
+                    const b = this.current.booking;
+                    return !!(b && (b.dimensionsRequiredFor || []).includes(this.parcel));
+                },
+                get lbcDimsGiven() {
+                    return [this.lbc.length, this.lbc.width, this.lbc.height].filter(v => Number(v) > 0).length;
+                },
+                // What the server will declare, shown on the confirm step: the
+                // order total when insured (never below the courier's floor),
+                // otherwise nothing. The server computes its own and wins.
+                get lbcDeclared() {
+                    if (!this.active || !(this.insureLocked || this.insure)) return 0;
+                    const floor = Number((this.current.booking || {}).insureFloor) || 0;
+                    return Math.max(Number(this.active.total) || 0, floor);
+                },
+                get lbcPickupDateLabel() {
+                    if (!this.lbc.pickupDate) return '';
+                    return new Date(this.lbc.pickupDate + 'T00:00:00')
+                        .toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                },
+                get lbcSizeLabel() {
+                    return this.lbcDimsGiven === 3
+                        ? this.lbc.length + ' x ' + this.lbc.width + ' x ' + this.lbc.height + ' cm'
+                        : 'Not given';
+                },
+                get pickupLabel() {
+                    const p = this.pickups.find(x => String(x.id) === String(this.pickupId));
+                    return p ? p.label : '';
+                },
+                optionLabel(list, value) {
+                    const found = (list || []).find(o => o.value === value);
+                    return found ? found.label : '';
                 },
                 openBooking(order) {
                     this.active = order;
                     this.courier = '';
                     this.manual = false;
+                    this.confirming = false;
+                    this.submitting = false;
                     this.step = 1;
                     this.bookOpen = true;
                     // Each booking starts from the store's default origin,
@@ -1879,6 +2089,12 @@
                     // acts on them.
                     this.service = '';
                     this.parcel = '';
+                    this.confirming = false;
+                    this.submitting = false;
+                    // Unticked unless this courier always insures a COD
+                    // parcel and this is one.
+                    this.insure = this.insureLocked;
+                    this.resetLbcState();
                     const opts = this.options[key] || {};
                     // Owner ruling 2026-09-03: who pays shipping keeps a real
                     // default (the courier's first option, cash on pickup) and
@@ -1895,16 +2111,56 @@
                     if (key === 'spx') {
                         this.loadSpxPickupSlots();
                     }
+                    if (opts.booking) {
+                        this.seedLbcState();
+                    }
+                },
+                resetLbcState() {
+                    this.lbc = { weight: '', pickupDate: '', length: '', width: '', height: '', estimate: null, estimateError: null, estimateLoading: false };
+                },
+                // Weight from the products' own weights, the first pickup day,
+                // no size (it is the packer's to measure), and LBC's rate for
+                // this barangay asked once.
+                seedLbcState() {
+                    const b = this.current.booking || {};
+                    this.lbc.weight = (this.active && this.active.weightKg) ? String(this.active.weightKg) : '';
+                    this.lbc.pickupDate = b.pickupDateDefault || '';
+                    this.loadLbcEstimate();
+                },
+                loadLbcEstimate() {
+                    if (!this.active) return;
+                    const askedFor = this.active.id;
+                    const body = new FormData();
+                    body.append('courier', this.courier);
+                    if (this.pickupId) body.append('pickup_address_id', this.pickupId);
+                    this.lbc.estimateLoading = true;
+                    this.lbc.estimateError = null;
+                    fetch(this.estimateAction, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                        body,
+                    })
+                        .then(r => r.json())
+                        .then(d => {
+                            if (!this.active || this.active.id !== askedFor) return;
+                            // The field is already named an estimate; the amount is enough.
+                            this.lbc.estimate = (d && d.ok) ? this.peso(d.amount) : null;
+                            this.lbc.estimateError = (d && d.ok) ? null : 'Not available';
+                        })
+                        .catch(() => { this.lbc.estimateError = 'Not available'; })
+                        .finally(() => { this.lbc.estimateLoading = false; });
                 },
                 backToCouriers() {
                     this.step = 1;
                     this.manual = false;
+                    this.confirming = false;
                     this.resetRiderQuote();
                 },
                 closeBooking() {
                     this.bookOpen = false;
                     this.step = 1;
                     this.manual = false;
+                    this.confirming = false;
                     this.resetRiderQuote();
                 },
                 resetSpxState() {
