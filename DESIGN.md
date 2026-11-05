@@ -217,13 +217,21 @@ caught in verification).
 - Test buttons test the values as typed: `testMail` accepts an
   `override` block applied to this request's mailer only, with a 10s
   transport cap so a dead host answers fast.
-- `x-admin.secret` (logic in `Alpine.data('vSecret')`): a stored
-  key rendered as twelve bullets plus its last-4 tail (passwords:
-  bullets only), read-only at rest. View fetches the plaintext on
-  demand through the hard-allowlisted `settings.reveal-secret`
-  endpoint; nothing decrypted ever rides in a rendered page. Edit
-  replaces; blank on submit means keep. Cancel re-checks the form on
-  the next tick so a clean form never shows the save bar.
+- `x-admin.secret` (logic in `resources/js/admin/secret.js`): a stored
+  key drawn as one input-shaped box with a control's edge, height and
+  radius. Saved, it shows sixteen bullets plus the last-4 tail
+  (passwords: bullets only; a narrow box drops half the bullets, never
+  the tail), with the tools inside the box's right edge: an eye that
+  shows and hides, Copy, a brass "Change" word, and a "more" menu that
+  holds Remove behind a confirm. Show and Copy fetch the value on demand
+  from a reveal endpoint (core's allowlisted `settings.reveal-secret`,
+  the courier module's `settings.reveal-secret` per courier); nothing
+  decrypted ever rides in a rendered page. Clicking the mask is Change
+  too: the box becomes an empty input, Cancel restores the mask. A
+  saved, untouched field posts nothing, so the server keeps the stored
+  value; Remove posts `removeName=removeValue` and is the only way to
+  clear one. Never saved: a plain input. The box draws the focus ring
+  for its value; each tool keeps its own. Tools grow to 44px on touch.
 - Destructive in-page actions (mark removal) run in place through
   `vPost` behind a two-step arm-confirm button (4s disarm), so
   typed edits elsewhere on the page survive them.
@@ -282,9 +290,8 @@ clean state, not a phantom edit. Dynamic editors that mutate hidden
 serialized inputs (the SPX pouch-preset rows) call touch() on add and
 remove, because Alpine :value bindings fire no input events.
 
-Secrets on v courier pages are never rendered, even masked: the field
-shows a password box whose help mark names the identifying tail; blank
-keeps the stored value (persist() already skips empty encrypted keys).
+Every encrypted courier field renders as `x-admin.secret`, whatever its
+schema type: the page carries the mask, never the value.
 
 Still v2, waiting for its own wave: the reviews pages (Sales area).
 

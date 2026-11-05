@@ -107,6 +107,12 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // a page for a courier that isn't registered.
         Route::get('/{courier}', [CourierSettingsController::class, 'show'])->name('settings.courier')->where('courier', '[a-z][a-z0-9_-]*');
         Route::post('/{courier}', [CourierSettingsController::class, 'updateCourier'])->name('settings.courier.update');
+        // One saved secret, decrypted, for the settings page's View
+        // button: the page itself carries only the mask. Throttled per
+        // admin (CourierFulfillmentServiceProvider's limiter).
+        Route::post('/{courier}/reveal-secret', [CourierSettingsController::class, 'revealSecret'])
+            ->middleware('throttle:courier-secret-reveal')
+            ->name('settings.reveal-secret');
         Route::post('/{courier}/test-connection', [CourierSettingsController::class, 'testConnection'])->name('test-connection');
         Route::post('/{courier}/refresh-statuses', [CourierSettingsController::class, 'refreshStatuses'])->name('settings.refresh-statuses');
         // Task T4: SPX-specific action (3.1 Create Account) — courier-

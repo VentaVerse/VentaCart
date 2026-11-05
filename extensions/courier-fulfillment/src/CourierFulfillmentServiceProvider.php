@@ -10,13 +10,35 @@ use App\Support\SettingsNav;
 use Extensions\CourierFulfillment\Console\Commands\ImportPickupAddressFromSettings;
 use Extensions\CourierFulfillment\Console\Commands\MigrateLbcKeysToModes;
 use Extensions\CourierFulfillment\Database\Seeders\CourierFulfillmentAutomationSeeder;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class CourierFulfillmentServiceProvider extends ServiceProvider
 {
+    /** Views of saved courier secrets one admin may make per minute. */
+    public const SECRET_REVEALS_PER_MINUTE = 10;
+
+    /** And per hour, so a steady trickle cannot add up either. */
+    public const SECRET_REVEALS_PER_HOUR = 60;
+
     public function boot(): void
     {
+        // The settings page's View button for a saved courier secret. Per
+        // admin, so one person viewing keys never throttles another, and
+        // tight enough that the endpoint cannot be used to read secrets in
+        // bulk.
+        RateLimiter::for('courier-secret-reveal', function (Request $request) {
+            $by = 'courier-secret-reveal:' . ($request->user()?->getAuthIdentifier() ?? $request->ip());
+
+            return [
+                Limit::perMinute(self::SECRET_REVEALS_PER_MINUTE)->by($by . ':minute'),
+                Limit::perHour(self::SECRET_REVEALS_PER_HOUR)->by($by . ':hour'),
+            ];
+        });
+
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');

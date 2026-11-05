@@ -4,6 +4,7 @@
 // Alpine that app.js boots. No page loads a second Alpine.
 import { registerMediaPicker } from './media-picker.js';
 import { registerMenuTree } from './menu-tree.js';
+import { registerSecret } from './secret.js';
 
 export function registerV(Alpine) {
     // The one image browser, replacing five hand-rolled copies.
@@ -206,41 +207,8 @@ export function registerV(Alpine) {
         },
     }));
 
-    Alpine.data('vSecret', (cfg) => { let root = null; return {
-        mode: cfg.display ? 'rest' : 'edit',
-        shown: null,
-        busy: false,
-
-        init() { root = this.$el; },
-
-        edit() {
-            this.mode = 'edit';
-            this.shown = null;
-            this.$nextTick(() => root.querySelector('input')?.focus());
-        },
-
-        cancel() {
-            this.mode = 'rest';
-            this.$nextTick(() => root.closest('form')?.dispatchEvent(new Event('input')));
-        },
-
-        async reveal() {
-            if (this.shown !== null) { this.shown = null; return; }
-            this.busy = true;
-            try {
-                const res = await fetch(cfg.revealUrl, {
-                    method: 'POST',
-                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || '' },
-                });
-                const body = await res.json();
-                if (body.ok) { this.shown = body.value; }
-                else { Alpine.store('toasts').push(body.message || 'Could not reveal the key.', 'danger'); }
-            } catch (e) {
-                Alpine.store('toasts').push('Could not reach the server.', 'danger');
-            }
-            this.busy = false;
-        },
-    }; });
+    // The stored-secret control behind x-admin.secret.
+    registerSecret(Alpine);
 }
 
 // The v window helpers ride along with the registrations: their last

@@ -104,7 +104,8 @@
                         'field' => $field,
                         'value' => $settings[$field['key']] ?? null,
                         'masked' => $masked[$field['key']] ?? null,
-                        'plain' => $plain[$field['key']] ?? null,
+                        'unreadable' => $unreadable[$field['key']] ?? false,
+                        'courierKey' => $courier->getKey(),
                         'isModeField' => $field['key'] === $modeFieldKey,
                     ])
                 @endforeach
@@ -160,7 +161,8 @@
                                 'field' => $field,
                                 'value' => $settings[$field['key']] ?? null,
                                 'masked' => $masked[$field['key']] ?? null,
-                                'plain' => $plain[$field['key']] ?? null,
+                                'unreadable' => $unreadable[$field['key']] ?? false,
+                                'courierKey' => $courier->getKey(),
                                 'isModeField' => false,
                             ])
                         @endforeach

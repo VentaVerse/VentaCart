@@ -12,6 +12,7 @@
 @import "./layout/shell.css";
 @import "./layout/embed.css";
 @import "./components/ui.css";
+@import "./components/secret.css";
 @import "./components/day.css";
 @import "./components/package-upload.css";
 @import "./components/menus.css";

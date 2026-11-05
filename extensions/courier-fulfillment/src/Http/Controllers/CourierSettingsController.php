@@ -8,10 +8,17 @@ use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
 use Extensions\CourierFulfillment\Database\Seeders\CourierFulfillmentAutomationSeeder;
+use Extensions\CourierFulfillment\Http\Requests\RevealCourierSecretRequest;
+use Extensions\CourierFulfillment\Http\Requests\UpdateCourierSettingsRequest;
 use Extensions\CourierFulfillment\PlacementMap;
+use Extensions\CourierFulfillment\Support\CourierSecrets;
 use App\Services\AutomationInput;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -115,12 +122,7 @@ class CourierSettingsController extends Controller
 
     private static function courierEncryptedKeys(CourierFulfillmentInterface $courier): array
     {
-        $keys = array_map(
-            fn (array $field) => $field['key'],
-            array_filter($courier->settingsSchema(), fn (array $field) => !empty($field['encrypted']))
-        );
-
-        return array_values(array_unique($keys));
+        return CourierSecrets::keys($courier);
     }
 
     /** The "{key}_mode"-suffixed schema field driving a courier's mode-scoped groups, or null. */
@@ -384,22 +386,19 @@ class CourierSettingsController extends Controller
         ];
         $schema = $c->settingsSchema();
 
-        // Decrypted alongside the mask, for schema fields declared
-        // type='secret', the one-field stored-key control the security
-        // settings page already uses, where View reveals the value in the
-        // same box it rests in. type='password' fields never render this,
-        // so QuadX's and SPX's own pages are unchanged: the value is
-        // computed, not printed.
+        // Every encrypted field renders as a stored-secret control: the
+        // mask (bullets plus the last four) is all the page carries, and
+        // View fetches the value from revealSecret() on click. A value that
+        // no longer decrypts (saved under a previous APP_KEY) is flagged so
+        // the control can say so and offer Edit instead of View.
         $masked = [];
-        $plain = [];
+        $unreadable = [];
         foreach (self::courierEncryptedKeys($c) as $k) {
             if (!empty($settings[$k])) {
                 try {
-                    $decrypted = Crypt::decryptString($settings[$k]);
-                    $plain[$k] = $decrypted;
-                    $masked[$k] = str_repeat('*', max(0, strlen($decrypted) - 4)) . substr($decrypted, -4);
-                } catch (\Throwable) {
-                    $masked[$k] = '********';
+                    $masked[$k] = CourierSecrets::mask(Crypt::decryptString($settings[$k]));
+                } catch (DecryptException) {
+                    $unreadable[$k] = true;
                 }
             }
         }
@@ -521,7 +520,7 @@ class CourierSettingsController extends Controller
             'courierState'    => $courierState,
             'settings'        => $settings,
             'masked'          => $masked,
-            'plain'           => $plain,
+            'unreadable'      => $unreadable,
             'topFields'       => $topFields,
             'modeGroups'      => $modeGroups,
             'modeFieldKey'    => $modeField['key'] ?? null,
@@ -608,32 +607,98 @@ class CourierSettingsController extends Controller
      * Per-courier save: restricted to the allowlist derived from THAT
      * courier's own schema (plus its status map). Unknown courier key -> 404.
      */
-    public function updateCourier(Request $request, string $courier)
+    public function updateCourier(UpdateCourierSettingsRequest $request, string $courier)
     {
         $c = CourierManager::get($courier);
         abort_if(!$c, 404);
 
+        $encryptedKeys = self::courierEncryptedKeys($c);
+
         $data = array_intersect_key(
-            $request->input('settings', []),
+            (array) $request->input('settings', []),
             array_flip(self::courierAllowedKeys($c))
         );
 
-        $this->persist($data, self::courierEncryptedKeys($c));
+        // A secret is cleared only when named in remove_secrets[] (the
+        // control's Remove action), never because its field came in blank.
+        // A new value typed for the same key in the same save wins.
+        $remove = array_values(array_filter(
+            array_intersect((array) $request->validated('remove_secrets', []), $encryptedKeys),
+            fn (string $key) => !is_string($data[$key] ?? null) || trim($data[$key]) === ''
+        ));
+
+        DB::transaction(function () use ($data, $encryptedKeys, $remove) {
+            $this->persist($data, $encryptedKeys);
+
+            if ($remove !== []) {
+                Setting::where('group', 'courier')->whereIn('key', $remove)->delete();
+            }
+        });
 
         return back()->with('success', $c->getName() . ' settings saved.');
     }
 
     /**
-     * Shared persistence: encrypt the given keys (blank submission keeps the
-     * stored secret), JSON-encode array values, upsert into group 'courier'.
-     * $data must already be allowlist-filtered by the caller.
+     * One saved secret of this courier, decrypted, for the settings page's
+     * View button. The page itself only ever carries the mask.
+     *
+     * Guarded like the page's own save (the route's permission entry), CSRF
+     * protected, rate limited per admin (the 'courier-secret-reveal'
+     * limiter), and limited to this courier's encrypted keys by the request.
+     * Each view is written to the application log with who looked at which
+     * field; the value itself is never logged.
+     */
+    public function revealSecret(RevealCourierSecretRequest $request, string $courier): JsonResponse
+    {
+        $c = CourierManager::get($courier);
+        abort_if(!$c, 404);
+
+        $key = (string) $request->validated('key');
+        $stored = Setting::where('group', 'courier')->where('key', $key)->value('value');
+
+        if ($stored === null || $stored === '') {
+            return $this->secretResponse(false, 'No value is saved for this field.', null, 404);
+        }
+
+        $context = [
+            'courier' => $c->getKey(),
+            'field' => $key,
+            'user_id' => $request->user()?->id,
+            'ip' => $request->ip(),
+        ];
+
+        try {
+            $value = Crypt::decryptString($stored);
+        } catch (DecryptException) {
+            Log::warning('Courier secret could not be decrypted for viewing.', $context);
+
+            return $this->secretResponse(false, 'The saved value can\'t be read. Enter it again.', ['reason' => 'unreadable'], 422);
+        }
+
+        Log::info('Courier secret viewed.', $context);
+
+        return $this->secretResponse(true, 'Saved value.', ['value' => $value]);
+    }
+
+    private function secretResponse(bool $success, string $message, ?array $data, int $status = 200): JsonResponse
+    {
+        return response()
+            ->json(['success' => $success, 'message' => $message, 'data' => $data], $status)
+            ->header('Cache-Control', 'no-store, private');
+    }
+
+    /**
+     * Shared persistence: encrypt the given keys (a blank submission keeps
+     * the stored secret), JSON-encode array values, upsert into group
+     * 'courier'. $data must already be allowlist-filtered by the caller.
      */
     private function persist(array $data, array $encryptedKeys): void
     {
         foreach ($data as $key => $value) {
             if (in_array($key, $encryptedKeys, true)) {
-                if (empty($value)) {
-                    continue; // don't overwrite stored secret with blank
+                $value = is_string($value) ? trim($value) : '';
+                if ($value === '') {
+                    continue; // never overwrite a stored secret with blank
                 }
                 $value = Crypt::encryptString($value);
             }

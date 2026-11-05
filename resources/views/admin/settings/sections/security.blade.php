@@ -37,7 +37,7 @@
             </div>
             <div class="v-gap">
                 <x-admin.field name="groups.security.turnstile_secret_key" label="Secret key">
-                    <x-admin.secret name="groups[security][turnstile_secret_key]"
+                    <x-admin.secret name="groups[security][turnstile_secret_key]" label="Turnstile secret key"
                         :masked="$maskedKeys['turnstile_secret_key'] ?? null"
                         :reveal-url="route('admin.settings.reveal-secret', ['group' => 'security', 'key' => 'turnstile_secret_key'])"
                         placeholder="Enter secret key" />

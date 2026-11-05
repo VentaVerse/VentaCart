@@ -31,7 +31,7 @@
                            value="{{ $settings['mail']['username'] ?? '' }}">
                 </x-admin.field>
                 <x-admin.field name="groups.mail.password" label="Password">
-                    <x-admin.secret name="groups[mail][password]"
+                    <x-admin.secret name="groups[mail][password]" label="SMTP password"
                         :masked="!empty($settings['mail']['password']) ? str_repeat('•', 12) : null"
                         placeholder="SMTP password" />
                 </x-admin.field>

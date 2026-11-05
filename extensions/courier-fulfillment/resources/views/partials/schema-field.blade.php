@@ -4,10 +4,15 @@
     used from settings-courier.blade.php and needs plain passed variables:
       $field        the schema field array (key/label/type/options/encrypted/help)
       $value        current stored value for non-encrypted types
-      $masked       masked display value for encrypted types, or null
-      $plain        decrypted value for type='secret' only, or null (unused
-                    in v: secrets are never server-rendered into the page)
+      $masked       masked display value for encrypted fields, or null
+      $unreadable   true when an encrypted field's stored value no longer
+                    decrypts
+      $courierKey   the courier's key, for the reveal endpoint's URL
       $isModeField  true for the field driving the page's Alpine `mode` state
+
+    Every encrypted field, whatever its declared type, renders as the
+    shared stored-secret control (x-admin.secret). The page never carries
+    a saved secret, only its mask; View asks the reveal endpoint for it.
 
     `help` and `hint` both fold into the v field's "?" mark (owner law:
     no instructional prose on the page).
@@ -46,13 +51,30 @@
             @endif
         </x-admin.field>
     </div>
-@elseif (in_array($field['type'], ['secret', 'password'], true))
+@elseif (!empty($field['encrypted']) || in_array($field['type'], ['secret', 'password'], true))
+    @php $errorKey = 'settings.' . $field['key']; @endphp
+    {{-- Not x-admin.field: that wraps its content in a <label>, and a
+         label around buttons sends a click on its text to the first one. --}}
     <div class="v-gap-sm">
-        <x-admin.field :name="$name" :label="$field['label']"
-            :hint="trim((!empty($masked) ? 'Current value ends in ' . substr(ltrim($masked, '•'), -4) . '. Blank keeps it. ' : '') . ($helpText ?? '')) ?: null">
-            <input type="password" name="{{ $name }}" autocomplete="off" class="v-control v-mono"
-                   placeholder="{{ !empty($masked) ? 'Leave blank to keep current' : ($field['placeholder'] ?? '') }}">
-        </x-admin.field>
+        <div class="v-field" role="group" aria-labelledby="cf-secret-{{ $field['key'] }}">
+            <span class="v-field__label" id="cf-secret-{{ $field['key'] }}">
+                {{ $field['label'] }}
+                @if ($helpText)<x-admin.help :text="$helpText" />@endif
+            </span>
+            <x-admin.secret :name="$name" type="text"
+                :masked="$masked"
+                :unreadable="!empty($unreadable)"
+                :label="$field['label']"
+                :maxlength="\Extensions\CourierFulfillment\Support\CourierSecrets::MAX_LENGTH"
+                :editing="$errors->has($errorKey)"
+                :reveal-url="route('admin.fulfillment.settings.reveal-secret', ['courier' => $courierKey, 'key' => $field['key']])"
+                remove-name="remove_secrets[]"
+                :remove-value="$field['key']"
+                :placeholder="$field['placeholder'] ?? 'Paste the key'" />
+            @error($errorKey)
+                <span class="v-field__error">{{ $message }}</span>
+            @enderror
+        </div>
     </div>
 @else
     <div class="v-gap-sm">

@@ -258,13 +258,16 @@ interface CourierFulfillmentInterface
      *                          renamed keys break stored data, so once shipped
      *                          a key is effectively permanent.
      *   label:        string   form label.
-     *   type:         string   'text'|'password'|'select'|'toggle'.
+     *   type:         string   'text'|'password'|'secret'|'select'|'toggle'.
      *   options:      array    for type='select' only —
      *                          array<int,array{value:string,label:string}>,
      *                          same shape as getServiceTypes()/getParcelOptions().
-     *   encrypted:    bool     stored via Crypt::encryptString, masked in the
-     *                          UI, blank submission keeps the existing value
-     *                          (never overwritten with empty). Default false.
+     *   encrypted:    bool     stored via Crypt::encryptString. The settings
+     *                          page renders it as a stored-secret control
+     *                          (mask plus last four, View fetched on click,
+     *                          Edit, Remove), whatever its type. A blank or
+     *                          absent submission keeps the existing value;
+     *                          only remove_secrets[] clears it. Default false.
      *   mode_scoped:  ?string  when set, this field only applies under that
      *                          mode value (e.g. 'staging'/'production') and
      *                          the settings page groups it under that mode's
