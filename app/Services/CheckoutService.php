@@ -79,9 +79,7 @@ class CheckoutService
         string $shippingMethodKey,
         Cart $cart,
         ?string $comment = null,
-        ?string $courierComment = null,
-        ?string $shippingMethodName = null,
-        ?float $shippingCostOverride = null
+        ?string $courierComment = null
     ): array {
         // A line switched off since it was added (its product or its
         // variant) is not for sale, whatever stock it shows. Asked first:
@@ -175,28 +173,29 @@ class CheckoutService
             throw new \InvalidArgumentException('Selected payment method is not available for this order.');
         }
 
-        // Verify shipping cost by re-fetching from providers
+        // The shipping cost is always the live quote, worked out here for
+        // this address and cart. The browser's copy of the cost is never
+        // charged: a method the live quotes do not offer (withdrawn, not
+        // served at this address, or its provider unreachable) is refused,
+        // and the shopper picks again from fresh quotes.
         $quoteService = app(\App\Services\Shipping\ShippingQuoteService::class);
         $liveQuotes = $quoteService->getQuotes([
             'province' => $shippingAddress->state,
             'city' => $shippingAddress->city,
             'barangay' => $shippingAddress->barangay,
             'country_id' => $shippingAddress->country_id ?? null,
+            'postcode' => $shippingAddress->postcode ?? '',
         ], $items, $subtotal);
 
         $matchedQuote = collect($liveQuotes)->firstWhere('key', $shippingMethodKey);
 
-        if ($matchedQuote) {
-            // Use the verified cost from the provider
-            $shippingCost = (float) $matchedQuote['cost'];
-            $shippingMethod = $matchedQuote;
-        } elseif ($shippingCostOverride !== null) {
-            // Fallback: trust the override if no live quote matches (provider may be down)
-            $shippingCost = $shippingCostOverride;
-            $shippingMethod = ['key' => $shippingMethodKey, 'name' => $shippingMethodName ?? 'Shipping', 'cost' => $shippingCostOverride];
-        } else {
-            throw new \InvalidArgumentException('Selected shipping method is no longer available. Please go back and select a shipping option.');
+        if (!$matchedQuote) {
+            throw new \InvalidArgumentException('Shipping for this address changed. Choose a delivery option again.');
         }
+
+        $shippingCost = (float) $matchedQuote['cost'];
+        $shippingMethod = $matchedQuote;
+
         // Order totals pipeline: every registered total extension
         // (coupon, store credit, ...) contributes its lines against this
         // context; a provider may also adjust the shipping cost (a
@@ -216,12 +215,10 @@ class CheckoutService
 
         // Build shipping meta from the matched provider
         $shippingMeta = null;
-        if ($matchedQuote) {
-            foreach ($quoteService->getProviders() as $provider) {
-                if (str_starts_with($shippingMethodKey, $provider->getKey() . '_') || $shippingMethodKey === $provider->getKey()) {
-                    $shippingMeta = $provider->buildShippingMeta($shippingMethodKey, $matchedQuote);
-                    break;
-                }
+        foreach ($quoteService->getProviders() as $provider) {
+            if (str_starts_with($shippingMethodKey, $provider->getKey() . '_') || $shippingMethodKey === $provider->getKey()) {
+                $shippingMeta = $provider->buildShippingMeta($shippingMethodKey, $matchedQuote);
+                break;
             }
         }
 
@@ -235,7 +232,7 @@ class CheckoutService
 
         $order = DB::transaction(function () use (
             $customer, $shippingAddress, $billingAddress, $paymentMethodKey, $paymentMethod,
-            $shippingMethod, $shippingMethodKey, $shippingMethodName, $shippingMeta, $items, $subtotal, $shippingCost, $total,
+            $shippingMethod, $shippingMethodKey, $shippingMeta, $items, $subtotal, $shippingCost, $total,
             $comment, $cart, $totalsCtx, $couponLine, $courierComment
         ) {
             $orderData = [
@@ -258,7 +255,7 @@ class CheckoutService
                 'shipping_phone' => $shippingAddress->phone,
                 'payment_method' => $paymentMethodKey,
                 'payment_method_title' => $paymentMethod?->getName(),
-                'shipping_method' => $shippingMethodName ?? $shippingMethod['name'],
+                'shipping_method' => $shippingMethod['name'] ?? $shippingMethodKey,
                 'shipping_meta' => $shippingMeta,
                 'shipping_country_name' => \App\Models\Country::find($shippingAddress->country_id ?? null)?->name,
                 'subtotal' => $subtotal,

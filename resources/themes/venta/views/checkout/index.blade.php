@@ -649,8 +649,6 @@
             <input type="hidden" name="shipping_address_id" :value="selectedAddressId">
             <input type="hidden" name="payment_method" :value="selectedPayment">
             <input type="hidden" name="shipping_method" :value="selectedShipping">
-            <input type="hidden" name="shipping_method_name" :value="selectedShippingMethod ? selectedShippingMethod.name : ''">
-            <input type="hidden" name="shipping_cost" :value="selectedShippingMethod ? selectedShippingMethod.cost : ''">
             <input type="hidden" name="comment" :value="comment">
             <input type="hidden" name="courier_comment" :value="courierComment">
             <input type="hidden" name="different_billing" :value="differentBilling ? '1' : '0'">
