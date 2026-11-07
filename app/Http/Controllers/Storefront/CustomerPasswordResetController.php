@@ -8,6 +8,7 @@ use App\Services\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -74,23 +75,37 @@ class CustomerPasswordResetController extends Controller
     /**
      * AJAX endpoint: send reset link for migrated customers (called from login modal).
      */
-    public function sendMigrationResetLink(Request $request)
+    public function sendMigrationResetLink(Request $request, TurnstileService $turnstile)
     {
         $request->validate([
             'email' => 'required|string|email|max:255',
         ]);
 
-        $storeId = (int) config('app.store_id');
-        $customer = Customer::where('store_id', $storeId)
-            ->where('email', $request->input('email'))
-            ->whereNull('password')
-            ->first();
-
-        // Only an account with no password yet is sent a link; every email
-        // gets the same answer, so this cannot be used to find accounts.
-        if ($customer) {
-            Password::broker('customers')->sendResetLink(['email' => $customer->email]);
+        if (!$turnstile->verify($request->input('cf-turnstile-response'), $request->ip())) {
+            throw ValidationException::withMessages([
+                'cf-turnstile-response' => 'Captcha verification failed. Please try again.',
+            ]);
         }
+
+        // One link per email in a window, whatever address asks and whether
+        // or not the email has an account, so a held-back request reads the
+        // same as a sent one. Keyed on a hash so the cache never holds the
+        // email itself.
+        $email = mb_strtolower(trim((string) $request->input('email')));
+        $minutes = max(1, (int) config('auth.throttle.customer_set_password.per_email_minutes', 15));
+
+        RateLimiter::attempt('customer-set-password:' . hash('sha256', $email), 1, function () use ($request) {
+            $customer = Customer::where('store_id', (int) config('app.store_id'))
+                ->where('email', $request->input('email'))
+                ->whereNull('password')
+                ->first();
+
+            // Only an account with no password yet is sent a link; every
+            // email gets the same answer, so this cannot find accounts.
+            if ($customer) {
+                Password::broker('customers')->sendResetLink(['email' => $customer->email]);
+            }
+        }, $minutes * 60);
 
         return response()->json([
             'success' => true,

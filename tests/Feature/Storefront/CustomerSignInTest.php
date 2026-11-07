@@ -3,8 +3,11 @@
 namespace Tests\Feature\Storefront;
 
 use App\Models\Customer;
+use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -145,10 +148,118 @@ class CustomerSignInTest extends TestCase
             ->assertJson(['success' => false]);
     }
 
+    public function test_one_email_has_a_ceiling_across_every_address(): void
+    {
+        $this->shopper('juan@example.test', 'secret-pass');
+
+        // Five a minute from one address is allowed, so spread the guesses
+        // over three addresses: the eleventh in 15 minutes is refused from
+        // a fourth address, whatever case the email is typed in.
+        foreach (['192.0.2.1' => 4, '192.0.2.2' => 4, '192.0.2.3' => 2] as $ip => $tries) {
+            for ($i = 0; $i < $tries; $i++) {
+                $this->withServerVariables(['REMOTE_ADDR' => $ip])
+                    ->post(route('customer.login.submit'), ['email' => 'juan@example.test', 'password' => 'wrong'])
+                    ->assertSessionHasErrors(['email' => 'These credentials do not match our records.']);
+            }
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.4'])
+            ->post(route('customer.login.submit'), ['email' => ' Juan@Example.test ', 'password' => 'secret-pass'])
+            ->assertSessionHasErrors(['email' => 'Too many sign-in attempts for this email. Please wait 15 minutes and try again.']);
+        $this->assertGuest('customer');
+
+        $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.4'])
+            ->post(route('customer.login.submit'), ['email' => 'maria@example.test', 'password' => 'wrong'])
+            ->assertSessionHasErrors(['email' => 'These credentials do not match our records.']);
+    }
+
+    public function test_the_ceiling_per_email_is_configurable(): void
+    {
+        config(['auth.throttle.customer_login.per_account' => 2]);
+
+        foreach (['192.0.2.1', '192.0.2.2'] as $ip) {
+            $this->withServerVariables(['REMOTE_ADDR' => $ip])
+                ->post(route('customer.login.submit'), ['email' => 'juan@example.test', 'password' => 'wrong'])
+                ->assertSessionHasErrors(['email' => 'These credentials do not match our records.']);
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.3'])
+            ->post(route('customer.login.submit'), ['email' => 'juan@example.test', 'password' => 'wrong'])
+            ->assertSessionHasErrors(['email' => 'Too many sign-in attempts for this email. Please wait 15 minutes and try again.']);
+    }
+
+    public function test_the_set_password_link_is_sent_once_per_email_in_15_minutes_and_answers_the_same(): void
+    {
+        Mail::fake();
+        $this->shopper('maria@example.test', null);
+        $token = fn () => DB::table('customer_password_reset_tokens')->where('email', 'maria@example.test')->value('token');
+
+        $first = $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.1'])
+            ->postJson(route('customer.password.migration'), ['email' => 'maria@example.test'])->assertOk()->json();
+        $sent = $token();
+        $this->assertNotNull($sent);
+
+        // Past the broker's own 60 second throttle, from another address.
+        $this->travel(5)->minutes();
+        $second = $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.2'])
+            ->postJson(route('customer.password.migration'), ['email' => 'maria@example.test'])->assertOk()->json();
+
+        $this->assertSame($first, $second, 'A held-back request reads the same as a sent one.');
+        $this->assertSame($sent, $token(), 'No second link within 15 minutes.');
+
+        $this->travel(11)->minutes();
+        $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.3'])
+            ->postJson(route('customer.password.migration'), ['email' => 'maria@example.test'])->assertOk();
+        $this->assertNotSame($sent, $token(), 'A new link once 15 minutes have passed.');
+    }
+
+    public function test_the_set_password_link_needs_the_captcha_when_it_is_on(): void
+    {
+        Mail::fake();
+        $this->shopper('maria@example.test', null);
+        $this->turnstileOn();
+        Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => false])]);
+
+        $this->postJson(route('customer.password.migration'), ['email' => 'maria@example.test'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('cf-turnstile-response');
+        $this->postJson(route('customer.password.migration'), ['email' => 'maria@example.test', 'cf-turnstile-response' => 'bad-token'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('cf-turnstile-response');
+
+        $this->assertSame(0, DB::table('customer_password_reset_tokens')->count());
+    }
+
+    public function test_the_set_password_link_is_sent_with_a_good_captcha(): void
+    {
+        Mail::fake();
+        $this->shopper('maria@example.test', null);
+        $this->turnstileOn();
+        Http::fake(['challenges.cloudflare.com/*' => Http::response(['success' => true])]);
+
+        $this->postJson(route('customer.password.migration'), ['email' => 'maria@example.test', 'cf-turnstile-response' => 'good-token'])
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertSame(1, DB::table('customer_password_reset_tokens')->where('email', 'maria@example.test')->count());
+        Http::assertSent(fn ($request) => $request['response'] === 'good-token');
+    }
+
     public function test_a_list_for_an_email_is_refused_without_an_error_page(): void
     {
         $this->post(route('customer.login.submit'), ['email' => ['a@example.test'], 'password' => 'x'])
             ->assertSessionHasErrors('email');
+    }
+
+    private function turnstileOn(): void
+    {
+        foreach ([
+            'turnstile_enabled' => '1',
+            'turnstile_site_key' => 'site-key',
+            'turnstile_secret_key' => Crypt::encryptString('secret-key'),
+        ] as $key => $value) {
+            Setting::create(['group' => 'security', 'key' => $key, 'value' => $value]);
+        }
     }
 
     private function shopper(string $email, ?string $password): Customer

@@ -127,7 +127,12 @@
                             'Accept': 'application/json',
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ email: this.email })
+                        // The sign-in form's captcha answer; a token is good
+                        // once, so the widget is reset after every request.
+                        body: JSON.stringify({
+                            email: this.email,
+                            'cf-turnstile-response': document.querySelector('[name="cf-turnstile-response"]')?.value || ''
+                        })
                     });
                     const data = await res.json();
                     if (data.success) {
@@ -137,6 +142,9 @@
                     }
                 } catch (e) {
                     this.resetError = 'Something went wrong. Please try again.';
+                }
+                if (window.turnstile) {
+                    window.turnstile.reset();
                 }
                 this.resetLoading = false;
             }

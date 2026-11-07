@@ -148,8 +148,11 @@ return [
     | Sign-in Rate Limits
     |--------------------------------------------------------------------------
     |
-    | Shopper sign-in attempts allowed per minute: for one email from one
-    | address, and for one address whatever the email.
+    | Shopper sign-in attempts allowed per minute for one email from one
+    | address, and for one address whatever the email; and per_account
+    | attempts for one email from any address in per_account_minutes.
+    | The set-a-password link for an account brought over from the old
+    | store is sent to one email at most once in per_email_minutes.
     |
     */
 
@@ -157,6 +160,11 @@ return [
         'customer_login' => [
             'per_email' => (int) env('CUSTOMER_LOGIN_PER_EMAIL_PER_MINUTE', 5),
             'per_ip' => (int) env('CUSTOMER_LOGIN_PER_IP_PER_MINUTE', 20),
+            'per_account' => (int) env('CUSTOMER_LOGIN_PER_ACCOUNT', 10),
+            'per_account_minutes' => (int) env('CUSTOMER_LOGIN_PER_ACCOUNT_MINUTES', 15),
+        ],
+        'customer_set_password' => [
+            'per_email_minutes' => (int) env('CUSTOMER_SET_PASSWORD_PER_EMAIL_MINUTES', 15),
         ],
     ],
 

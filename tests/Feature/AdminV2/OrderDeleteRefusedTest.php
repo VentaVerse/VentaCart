@@ -85,6 +85,45 @@ class OrderDeleteRefusedTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $order->id]);
     }
 
+    public function test_a_refusal_never_follows_a_referer_to_another_site(): void
+    {
+        $order = $this->order();
+        Order::deleting(fn () => false);
+
+        $this->actingAs(User::factory()->create())
+            ->withHeader('referer', 'https://evil.example/phish')
+            ->delete(route('admin.orders.destroy', $order))
+            ->assertRedirect(route('admin.orders.show', $order))
+            ->assertSessionHas('error', 'This order was not deleted.');
+    }
+
+    public function test_a_refusal_never_follows_a_referer_outside_the_orders_pages(): void
+    {
+        $order = $this->order();
+        Order::deleting(function () {
+            throw new \DomainException('Kept.');
+        });
+
+        foreach ([url('/account'), url('/admin/sales/orders-export'), '//evil.example/admin/sales/orders', url('/admin/sales/orders').'@evil.example'] as $referer) {
+            $this->actingAs(User::factory()->create())
+                ->withHeader('referer', $referer)
+                ->delete(route('admin.orders.destroy', $order))
+                ->assertRedirect(route('admin.orders.show', $order));
+        }
+    }
+
+    public function test_a_refusal_returns_to_the_filtered_list_it_came_from(): void
+    {
+        $order = $this->order();
+        Order::deleting(fn () => false);
+        $list = route('admin.orders.index', ['status' => 'pending', 'page' => 2]);
+
+        $this->actingAs(User::factory()->create())
+            ->from($list)
+            ->delete(route('admin.orders.destroy', $order))
+            ->assertRedirect($list);
+    }
+
     private function order(): Order
     {
         return Order::create([

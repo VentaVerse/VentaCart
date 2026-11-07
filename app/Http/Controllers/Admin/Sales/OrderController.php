@@ -410,18 +410,44 @@ class OrderController extends Controller
         try {
             $deleted = $order->delete();
         } catch (\DomainException $e) {
-            return back(fallback: route('admin.orders.show', $order))->with('error', $e->getMessage());
+            return redirect()->to($this->afterRefusedDelete($order))->with('error', $e->getMessage());
         } catch (\Throwable $e) {
             report($e);
             $deleted = false;
         }
 
         if (!$deleted) {
-            return back(fallback: route('admin.orders.show', $order))->with('error', 'This order was not deleted.');
+            return redirect()->to($this->afterRefusedDelete($order))->with('error', 'This order was not deleted.');
         }
 
         return redirect()->route('admin.orders.index')
             ->with('success', 'Order deleted successfully.');
+    }
+
+    /**
+     * Where a refused delete lands: back to the orders list or this order's
+     * page the admin came from, on this host only, else this order's page.
+     * Never wherever a Referer header points.
+     */
+    private function afterRefusedDelete(Order $order): string
+    {
+        $fallback = route('admin.orders.show', $order);
+        $previous = url()->previous();
+        $parts = parse_url($previous);
+        $here = parse_url(request()->getSchemeAndHttpHost());
+
+        if (!is_array($parts) || !is_array($here)
+            || isset($parts['user']) || isset($parts['pass'])
+            || ($parts['scheme'] ?? null) !== ($here['scheme'] ?? null)
+            || strcasecmp($parts['host'] ?? '', $here['host'] ?? '') !== 0
+            || ($parts['port'] ?? null) !== ($here['port'] ?? null)) {
+            return $fallback;
+        }
+
+        $path = '/' . ltrim($parts['path'] ?? '', '/');
+        $allowed = [parse_url(route('admin.orders.index'), PHP_URL_PATH), parse_url($fallback, PHP_URL_PATH)];
+
+        return in_array(rtrim($path, '/'), $allowed, true) ? $previous : $fallback;
     }
 
     public function addHistory(Request $request, Order $order)

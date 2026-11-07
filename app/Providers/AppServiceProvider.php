@@ -35,26 +35,36 @@ class AppServiceProvider extends ServiceProvider
             ->by('package-uploads:' . ($request->user()?->id ?: $request->ip())));
 
         // Shopper sign-in and the set-a-password link: a few tries a minute
-        // for one email from one address, and a ceiling per address so one
-        // client cannot walk a list of emails. Refused the way the form shows
+        // for one email from one address, a ceiling per address so one
+        // client cannot walk a list of emails, and a ceiling per email
+        // across every address. Refused the way the form shows
         // any other error (JSON for the set-a-password request).
         \Illuminate\Support\Facades\RateLimiter::for('customer-login', function (\Illuminate\Http\Request $request) {
             $email = $request->input('email');
             $email = is_string($email) ? mb_strtolower(trim($email)) : '';
-            $refuse = function (\Illuminate\Http\Request $request, array $headers) {
-                $message = 'Too many sign-in attempts. Please wait a minute and try again.';
+            $refuse = fn (string $message) => function (\Illuminate\Http\Request $request, array $headers) use ($message) {
                 if ($request->expectsJson()) {
                     return response()->json(['success' => false, 'message' => $message], 429, $headers);
                 }
 
                 return back()->withInput($request->only('email'))->withErrors(['email' => $message]);
             };
+            $perMinute = $refuse('Too many sign-in attempts. Please wait a minute and try again.');
+            $accountMinutes = max(1, (int) config('auth.throttle.customer_login.per_account_minutes', 15));
 
             return [
                 \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('auth.throttle.customer_login.per_email', 5)))
-                    ->by('email:' . $email . '|' . $request->ip())->response($refuse),
+                    ->by('email:' . $email . '|' . $request->ip())->response($perMinute),
                 \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('auth.throttle.customer_login.per_ip', 20)))
-                    ->by('ip:' . $request->ip())->response($refuse),
+                    ->by('ip:' . $request->ip())->response($perMinute),
+                // A ceiling for one email whatever address it comes from, so
+                // guesses spread over many addresses still run out. Keyed on
+                // a hash so the cache never holds the email itself.
+                $email === ''
+                    ? \Illuminate\Cache\RateLimiting\Limit::none()
+                    : \Illuminate\Cache\RateLimiting\Limit::perMinutes($accountMinutes, max(1, (int) config('auth.throttle.customer_login.per_account', 10)))
+                        ->by('account:' . hash('sha256', $email))
+                        ->response($refuse("Too many sign-in attempts for this email. Please wait {$accountMinutes} minutes and try again.")),
             ];
         });
 
