@@ -403,7 +403,22 @@ class OrderController extends Controller
 
     public function destroy(Order $order)
     {
-        $order->delete();
+        // An extension may keep an order from a `deleting` listener, by
+        // returning false or by throwing. A DomainException's message is
+        // written for the merchant; anything else is logged and a plain
+        // message shown. Either way the order stays and the admin is told.
+        try {
+            $deleted = $order->delete();
+        } catch (\DomainException $e) {
+            return back(fallback: route('admin.orders.show', $order))->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+            $deleted = false;
+        }
+
+        if (!$deleted) {
+            return back(fallback: route('admin.orders.show', $order))->with('error', 'This order was not deleted.');
+        }
 
         return redirect()->route('admin.orders.index')
             ->with('success', 'Order deleted successfully.');
