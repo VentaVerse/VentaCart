@@ -2,7 +2,7 @@
     <div class="md:hidden bg-[var(--color-card-bg)] border-b border-[var(--color-border)] px-4 py-2">
         <div x-data="searchAutocomplete()" @click.away="close()">
             <form action="{{ route('search.results') }}" method="GET" class="relative">
-                <input type="text" name="q" placeholder="Search products..." value="{{ request('q') }}"
+                <input type="text" name="q" placeholder="Search products..." value="{{ is_string(request('q')) ? request('q') : '' }}"
                     x-model="query" @input.debounce.300ms="search()" @focus="if (results.length) showResults = true" @keydown.escape="close()"
                     autocomplete="off"
                     class="w-full bg-[var(--color-input-bg)] border border-[var(--color-border)] rounded-lg text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] px-4 py-2.5 pr-10 focus:outline-none focus:border-[var(--color-primary)]">

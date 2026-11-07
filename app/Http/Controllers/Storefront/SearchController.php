@@ -11,8 +11,9 @@ class SearchController extends Controller
 {
     public function results(Request $request)
     {
-        $query = trim($request->input('q', ''));
-        $sort = $request->input('sort', 'relevance');
+        $query = $this->searchText($request);
+        $sort = $request->input('sort');
+        $sort = is_string($sort) ? $sort : 'relevance';
 
         $products = Product::where('is_active', true);
 
@@ -60,7 +61,7 @@ class SearchController extends Controller
 
     public function autocomplete(Request $request): JsonResponse
     {
-        $query = trim($request->input('q', ''));
+        $query = $this->searchText($request);
 
         if (strlen($query) < 2) {
             return response()->json([]);
@@ -86,5 +87,16 @@ class SearchController extends Controller
             });
 
         return response()->json($products);
+    }
+
+    /**
+     * The search box sends one string. Anything else in q (a list from
+     * q[]=..., say) reads as no search rather than failing the request.
+     */
+    private function searchText(Request $request): string
+    {
+        $query = $request->query('q', '');
+
+        return is_string($query) ? trim($query) : '';
     }
 }

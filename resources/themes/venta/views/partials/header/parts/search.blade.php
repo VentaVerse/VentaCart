@@ -5,7 +5,7 @@
                         type="text"
                         name="q"
                         placeholder="Search products"
-                        value="{{ request('q') }}"
+                        value="{{ is_string(request('q')) ? request('q') : '' }}"
                         x-model="query"
                         @input.debounce.300ms="search()"
                         @focus="if (results.length) showResults = true"
