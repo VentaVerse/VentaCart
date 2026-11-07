@@ -18,9 +18,9 @@ class FooterColumnController extends Controller
 
         $maxSort = FooterColumn::max('sort_order') ?? 0;
         $defaults = match ($request->input('type')) {
-            'links' => ['items' => []],
-            'payment_icons' => ['items' => []],
-            'social' => ['items' => []],
+            'links' => ['links' => []],
+            'payment_icons' => ['icons' => []],
+            'social' => ['links' => []],
             'text' => ['content' => ''],
         };
 

@@ -213,7 +213,7 @@ class ThemeSeeder extends Seeder
                 'title' => 'Information',
                 'type' => 'links',
                 'config' => [
-                    'items' => [
+                    'links' => [
                         ['label' => 'About Us', 'url' => '/about'],
                         ['label' => 'Privacy Policy', 'url' => '/privacy'],
                         ['label' => 'Terms & Conditions', 'url' => '/terms'],
@@ -226,7 +226,7 @@ class ThemeSeeder extends Seeder
                 'title' => 'Customer Service',
                 'type' => 'links',
                 'config' => [
-                    'items' => [
+                    'links' => [
                         ['label' => 'Contact Us', 'url' => '/contact'],
                         ['label' => 'Returns', 'url' => '/returns'],
                         ['label' => 'Sitemap', 'url' => '/sitemap'],
@@ -239,7 +239,7 @@ class ThemeSeeder extends Seeder
                 'title' => 'Follow Us',
                 'type' => 'social',
                 'config' => [
-                    'items' => [
+                    'links' => [
                         ['platform' => 'facebook', 'url' => '#'],
                         ['platform' => 'instagram', 'url' => '#'],
                     ],
