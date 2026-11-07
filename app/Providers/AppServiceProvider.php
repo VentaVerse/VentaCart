@@ -34,6 +34,30 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\RateLimiter::for('package-uploads', fn (\Illuminate\Http\Request $request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('extensions.upload.per_minute', 5)))
             ->by('package-uploads:' . ($request->user()?->id ?: $request->ip())));
 
+        // Shopper sign-in and the set-a-password link: a few tries a minute
+        // for one email from one address, and a ceiling per address so one
+        // client cannot walk a list of emails. Refused the way the form shows
+        // any other error (JSON for the set-a-password request).
+        \Illuminate\Support\Facades\RateLimiter::for('customer-login', function (\Illuminate\Http\Request $request) {
+            $email = $request->input('email');
+            $email = is_string($email) ? mb_strtolower(trim($email)) : '';
+            $refuse = function (\Illuminate\Http\Request $request, array $headers) {
+                $message = 'Too many sign-in attempts. Please wait a minute and try again.';
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => $message], 429, $headers);
+                }
+
+                return back()->withInput($request->only('email'))->withErrors(['email' => $message]);
+            };
+
+            return [
+                \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('auth.throttle.customer_login.per_email', 5)))
+                    ->by('email:' . $email . '|' . $request->ip())->response($refuse),
+                \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('auth.throttle.customer_login.per_ip', 20)))
+                    ->by('ip:' . $request->ip())->response($refuse),
+            ];
+        });
+
         // The sidebar's work-waiting counts (Fulfillment to ship, Reviews
         // pending). Bound here so the shell never learns which entries
         // are special; it just looks its items up (see NavBadges).

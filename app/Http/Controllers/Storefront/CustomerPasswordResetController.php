@@ -77,26 +77,24 @@ class CustomerPasswordResetController extends Controller
     public function sendMigrationResetLink(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string|email|max:255',
         ]);
 
         $storeId = (int) config('app.store_id');
         $customer = Customer::where('store_id', $storeId)
-            ->where('email', $request->email)
+            ->where('email', $request->input('email'))
+            ->whereNull('password')
             ->first();
 
-        if (!$customer || $customer->password !== null) {
-            return response()->json(['success' => false, 'message' => 'No migration reset needed.'], 422);
+        // Only an account with no password yet is sent a link; every email
+        // gets the same answer, so this cannot be used to find accounts.
+        if ($customer) {
+            Password::broker('customers')->sendResetLink(['email' => $customer->email]);
         }
 
-        $status = Password::broker('customers')->sendResetLink(
-            $request->only('email')
-        );
-
-        if ($status === Password::RESET_LINK_SENT) {
-            return response()->json(['success' => true, 'message' => 'Password reset link sent to your email.']);
-        }
-
-        return response()->json(['success' => false, 'message' => __($status)], 422);
+        return response()->json([
+            'success' => true,
+            'message' => 'If that email belongs to an account that needs a new password, a link to set one is on its way.',
+        ]);
     }
 }

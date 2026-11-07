@@ -37,17 +37,6 @@ class CustomerAuthController extends Controller
         $oldSessionId = session()->getId();
         $storeId = (int) config('app.store_id');
 
-        // Check if this is a migrated customer with no password set
-        $customer = Customer::where('store_id', $storeId)
-            ->where('email', $request->email)
-            ->first();
-
-        if ($customer && $customer->password === null) {
-            throw ValidationException::withMessages([
-                'needs_reset' => $customer->email,
-            ]);
-        }
-
         $credentials = [
             'email' => $request->email,
             'password' => $request->password,
@@ -62,9 +51,17 @@ class CustomerAuthController extends Controller
         );
 
         if (!Auth::guard('customer')->attempt($credentials, $request->boolean('remember'))) {
-            throw ValidationException::withMessages([
-                'email' => __('These credentials do not match our records.'),
-            ]);
+            // One answer for an unknown email, a wrong password and an account
+            // brought over without a password, so the form never tells anyone
+            // which emails have accounts. The offer to email a set-a-password
+            // link rides on every failure while the store still has such
+            // accounts; whether it is sent is decided by that request.
+            $errors = ['email' => __('These credentials do not match our records.')];
+            if (Customer::where('store_id', $storeId)->whereNull('password')->exists()) {
+                $errors['needs_reset'] = '1';
+            }
+
+            throw ValidationException::withMessages($errors);
         }
 
         $request->session()->regenerate();

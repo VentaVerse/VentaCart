@@ -143,4 +143,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Sign-in Rate Limits
+    |--------------------------------------------------------------------------
+    |
+    | Shopper sign-in attempts allowed per minute: for one email from one
+    | address, and for one address whatever the email.
+    |
+    */
+
+    'throttle' => [
+        'customer_login' => [
+            'per_email' => (int) env('CUSTOMER_LOGIN_PER_EMAIL_PER_MINUTE', 5),
+            'per_ip' => (int) env('CUSTOMER_LOGIN_PER_IP_PER_MINUTE', 20),
+        ],
+    ],
+
 ];

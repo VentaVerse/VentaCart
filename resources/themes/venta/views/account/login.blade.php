@@ -14,6 +14,9 @@
             @if ($errors->has('email'))
                 <div class="account-flash-error mb-6">
                     {{ $errors->first('email') }}
+                    @if ($errors->has('needs_reset'))
+                        <button type="button" class="block mt-2 underline" @click="showResetModal = true">Shopped with us before our store moved? Set a password</button>
+                    @endif
                 </div>
             @endif
 
@@ -72,8 +75,8 @@
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
                                 </div>
                                 <h2 class="text-lg font-semibold text-[var(--color-text-heading)]">Welcome to our new platform!</h2>
-                                <p class="text-sm text-[var(--color-text)] mt-2">We've upgraded our store to a brand new system. For your security, you'll need to set a new password.</p>
-                                <p class="text-sm text-[var(--color-text)] mt-1">We'll send a password reset link to <strong x-text="email"></strong>.</p>
+                                <p class="text-sm text-[var(--color-text)] mt-2">We've upgraded our store to a brand new system. Accounts brought over from our old store need a new password before they can sign in.</p>
+                                <p class="text-sm text-[var(--color-text)] mt-1">If <strong x-text="email"></strong> is one of them, we'll email it a link to set one.</p>
                                 <p class="text-sm text-[var(--color-text)] mt-2 font-semibold">Please check your spam or junk folder if you don't see it in your inbox.</p>
                             </div>
                             <button @click="sendResetLink()" :disabled="resetLoading"
@@ -90,7 +93,7 @@
                                 <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             </div>
                             <h2 class="text-lg font-semibold text-[var(--color-text-heading)]">Check your email!</h2>
-                            <p class="text-sm text-[var(--color-text)] mt-2">A password reset link has been sent to <strong x-text="email"></strong>. Click the link in the email to set your new password.</p>
+                            <p class="text-sm text-[var(--color-text)] mt-2">If <strong x-text="email"></strong> belongs to an account that needs a new password, a link to set one is on its way. Click the link in the email to set your new password.</p>
                             <button @click="showResetModal = false" class="mt-4 px-4 py-2 text-sm font-medium text-[var(--color-text)] bg-[var(--color-search-bg)] rounded-lg hover:bg-[var(--color-border)]">Close</button>
                         </div>
                     </div>
@@ -103,17 +106,11 @@
     <script>
     function loginForm() {
         return {
-            email: '{{ old("email", "") }}',
-            showResetModal: {{ $errors->has('needs_reset') ? 'true' : 'false' }},
+            email: @js((string) (is_string(old('email')) ? old('email') : '')),
+            showResetModal: false,
             resetSent: false,
             resetLoading: false,
             resetError: '',
-
-            init() {
-                @if ($errors->has('needs_reset'))
-                    this.email = '{{ $errors->first("needs_reset") }}';
-                @endif
-            },
 
             submitLogin(e) {
                 e.target.submit();

@@ -71,7 +71,7 @@ Route::middleware(['customer.auth', 'noindex'])->group(function () {
 // Customer Auth (public)
 Route::prefix('account')->name('customer.')->middleware('noindex')->group(function () {
     Route::get('/login', [CustomerAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [CustomerAuthController::class, 'login'])->name('login.submit');
+    Route::post('/login', [CustomerAuthController::class, 'login'])->middleware('throttle:customer-login')->name('login.submit');
     Route::get('/register', [CustomerAuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [CustomerAuthController::class, 'register'])->name('register.submit');
     Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
@@ -79,7 +79,7 @@ Route::prefix('account')->name('customer.')->middleware('noindex')->group(functi
     Route::post('/forgot-password', [CustomerPasswordResetController::class, 'sendResetLink'])->name('password.email');
     Route::get('/reset-password/{token}', [CustomerPasswordResetController::class, 'showResetForm'])->name('password.reset');
     Route::post('/reset-password', [CustomerPasswordResetController::class, 'reset'])->name('password.update');
-    Route::post('/migration-reset', [CustomerPasswordResetController::class, 'sendMigrationResetLink'])->name('password.migration');
+    Route::post('/migration-reset', [CustomerPasswordResetController::class, 'sendMigrationResetLink'])->middleware('throttle:customer-login')->name('password.migration');
 });
 
 // Storefront address lookup (public, no auth — used by address forms)
