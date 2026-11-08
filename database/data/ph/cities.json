@@ -3,13 +3,13 @@
         "code": "175301000",
         "name": "Aborlan",
         "parent": "175300000",
-        "zip_code": "5311"
+        "zip_code": "5302"
     },
     {
         "code": "175101000",
         "name": "Abra De Ilog",
         "parent": "175100000",
-        "zip_code": "5111"
+        "zip_code": "5108"
     },
     {
         "code": "030801000",
@@ -75,13 +75,13 @@
         "code": "142708000",
         "name": "Aguinaldo",
         "parent": "142700000",
-        "zip_code": "3609"
+        "zip_code": "3606"
     },
     {
         "code": "175302000",
         "name": "Agutaya",
         "parent": "175300000",
-        "zip_code": "5307"
+        "zip_code": "5320"
     },
     {
         "code": "063001000",
@@ -111,13 +111,13 @@
         "code": "128001000",
         "name": "Alabel (Capital)",
         "parent": "128000000",
-        "zip_code": "9517"
+        "zip_code": "9501"
     },
     {
         "code": "124701000",
         "name": "Alamada",
         "parent": "124700000",
-        "zip_code": "9408"
+        "zip_code": "9413"
     },
     {
         "code": "043401000",
@@ -165,7 +165,7 @@
         "code": "175901000",
         "name": "Alcantara",
         "parent": "175900000",
-        "zip_code": "5512"
+        "zip_code": "5509"
     },
     {
         "code": "072202000",
@@ -183,13 +183,13 @@
         "code": "166701000",
         "name": "Alegria",
         "parent": "166700000",
-        "zip_code": "8424"
+        "zip_code": "8425"
     },
     {
         "code": "124717000",
         "name": "Aleosan",
         "parent": "124700000",
-        "zip_code": "9417"
+        "zip_code": "9415"
     },
     {
         "code": "042101000",
@@ -201,13 +201,13 @@
         "code": "025015000",
         "name": "Alfonso Castaneda",
         "parent": "025000000",
-        "zip_code": null
+        "zip_code": "3714"
     },
     {
         "code": "142707000",
         "name": "Alfonso Lista (Potia)",
         "parent": "142700000",
-        "zip_code": "3607"
+        "zip_code": "3608"
     },
     {
         "code": "034901000",
@@ -285,7 +285,7 @@
         "code": "104201000",
         "name": "Aloran",
         "parent": "104200000",
-        "zip_code": "7211"
+        "zip_code": "7206"
     },
     {
         "code": "060401000",
@@ -297,7 +297,7 @@
         "code": "104301000",
         "name": "Alubijid",
         "parent": "104300000",
-        "zip_code": "9005"
+        "zip_code": "9018"
     },
     {
         "code": "042102000",
@@ -321,7 +321,7 @@
         "code": "153801000",
         "name": "Ampatuan",
         "parent": "153800000",
-        "zip_code": "9616"
+        "zip_code": null
     },
     {
         "code": "021504000",
@@ -369,7 +369,7 @@
         "code": "035401000",
         "name": "Angeles City",
         "parent": "035400000",
-        "zip_code": null
+        "zip_code": "2009"
     },
     {
         "code": "045801000",
@@ -399,7 +399,7 @@
         "code": "124715000",
         "name": "Antipas",
         "parent": "124700000",
-        "zip_code": "9416"
+        "zip_code": "9414"
     },
     {
         "code": "035402000",
@@ -417,13 +417,13 @@
         "code": "175303000",
         "name": "Araceli",
         "parent": "175300000",
-        "zip_code": "5306"
+        "zip_code": "5311"
     },
     {
         "code": "124718000",
         "name": "Arakan",
         "parent": "124700000",
-        "zip_code": "9511"
+        "zip_code": "9417"
     },
     {
         "code": "035403000",
@@ -471,7 +471,7 @@
         "code": "142711000",
         "name": "Asipulo",
         "parent": "142700000",
-        "zip_code": "3802"
+        "zip_code": "3610"
     },
     {
         "code": "072206000",
@@ -483,7 +483,7 @@
         "code": "112301000",
         "name": "Asuncion (Saug)",
         "parent": "112300000",
-        "zip_code": "8101"
+        "zip_code": "8102"
     },
     {
         "code": "045603000",
@@ -495,7 +495,7 @@
         "code": "141101000",
         "name": "Atok",
         "parent": "141100000",
-        "zip_code": "2610"
+        "zip_code": "2612"
     },
     {
         "code": "023103000",
@@ -555,13 +555,13 @@
         "code": "175201000",
         "name": "Baco",
         "parent": "175200000",
-        "zip_code": "5211"
+        "zip_code": "5201"
     },
     {
         "code": "103501000",
         "name": "Bacolod",
         "parent": "103500000",
-        "zip_code": "9217"
+        "zip_code": "9205"
     },
     {
         "code": "064501000",
@@ -573,7 +573,7 @@
         "code": "153601000",
         "name": "Bacolod-Kalawi (Bacolod Grande)",
         "parent": "153600000",
-        "zip_code": "9318"
+        "zip_code": null
     },
     {
         "code": "035404000",
@@ -591,13 +591,13 @@
         "code": "042103000",
         "name": "Bacoor City",
         "parent": "042100000",
-        "zip_code": null
+        "zip_code": "4102"
     },
     {
         "code": "166702000",
         "name": "Bacuag",
         "parent": "166700000",
-        "zip_code": "8410"
+        "zip_code": "8408"
     },
     {
         "code": "097226000",
@@ -645,7 +645,7 @@
         "code": "112501000",
         "name": "Baganga",
         "parent": "112500000",
-        "zip_code": "8208"
+        "zip_code": "8204"
     },
     {
         "code": "021506000",
@@ -663,7 +663,7 @@
         "code": "141102000",
         "name": "Baguio City",
         "parent": "141100000",
-        "zip_code": "2605"
+        "zip_code": "2600"
     },
     {
         "code": "013304000",
@@ -675,7 +675,7 @@
         "code": "126501000",
         "name": "Bagumbayan",
         "parent": "126500000",
-        "zip_code": "9801"
+        "zip_code": "9810"
     },
     {
         "code": "074604000",
@@ -687,19 +687,19 @@
         "code": "141103000",
         "name": "Bakun",
         "parent": "141100000",
-        "zip_code": "2607"
+        "zip_code": "2610"
     },
     {
         "code": "175304000",
         "name": "Balabac",
         "parent": "175300000",
-        "zip_code": "5305"
+        "zip_code": "5307"
     },
     {
         "code": "153602000",
         "name": "Balabagan",
         "parent": "153600000",
-        "zip_code": "9309"
+        "zip_code": null
     },
     {
         "code": "031402000",
@@ -753,7 +753,7 @@
         "code": "143201000",
         "name": "Balbalan",
         "parent": "143200000",
-        "zip_code": "3803"
+        "zip_code": "3801"
     },
     {
         "code": "054102000",
@@ -783,7 +783,7 @@
         "code": "104202000",
         "name": "Baliangao",
         "parent": "104200000",
-        "zip_code": "7215"
+        "zip_code": "7211"
     },
     {
         "code": "097224000",
@@ -801,19 +801,19 @@
         "code": "153603000",
         "name": "Balindong (Watu)",
         "parent": "153600000",
-        "zip_code": "9310"
+        "zip_code": null
     },
     {
         "code": "104302000",
         "name": "Balingasag",
         "parent": "104300000",
-        "zip_code": "9011"
+        "zip_code": "9005"
     },
     {
         "code": "104303000",
         "name": "Balingoan",
         "parent": "104300000",
-        "zip_code": null
+        "zip_code": "9011"
     },
     {
         "code": "031403000",
@@ -831,7 +831,7 @@
         "code": "103502000",
         "name": "Baloi",
         "parent": "103500000",
-        "zip_code": "9210"
+        "zip_code": "9217"
     },
     {
         "code": "054103000",
@@ -867,13 +867,13 @@
         "code": "142701000",
         "name": "Banaue",
         "parent": "142700000",
-        "zip_code": "3604"
+        "zip_code": "3601"
     },
     {
         "code": "112502000",
         "name": "Banaybanay",
         "parent": "112500000",
-        "zip_code": "8206"
+        "zip_code": "8208"
     },
     {
         "code": "012902000",
@@ -891,7 +891,7 @@
         "code": "126302000",
         "name": "Banga",
         "parent": "126300000",
-        "zip_code": "9500"
+        "zip_code": "9511"
     },
     {
         "code": "013306000",
@@ -903,7 +903,7 @@
         "code": "140101000",
         "name": "Bangued (Capital)",
         "parent": "140100000",
-        "zip_code": "2805"
+        "zip_code": "2800"
     },
     {
         "code": "012804000",
@@ -921,7 +921,7 @@
         "code": "124716000",
         "name": "Banisilan",
         "parent": "124700000",
-        "zip_code": "9415"
+        "zip_code": "9416"
     },
     {
         "code": "012811000",
@@ -933,13 +933,13 @@
         "code": "112401000",
         "name": "Bansalan",
         "parent": "112400000",
-        "zip_code": "8000"
+        "zip_code": "8005"
     },
     {
         "code": "175202000",
         "name": "Bansud",
         "parent": "175200000",
-        "zip_code": "5214"
+        "zip_code": "5210"
     },
     {
         "code": "012903000",
@@ -957,7 +957,7 @@
         "code": "175902000",
         "name": "Banton",
         "parent": "175900000",
-        "zip_code": "5503"
+        "zip_code": "5515"
     },
     {
         "code": "045803000",
@@ -999,13 +999,13 @@
         "code": "144401000",
         "name": "Barlig",
         "parent": "144400000",
-        "zip_code": "2618"
+        "zip_code": null
     },
     {
         "code": "166801000",
         "name": "Barobo",
         "parent": "166800000",
-        "zip_code": "8311"
+        "zip_code": "8309"
     },
     {
         "code": "063007000",
@@ -1023,7 +1023,7 @@
         "code": "103503000",
         "name": "Baroy",
         "parent": "103500000",
-        "zip_code": "9200"
+        "zip_code": "9210"
     },
     {
         "code": "083706000",
@@ -1053,7 +1053,7 @@
         "code": "168501000",
         "name": "Basilisa (Rizal)",
         "parent": "168500000",
-        "zip_code": "8412"
+        "zip_code": "8413"
     },
     {
         "code": "015509000",
@@ -1089,7 +1089,7 @@
         "code": "175305000",
         "name": "Bataraza",
         "parent": "175300000",
-        "zip_code": "5317"
+        "zip_code": "5306"
     },
     {
         "code": "051703000",
@@ -1137,13 +1137,13 @@
         "code": "144402000",
         "name": "Bauko",
         "parent": "144400000",
-        "zip_code": "2616"
+        "zip_code": null
     },
     {
         "code": "101301000",
         "name": "Baungon",
         "parent": "101300000",
-        "zip_code": "8721"
+        "zip_code": null
     },
     {
         "code": "015510000",
@@ -1161,7 +1161,7 @@
         "code": "166802000",
         "name": "Bayabas",
         "parent": "166800000",
-        "zip_code": "8304"
+        "zip_code": "8303"
     },
     {
         "code": "015511000",
@@ -1173,7 +1173,7 @@
         "code": "153604000",
         "name": "Bayang",
         "parent": "153600000",
-        "zip_code": "9708"
+        "zip_code": null
     },
     {
         "code": "097303000",
@@ -1203,7 +1203,7 @@
         "code": "144403000",
         "name": "Besao",
         "parent": "144400000",
-        "zip_code": "2624"
+        "zip_code": null
     },
     {
         "code": "071248000",
@@ -1257,7 +1257,7 @@
         "code": "153605000",
         "name": "Binidayan",
         "parent": "153600000",
-        "zip_code": "9305"
+        "zip_code": null
     },
     {
         "code": "015513000",
@@ -1269,7 +1269,7 @@
         "code": "104304000",
         "name": "Binuangan",
         "parent": "104300000",
-        "zip_code": "9000"
+        "zip_code": "9008"
     },
     {
         "code": "084802000",
@@ -1281,7 +1281,7 @@
         "code": "174001000",
         "name": "Boac (Capital)",
         "parent": "174000000",
-        "zip_code": "4905"
+        "zip_code": "4900"
     },
     {
         "code": "084803000",
@@ -1299,7 +1299,7 @@
         "code": "141104000",
         "name": "Bokod",
         "parent": "141100000",
-        "zip_code": "2604"
+        "zip_code": "2605"
     },
     {
         "code": "015514000",
@@ -1311,7 +1311,7 @@
         "code": "140102000",
         "name": "Boliney",
         "parent": "140100000",
-        "zip_code": "2817"
+        "zip_code": "2815"
     },
     {
         "code": "072212000",
@@ -1335,19 +1335,19 @@
         "code": "175203000",
         "name": "Bongabong",
         "parent": "175200000",
-        "zip_code": "5200"
+        "zip_code": "5211"
     },
     {
         "code": "157002000",
         "name": "Bongao (Capital)",
         "parent": "157000000",
-        "zip_code": "7505"
+        "zip_code": null
     },
     {
         "code": "104203000",
         "name": "Bonifacio",
         "parent": "104200000",
-        "zip_code": "7210"
+        "zip_code": "7215"
     },
     {
         "code": "086402000",
@@ -1359,7 +1359,7 @@
         "code": "144404000",
         "name": "Bontoc (Capital)",
         "parent": "144400000",
-        "zip_code": "2625"
+        "zip_code": null
     },
     {
         "code": "072213000",
@@ -1371,7 +1371,7 @@
         "code": "112503000",
         "name": "Boston",
         "parent": "112500000",
-        "zip_code": "8203"
+        "zip_code": "8206"
     },
     {
         "code": "037101000",
@@ -1383,37 +1383,37 @@
         "code": "112323000",
         "name": "Braulio E. Dujali",
         "parent": "112300000",
-        "zip_code": "1113"
+        "zip_code": "8106"
     },
     {
         "code": "175306000",
         "name": "Brooke'S Point",
         "parent": "175300000",
-        "zip_code": "5321"
+        "zip_code": "5305"
     },
     {
         "code": "153633000",
         "name": "Buadiposo-Buntong",
         "parent": "153600000",
-        "zip_code": "9301"
+        "zip_code": null
     },
     {
         "code": "153606000",
         "name": "Bubong",
         "parent": "153600000",
-        "zip_code": "9311"
+        "zip_code": null
     },
     {
         "code": "140103000",
         "name": "Bucay",
         "parent": "140100000",
-        "zip_code": "2816"
+        "zip_code": "2805"
     },
     {
         "code": "140104000",
         "name": "Bucloc",
         "parent": "140100000",
-        "zip_code": "2825"
+        "zip_code": "2817"
     },
     {
         "code": "045605000",
@@ -1437,13 +1437,13 @@
         "code": "160201000",
         "name": "Buenavista",
         "parent": "160200000",
-        "zip_code": "8605"
+        "zip_code": "8601"
     },
     {
         "code": "174002000",
         "name": "Buenavista",
         "parent": "174000000",
-        "zip_code": "4901"
+        "zip_code": "4904"
     },
     {
         "code": "015515000",
@@ -1455,7 +1455,7 @@
         "code": "060604000",
         "name": "Bugasong",
         "parent": "060600000",
-        "zip_code": "5456"
+        "zip_code": null
     },
     {
         "code": "021508000",
@@ -1467,7 +1467,7 @@
         "code": "141105000",
         "name": "Buguias",
         "parent": "141100000",
-        "zip_code": "2606"
+        "zip_code": "2607"
     },
     {
         "code": "051705000",
@@ -1491,7 +1491,7 @@
         "code": "175204000",
         "name": "Bulalacao (San Pedro)",
         "parent": "175200000",
-        "zip_code": "5209"
+        "zip_code": "5214"
     },
     {
         "code": "056203000",
@@ -1503,13 +1503,13 @@
         "code": "153802000",
         "name": "Buldon",
         "parent": "153800000",
-        "zip_code": "9617"
+        "zip_code": null
     },
     {
         "code": "153803000",
         "name": "Buluan",
         "parent": "153800000",
-        "zip_code": "9607"
+        "zip_code": null
     },
     {
         "code": "056204000",
@@ -1527,7 +1527,7 @@
         "code": "160302000",
         "name": "Bunawan",
         "parent": "160300000",
-        "zip_code": "8508"
+        "zip_code": "8506"
     },
     {
         "code": "083710000",
@@ -1575,7 +1575,7 @@
         "code": "166704000",
         "name": "Burgos",
         "parent": "166700000",
-        "zip_code": "8417"
+        "zip_code": "8424"
     },
     {
         "code": "060405000",
@@ -1593,19 +1593,19 @@
         "code": "175307000",
         "name": "Busuanga",
         "parent": "175300000",
-        "zip_code": "5316"
+        "zip_code": "5317"
     },
     {
         "code": "153607000",
         "name": "Butig",
         "parent": "153600000",
-        "zip_code": "9709"
+        "zip_code": null
     },
     {
         "code": "160202000",
         "name": "Butuan City (Capital)",
         "parent": "160200000",
-        "zip_code": "8603"
+        "zip_code": "8600"
     },
     {
         "code": "098302000",
@@ -1641,7 +1641,7 @@
         "code": "101322000",
         "name": "Cabanglasan",
         "parent": "101300000",
-        "zip_code": "9104"
+        "zip_code": null
     },
     {
         "code": "025702000",
@@ -1689,7 +1689,7 @@
         "code": "043404000",
         "name": "Cabuyao City",
         "parent": "043400000",
-        "zip_code": null
+        "zip_code": "4025"
     },
     {
         "code": "064504000",
@@ -1701,25 +1701,25 @@
         "code": "104305000",
         "name": "Cagayan De Oro City (Capital)",
         "parent": "104300000",
-        "zip_code": "9004"
+        "zip_code": "9000"
     },
     {
         "code": "175308000",
         "name": "Cagayancillo",
         "parent": "175300000",
-        "zip_code": "5318"
+        "zip_code": "5321"
     },
     {
         "code": "168502000",
         "name": "Cagdianao",
         "parent": "168500000",
-        "zip_code": "8414"
+        "zip_code": "8411"
     },
     {
         "code": "166804000",
         "name": "Cagwait",
         "parent": "166800000",
-        "zip_code": "8315"
+        "zip_code": "8304"
     },
     {
         "code": "087804000",
@@ -1737,7 +1737,7 @@
         "code": "175903000",
         "name": "Cajidiocan",
         "parent": "175900000",
-        "zip_code": "5516"
+        "zip_code": null
     },
     {
         "code": "051708000",
@@ -1755,19 +1755,19 @@
         "code": "104204000",
         "name": "Calamba",
         "parent": "104200000",
-        "zip_code": "7201"
+        "zip_code": "7210"
     },
     {
         "code": "148101000",
         "name": "Calanasan (Bayag)",
         "parent": "148100000",
-        "zip_code": "3810"
+        "zip_code": "3814"
     },
     {
         "code": "153632000",
         "name": "Calanogas",
         "parent": "153600000",
-        "zip_code": "9715"
+        "zip_code": null
     },
     {
         "code": "071210000",
@@ -1797,7 +1797,7 @@
         "code": "175904000",
         "name": "Calatrava",
         "parent": "175900000",
-        "zip_code": "5514"
+        "zip_code": "5503"
     },
     {
         "code": "045607000",
@@ -1839,13 +1839,13 @@
         "code": "175102000",
         "name": "Calintaan",
         "parent": "175100000",
-        "zip_code": "5109"
+        "zip_code": "5102"
     },
     {
         "code": "137501000",
         "name": "Caloocan",
         "parent": "130000000",
-        "zip_code": "1485"
+        "zip_code": "1400"
     },
     {
         "code": "083713000",
@@ -1941,7 +1941,7 @@
         "code": "166805000",
         "name": "Cantilan",
         "parent": "166800000",
-        "zip_code": "8318"
+        "zip_code": "8317"
     },
     {
         "code": "012907000",
@@ -1977,7 +1977,7 @@
         "code": "112504000",
         "name": "Caraga",
         "parent": "112500000",
-        "zip_code": "8205"
+        "zip_code": "8203"
     },
     {
         "code": "051711000",
@@ -2031,25 +2031,25 @@
         "code": "112303000",
         "name": "Carmen",
         "parent": "112300000",
-        "zip_code": "8113"
+        "zip_code": "8101"
     },
     {
         "code": "124702000",
         "name": "Carmen",
         "parent": "124700000",
-        "zip_code": "9407"
+        "zip_code": "9408"
     },
     {
         "code": "160204000",
         "name": "Carmen",
         "parent": "160200000",
-        "zip_code": "8609"
+        "zip_code": "8603"
     },
     {
         "code": "166806000",
         "name": "Carmen",
         "parent": "166800000",
-        "zip_code": "8313"
+        "zip_code": "8315"
     },
     {
         "code": "042104000",
@@ -2067,7 +2067,7 @@
         "code": "166807000",
         "name": "Carrascal",
         "parent": "166800000",
-        "zip_code": "8310"
+        "zip_code": "8318"
     },
     {
         "code": "037702000",
@@ -2109,7 +2109,7 @@
         "code": "101801000",
         "name": "Catarman",
         "parent": "101800000",
-        "zip_code": "9102"
+        "zip_code": "9104"
     },
     {
         "code": "084805000",
@@ -2121,7 +2121,7 @@
         "code": "112505000",
         "name": "Cateel",
         "parent": "112500000",
-        "zip_code": null
+        "zip_code": "8205"
     },
     {
         "code": "071213000",
@@ -2217,13 +2217,13 @@
         "code": "160301000",
         "name": "City Of Bayugan",
         "parent": "160300000",
-        "zip_code": "8513"
+        "zip_code": "8502"
     },
     {
         "code": "166803000",
         "name": "City Of Bislig",
         "parent": "166800000",
-        "zip_code": "8317"
+        "zip_code": "8311"
     },
     {
         "code": "043403000",
@@ -2247,7 +2247,7 @@
         "code": "160203000",
         "name": "City Of Cabadbaran",
         "parent": "160200000",
-        "zip_code": "8607"
+        "zip_code": "8605"
     },
     {
         "code": "043405000",
@@ -2259,7 +2259,7 @@
         "code": "175205000",
         "name": "City Of Calapan (Capital)",
         "parent": "175200000",
-        "zip_code": "5213"
+        "zip_code": "5200"
     },
     {
         "code": "012906000",
@@ -2295,13 +2295,13 @@
         "code": "112403000",
         "name": "City Of Digos (Capital)",
         "parent": "112400000",
-        "zip_code": "8006"
+        "zip_code": "8002"
     },
     {
         "code": "104307000",
         "name": "City Of El Salvador",
         "parent": "104300000",
-        "zip_code": null
+        "zip_code": "9017"
     },
     {
         "code": "064509000",
@@ -2343,19 +2343,19 @@
         "code": "124704000",
         "name": "City Of Kidapawan (Capital)",
         "parent": "124700000",
-        "zip_code": "9411"
+        "zip_code": "9400"
     },
     {
         "code": "126306000",
         "name": "City Of Koronadal (Capital)",
         "parent": "126300000",
-        "zip_code": "9508"
+        "zip_code": "9506"
     },
     {
         "code": "150702000",
         "name": "City Of Lamitan (Capital)",
         "parent": "150700000",
-        "zip_code": "7303"
+        "zip_code": null
     },
     {
         "code": "050508000",
@@ -2373,7 +2373,7 @@
         "code": "101312000",
         "name": "City Of Malaybalay (Capital)",
         "parent": "101300000",
-        "zip_code": "8704"
+        "zip_code": "8700"
     },
     {
         "code": "031410000",
@@ -2391,7 +2391,7 @@
         "code": "112509000",
         "name": "City Of Mati (Capital)",
         "parent": "112500000",
-        "zip_code": "8209"
+        "zip_code": "8200"
     },
     {
         "code": "031412000",
@@ -2409,7 +2409,7 @@
         "code": "112315000",
         "name": "City Of Panabo",
         "parent": "112300000",
-        "zip_code": "8119"
+        "zip_code": "8105"
     },
     {
         "code": "063035000",
@@ -2475,19 +2475,19 @@
         "code": "143213000",
         "name": "City Of Tabuk (Capital)",
         "parent": "143200000",
-        "zip_code": "3804"
+        "zip_code": "3800"
     },
     {
         "code": "126511000",
         "name": "City Of Tacurong",
         "parent": "126500000",
-        "zip_code": "9811"
+        "zip_code": "9800"
     },
     {
         "code": "112319000",
         "name": "City Of Tagum (Capital)",
         "parent": "112300000",
-        "zip_code": null
+        "zip_code": "8100"
     },
     {
         "code": "064528000",
@@ -2511,7 +2511,7 @@
         "code": "166819000",
         "name": "City Of Tandag (Capital)",
         "parent": "166800000",
-        "zip_code": "8411"
+        "zip_code": "8300"
     },
     {
         "code": "074621000",
@@ -2541,7 +2541,7 @@
         "code": "101321000",
         "name": "City Of Valencia",
         "parent": "101300000",
-        "zip_code": "8723"
+        "zip_code": "8709"
     },
     {
         "code": "064531000",
@@ -2565,13 +2565,13 @@
         "code": "104205000",
         "name": "Clarin",
         "parent": "104200000",
-        "zip_code": "7213"
+        "zip_code": "7201"
     },
     {
         "code": "166706000",
         "name": "Claver",
         "parent": "166700000",
-        "zip_code": "8418"
+        "zip_code": "8410"
     },
     {
         "code": "021511000",
@@ -2589,13 +2589,13 @@
         "code": "104306000",
         "name": "Claveria",
         "parent": "104300000",
-        "zip_code": null
+        "zip_code": "9004"
     },
     {
         "code": "126502000",
         "name": "Columbio",
         "parent": "126500000",
-        "zip_code": "9806"
+        "zip_code": "9801"
     },
     {
         "code": "072218000",
@@ -2607,7 +2607,7 @@
         "code": "118201000",
         "name": "Compostela",
         "parent": "118200000",
-        "zip_code": "8810"
+        "zip_code": "8803"
     },
     {
         "code": "036905000",
@@ -2625,19 +2625,19 @@
         "code": "104206000",
         "name": "Concepcion",
         "parent": "104200000",
-        "zip_code": "7204"
+        "zip_code": "7213"
     },
     {
         "code": "175905000",
         "name": "Concepcion",
         "parent": "175900000",
-        "zip_code": "5507"
+        "zip_code": "5516"
     },
     {
         "code": "148102000",
         "name": "Conner",
         "parent": "148100000",
-        "zip_code": "3809"
+        "zip_code": "3807"
     },
     {
         "code": "072219000",
@@ -2649,7 +2649,7 @@
         "code": "175906000",
         "name": "Corcuera",
         "parent": "175900000",
-        "zip_code": "5511"
+        "zip_code": "5514"
     },
     {
         "code": "023109000",
@@ -2673,7 +2673,7 @@
         "code": "175309000",
         "name": "Coron",
         "parent": "175300000",
-        "zip_code": "5310"
+        "zip_code": "5316"
     },
     {
         "code": "071216000",
@@ -2685,7 +2685,7 @@
         "code": "166808000",
         "name": "Cortes",
         "parent": "166800000",
-        "zip_code": "8314"
+        "zip_code": "8313"
     },
     {
         "code": "061901000",
@@ -2715,7 +2715,7 @@
         "code": "175322000",
         "name": "Culion",
         "parent": "175300000",
-        "zip_code": null
+        "zip_code": "5315"
     },
     {
         "code": "012808000",
@@ -2733,7 +2733,7 @@
         "code": "175310000",
         "name": "Cuyo",
         "parent": "175300000",
-        "zip_code": "5313"
+        "zip_code": "5318"
     },
     {
         "code": "072221000",
@@ -2763,7 +2763,7 @@
         "code": "140105000",
         "name": "Daguioman",
         "parent": "140100000",
-        "zip_code": "2801"
+        "zip_code": "2816"
     },
     {
         "code": "015518000",
@@ -2781,7 +2781,7 @@
         "code": "101302000",
         "name": "Damulog",
         "parent": "101300000",
-        "zip_code": "8719"
+        "zip_code": null
     },
     {
         "code": "071218000",
@@ -2799,13 +2799,13 @@
         "code": "101303000",
         "name": "Dangcagan",
         "parent": "101300000",
-        "zip_code": "8712"
+        "zip_code": null
     },
     {
         "code": "140106000",
         "name": "Danglas",
         "parent": "140100000",
-        "zip_code": "2826"
+        "zip_code": "2825"
     },
     {
         "code": "061902000",
@@ -2817,7 +2817,7 @@
         "code": "166707000",
         "name": "Dapa",
         "parent": "166700000",
-        "zip_code": "8419"
+        "zip_code": "8417"
     },
     {
         "code": "097201000",
@@ -2871,25 +2871,25 @@
         "code": "153807000",
         "name": "Datu Odin Sinsuat (Dinaig)",
         "parent": "153800000",
-        "zip_code": "9613"
+        "zip_code": null
     },
     {
         "code": "153805000",
         "name": "Datu Paglas",
         "parent": "153800000",
-        "zip_code": "9601"
+        "zip_code": null
     },
     {
         "code": "153806000",
         "name": "Datu Piang",
         "parent": "153800000",
-        "zip_code": "9608"
+        "zip_code": null
     },
     {
         "code": "153836000",
         "name": "Datu Salibo",
         "parent": "153800000",
-        "zip_code": "7407"
+        "zip_code": null
     },
     {
         "code": "153826000",
@@ -2919,13 +2919,13 @@
         "code": "112402000",
         "name": "Davao City",
         "parent": "112400000",
-        "zip_code": "8002"
+        "zip_code": "8000"
     },
     {
         "code": "166708000",
         "name": "Del Carmen",
         "parent": "166700000",
-        "zip_code": "8409"
+        "zip_code": "8418"
     },
     {
         "code": "051712000",
@@ -2979,7 +2979,7 @@
         "code": "168503000",
         "name": "Dinagat",
         "parent": "168500000",
-        "zip_code": null
+        "zip_code": "8412"
     },
     {
         "code": "037704000",
@@ -2997,7 +2997,7 @@
         "code": "023110000",
         "name": "Dinapigue",
         "parent": "023100000",
-        "zip_code": null
+        "zip_code": "3336"
     },
     {
         "code": "097306000",
@@ -3045,7 +3045,7 @@
         "code": "153624000",
         "name": "Ditsaan-Ramain",
         "parent": "153600000",
-        "zip_code": "9704"
+        "zip_code": null
     },
     {
         "code": "023111000",
@@ -3069,7 +3069,7 @@
         "code": "140107000",
         "name": "Dolores",
         "parent": "140100000",
-        "zip_code": "2821"
+        "zip_code": "2801"
     },
     {
         "code": "101304000",
@@ -3081,13 +3081,13 @@
         "code": "118601000",
         "name": "Don Marcelino",
         "parent": "118600000",
-        "zip_code": "8014"
+        "zip_code": "8013"
     },
     {
         "code": "104217000",
         "name": "Don Victoriano Chiongbian  (Don Mariano Marcos)",
         "parent": "104200000",
-        "zip_code": "9018"
+        "zip_code": "7216"
     },
     {
         "code": "056207000",
@@ -3159,7 +3159,7 @@
         "code": "175311000",
         "name": "Dumaran",
         "parent": "175300000",
-        "zip_code": "5314"
+        "zip_code": "5310"
     },
     {
         "code": "061904000",
@@ -3195,7 +3195,7 @@
         "code": "175312000",
         "name": "El Nido (Bacuit)",
         "parent": "175300000",
-        "zip_code": "5319"
+        "zip_code": "5313"
     },
     {
         "code": "021512000",
@@ -3225,13 +3225,13 @@
         "code": "126503000",
         "name": "Esperanza",
         "parent": "126500000",
-        "zip_code": "9805"
+        "zip_code": "9806"
     },
     {
         "code": "160303000",
         "name": "Esperanza",
         "parent": "160300000",
-        "zip_code": "8507"
+        "zip_code": "8513"
     },
     {
         "code": "063019000",
@@ -3249,13 +3249,13 @@
         "code": "175916000",
         "name": "Ferrol",
         "parent": "175900000",
-        "zip_code": null
+        "zip_code": "5506"
     },
     {
         "code": "148103000",
         "name": "Flora",
         "parent": "148100000",
-        "zip_code": "3813"
+        "zip_code": "3810"
     },
     {
         "code": "035406000",
@@ -3297,7 +3297,7 @@
         "code": "153609000",
         "name": "Ganassi",
         "parent": "153600000",
-        "zip_code": "9703"
+        "zip_code": null
     },
     {
         "code": "086007000",
@@ -3321,7 +3321,7 @@
         "code": "174003000",
         "name": "Gasan",
         "parent": "174000000",
-        "zip_code": null
+        "zip_code": "4905"
     },
     {
         "code": "021513000",
@@ -3333,7 +3333,7 @@
         "code": "042123000",
         "name": "Gen. Mariano Alvarez",
         "parent": "042100000",
-        "zip_code": null
+        "zip_code": "4117"
     },
     {
         "code": "153819000",
@@ -3351,13 +3351,13 @@
         "code": "045616000",
         "name": "General Luna",
         "parent": "045600000",
-        "zip_code": null
+        "zip_code": "4310"
     },
     {
         "code": "166710000",
         "name": "General Luna",
         "parent": "166700000",
-        "zip_code": "8407"
+        "zip_code": "8419"
     },
     {
         "code": "082607000",
@@ -3381,7 +3381,7 @@
         "code": "126303000",
         "name": "General Santos City (Dadiangas)",
         "parent": "126300000",
-        "zip_code": "9506"
+        "zip_code": "9500"
     },
     {
         "code": "034910000",
@@ -3405,7 +3405,7 @@
         "code": "166711000",
         "name": "Gigaquit",
         "parent": "166700000",
-        "zip_code": "8402"
+        "zip_code": "8409"
     },
     {
         "code": "052005000",
@@ -3423,7 +3423,7 @@
         "code": "104308000",
         "name": "Gingoog City",
         "parent": "104300000",
-        "zip_code": "9020"
+        "zip_code": "9014"
     },
     {
         "code": "082608000",
@@ -3435,19 +3435,19 @@
         "code": "104309000",
         "name": "Gitagum",
         "parent": "104300000",
-        "zip_code": "9022"
+        "zip_code": "9020"
     },
     {
         "code": "128002000",
         "name": "Glan",
         "parent": "128000000",
-        "zip_code": "9514"
+        "zip_code": "9517"
     },
     {
         "code": "175206000",
         "name": "Gloria",
         "parent": "175200000",
-        "zip_code": "5204"
+        "zip_code": "5209"
     },
     {
         "code": "051715000",
@@ -3471,7 +3471,7 @@
         "code": "112506000",
         "name": "Governor Generoso",
         "parent": "112500000",
-        "zip_code": "8207"
+        "zip_code": "8210"
     },
     {
         "code": "012910000",
@@ -3537,7 +3537,7 @@
         "code": "101802000",
         "name": "Guinsiliban",
         "parent": "101800000",
-        "zip_code": "9101"
+        "zip_code": "9102"
     },
     {
         "code": "097343000",
@@ -3573,13 +3573,13 @@
         "code": "150712000",
         "name": "Hadji Muhtamad",
         "parent": "150700000",
-        "zip_code": "9316"
+        "zip_code": null
     },
     {
         "code": "156606000",
         "name": "Hadji Panglima Tahil (Marunggas)",
         "parent": "156600000",
-        "zip_code": "7414"
+        "zip_code": null
     },
     {
         "code": "031409000",
@@ -3591,7 +3591,7 @@
         "code": "112404000",
         "name": "Hagonoy",
         "parent": "112400000",
-        "zip_code": "8008"
+        "zip_code": "8006"
     },
     {
         "code": "060608000",
@@ -3627,7 +3627,7 @@
         "code": "166809000",
         "name": "Hinatuan",
         "parent": "166800000",
-        "zip_code": "8307"
+        "zip_code": "8310"
     },
     {
         "code": "083720000",
@@ -3639,7 +3639,7 @@
         "code": "142709000",
         "name": "Hingyon",
         "parent": "142700000",
-        "zip_code": "3610"
+        "zip_code": "3607"
     },
     {
         "code": "064511000",
@@ -3669,7 +3669,7 @@
         "code": "142702000",
         "name": "Hungduan",
         "parent": "142700000",
-        "zip_code": "3600"
+        "zip_code": "3603"
     },
     {
         "code": "037105000",
@@ -3705,13 +3705,13 @@
         "code": "023114000",
         "name": "Ilagan City (Capital)",
         "parent": "023100000",
-        "zip_code": null
+        "zip_code": "3300"
     },
     {
         "code": "103504000",
         "name": "Iligan City",
         "parent": "103500000",
-        "zip_code": "9214"
+        "zip_code": "9200"
     },
     {
         "code": "064513000",
@@ -3735,13 +3735,13 @@
         "code": "101305000",
         "name": "Impasug-Ong",
         "parent": "101300000",
-        "zip_code": "8713"
+        "zip_code": null
     },
     {
         "code": "042109000",
         "name": "Imus City",
         "parent": "042100000",
-        "zip_code": null
+        "zip_code": "4103"
     },
     {
         "code": "071224000",
@@ -3777,7 +3777,7 @@
         "code": "104310000",
         "name": "Initao",
         "parent": "104300000",
-        "zip_code": "9003"
+        "zip_code": "9022"
     },
     {
         "code": "083721000",
@@ -3819,13 +3819,13 @@
         "code": "112317000",
         "name": "Island Garden City Of Samal",
         "parent": "112300000",
-        "zip_code": "8112"
+        "zip_code": "8119"
     },
     {
         "code": "126504000",
         "name": "Isulan (Capital)",
         "parent": "126500000",
-        "zip_code": "9808"
+        "zip_code": "9805"
     },
     {
         "code": "020902000",
@@ -3837,7 +3837,7 @@
         "code": "141106000",
         "name": "Itogon",
         "parent": "141100000",
-        "zip_code": "2613"
+        "zip_code": "2604"
     },
     {
         "code": "020903000",
@@ -3855,7 +3855,7 @@
         "code": "160205000",
         "name": "Jabonga",
         "parent": "160200000",
-        "zip_code": "8610"
+        "zip_code": "8607"
     },
     {
         "code": "034912000",
@@ -3873,7 +3873,7 @@
         "code": "045807000",
         "name": "Jala-Jala",
         "parent": "045800000",
-        "zip_code": null
+        "zip_code": "1990"
     },
     {
         "code": "061906000",
@@ -3897,7 +3897,7 @@
         "code": "104311000",
         "name": "Jasaan",
         "parent": "104300000",
-        "zip_code": "9010"
+        "zip_code": "9003"
     },
     {
         "code": "083724000",
@@ -3921,7 +3921,7 @@
         "code": "104207000",
         "name": "Jimenez",
         "parent": "104200000",
-        "zip_code": "7208"
+        "zip_code": "7204"
     },
     {
         "code": "082611000",
@@ -3933,7 +3933,7 @@
         "code": "156602000",
         "name": "Jolo (Capital)",
         "parent": "156600000",
-        "zip_code": "7404"
+        "zip_code": null
     },
     {
         "code": "045621000",
@@ -3957,7 +3957,7 @@
         "code": "118602000",
         "name": "Jose Abad Santos (Trinidad)",
         "parent": "118600000",
-        "zip_code": "8012"
+        "zip_code": "8014"
     },
     {
         "code": "097222000",
@@ -3999,7 +3999,7 @@
         "code": "124703000",
         "name": "Kabacan",
         "parent": "124700000",
-        "zip_code": "9400"
+        "zip_code": "9407"
     },
     {
         "code": "098306000",
@@ -4011,31 +4011,31 @@
         "code": "141107000",
         "name": "Kabayan",
         "parent": "141100000",
-        "zip_code": "2611"
+        "zip_code": "2606"
     },
     {
         "code": "148104000",
         "name": "Kabugao (Capital)",
         "parent": "148100000",
-        "zip_code": "3812"
+        "zip_code": "3809"
     },
     {
         "code": "153814000",
         "name": "Kabuntalan (Tumbao)",
         "parent": "153800000",
-        "zip_code": "9612"
+        "zip_code": null
     },
     {
         "code": "101306000",
         "name": "Kadingilan",
         "parent": "101300000",
-        "zip_code": "8718"
+        "zip_code": null
     },
     {
         "code": "126505000",
         "name": "Kalamansig",
         "parent": "126500000",
-        "zip_code": "9807"
+        "zip_code": "9808"
     },
     {
         "code": "097227000",
@@ -4053,7 +4053,7 @@
         "code": "175321000",
         "name": "Kalayaan",
         "parent": "175300000",
-        "zip_code": null
+        "zip_code": "5322"
     },
     {
         "code": "060407000",
@@ -4065,13 +4065,13 @@
         "code": "101307000",
         "name": "Kalilangan",
         "parent": "101300000",
-        "zip_code": "8720"
+        "zip_code": null
     },
     {
         "code": "156603000",
         "name": "Kalingalan Caluang",
         "parent": "156600000",
-        "zip_code": "7409"
+        "zip_code": null
     },
     {
         "code": "083726000",
@@ -4083,25 +4083,25 @@
         "code": "153610000",
         "name": "Kapai",
         "parent": "153600000",
-        "zip_code": "9307"
+        "zip_code": null
     },
     {
         "code": "112305000",
         "name": "Kapalong",
         "parent": "112300000",
-        "zip_code": "8104"
+        "zip_code": "8113"
     },
     {
         "code": "141108000",
         "name": "Kapangan",
         "parent": "141100000",
-        "zip_code": "2601"
+        "zip_code": "2613"
     },
     {
         "code": "103505000",
         "name": "Kapatagan",
         "parent": "103500000",
-        "zip_code": "9223"
+        "zip_code": "9214"
     },
     {
         "code": "153639000",
@@ -4125,7 +4125,7 @@
         "code": "103507000",
         "name": "Kauswagan",
         "parent": "103500000",
-        "zip_code": "9207"
+        "zip_code": "9202"
     },
     {
         "code": "087806000",
@@ -4149,55 +4149,55 @@
         "code": "128003000",
         "name": "Kiamba",
         "parent": "128000000",
-        "zip_code": "9502"
+        "zip_code": "9514"
     },
     {
         "code": "142703000",
         "name": "Kiangan",
         "parent": "142700000",
-        "zip_code": "3605"
+        "zip_code": "3604"
     },
     {
         "code": "101308000",
         "name": "Kibawe",
         "parent": "101300000",
-        "zip_code": "8716"
+        "zip_code": null
     },
     {
         "code": "112406000",
         "name": "Kiblawan",
         "parent": "112400000",
-        "zip_code": "8004"
+        "zip_code": "8008"
     },
     {
         "code": "141109000",
         "name": "Kibungan",
         "parent": "141100000",
-        "zip_code": "2608"
+        "zip_code": "2611"
     },
     {
         "code": "104312000",
         "name": "Kinoguitan",
         "parent": "104300000",
-        "zip_code": "9006"
+        "zip_code": "9010"
     },
     {
         "code": "101309000",
         "name": "Kitaotao",
         "parent": "101300000",
-        "zip_code": "8722"
+        "zip_code": "8716"
     },
     {
         "code": "160206000",
         "name": "Kitcharao",
         "parent": "160200000",
-        "zip_code": "8604"
+        "zip_code": "8609"
     },
     {
         "code": "103508000",
         "name": "Kolambugan",
         "parent": "103500000",
-        "zip_code": "9211"
+        "zip_code": "9207"
     },
     {
         "code": "097311000",
@@ -4245,25 +4245,25 @@
         "code": "140108000",
         "name": "La Paz",
         "parent": "140100000",
-        "zip_code": "2802"
+        "zip_code": "2826"
     },
     {
         "code": "160304000",
         "name": "La Paz",
         "parent": "160300000",
-        "zip_code": "8500"
+        "zip_code": "8508"
     },
     {
         "code": "141110000",
         "name": "La Trinidad (Capital)",
         "parent": "141100000",
-        "zip_code": "2614"
+        "zip_code": "2601"
     },
     {
         "code": "118202000",
         "name": "Laak (San Vicente)",
         "parent": "118200000",
-        "zip_code": "8115"
+        "zip_code": "8810"
     },
     {
         "code": "097312000",
@@ -4293,31 +4293,31 @@
         "code": "140109000",
         "name": "Lacub",
         "parent": "140100000",
-        "zip_code": "2824"
+        "zip_code": "2821"
     },
     {
         "code": "140110000",
         "name": "Lagangilang",
         "parent": "140100000",
-        "zip_code": "2807"
+        "zip_code": "2802"
     },
     {
         "code": "142704000",
         "name": "Lagawe (Capital)",
         "parent": "142700000",
-        "zip_code": "3602"
+        "zip_code": "3600"
     },
     {
         "code": "140111000",
         "name": "Lagayan",
         "parent": "140100000",
-        "zip_code": "2819"
+        "zip_code": "2824"
     },
     {
         "code": "104313000",
         "name": "Lagonglong",
         "parent": "104300000",
-        "zip_code": "9019"
+        "zip_code": "9006"
     },
     {
         "code": "051717000",
@@ -4329,13 +4329,13 @@
         "code": "104314000",
         "name": "Laguindingan",
         "parent": "104300000",
-        "zip_code": "9021"
+        "zip_code": "9019"
     },
     {
         "code": "126319000",
         "name": "Lake Sebu",
         "parent": "126300000",
-        "zip_code": "9810"
+        "zip_code": "9518"
     },
     {
         "code": "097333000",
@@ -4353,13 +4353,13 @@
         "code": "103509000",
         "name": "Lala",
         "parent": "103500000",
-        "zip_code": "9201"
+        "zip_code": "9211"
     },
     {
         "code": "126508000",
         "name": "Lambayong (Mariano Marcos)",
         "parent": "126500000",
-        "zip_code": "9809"
+        "zip_code": "9802"
     },
     {
         "code": "063025000",
@@ -4371,13 +4371,13 @@
         "code": "142705000",
         "name": "Lamut",
         "parent": "142700000",
-        "zip_code": "3608"
+        "zip_code": "3605"
     },
     {
         "code": "140112000",
         "name": "Langiden",
         "parent": "140100000",
-        "zip_code": "2813"
+        "zip_code": "2807"
     },
     {
         "code": "157009000",
@@ -4389,19 +4389,19 @@
         "code": "101310000",
         "name": "Lantapan",
         "parent": "101300000",
-        "zip_code": "8706"
+        "zip_code": "8722"
     },
     {
         "code": "150703000",
         "name": "Lantawan",
         "parent": "150700000",
-        "zip_code": "7305"
+        "zip_code": null
     },
     {
         "code": "166810000",
         "name": "Lanuza",
         "parent": "166800000",
-        "zip_code": "8312"
+        "zip_code": "8314"
     },
     {
         "code": "015548000",
@@ -4455,13 +4455,13 @@
         "code": "160207000",
         "name": "Las Nieves",
         "parent": "160200000",
-        "zip_code": "8602"
+        "zip_code": "8610"
     },
     {
         "code": "137601000",
         "name": "Las Piñas",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1740"
     },
     {
         "code": "021517000",
@@ -4509,7 +4509,7 @@
         "code": "126506000",
         "name": "Lebak",
         "parent": "126500000",
-        "zip_code": "9803"
+        "zip_code": "9807"
     },
     {
         "code": "063026000",
@@ -4563,7 +4563,7 @@
         "code": "166811000",
         "name": "Lianga",
         "parent": "166800000",
-        "zip_code": "8316"
+        "zip_code": "8307"
     },
     {
         "code": "060409000",
@@ -4587,13 +4587,13 @@
         "code": "104315000",
         "name": "Libertad",
         "parent": "104300000",
-        "zip_code": "9025"
+        "zip_code": "9021"
     },
     {
         "code": "168504000",
         "name": "Libjo (Albor)",
         "parent": "168500000",
-        "zip_code": "8427"
+        "zip_code": "8414"
     },
     {
         "code": "051718000",
@@ -4611,13 +4611,13 @@
         "code": "101311000",
         "name": "Libona",
         "parent": "101300000",
-        "zip_code": "8700"
+        "zip_code": "8706"
     },
     {
         "code": "124705000",
         "name": "Libungan",
         "parent": "124700000",
-        "zip_code": "9404"
+        "zip_code": "9411"
     },
     {
         "code": "034914000",
@@ -4629,7 +4629,7 @@
         "code": "140113000",
         "name": "Licuan-Baay (Licuan)",
         "parent": "140100000",
-        "zip_code": "2820"
+        "zip_code": "2819"
     },
     {
         "code": "012911000",
@@ -4683,13 +4683,13 @@
         "code": "103510000",
         "name": "Linamon",
         "parent": "103500000",
-        "zip_code": "9221"
+        "zip_code": "9201"
     },
     {
         "code": "175313000",
         "name": "Linapacan",
         "parent": "175300000",
-        "zip_code": "5303"
+        "zip_code": "5314"
     },
     {
         "code": "015522000",
@@ -4701,7 +4701,7 @@
         "code": "166812000",
         "name": "Lingig",
         "parent": "166800000",
-        "zip_code": "8306"
+        "zip_code": "8312"
     },
     {
         "code": "041014000",
@@ -4743,13 +4743,13 @@
         "code": "175103000",
         "name": "Looc",
         "parent": "175100000",
-        "zip_code": "5101"
+        "zip_code": "5111"
     },
     {
         "code": "175907000",
         "name": "Looc",
         "parent": "175900000",
-        "zip_code": "5505"
+        "zip_code": "5507"
     },
     {
         "code": "071230000",
@@ -4773,19 +4773,19 @@
         "code": "104208000",
         "name": "Lopez Jaena",
         "parent": "104200000",
-        "zip_code": "7207"
+        "zip_code": "7208"
     },
     {
         "code": "160305000",
         "name": "Loreto",
         "parent": "160300000",
-        "zip_code": "8504"
+        "zip_code": "8507"
     },
     {
         "code": "168505000",
         "name": "Loreto",
         "parent": "168500000",
-        "zip_code": "8426"
+        "zip_code": "8415"
     },
     {
         "code": "043411000",
@@ -4797,13 +4797,13 @@
         "code": "140114000",
         "name": "Luba",
         "parent": "140100000",
-        "zip_code": "2810"
+        "zip_code": "2813"
     },
     {
         "code": "175104000",
         "name": "Lubang",
         "parent": "175100000",
-        "zip_code": "5106"
+        "zip_code": "5109"
     },
     {
         "code": "035408000",
@@ -4815,7 +4815,7 @@
         "code": "143206000",
         "name": "Lubuagan",
         "parent": "143200000",
-        "zip_code": "3806"
+        "zip_code": "3802"
     },
     {
         "code": "045623000",
@@ -4833,7 +4833,7 @@
         "code": "104316000",
         "name": "Lugait",
         "parent": "104300000",
-        "zip_code": "9015"
+        "zip_code": "9025"
     },
     {
         "code": "156617000",
@@ -4851,13 +4851,13 @@
         "code": "153611000",
         "name": "Lumba-Bayabao (Maguing)",
         "parent": "153600000",
-        "zip_code": "9315"
+        "zip_code": null
     },
     {
         "code": "153641000",
         "name": "Lumbaca-Unayan",
         "parent": "153600000",
-        "zip_code": "9615"
+        "zip_code": null
     },
     {
         "code": "043413000",
@@ -4869,13 +4869,13 @@
         "code": "153612000",
         "name": "Lumbatan",
         "parent": "153600000",
-        "zip_code": "9314"
+        "zip_code": null
     },
     {
         "code": "153636000",
         "name": "Lumbayanague",
         "parent": "153600000",
-        "zip_code": "9321"
+        "zip_code": null
     },
     {
         "code": "013310000",
@@ -4893,7 +4893,7 @@
         "code": "148105000",
         "name": "Luna",
         "parent": "148100000",
-        "zip_code": "3811"
+        "zip_code": "3813"
     },
     {
         "code": "034916000",
@@ -4911,25 +4911,25 @@
         "code": "112507000",
         "name": "Lupon",
         "parent": "112500000",
-        "zip_code": "8202"
+        "zip_code": "8207"
     },
     {
         "code": "126507000",
         "name": "Lutayan",
         "parent": "126500000",
-        "zip_code": "9802"
+        "zip_code": "9803"
     },
     {
         "code": "156604000",
         "name": "Luuk",
         "parent": "156600000",
-        "zip_code": "7413"
+        "zip_code": null
     },
     {
         "code": "124710000",
         "name": "M'Lang",
         "parent": "124700000",
-        "zip_code": "9412"
+        "zip_code": "9402"
     },
     {
         "code": "061907000",
@@ -4941,7 +4941,7 @@
         "code": "128004000",
         "name": "Maasim",
         "parent": "128000000",
-        "zip_code": "9515"
+        "zip_code": "9502"
     },
     {
         "code": "063029000",
@@ -4953,7 +4953,7 @@
         "code": "035409000",
         "name": "Mabalacat City",
         "parent": "035400000",
-        "zip_code": null
+        "zip_code": "2010"
     },
     {
         "code": "074614000",
@@ -4983,7 +4983,7 @@
         "code": "118203000",
         "name": "Mabini (Doña Alicia)",
         "parent": "118200000",
-        "zip_code": "8114"
+        "zip_code": "8807"
     },
     {
         "code": "043414000",
@@ -5019,7 +5019,7 @@
         "code": "118204000",
         "name": "Maco",
         "parent": "118200000",
-        "zip_code": "8116"
+        "zip_code": "8806"
     },
     {
         "code": "023117000",
@@ -5043,13 +5043,13 @@
         "code": "153613000",
         "name": "Madalum",
         "parent": "153600000",
-        "zip_code": "9300"
+        "zip_code": null
     },
     {
         "code": "153614000",
         "name": "Madamba",
         "parent": "153600000",
-        "zip_code": "9711"
+        "zip_code": null
     },
     {
         "code": "025704000",
@@ -5061,7 +5061,7 @@
         "code": "166813000",
         "name": "Madrid",
         "parent": "166800000",
-        "zip_code": "1117"
+        "zip_code": "8316"
     },
     {
         "code": "072228000",
@@ -5091,7 +5091,7 @@
         "code": "160208000",
         "name": "Magallanes",
         "parent": "160200000",
-        "zip_code": "8608"
+        "zip_code": "8604"
     },
     {
         "code": "051720000",
@@ -5109,43 +5109,43 @@
         "code": "175908000",
         "name": "Magdiwang",
         "parent": "175900000",
-        "zip_code": "5500"
+        "zip_code": "5511"
     },
     {
         "code": "124706000",
         "name": "Magpet",
         "parent": "124700000",
-        "zip_code": "9401"
+        "zip_code": "9404"
     },
     {
         "code": "103511000",
         "name": "Magsaysay",
         "parent": "103500000",
-        "zip_code": "9206"
+        "zip_code": "9221"
     },
     {
         "code": "112407000",
         "name": "Magsaysay",
         "parent": "112400000",
-        "zip_code": "8010"
+        "zip_code": "8004"
     },
     {
         "code": "175105000",
         "name": "Magsaysay",
         "parent": "175100000",
-        "zip_code": "5107"
+        "zip_code": "5101"
     },
     {
         "code": "175314000",
         "name": "Magsaysay",
         "parent": "175300000",
-        "zip_code": null
+        "zip_code": "5319"
     },
     {
         "code": "104317000",
         "name": "Magsaysay (Linugos)",
         "parent": "104300000",
-        "zip_code": "9024"
+        "zip_code": "9015"
     },
     {
         "code": "012912000",
@@ -5157,7 +5157,7 @@
         "code": "153634000",
         "name": "Maguing",
         "parent": "153600000",
-        "zip_code": "9306"
+        "zip_code": null
     },
     {
         "code": "083731000",
@@ -5181,31 +5181,31 @@
         "code": "101803000",
         "name": "Mahinog",
         "parent": "101800000",
-        "zip_code": "9100"
+        "zip_code": "9101"
     },
     {
         "code": "103512000",
         "name": "Maigo",
         "parent": "103500000",
-        "zip_code": "9203"
+        "zip_code": "9206"
     },
     {
         "code": "156605000",
         "name": "Maimbung",
         "parent": "156600000",
-        "zip_code": "7402"
+        "zip_code": null
     },
     {
         "code": "166714000",
         "name": "Mainit",
         "parent": "166700000",
-        "zip_code": "8420"
+        "zip_code": "8407"
     },
     {
         "code": "128005000",
         "name": "Maitum",
         "parent": "128000000",
-        "zip_code": "9516"
+        "zip_code": "9515"
     },
     {
         "code": "043416000",
@@ -5217,7 +5217,7 @@
         "code": "137602000",
         "name": "Makati",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1200"
     },
     {
         "code": "060411000",
@@ -5229,19 +5229,19 @@
         "code": "124707000",
         "name": "Makilala",
         "parent": "124700000",
-        "zip_code": "9406"
+        "zip_code": "9401"
     },
     {
         "code": "153615000",
         "name": "Malabang",
         "parent": "153600000",
-        "zip_code": "9700"
+        "zip_code": null
     },
     {
         "code": "137502000",
         "name": "Malabon",
         "parent": "130000000",
-        "zip_code": "1208"
+        "zip_code": "1470"
     },
     {
         "code": "072229000",
@@ -5253,7 +5253,7 @@
         "code": "112408000",
         "name": "Malalag",
         "parent": "112400000",
-        "zip_code": "8003"
+        "zip_code": "8010"
     },
     {
         "code": "098308000",
@@ -5265,7 +5265,7 @@
         "code": "128006000",
         "name": "Malapatan",
         "parent": "128000000",
-        "zip_code": "9503"
+        "zip_code": "9516"
     },
     {
         "code": "015524000",
@@ -5283,7 +5283,7 @@
         "code": "140115000",
         "name": "Malibcong",
         "parent": "140100000",
-        "zip_code": "2804"
+        "zip_code": "2820"
     },
     {
         "code": "050509000",
@@ -5295,25 +5295,25 @@
         "code": "166715000",
         "name": "Malimono",
         "parent": "166700000",
-        "zip_code": "8405"
+        "zip_code": "8402"
     },
     {
         "code": "050510000",
         "name": "Malinao",
         "parent": "050500000",
-        "zip_code": null
+        "zip_code": "4512"
     },
     {
         "code": "060413000",
         "name": "Malinao",
         "parent": "060400000",
-        "zip_code": "4512"
+        "zip_code": null
     },
     {
         "code": "118603000",
         "name": "Malita (Capital)",
         "parent": "118600000",
-        "zip_code": null
+        "zip_code": "8012"
     },
     {
         "code": "086409000",
@@ -5325,7 +5325,7 @@
         "code": "101313000",
         "name": "Malitbog",
         "parent": "101300000",
-        "zip_code": "8703"
+        "zip_code": "8704"
     },
     {
         "code": "023119000",
@@ -5337,13 +5337,13 @@
         "code": "128007000",
         "name": "Malungon",
         "parent": "128000000",
-        "zip_code": null
+        "zip_code": "9503"
     },
     {
         "code": "150704000",
         "name": "Maluso",
         "parent": "150700000",
-        "zip_code": "7304"
+        "zip_code": null
     },
     {
         "code": "041017000",
@@ -5361,13 +5361,13 @@
         "code": "101804000",
         "name": "Mambajao (Capital)",
         "parent": "101800000",
-        "zip_code": "9103"
+        "zip_code": "9100"
     },
     {
         "code": "175106000",
         "name": "Mamburao (Capital)",
         "parent": "175100000",
-        "zip_code": "5103"
+        "zip_code": "5106"
     },
     {
         "code": "061908000",
@@ -5379,7 +5379,7 @@
         "code": "140116000",
         "name": "Manabo",
         "parent": "140100000",
-        "zip_code": "2806"
+        "zip_code": "2810"
     },
     {
         "code": "015525000",
@@ -5397,13 +5397,13 @@
         "code": "112508000",
         "name": "Manay",
         "parent": "112500000",
-        "zip_code": "8200"
+        "zip_code": "8202"
     },
     {
         "code": "137401000",
         "name": "Mandaluyong",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1550"
     },
     {
         "code": "054110000",
@@ -5439,7 +5439,7 @@
         "code": "133900000",
         "name": "Manila",
         "parent": "130000000",
-        "zip_code": "1006"
+        "zip_code": "1000"
     },
     {
         "code": "050511000",
@@ -5457,25 +5457,25 @@
         "code": "141111000",
         "name": "Mankayan",
         "parent": "141100000",
-        "zip_code": "2603"
+        "zip_code": "2608"
     },
     {
         "code": "101314000",
         "name": "Manolo Fortich",
         "parent": "101300000",
-        "zip_code": "8714"
+        "zip_code": "8703"
     },
     {
         "code": "175207000",
         "name": "Mansalay",
         "parent": "175200000",
-        "zip_code": "5208"
+        "zip_code": "5213"
     },
     {
         "code": "104318000",
         "name": "Manticao",
         "parent": "104300000",
-        "zip_code": "9013"
+        "zip_code": "9024"
     },
     {
         "code": "097207000",
@@ -5499,7 +5499,7 @@
         "code": "157003000",
         "name": "Mapun (Cagayan De Tawi-Tawi)",
         "parent": "157000000",
-        "zip_code": "7506"
+        "zip_code": null
     },
     {
         "code": "086010000",
@@ -5517,25 +5517,25 @@
         "code": "118205000",
         "name": "Maragusan (San Mariano)",
         "parent": "118200000",
-        "zip_code": "8108"
+        "zip_code": "8808"
     },
     {
         "code": "101315000",
         "name": "Maramag",
         "parent": "101300000",
-        "zip_code": "8717"
+        "zip_code": "8714"
     },
     {
         "code": "153616000",
         "name": "Marantao",
         "parent": "153600000",
-        "zip_code": "9706"
+        "zip_code": null
     },
     {
         "code": "153617000",
         "name": "Marawi City (Capital)",
         "parent": "153600000",
-        "zip_code": "9702"
+        "zip_code": null
     },
     {
         "code": "012813000",
@@ -5571,13 +5571,13 @@
         "code": "166814000",
         "name": "Marihatag",
         "parent": "166800000",
-        "zip_code": null
+        "zip_code": "8306"
     },
     {
         "code": "137402000",
         "name": "Marikina",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1800"
     },
     {
         "code": "031411000",
@@ -5601,7 +5601,7 @@
         "code": "153631000",
         "name": "Marogong",
         "parent": "153600000",
-        "zip_code": "9714"
+        "zip_code": null
     },
     {
         "code": "035412000",
@@ -5619,7 +5619,7 @@
         "code": "153618000",
         "name": "Masiu",
         "parent": "153600000",
-        "zip_code": "9312"
+        "zip_code": null
     },
     {
         "code": "082614000",
@@ -5631,7 +5631,7 @@
         "code": "041018000",
         "name": "Mataasnakahoy",
         "parent": "041000000",
-        "zip_code": null
+        "zip_code": "4223"
     },
     {
         "code": "083733000",
@@ -5643,7 +5643,7 @@
         "code": "124708000",
         "name": "Matalam",
         "parent": "124700000",
-        "zip_code": "9410"
+        "zip_code": "9406"
     },
     {
         "code": "083734000",
@@ -5655,13 +5655,13 @@
         "code": "112410000",
         "name": "Matanao",
         "parent": "112400000",
-        "zip_code": "8007"
+        "zip_code": "8003"
     },
     {
         "code": "153809000",
         "name": "Matanog",
         "parent": "153800000",
-        "zip_code": "9604"
+        "zip_code": null
     },
     {
         "code": "056212000",
@@ -5679,7 +5679,7 @@
         "code": "103513000",
         "name": "Matungao",
         "parent": "103500000",
-        "zip_code": "9219"
+        "zip_code": "9203"
     },
     {
         "code": "045627000",
@@ -5691,7 +5691,7 @@
         "code": "118206000",
         "name": "Mawab",
         "parent": "118200000",
-        "zip_code": "8111"
+        "zip_code": "8802"
     },
     {
         "code": "036908000",
@@ -5715,7 +5715,7 @@
         "code": "142706000",
         "name": "Mayoyao",
         "parent": "142700000",
-        "zip_code": "3606"
+        "zip_code": "3602"
     },
     {
         "code": "072231000",
@@ -5727,7 +5727,7 @@
         "code": "104319000",
         "name": "Medina",
         "parent": "104300000",
-        "zip_code": "9023"
+        "zip_code": "9013"
     },
     {
         "code": "042114000",
@@ -5775,7 +5775,7 @@
         "code": "124709000",
         "name": "Midsayap",
         "parent": "124700000",
-        "zip_code": "9402"
+        "zip_code": "9410"
     },
     {
         "code": "054112000",
@@ -5829,7 +5829,7 @@
         "code": "174004000",
         "name": "Mogpog",
         "parent": "174000000",
-        "zip_code": "4903"
+        "zip_code": "4901"
     },
     {
         "code": "064519000",
@@ -5847,7 +5847,7 @@
         "code": "036909000",
         "name": "Moncada",
         "parent": "036900000",
-        "zip_code": "2334"
+        "zip_code": "2308"
     },
     {
         "code": "084813000",
@@ -5859,7 +5859,7 @@
         "code": "118207000",
         "name": "Monkayo",
         "parent": "118200000",
-        "zip_code": "8107"
+        "zip_code": "8805"
     },
     {
         "code": "054114000",
@@ -5871,7 +5871,7 @@
         "code": "118208000",
         "name": "Montevista",
         "parent": "118200000",
-        "zip_code": "8800"
+        "zip_code": "8801"
     },
     {
         "code": "030808000",
@@ -5901,19 +5901,19 @@
         "code": "153619000",
         "name": "Mulondo",
         "parent": "153600000",
-        "zip_code": "9710"
+        "zip_code": null
     },
     {
         "code": "103514000",
         "name": "Munai",
         "parent": "103500000",
-        "zip_code": "9216"
+        "zip_code": "9219"
     },
     {
         "code": "137603000",
         "name": "Muntinlupa",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1770"
     },
     {
         "code": "064520000",
@@ -5931,7 +5931,7 @@
         "code": "104320000",
         "name": "Naawan",
         "parent": "104300000",
-        "zip_code": "9016"
+        "zip_code": "9023"
     },
     {
         "code": "060414000",
@@ -5949,7 +5949,7 @@
         "code": "118209000",
         "name": "Nabunturan (Capital)",
         "parent": "118200000",
-        "zip_code": "8110"
+        "zip_code": "8800"
     },
     {
         "code": "098309000",
@@ -5991,7 +5991,7 @@
         "code": "023120000",
         "name": "Naguilian",
         "parent": "023100000",
-        "zip_code": null
+        "zip_code": "3302"
     },
     {
         "code": "042115000",
@@ -6009,7 +6009,7 @@
         "code": "175315000",
         "name": "Narra",
         "parent": "175300000",
-        "zip_code": "5304"
+        "zip_code": "5303"
     },
     {
         "code": "012914000",
@@ -6021,7 +6021,7 @@
         "code": "160209000",
         "name": "Nasipit",
         "parent": "160200000",
-        "zip_code": "8606"
+        "zip_code": "8602"
     },
     {
         "code": "041019000",
@@ -6039,13 +6039,13 @@
         "code": "144405000",
         "name": "Natonin",
         "parent": "144400000",
-        "zip_code": "2622"
+        "zip_code": null
     },
     {
         "code": "175208000",
         "name": "Naujan",
         "parent": "175200000",
-        "zip_code": "5206"
+        "zip_code": "5204"
     },
     {
         "code": "087808000",
@@ -6057,19 +6057,19 @@
         "code": "137503000",
         "name": "Navotas",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1485"
     },
     {
         "code": "118210000",
         "name": "New Bataan",
         "parent": "118200000",
-        "zip_code": "8117"
+        "zip_code": "8804"
     },
     {
         "code": "112314000",
         "name": "New Corella",
         "parent": "112300000",
-        "zip_code": "8105"
+        "zip_code": "8104"
     },
     {
         "code": "063032000",
@@ -6087,7 +6087,7 @@
         "code": "126311000",
         "name": "Norala",
         "parent": "126300000",
-        "zip_code": "9504"
+        "zip_code": "9508"
     },
     {
         "code": "153834000",
@@ -6129,7 +6129,7 @@
         "code": "103515000",
         "name": "Nunungan",
         "parent": "103500000",
-        "zip_code": "9208"
+        "zip_code": "9216"
     },
     {
         "code": "050512000",
@@ -6153,13 +6153,13 @@
         "code": "175909000",
         "name": "Odiongan",
         "parent": "175900000",
-        "zip_code": "5501"
+        "zip_code": "5505"
     },
     {
         "code": "156607000",
         "name": "Old Panamao",
         "parent": "156600000",
-        "zip_code": "7408"
+        "zip_code": null
     },
     {
         "code": "037107000",
@@ -6177,13 +6177,13 @@
         "code": "156619000",
         "name": "Omar",
         "parent": "156600000",
-        "zip_code": "7500"
+        "zip_code": null
     },
     {
         "code": "104321000",
         "name": "Opol",
         "parent": "104300000",
-        "zip_code": "9007"
+        "zip_code": "9016"
     },
     {
         "code": "030809000",
@@ -6213,7 +6213,7 @@
         "code": "104209000",
         "name": "Oroquieta City (Capital)",
         "parent": "104200000",
-        "zip_code": "7200"
+        "zip_code": "7207"
     },
     {
         "code": "072235000",
@@ -6231,13 +6231,13 @@
         "code": "104210000",
         "name": "Ozamiz City",
         "parent": "104200000",
-        "zip_code": "7205"
+        "zip_code": "7200"
     },
     {
         "code": "112411000",
         "name": "Padada",
         "parent": "112400000",
-        "zip_code": "8001"
+        "zip_code": "8007"
     },
     {
         "code": "045629000",
@@ -6285,7 +6285,7 @@
         "code": "153620000",
         "name": "Pagayawan (Tatarikan)",
         "parent": "153600000",
-        "zip_code": "9705"
+        "zip_code": null
     },
     {
         "code": "045630000",
@@ -6345,7 +6345,7 @@
         "code": "037108000",
         "name": "Palauig",
         "parent": "037100000",
-        "zip_code": null
+        "zip_code": "2210"
     },
     {
         "code": "034919000",
@@ -6357,7 +6357,7 @@
         "code": "126509000",
         "name": "Palimbang",
         "parent": "126500000",
-        "zip_code": null
+        "zip_code": "9809"
     },
     {
         "code": "083739000",
@@ -6375,7 +6375,7 @@
         "code": "175107000",
         "name": "Paluan",
         "parent": "175100000",
-        "zip_code": "5104"
+        "zip_code": "5107"
     },
     {
         "code": "084815000",
@@ -6405,7 +6405,7 @@
         "code": "104211000",
         "name": "Panaon",
         "parent": "104200000",
-        "zip_code": "7209"
+        "zip_code": "7205"
     },
     {
         "code": "061909000",
@@ -6423,7 +6423,7 @@
         "code": "156618000",
         "name": "Pandami",
         "parent": "156600000",
-        "zip_code": "7501"
+        "zip_code": null
     },
     {
         "code": "052006000",
@@ -6453,7 +6453,7 @@
         "code": "101316000",
         "name": "Pangantucan",
         "parent": "101300000",
-        "zip_code": "8715"
+        "zip_code": "8717"
     },
     {
         "code": "043421000",
@@ -6477,13 +6477,13 @@
         "code": "157001000",
         "name": "Panglima Sugala (Balimbing)",
         "parent": "157000000",
-        "zip_code": "7508"
+        "zip_code": null
     },
     {
         "code": "156608000",
         "name": "Pangutaran",
         "parent": "156600000",
-        "zip_code": "7405"
+        "zip_code": null
     },
     {
         "code": "036910000",
@@ -6507,19 +6507,19 @@
         "code": "103516000",
         "name": "Pantao Ragat",
         "parent": "103500000",
-        "zip_code": "9204"
+        "zip_code": "9208"
     },
     {
         "code": "103523000",
         "name": "Pantar",
         "parent": "103500000",
-        "zip_code": "7206"
+        "zip_code": "9218"
     },
     {
         "code": "118211000",
         "name": "Pantukan",
         "parent": "118200000",
-        "zip_code": "8013"
+        "zip_code": "8809"
     },
     {
         "code": "045631000",
@@ -6549,7 +6549,7 @@
         "code": "144406000",
         "name": "Paracelis",
         "parent": "144400000",
-        "zip_code": "2617"
+        "zip_code": null
     },
     {
         "code": "086022000",
@@ -6561,19 +6561,19 @@
         "code": "153811000",
         "name": "Parang",
         "parent": "153800000",
-        "zip_code": "9611"
+        "zip_code": null
     },
     {
         "code": "156609000",
         "name": "Parang",
         "parent": "156600000",
-        "zip_code": "7401"
+        "zip_code": null
     },
     {
         "code": "137604000",
         "name": "Parañaque",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1700"
     },
     {
         "code": "051727000",
@@ -6585,19 +6585,19 @@
         "code": "137605000",
         "name": "Pasay",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1300"
     },
     {
         "code": "137403000",
         "name": "Pasig",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1600"
     },
     {
         "code": "143208000",
         "name": "Pasil",
         "parent": "143200000",
-        "zip_code": "3808"
+        "zip_code": "3803"
     },
     {
         "code": "083741000",
@@ -6615,19 +6615,19 @@
         "code": "156610000",
         "name": "Pata",
         "parent": "156600000",
-        "zip_code": "7412"
+        "zip_code": null
     },
     {
         "code": "137606000",
         "name": "Pateros",
         "parent": "130000000",
-        "zip_code": "2800"
+        "zip_code": "1620"
     },
     {
         "code": "156611000",
         "name": "Patikul",
         "parent": "156600000",
-        "zip_code": "7403"
+        "zip_code": null
     },
     {
         "code": "045632000",
@@ -6675,13 +6675,13 @@
         "code": "140117000",
         "name": "Peñarrubia",
         "parent": "140100000",
-        "zip_code": "2812"
+        "zip_code": "2804"
     },
     {
         "code": "153621000",
         "name": "Piagapo",
         "parent": "153600000",
-        "zip_code": "9313"
+        "zip_code": null
     },
     {
         "code": "021520000",
@@ -6693,7 +6693,7 @@
         "code": "153635000",
         "name": "Picong (Sultan Gumander)",
         "parent": "153600000",
-        "zip_code": "9320"
+        "zip_code": null
     },
     {
         "code": "012818000",
@@ -6705,19 +6705,19 @@
         "code": "140118000",
         "name": "Pidigan",
         "parent": "140100000",
-        "zip_code": "2818"
+        "zip_code": "2806"
     },
     {
         "code": "124711000",
         "name": "Pigkawayan",
         "parent": "124700000",
-        "zip_code": "9409"
+        "zip_code": "9412"
     },
     {
         "code": "124712000",
         "name": "Pikit",
         "parent": "124700000",
-        "zip_code": "9405"
+        "zip_code": "9409"
     },
     {
         "code": "043422000",
@@ -6759,13 +6759,13 @@
         "code": "140119000",
         "name": "Pilar",
         "parent": "140100000",
-        "zip_code": "2809"
+        "zip_code": "2812"
     },
     {
         "code": "166716000",
         "name": "Pilar",
         "parent": "166700000",
-        "zip_code": "8423"
+        "zip_code": "8420"
     },
     {
         "code": "051728000",
@@ -6789,7 +6789,7 @@
         "code": "175209000",
         "name": "Pinamalayan",
         "parent": "175200000",
-        "zip_code": "5203"
+        "zip_code": "5208"
     },
     {
         "code": "072237000",
@@ -6813,7 +6813,7 @@
         "code": "143209000",
         "name": "Pinukpuk",
         "parent": "143200000",
-        "zip_code": "3800"
+        "zip_code": "3806"
     },
     {
         "code": "050513000",
@@ -6855,7 +6855,7 @@
         "code": "166717000",
         "name": "Placer",
         "parent": "166700000",
-        "zip_code": "8401"
+        "zip_code": "8405"
     },
     {
         "code": "031417000",
@@ -6873,13 +6873,13 @@
         "code": "104212000",
         "name": "Plaridel",
         "parent": "104200000",
-        "zip_code": "7212"
+        "zip_code": "7209"
     },
     {
         "code": "175210000",
         "name": "Pola",
         "parent": "175200000",
-        "zip_code": "5212"
+        "zip_code": "5206"
     },
     {
         "code": "097210000",
@@ -6897,13 +6897,13 @@
         "code": "045636000",
         "name": "Polillo",
         "parent": "045600000",
-        "zip_code": null
+        "zip_code": "4339"
     },
     {
         "code": "126312000",
         "name": "Polomolok",
         "parent": "126300000",
-        "zip_code": "9512"
+        "zip_code": "9504"
     },
     {
         "code": "061912000",
@@ -6927,7 +6927,7 @@
         "code": "103517000",
         "name": "Poona Piagapo",
         "parent": "103500000",
-        "zip_code": "9212"
+        "zip_code": "9204"
     },
     {
         "code": "035415000",
@@ -6975,7 +6975,7 @@
         "code": "126510000",
         "name": "President Quirino",
         "parent": "126500000",
-        "zip_code": "9800"
+        "zip_code": "9804"
     },
     {
         "code": "061913000",
@@ -6987,7 +6987,7 @@
         "code": "124713000",
         "name": "President Roxas",
         "parent": "124700000",
-        "zip_code": "9403"
+        "zip_code": "9405"
     },
     {
         "code": "056214000",
@@ -6999,31 +6999,31 @@
         "code": "160306000",
         "name": "Prosperidad (Capital)",
         "parent": "160300000",
-        "zip_code": "8501"
+        "zip_code": "8500"
     },
     {
         "code": "153623000",
         "name": "Pualas",
         "parent": "153600000",
-        "zip_code": "9701"
+        "zip_code": null
     },
     {
         "code": "148106000",
         "name": "Pudtol",
         "parent": "148100000",
-        "zip_code": "7302"
+        "zip_code": "3812"
     },
     {
         "code": "175211000",
         "name": "Puerto Galera",
         "parent": "175200000",
-        "zip_code": "5202"
+        "zip_code": "5203"
     },
     {
         "code": "175316000",
         "name": "Puerto Princesa City (Capital)",
         "parent": "175300000",
-        "zip_code": "5308"
+        "zip_code": "5300"
     },
     {
         "code": "013312000",
@@ -7059,7 +7059,7 @@
         "code": "025011000",
         "name": "Quezon",
         "parent": "025000000",
-        "zip_code": "3714"
+        "zip_code": "3713"
     },
     {
         "code": "034922000",
@@ -7077,19 +7077,19 @@
         "code": "101317000",
         "name": "Quezon",
         "parent": "101300000",
-        "zip_code": "8711"
+        "zip_code": "8715"
     },
     {
         "code": "175317000",
         "name": "Quezon",
         "parent": "175300000",
-        "zip_code": "5309"
+        "zip_code": "5304"
     },
     {
         "code": "137404000",
         "name": "Quezon City",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1100"
     },
     {
         "code": "082618000",
@@ -7161,7 +7161,7 @@
         "code": "160212000",
         "name": "Remedios T. Romualdez",
         "parent": "160200000",
-        "zip_code": "8506"
+        "zip_code": "8611"
     },
     {
         "code": "021521000",
@@ -7191,19 +7191,19 @@
         "code": "175108000",
         "name": "Rizal",
         "parent": "175100000",
-        "zip_code": "5100"
+        "zip_code": "5103"
     },
     {
         "code": "143211000",
         "name": "Rizal (Liwan)",
         "parent": "143200000",
-        "zip_code": "3805"
+        "zip_code": "3808"
     },
     {
         "code": "175323000",
         "name": "Rizal (Marcos)",
         "parent": "175300000",
-        "zip_code": "5509"
+        "zip_code": "5323"
     },
     {
         "code": "045808000",
@@ -7215,7 +7215,7 @@
         "code": "175910000",
         "name": "Romblon (Capital)",
         "parent": "175900000",
-        "zip_code": "5504"
+        "zip_code": "5500"
     },
     {
         "code": "072239000",
@@ -7257,7 +7257,7 @@
         "code": "160307000",
         "name": "Rosario",
         "parent": "160300000",
-        "zip_code": "8511"
+        "zip_code": "8504"
     },
     {
         "code": "098312000",
@@ -7275,13 +7275,13 @@
         "code": "175212000",
         "name": "Roxas",
         "parent": "175200000",
-        "zip_code": "5207"
+        "zip_code": "5212"
     },
     {
         "code": "175318000",
         "name": "Roxas",
         "parent": "175300000",
-        "zip_code": "5312"
+        "zip_code": "5308"
     },
     {
         "code": "061914000",
@@ -7293,19 +7293,19 @@
         "code": "144407000",
         "name": "Sabangan",
         "parent": "144400000",
-        "zip_code": "2619"
+        "zip_code": null
     },
     {
         "code": "141112000",
         "name": "Sablan",
         "parent": "141100000",
-        "zip_code": "2615"
+        "zip_code": "2614"
     },
     {
         "code": "175109000",
         "name": "Sablayan",
         "parent": "175100000",
-        "zip_code": "5105"
+        "zip_code": "5104"
     },
     {
         "code": "020905000",
@@ -7317,19 +7317,19 @@
         "code": "144408000",
         "name": "Sadanga",
         "parent": "144400000",
-        "zip_code": "2620"
+        "zip_code": null
     },
     {
         "code": "144409000",
         "name": "Sagada",
         "parent": "144400000",
-        "zip_code": "3814"
+        "zip_code": null
     },
     {
         "code": "101805000",
         "name": "Sagay",
         "parent": "101800000",
-        "zip_code": "9205"
+        "zip_code": "9103"
     },
     {
         "code": "064523000",
@@ -7353,7 +7353,7 @@
         "code": "153625000",
         "name": "Saguiaran",
         "parent": "153600000",
-        "zip_code": "9712"
+        "zip_code": null
     },
     {
         "code": "051731000",
@@ -7371,7 +7371,7 @@
         "code": "104322000",
         "name": "Salay",
         "parent": "104300000",
-        "zip_code": "9009"
+        "zip_code": "9007"
     },
     {
         "code": "082619000",
@@ -7389,7 +7389,7 @@
         "code": "140120000",
         "name": "Sallapadan",
         "parent": "140100000",
-        "zip_code": "2823"
+        "zip_code": "2818"
     },
     {
         "code": "097213000",
@@ -7401,7 +7401,7 @@
         "code": "103518000",
         "name": "Salvador",
         "parent": "103500000",
-        "zip_code": "9213"
+        "zip_code": "9212"
     },
     {
         "code": "064532000",
@@ -7437,13 +7437,13 @@
         "code": "166815000",
         "name": "San Agustin",
         "parent": "166800000",
-        "zip_code": "8308"
+        "zip_code": "8305"
     },
     {
         "code": "175911000",
         "name": "San Agustin",
         "parent": "175900000",
-        "zip_code": "5513"
+        "zip_code": "5501"
     },
     {
         "code": "045640000",
@@ -7455,7 +7455,7 @@
         "code": "175912000",
         "name": "San Andres",
         "parent": "175900000",
-        "zip_code": "5510"
+        "zip_code": "5504"
     },
     {
         "code": "052008000",
@@ -7491,7 +7491,7 @@
         "code": "166718000",
         "name": "San Benito",
         "parent": "166700000",
-        "zip_code": "8421"
+        "zip_code": "8423"
     },
     {
         "code": "015532000",
@@ -7575,13 +7575,13 @@
         "code": "101318000",
         "name": "San Fernando",
         "parent": "101300000",
-        "zip_code": "8701"
+        "zip_code": "8711"
     },
     {
         "code": "175913000",
         "name": "San Fernando",
         "parent": "175900000",
-        "zip_code": "5508"
+        "zip_code": "5513"
     },
     {
         "code": "072242000",
@@ -7599,13 +7599,13 @@
         "code": "160308000",
         "name": "San Francisco",
         "parent": "160300000",
-        "zip_code": "8512"
+        "zip_code": "8501"
     },
     {
         "code": "166719000",
         "name": "San Francisco (Anao-Aon)",
         "parent": "166700000",
-        "zip_code": "8422"
+        "zip_code": "8401"
     },
     {
         "code": "045642000",
@@ -7635,7 +7635,7 @@
         "code": "031419000",
         "name": "San Ildefonso",
         "parent": "031400000",
-        "zip_code": null
+        "zip_code": "3010"
     },
     {
         "code": "023129000",
@@ -7671,25 +7671,25 @@
         "code": "112324000",
         "name": "San Isidro",
         "parent": "112300000",
-        "zip_code": "8005"
+        "zip_code": "8121"
     },
     {
         "code": "112510000",
         "name": "San Isidro",
         "parent": "112500000",
-        "zip_code": "8201"
+        "zip_code": "8209"
     },
     {
         "code": "140121000",
         "name": "San Isidro",
         "parent": "140100000",
-        "zip_code": "2808"
+        "zip_code": "2809"
     },
     {
         "code": "166720000",
         "name": "San Isidro",
         "parent": "166700000",
-        "zip_code": "8404"
+        "zip_code": "8421"
     },
     {
         "code": "015534000",
@@ -7719,7 +7719,7 @@
         "code": "036918000",
         "name": "San Jose",
         "parent": "036900000",
-        "zip_code": "2301"
+        "zip_code": "2318"
     },
     {
         "code": "041022000",
@@ -7749,13 +7749,13 @@
         "code": "175110000",
         "name": "San Jose",
         "parent": "175100000",
-        "zip_code": "5201"
+        "zip_code": "5100"
     },
     {
         "code": "175914000",
         "name": "San Jose",
         "parent": "175900000",
-        "zip_code": "5506"
+        "zip_code": "5510"
     },
     {
         "code": "060613000",
@@ -7767,7 +7767,7 @@
         "code": "168506000",
         "name": "San Jose (Capital)",
         "parent": "168500000",
-        "zip_code": "4900"
+        "zip_code": "8427"
     },
     {
         "code": "034926000",
@@ -7803,13 +7803,13 @@
         "code": "137405000",
         "name": "San Juan",
         "parent": "130000000",
-        "zip_code": "1470"
+        "zip_code": "1500"
     },
     {
         "code": "140122000",
         "name": "San Juan",
         "parent": "140100000",
-        "zip_code": "2803"
+        "zip_code": "2823"
     },
     {
         "code": "086414000",
@@ -7869,7 +7869,7 @@
         "code": "160309000",
         "name": "San Luis",
         "parent": "160300000",
-        "zip_code": "8510"
+        "zip_code": "8511"
     },
     {
         "code": "015535000",
@@ -7917,7 +7917,7 @@
         "code": "031421000",
         "name": "San Miguel",
         "parent": "031400000",
-        "zip_code": "8301"
+        "zip_code": "3011"
     },
     {
         "code": "052009000",
@@ -7953,7 +7953,7 @@
         "code": "166816000",
         "name": "San Miguel",
         "parent": "166800000",
-        "zip_code": "8302"
+        "zip_code": "8301"
     },
     {
         "code": "037112000",
@@ -8031,7 +8031,7 @@
         "code": "140123000",
         "name": "San Quintin",
         "parent": "140100000",
-        "zip_code": "2822"
+        "zip_code": "2808"
     },
     {
         "code": "031422000",
@@ -8085,7 +8085,7 @@
         "code": "175213000",
         "name": "San Teodoro",
         "parent": "175200000",
-        "zip_code": "5205"
+        "zip_code": "5202"
     },
     {
         "code": "012921000",
@@ -8109,7 +8109,7 @@
         "code": "175319000",
         "name": "San Vicente",
         "parent": "175300000",
-        "zip_code": "5322"
+        "zip_code": "5309"
     },
     {
         "code": "021522000",
@@ -8175,19 +8175,19 @@
         "code": "112412000",
         "name": "Santa Cruz",
         "parent": "112400000",
-        "zip_code": "8009"
+        "zip_code": "8001"
     },
     {
         "code": "174005000",
         "name": "Santa Cruz",
         "parent": "174000000",
-        "zip_code": "5108"
+        "zip_code": "4902"
     },
     {
         "code": "175111000",
         "name": "Santa Cruz",
         "parent": "175100000",
-        "zip_code": "5210"
+        "zip_code": "5105"
     },
     {
         "code": "043426000",
@@ -8223,7 +8223,7 @@
         "code": "175915000",
         "name": "Santa Fe",
         "parent": "175900000",
-        "zip_code": "5502"
+        "zip_code": "5508"
     },
     {
         "code": "036915000",
@@ -8235,7 +8235,7 @@
         "code": "160310000",
         "name": "Santa Josefa",
         "parent": "160300000",
-        "zip_code": "8505"
+        "zip_code": "8512"
     },
     {
         "code": "012925000",
@@ -8253,7 +8253,7 @@
         "code": "148107000",
         "name": "Santa Marcela",
         "parent": "148100000",
-        "zip_code": "7301"
+        "zip_code": "3811"
     },
     {
         "code": "086016000",
@@ -8283,7 +8283,7 @@
         "code": "031423000",
         "name": "Santa Maria",
         "parent": "031400000",
-        "zip_code": null
+        "zip_code": "3022"
     },
     {
         "code": "043427000",
@@ -8295,19 +8295,19 @@
         "code": "118604000",
         "name": "Santa Maria",
         "parent": "118600000",
-        "zip_code": "8015"
+        "zip_code": "8011"
     },
     {
         "code": "175917000",
         "name": "Santa Maria (Imelda)",
         "parent": "175900000",
-        "zip_code": null
+        "zip_code": "5502"
     },
     {
         "code": "166721000",
         "name": "Santa Monica (Sapao)",
         "parent": "166700000",
-        "zip_code": "8416"
+        "zip_code": "8422"
     },
     {
         "code": "021524000",
@@ -8361,7 +8361,7 @@
         "code": "160210000",
         "name": "Santiago",
         "parent": "160200000",
-        "zip_code": "8611"
+        "zip_code": "8608"
     },
     {
         "code": "012928000",
@@ -8379,7 +8379,7 @@
         "code": "050516000",
         "name": "Santo Domingo (Libog)",
         "parent": "050500000",
-        "zip_code": null
+        "zip_code": "4508"
     },
     {
         "code": "086018000",
@@ -8391,7 +8391,7 @@
         "code": "126318000",
         "name": "Santo Niño",
         "parent": "126300000",
-        "zip_code": null
+        "zip_code": "9509"
     },
     {
         "code": "021526000",
@@ -8433,7 +8433,7 @@
         "code": "112318000",
         "name": "Santo Tomas",
         "parent": "112300000",
-        "zip_code": "8100"
+        "zip_code": "8112"
     },
     {
         "code": "013318000",
@@ -8445,19 +8445,19 @@
         "code": "157010000",
         "name": "Sapa-Sapa",
         "parent": "157000000",
-        "zip_code": "8601"
+        "zip_code": null
     },
     {
         "code": "103519000",
         "name": "Sapad",
         "parent": "103500000",
-        "zip_code": "9222"
+        "zip_code": "9213"
     },
     {
         "code": "104213000",
         "name": "Sapang Dalaga",
         "parent": "104200000",
-        "zip_code": "7203"
+        "zip_code": "7212"
     },
     {
         "code": "061915000",
@@ -8475,7 +8475,7 @@
         "code": "118605000",
         "name": "Sarangani",
         "parent": "118600000",
-        "zip_code": "9413"
+        "zip_code": "8015"
     },
     {
         "code": "045645000",
@@ -8511,7 +8511,7 @@
         "code": "126512000",
         "name": "Sen. Ninoy Aquino",
         "parent": "126500000",
-        "zip_code": "9501"
+        "zip_code": "9811"
     },
     {
         "code": "097214000",
@@ -8529,19 +8529,19 @@
         "code": "153808000",
         "name": "Shariff Aguak (Maganoy) (Capital)",
         "parent": "153800000",
-        "zip_code": "9610"
+        "zip_code": null
     },
     {
         "code": "153837000",
         "name": "Shariff Saydona Mustapha",
         "parent": "153800000",
-        "zip_code": "7400"
+        "zip_code": null
     },
     {
         "code": "156612000",
         "name": "Siasi",
         "parent": "156600000",
-        "zip_code": "7410"
+        "zip_code": null
     },
     {
         "code": "074619000",
@@ -8565,7 +8565,7 @@
         "code": "160314000",
         "name": "Sibagat",
         "parent": "160300000",
-        "zip_code": "8408"
+        "zip_code": "8503"
     },
     {
         "code": "060616000",
@@ -8607,7 +8607,7 @@
         "code": "157011000",
         "name": "Sibutu",
         "parent": "157000000",
-        "zip_code": "8600"
+        "zip_code": null
     },
     {
         "code": "071240000",
@@ -8661,13 +8661,13 @@
         "code": "157004000",
         "name": "Simunul",
         "parent": "157000000",
-        "zip_code": "7504"
+        "zip_code": null
     },
     {
         "code": "104214000",
         "name": "Sinacaban",
         "parent": "104200000",
-        "zip_code": "7214"
+        "zip_code": "7203"
     },
     {
         "code": "012930000",
@@ -8727,31 +8727,31 @@
         "code": "166722000",
         "name": "Sison",
         "parent": "166700000",
-        "zip_code": "8400"
+        "zip_code": "8404"
     },
     {
         "code": "157005000",
         "name": "Sitangkai",
         "parent": "157000000",
-        "zip_code": "7502"
+        "zip_code": null
     },
     {
         "code": "166723000",
         "name": "Socorro",
         "parent": "166700000",
-        "zip_code": "8403"
+        "zip_code": "8416"
     },
     {
         "code": "175214000",
         "name": "Socorro",
         "parent": "175200000",
-        "zip_code": "5302"
+        "zip_code": "5207"
     },
     {
         "code": "175324000",
         "name": "Sofronio Española",
         "parent": "175300000",
-        "zip_code": "5515"
+        "zip_code": "5324"
     },
     {
         "code": "072247000",
@@ -8793,13 +8793,13 @@
         "code": "157006000",
         "name": "South Ubian",
         "parent": "157000000",
-        "zip_code": "7507"
+        "zip_code": null
     },
     {
         "code": "153817000",
         "name": "South Upi",
         "parent": "153800000",
-        "zip_code": "9618"
+        "zip_code": null
     },
     {
         "code": "015542000",
@@ -8823,7 +8823,7 @@
         "code": "104323000",
         "name": "Sugbongcogon",
         "parent": "104300000",
-        "zip_code": "9001"
+        "zip_code": "9009"
     },
     {
         "code": "012931000",
@@ -8841,13 +8841,13 @@
         "code": "112414000",
         "name": "Sulop",
         "parent": "112400000",
-        "zip_code": "8204"
+        "zip_code": "8009"
     },
     {
         "code": "153640000",
         "name": "Sultan Dumalondong",
         "parent": "153600000",
-        "zip_code": "9609"
+        "zip_code": null
     },
     {
         "code": "153812000",
@@ -8865,7 +8865,7 @@
         "code": "103506000",
         "name": "Sultan Naga Dimaporo (Karomatan)",
         "parent": "103500000",
-        "zip_code": "9202"
+        "zip_code": "9215"
     },
     {
         "code": "153813000",
@@ -8877,25 +8877,25 @@
         "code": "101319000",
         "name": "Sumilao",
         "parent": "101300000",
-        "zip_code": "8708"
+        "zip_code": "8701"
     },
     {
         "code": "150705000",
         "name": "Sumisip",
         "parent": "150700000",
-        "zip_code": "7306"
+        "zip_code": null
     },
     {
         "code": "126313000",
         "name": "Surallah",
         "parent": "126300000",
-        "zip_code": "9507"
+        "zip_code": "9512"
     },
     {
         "code": "166724000",
         "name": "Surigao City (Capital)",
         "parent": "166700000",
-        "zip_code": "8406"
+        "zip_code": "8400"
     },
     {
         "code": "012932000",
@@ -8907,7 +8907,7 @@
         "code": "126316000",
         "name": "T'Boli",
         "parent": "126300000",
-        "zip_code": "9505"
+        "zip_code": "9513"
     },
     {
         "code": "041029000",
@@ -8943,7 +8943,7 @@
         "code": "150713000",
         "name": "Tabuan-Lasa",
         "parent": "150700000",
-        "zip_code": "9302"
+        "zip_code": null
     },
     {
         "code": "072249000",
@@ -8961,7 +8961,7 @@
         "code": "144410000",
         "name": "Tadian",
         "parent": "144400000",
-        "zip_code": "3807"
+        "zip_code": null
     },
     {
         "code": "082623000",
@@ -8973,7 +8973,7 @@
         "code": "166725000",
         "name": "Tagana-An",
         "parent": "166700000",
-        "zip_code": "8309"
+        "zip_code": "8403"
     },
     {
         "code": "086024000",
@@ -8997,7 +8997,7 @@
         "code": "166817000",
         "name": "Tagbina",
         "parent": "166800000",
-        "zip_code": "8300"
+        "zip_code": "8308"
     },
     {
         "code": "045646000",
@@ -9009,19 +9009,19 @@
         "code": "166818000",
         "name": "Tago",
         "parent": "166800000",
-        "zip_code": "8413"
+        "zip_code": "8302"
     },
     {
         "code": "103520000",
         "name": "Tagoloan",
         "parent": "103500000",
-        "zip_code": "9220"
+        "zip_code": "9222"
     },
     {
         "code": "104324000",
         "name": "Tagoloan",
         "parent": "104300000",
-        "zip_code": "9012"
+        "zip_code": "9001"
     },
     {
         "code": "153638000",
@@ -9039,25 +9039,25 @@
         "code": "137607000",
         "name": "Taguig",
         "parent": "130000000",
-        "zip_code": "2815"
+        "zip_code": "1630"
     },
     {
         "code": "160311000",
         "name": "Talacogon",
         "parent": "160300000",
-        "zip_code": "8509"
+        "zip_code": "8510"
     },
     {
         "code": "112322000",
         "name": "Talaingod",
         "parent": "112300000",
-        "zip_code": null
+        "zip_code": "8107"
     },
     {
         "code": "101320000",
         "name": "Talakag",
         "parent": "101300000",
-        "zip_code": "8709"
+        "zip_code": "8708"
     },
     {
         "code": "086019000",
@@ -9075,7 +9075,7 @@
         "code": "153816000",
         "name": "Talayan",
         "parent": "153800000",
-        "zip_code": "9614"
+        "zip_code": null
     },
     {
         "code": "071243000",
@@ -9105,7 +9105,7 @@
         "code": "104325000",
         "name": "Talisayan",
         "parent": "104300000",
-        "zip_code": "9002"
+        "zip_code": "9012"
     },
     {
         "code": "153821000",
@@ -9135,13 +9135,13 @@
         "code": "126314000",
         "name": "Tampakan",
         "parent": "126300000",
-        "zip_code": "9510"
+        "zip_code": "9507"
     },
     {
         "code": "153626000",
         "name": "Tamparan",
         "parent": "153600000",
-        "zip_code": "9304"
+        "zip_code": null
     },
     {
         "code": "097221000",
@@ -9165,7 +9165,7 @@
         "code": "157007000",
         "name": "Tandubas",
         "parent": "157000000",
-        "zip_code": "7509"
+        "zip_code": null
     },
     {
         "code": "060417000",
@@ -9177,25 +9177,25 @@
         "code": "103521000",
         "name": "Tangcal",
         "parent": "103500000",
-        "zip_code": "9209"
+        "zip_code": "9220"
     },
     {
         "code": "104215000",
         "name": "Tangub City",
         "parent": "104200000",
-        "zip_code": "7202"
+        "zip_code": "7214"
     },
     {
         "code": "126315000",
         "name": "Tantangan",
         "parent": "126300000",
-        "zip_code": "9513"
+        "zip_code": "9510"
     },
     {
         "code": "143214000",
         "name": "Tanudan",
         "parent": "143200000",
-        "zip_code": "2623"
+        "zip_code": "3805"
     },
     {
         "code": "042120000",
@@ -9213,13 +9213,13 @@
         "code": "156614000",
         "name": "Tapul",
         "parent": "156600000",
-        "zip_code": "7415"
+        "zip_code": null
     },
     {
         "code": "153627000",
         "name": "Taraka",
         "parent": "153600000",
-        "zip_code": "9317"
+        "zip_code": null
     },
     {
         "code": "086020000",
@@ -9231,7 +9231,7 @@
         "code": "112511000",
         "name": "Tarragona",
         "parent": "112500000",
-        "zip_code": "8803"
+        "zip_code": "8201"
     },
     {
         "code": "074622000",
@@ -9255,7 +9255,7 @@
         "code": "175320000",
         "name": "Taytay",
         "parent": "175300000",
-        "zip_code": "5315"
+        "zip_code": "5312"
     },
     {
         "code": "015543000",
@@ -9267,7 +9267,7 @@
         "code": "140124000",
         "name": "Tayum",
         "parent": "140100000",
-        "zip_code": "2814"
+        "zip_code": "2803"
     },
     {
         "code": "045814000",
@@ -9321,13 +9321,13 @@
         "code": "140125000",
         "name": "Tineg",
         "parent": "140100000",
-        "zip_code": "2811"
+        "zip_code": "2822"
     },
     {
         "code": "143215000",
         "name": "Tinglayan",
         "parent": "143200000",
-        "zip_code": "2621"
+        "zip_code": "3804"
     },
     {
         "code": "041033000",
@@ -9339,7 +9339,7 @@
         "code": "142710000",
         "name": "Tinoc",
         "parent": "142700000",
-        "zip_code": "3801"
+        "zip_code": "3609"
     },
     {
         "code": "150706000",
@@ -9393,13 +9393,13 @@
         "code": "156615000",
         "name": "Tongkil",
         "parent": "156600000",
-        "zip_code": "7411"
+        "zip_code": null
     },
     {
         "code": "174006000",
         "name": "Torrijos",
         "parent": "174000000",
-        "zip_code": "5102"
+        "zip_code": "4903"
     },
     {
         "code": "042122000",
@@ -9411,7 +9411,7 @@
         "code": "160312000",
         "name": "Trento",
         "parent": "160300000",
-        "zip_code": "8503"
+        "zip_code": "8505"
     },
     {
         "code": "071244000",
@@ -9429,13 +9429,13 @@
         "code": "141113000",
         "name": "Tuba",
         "parent": "141100000",
-        "zip_code": "3601"
+        "zip_code": "2603"
     },
     {
         "code": "168507000",
         "name": "Tubajon",
         "parent": "168500000",
-        "zip_code": "5421"
+        "zip_code": "8426"
     },
     {
         "code": "013320000",
@@ -9447,13 +9447,13 @@
         "code": "153628000",
         "name": "Tubaran",
         "parent": "153600000",
-        "zip_code": "9716"
+        "zip_code": null
     },
     {
         "code": "160211000",
         "name": "Tubay",
         "parent": "160200000",
-        "zip_code": "8502"
+        "zip_code": "8606"
     },
     {
         "code": "071245000",
@@ -9465,25 +9465,25 @@
         "code": "141114000",
         "name": "Tublay",
         "parent": "141100000",
-        "zip_code": "3603"
+        "zip_code": "2615"
     },
     {
         "code": "140126000",
         "name": "Tubo",
         "parent": "140100000",
-        "zip_code": "2612"
+        "zip_code": "2814"
     },
     {
         "code": "166727000",
         "name": "Tubod",
         "parent": "166700000",
-        "zip_code": "8303"
+        "zip_code": "8406"
     },
     {
         "code": "103522000",
         "name": "Tubod (Capital)",
         "parent": "103500000",
-        "zip_code": "9218"
+        "zip_code": "9209"
     },
     {
         "code": "063046000",
@@ -9513,13 +9513,13 @@
         "code": "104216000",
         "name": "Tudela",
         "parent": "104200000",
-        "zip_code": null
+        "zip_code": "7202"
     },
     {
         "code": "153629000",
         "name": "Tugaya",
         "parent": "153600000",
-        "zip_code": "9303"
+        "zip_code": null
     },
     {
         "code": "021529000",
@@ -9537,7 +9537,7 @@
         "code": "124714000",
         "name": "Tulunan",
         "parent": "124700000",
-        "zip_code": "9414"
+        "zip_code": "9403"
     },
     {
         "code": "023137000",
@@ -9561,13 +9561,13 @@
         "code": "126317000",
         "name": "Tupi",
         "parent": "126300000",
-        "zip_code": "9509"
+        "zip_code": "9505"
     },
     {
         "code": "157008000",
         "name": "Turtle Islands",
         "parent": "157000000",
-        "zip_code": "7503"
+        "zip_code": null
     },
     {
         "code": "041034000",
@@ -9603,7 +9603,7 @@
         "code": "153815000",
         "name": "Upi",
         "parent": "153800000",
-        "zip_code": "9603"
+        "zip_code": null
     },
     {
         "code": "015545000",
@@ -9645,7 +9645,7 @@
         "code": "137504000",
         "name": "Valenzuela",
         "parent": "130000000",
-        "zip_code": null
+        "zip_code": "1440"
     },
     {
         "code": "064530000",
@@ -9663,7 +9663,7 @@
         "code": "160313000",
         "name": "Veruela",
         "parent": "160300000",
-        "zip_code": "8425"
+        "zip_code": "8509"
     },
     {
         "code": "036917000",
@@ -9687,7 +9687,7 @@
         "code": "175215000",
         "name": "Victoria",
         "parent": "175200000",
-        "zip_code": "5320"
+        "zip_code": "5205"
     },
     {
         "code": "052010000",
@@ -9705,7 +9705,7 @@
         "code": "104326000",
         "name": "Villanueva",
         "parent": "104300000",
-        "zip_code": "8102"
+        "zip_code": "9002"
     },
     {
         "code": "086021000",
@@ -9729,7 +9729,7 @@
         "code": "140127000",
         "name": "Villaviciosa",
         "parent": "140100000",
-        "zip_code": "2600"
+        "zip_code": "2811"
     },
     {
         "code": "097341000",
@@ -9759,7 +9759,7 @@
         "code": "153630000",
         "name": "Wao",
         "parent": "153600000",
-        "zip_code": "9319"
+        "zip_code": null
     },
     {
         "code": "097332000",

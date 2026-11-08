@@ -67,6 +67,28 @@ class DeepAddressData
         return $items;
     }
 
+    /**
+     * The region a province (or any PSGC code under it) belongs to, from
+     * config('localization.deep_address.<ISO>.regions'), or null if unknown.
+     *
+     * @return array{code: string, designation: string, name: string, short: string}|null
+     */
+    public function region(string $countryIso, string $code): ?array
+    {
+        $config = config('localization.deep_address.' . strtoupper($countryIso));
+        $code = trim($code);
+        if (!$config || empty($config['regions']) || $code === '') {
+            return null;
+        }
+
+        // Codes the source stored as ints lost their leading zero.
+        $code = str_pad($code, 9, '0', STR_PAD_LEFT);
+        $key = $config['region_overrides'][substr($code, 0, 4)] ?? substr($code, 0, 2);
+        $region = $config['regions'][$key] ?? null;
+
+        return $region ? ['code' => $key] + $region : null;
+    }
+
     private function read(string $path, string $file): array
     {
         $key = $path . '/' . $file;

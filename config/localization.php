@@ -74,6 +74,40 @@ return [
                     'parent'   => 'city|district',
                 ],
             ],
+
+            // Regions, keyed by the 2-digit region prefix of the PSGC codes in
+            // the bundled files (that release's numbering: 15 is the former
+            // ARMM, 16 Caraga, 17 MIMAROPA). Names are today's.
+            // Look up with DeepAddressData::region('PH', $provinceCode).
+            'regions' => [
+                '01' => ['designation' => 'Region I',    'name' => 'Ilocos Region',                                   'short' => 'Ilocos'],
+                '02' => ['designation' => 'Region II',   'name' => 'Cagayan Valley',                                  'short' => 'Cagayan Valley'],
+                '03' => ['designation' => 'Region III',  'name' => 'Central Luzon',                                   'short' => 'Central Luzon'],
+                '04' => ['designation' => 'Region IV-A', 'name' => 'CALABARZON',                                      'short' => 'Calabarzon'],
+                '05' => ['designation' => 'Region V',    'name' => 'Bicol Region',                                    'short' => 'Bicol'],
+                '06' => ['designation' => 'Region VI',   'name' => 'Western Visayas',                                 'short' => 'Western Visayas'],
+                '07' => ['designation' => 'Region VII',  'name' => 'Central Visayas',                                 'short' => 'Central Visayas'],
+                '08' => ['designation' => 'Region VIII', 'name' => 'Eastern Visayas',                                 'short' => 'Eastern Visayas'],
+                '09' => ['designation' => 'Region IX',   'name' => 'Zamboanga Peninsula',                             'short' => 'Zamboanga Peninsula'],
+                '10' => ['designation' => 'Region X',    'name' => 'Northern Mindanao',                               'short' => 'Northern Mindanao'],
+                '11' => ['designation' => 'Region XI',   'name' => 'Davao Region',                                    'short' => 'Davao'],
+                '12' => ['designation' => 'Region XII',  'name' => 'SOCCSKSARGEN',                                    'short' => 'Soccsksargen'],
+                '13' => ['designation' => 'NCR',         'name' => 'National Capital Region',                         'short' => 'Metro Manila'],
+                '14' => ['designation' => 'CAR',         'name' => 'Cordillera Administrative Region',                'short' => 'Cordillera'],
+                '15' => ['designation' => 'BARMM',       'name' => 'Bangsamoro Autonomous Region in Muslim Mindanao', 'short' => 'Bangsamoro'],
+                '16' => ['designation' => 'Region XIII', 'name' => 'Caraga',                                          'short' => 'Caraga'],
+                '17' => ['designation' => 'Region IV-B', 'name' => 'MIMAROPA Region',                                 'short' => 'Mimaropa'],
+                '18' => ['designation' => 'NIR',         'name' => 'Negros Island Region',                            'short' => 'Negros Island'],
+            ],
+
+            // Provinces that moved region after the bundled PSGC release, keyed
+            // by their 4-digit code prefix: Negros Occidental, Negros Oriental
+            // and Siquijor form the Negros Island Region (RA 12000, 2024).
+            'region_overrides' => [
+                '0645' => '18',
+                '0746' => '18',
+                '0761' => '18',
+            ],
         ],
 
     ],

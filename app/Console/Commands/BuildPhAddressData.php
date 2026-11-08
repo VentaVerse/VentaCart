@@ -19,6 +19,10 @@ use Illuminate\Console\Command;
  * Output (runtime): database/data/ph/{provinces,cities,districts,barangays}.json
  * Each output row carries its own PSGC `code` and its parent's `code`, so the
  * runtime linkage is an exact parent-code match (no fragile prefix guessing).
+ *
+ * city-zip-map.json is keyed by the 9-digit PSGC code of a city/municipality
+ * or Manila district (see database/data/ph/SOURCE.md). It used to be keyed by
+ * the raw muncity_id, which had drifted out of line with these files.
  */
 class BuildPhAddressData extends Command
 {
@@ -76,7 +80,7 @@ class BuildPhAddressData extends Command
         // ---- Cities/municipalities (+ HUCs), linked to province by code ----
         $cities = [];
         $seenCity = [];
-        $appendCity = function (string $code, string $name, string $provinceCode, $muncityId) use (&$cities, &$seenCity, $zipMap) {
+        $appendCity = function (string $code, string $name, string $provinceCode) use (&$cities, &$seenCity, $zipMap) {
             if (isset($seenCity[$code])) {
                 return;
             }
@@ -87,7 +91,7 @@ class BuildPhAddressData extends Command
                 'code'     => $code,
                 'name'     => $name,
                 'parent'   => $provinceCode,
-                'zip_code' => ($muncityId !== null ? ($zipMap[(string) $muncityId] ?? null) : null),
+                'zip_code' => $zipMap[$code] ?? null,
             ];
             $seenCity[$code] = true;
         };
@@ -96,14 +100,14 @@ class BuildPhAddressData extends Command
             $code = (string) $c['code'];
             $prov = $resolveProvince($code);
             if ($prov) {
-                $appendCity($code, $c['description'], $prov, $c['muncity_id'] ?? null);
+                $appendCity($code, $c['description'], $prov);
             }
         }
         foreach ($hucEntries as $h) {
             $code = (string) $h['code'];
             $prov = $resolveProvince($code);
             if ($prov) {
-                $appendCity($code, $h['description'], $prov, null);
+                $appendCity($code, $h['description'], $prov);
             }
         }
 
@@ -112,7 +116,12 @@ class BuildPhAddressData extends Command
         $cities = array_values(array_filter($cities, function ($city) use (&$districts) {
             $isManilaDistrict = str_starts_with($city['code'], '1339') && $city['code'] !== self::MANILA_CITY_CODE;
             if ($isManilaDistrict) {
-                $districts[] = ['code' => $city['code'], 'name' => $city['name'], 'parent' => self::MANILA_CITY_CODE];
+                $districts[] = [
+                    'code'     => $city['code'],
+                    'name'     => $city['name'],
+                    'parent'   => self::MANILA_CITY_CODE,
+                    'zip_code' => $city['zip_code'],
+                ];
                 return false;
             }
             return true;
