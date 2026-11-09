@@ -38,7 +38,7 @@ class MenuComposerTest extends TestCase
         $top = $this->item(['label' => 'Guitars']);
         $this->item(['label' => 'Used', 'parent_id' => $top->id]);
 
-        $this->get(route('admin.menus'))->assertOk()
+        $this->get(route('admin.header-footer', ['tab' => 'main-menu']))->assertOk()
             ->assertSee('Guitars', false)->assertSee('Used', false)->assertSee('Add an item');
     }
 
@@ -53,7 +53,7 @@ class MenuComposerTest extends TestCase
         $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.menus.store'));
         $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.menus.destroy'));
 
-        $view = file_get_contents(base_path('resources/views/admin/menus/index.blade.php'));
+        $view = file_get_contents(base_path('resources/views/admin/storefront/partials/main-menu.blade.php'));
         $this->assertStringNotContainsString('New menu', $view);
         $this->assertStringNotContainsString('Delete this menu', $view);
     }
@@ -201,7 +201,7 @@ class MenuComposerTest extends TestCase
     /** The page has an empty state, and its styles and script come from the admin bundle. */
     public function test_an_empty_menu_says_how_to_start(): void
     {
-        $this->get(route('admin.menus'))->assertOk()
+        $this->get(route('admin.header-footer', ['tab' => 'main-menu']))->assertOk()
             ->assertSee('No items in this menu yet')
             ->assertSee('vMenuTree', false)
             ->assertDontSee('layout-editor', false)

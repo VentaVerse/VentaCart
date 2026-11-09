@@ -15,7 +15,7 @@ class SettingsSectionController extends Controller
     private const SECTION_GROUPS = [
         'general' => ['general', 'identity'],
         'mail' => ['mail'],
-        'catalog' => ['product_page', 'category_page', 'filters', 'badges'],
+        'catalog' => ['category_page', 'filters', 'badges'],
         'checkout' => ['checkout', 'stock'],
         'currencies' => [],
         'security' => ['security'],

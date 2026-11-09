@@ -1,6 +1,5 @@
 <?php
 
-use Extensions\Theme\Http\Controllers\FooterColumnController;
 use Extensions\Theme\Http\Controllers\ThemeController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,14 +21,4 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // do not take these for the editor extension itself.
         Route::post('/package/install', [ThemeController::class, 'install'])->name('package.install');
         Route::post('/package/uninstall', [ThemeController::class, 'uninstall'])->name('package.uninstall');
-        // Header and footer content, for a theme without an editor of its own.
-        Route::get('/customise', [ThemeController::class, 'index'])->name('customise')->middleware(\App\Http\Middleware\EditTheme::class);
-        Route::post('/settings', [ThemeController::class, 'updateSettings'])->name('settings.update')->middleware(\App\Http\Middleware\EditTheme::class);
-
-        Route::post('/footer', [FooterColumnController::class, 'store'])->name('footer.store');
-        Route::post('/footer/bulk-update', [FooterColumnController::class, 'bulkUpdate'])->name('footer.bulk-update');
-        Route::get('/footer/{column}/edit', [FooterColumnController::class, 'edit'])->name('footer.edit');
-        Route::put('/footer/{column}', [FooterColumnController::class, 'update'])->name('footer.update');
-        Route::delete('/footer/{column}', [FooterColumnController::class, 'destroy'])->name('footer.destroy');
-        Route::post('/footer/reorder', [FooterColumnController::class, 'reorder'])->name('footer.reorder');
     });

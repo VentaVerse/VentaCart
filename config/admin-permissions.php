@@ -79,13 +79,19 @@ return [
         'admin.extensions.seo.test-gsc' => 'extensions.edit',
         'admin.extensions.seo.upload-gsc' => 'extensions.edit',
 
-        // Content
+        // Content and Storefront
         'admin.pages.*' => 'pages',
         'admin.blog.*' => 'blog',
         'admin.blog-categories.*' => 'blog',
+        // Storefront > Header & footer: the menu and everything else on
+        // every page (announcement, top bar, footer) share the Menus right.
+        'admin.header-footer' => 'menus.view',
+        'admin.header-footer.*' => 'menus',
         'admin.menus' => 'menus.view',
         'admin.menus.*' => 'menus',
         'admin.menus.arrange' => 'menus.edit',
+        'admin.footer.*' => 'menus',
+        'admin.footer.arrange' => 'menus.edit',
 
         // Layout and themes. A theme that brings its own editor maps that
         // editor's routes itself (AdminPermissions::map() from its provider,

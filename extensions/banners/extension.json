@@ -5,5 +5,23 @@
     "description": "Homepage and promotional banner management.",
     "provider": "Extensions\\Banners\\BannerServiceProvider",
     "icon": "media",
-    "type": "feature"
+    "type": "feature",
+    "admin_nav": [
+        {
+            "group": "Storefront",
+            "after": "header-footer",
+            "key": "banners",
+            "label": "Banners",
+            "route": "admin.banners.index",
+            "icon": "media",
+            "keywords": [
+                "banner",
+                "slider",
+                "slideshow",
+                "carousel",
+                "hero",
+                "promo"
+            ]
+        }
+    ]
 }

@@ -69,12 +69,22 @@ return [
         'segment' => 'content',
         'items' => [
             ['key' => 'pages', 'label' => 'Pages', 'route' => 'admin.pages.index', 'icon' => 'pages', 'permission' => null, 'keywords' => ['cms', 'static']],
-            // The menus had no entry at all: the only way in was a button on
-            // the theme page, and the breadcrumb from there walked up to
-            // Layout, which does not link back. A page with an entrance and
-            // no address.
-            ['key' => 'menus', 'label' => 'Menus', 'route' => 'admin.menus', 'icon' => 'link', 'permission' => null, 'keywords' => ['nav', 'navigation', 'menu', 'links', 'header']],
-            ['key' => 'layout', 'label' => 'Layout', 'route' => 'admin.layout', 'icon' => 'layers', 'permission' => null, 'keywords' => ['design', 'arrange', 'rows', 'regions', 'positions']],
+        ],
+    ],
+    [
+        // How the store looks and what sits where: one area for the
+        // storefront, each item one kind of thing. Placing things on pages
+        // happens only in Layout.
+        'label' => 'Storefront',
+        'icon' => 'layers',
+        'segment' => 'storefront',
+        'items' => [
+            // The theme extension's directory: choose and install themes. Its
+            // pages live under extensions/theme and light this entry.
+            ['key' => 'themes', 'label' => 'Themes', 'route' => 'admin.theme.index', 'icon' => 'tags', 'permission' => null, 'extension' => 'theme', 'keywords' => ['theme', 'design', 'look', 'skin', 'template']],
+            ['key' => 'layout', 'label' => 'Layout', 'route' => 'admin.layout', 'icon' => 'layers', 'permission' => null, 'keywords' => ['design', 'layouts', 'arrange', 'rows', 'regions', 'positions', 'modules']],
+            ['key' => 'header-footer', 'label' => 'Header & footer', 'route' => 'admin.header-footer', 'icon' => 'link', 'permission' => null, 'keywords' => ['menu', 'menus', 'nav', 'navigation', 'announcement', 'top bar', 'footer', 'links', 'payment icons', 'social']],
+            // Banners (banners extension manifest) joins below while enabled.
         ],
     ],
     [

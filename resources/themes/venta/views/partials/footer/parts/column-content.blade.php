@@ -1,16 +1,19 @@
 @if ($column->type === 'links')
                             <div class="footer-links">
                                 @foreach ($column->config['links'] ?? [] as $link)
-                                    <div>
-                                        <a href="{{ $link['url'] ?? '#' }}">{{ $link['label'] ?? '' }}</a>
-                                    </div>
+                                    @if (is_array($link) && ($vLinkUrl = \App\Support\SafeInput::link($link['url'] ?? '')) !== '')
+                                        <div>
+                                            <a href="{{ $vLinkUrl }}">{{ $link['label'] ?? '' }}</a>
+                                        </div>
+                                    @endif
                                 @endforeach
                             </div>
 
                         @elseif ($column->type === 'social')
                             <div class="social-icons">
                                 @foreach ($column->config['links'] ?? [] as $social)
-                                    <a href="{{ $social['url'] ?? '#' }}" target="_blank" rel="noopener" title="{{ $social['platform'] ?? '' }}">
+                                    @continue(! is_array($social) || ($vSocialUrl = \App\Support\SafeInput::link($social['url'] ?? '')) === '')
+                                    <a href="{{ $vSocialUrl }}" target="_blank" rel="noopener" title="{{ $social['platform'] ?? '' }}">
                                         @if (($social['platform'] ?? '') === 'facebook')
                                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
                                         @elseif (($social['platform'] ?? '') === 'instagram')

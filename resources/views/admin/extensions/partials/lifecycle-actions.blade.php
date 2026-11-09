@@ -25,6 +25,9 @@
             <button type="submit" class="v-btn v-btn--primary v-btn--sm">{{ $module['state'] === 'needs_migration' ? 'Update' : 'Install' }}</button>
         </form>
     @endif
+    @if (! empty($module['home']))
+        <span class="v-badge v-badge--quiet">{{ $module['home'] }}</span>
+    @endif
     @if ($module['configure'])
         <a href="{{ $module['configure'] }}" class="v-btn v-btn--ghost v-btn--sm">Configure</a>
     @elseif ($module['state'] === 'disabled')

@@ -60,6 +60,9 @@ class ExtensionCard
             'configure' => $state === 'enabled' || ($state === 'needs_migration' && $registryRow?->enabled)
                 ? self::configureUrl($manifest, $name)
                 : null,
+            // Where its own pages sit in the sidebar, so Configure is not a
+            // jump into the unknown.
+            'home' => $state === 'enabled' ? AdminNav::homeOf($name) : null,
         ];
     }
 

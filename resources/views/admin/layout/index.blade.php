@@ -5,20 +5,16 @@
 
     <div class="v-head">
         <div class="v-head__body">
-            {{-- The trail still reads through Themes (owner: keep the entry
-                 there for now), but the page is core: the links only appear
-                 while the theme editor is enabled to provide them. --}}
+            {{-- Storefront / Layout, and the theme being arranged when more
+                 than one theme can be. --}}
             <div class="v-head__trail">
-                @if (count($installedThemes) > 1)
-                    <span>Content</span>
-                    <span aria-hidden="true">/</span>
-                    <span>{{ $theme }}</span>
-                    <span aria-hidden="true">/</span>
-                @else
-                    <span>{{ $theme }}</span>
-                    <span aria-hidden="true">/</span>
-                @endif
+                <span>Storefront</span>
+                <span aria-hidden="true">/</span>
                 <span>Layout</span>
+                @if (count($installedThemes) > 1)
+                    <span aria-hidden="true">/</span>
+                    <span>{{ $theme }}</span>
+                @endif
             </div>
             <h1 class="v-head__title">Layout</h1>
         </div>

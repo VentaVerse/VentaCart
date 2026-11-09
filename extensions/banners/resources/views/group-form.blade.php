@@ -2,7 +2,7 @@
     <div class="v-head">
         <div class="v-head__body">
             <div class="v-head__trail">
-                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                <span>Storefront</span>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.banners.index') }}">Banners</a>
                 <span aria-hidden="true">/</span>

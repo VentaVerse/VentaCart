@@ -287,6 +287,11 @@ class AdminNav
             return null;
         }
 
+        // An extension's pages light the entry it put in a work group.
+        if ($home = static::extensionHome($path)) {
+            return ['group' => $home['group'], 'item' => $home['key']];
+        }
+
         foreach (static::registry() as $group) {
             if ($group['label'] === null) {
                 foreach ($group['items'] as $item) {
@@ -319,6 +324,73 @@ class AdminNav
             }
 
             return ['group' => $group['label'], 'item' => null];
+        }
+
+        return null;
+    }
+
+    /**
+     * The work-group entry an extension's page belongs to: for a path under
+     * extensions/{name}, the sidebar item that extension put outside the
+     * Extensions group (Banners in Storefront, Coupons in Marketing), so the
+     * sidebar and the trail say where the merchant went, not where the code
+     * lives. With several entries (Blog Posts, Blog Categories) the one whose
+     * own address the path continues wins. Null when there is none.
+     *
+     * @return array{group: string, key: string, label: string, route: string}|null
+     */
+    public static function extensionHome(string $path): ?array
+    {
+        $segments = Breadcrumbs::segments($path);
+        if (($segments[0] ?? null) !== 'extensions' || ! isset($segments[1])) {
+            return null;
+        }
+
+        $current = '/' . implode('/', $segments) . '/';
+        $best = null;
+        $bestLength = -1;
+
+        foreach (static::registry() as $group) {
+            if ($group['label'] === null || ($group['segment'] ?? null) === 'extensions') {
+                continue;
+            }
+            foreach ($group['items'] as $item) {
+                if (($item['extension'] ?? null) !== $segments[1]) {
+                    continue;
+                }
+                $length = 0;
+                try {
+                    $own = '/' . implode('/', Breadcrumbs::segments((string) parse_url(route($item['route']), PHP_URL_PATH))) . '/';
+                    $length = str_starts_with($current, $own) ? strlen($own) : 0;
+                } catch (\Throwable) {
+                    // A route that is not registered (extension switched off)
+                    // still names its group; it just cannot win on address.
+                }
+                if ($length > $bestLength) {
+                    $best = $item + ['group' => $group['label']];
+                    $bestLength = $length;
+                }
+            }
+        }
+
+        return $best;
+    }
+
+    /**
+     * Where an extension lives in the sidebar, as "Group > Item", when it put
+     * an entry in a work group (Storefront > Banners). Null otherwise.
+     */
+    public static function homeOf(string $extension): ?string
+    {
+        foreach (static::registry() as $group) {
+            if ($group['label'] === null || ($group['segment'] ?? null) === 'extensions') {
+                continue;
+            }
+            foreach ($group['items'] as $item) {
+                if (($item['extension'] ?? null) === $extension) {
+                    return $group['label'] . ' > ' . $item['label'];
+                }
+            }
         }
 
         return null;

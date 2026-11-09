@@ -2,26 +2,12 @@
     <div class="v-head">
         <div class="v-head__body">
             <h1 class="v-head__title">Catalog</h1>
-            <p class="v-head__standing">How products are listed, sorted and badged, and what a product page shows.</p>
+            <p class="v-head__standing">How products are listed, sorted and badged.</p>
         </div>
     </div>
 
     <x-admin.form :action="route('admin.settings.update')" class="v-settle">
         <input type="hidden" name="_redirect" value="{{ route('admin.settings.section', 'catalog') }}">
-
-        <x-admin.panel title="Product page">
-            @foreach (['show_ratings' => 'Show star ratings', 'show_stock' => 'Show stock and availability', 'show_brand' => 'Show the brand logo', 'show_badges' => 'Show product badges'] as $key => $label)
-                <div class="{{ $loop->first ? '' : 'v-gap' }}">
-                    <label class="v-toggle">
-                        <input type="hidden" name="groups[product_page][{{ $key }}]" value="0">
-                        <input type="checkbox" name="groups[product_page][{{ $key }}]" value="1"
-                               @checked(($settings['product_page'][$key] ?? '0') === '1')>
-                        <span class="v-toggle__track" aria-hidden="true"></span>
-                        {{ $label }}
-                    </label>
-                </div>
-            @endforeach
-        </x-admin.panel>
 
         <x-admin.panel title="Product listings">
             <div class="v-narrow">

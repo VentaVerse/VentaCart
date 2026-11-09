@@ -327,3 +327,10 @@ foreach ([
         return redirect($destination.($query ? '?'.$query : ''), 301);
     })->where('path', '.*');
 }
+
+// Storefront: Layout and the menu moved out of Content, and the theme's
+// header and footer editing became Storefront > Header & footer.
+adminLegacyRedirect('content/layout', 'admin.layout');
+adminLegacyRedirect('content/menus', 'admin.menus');
+adminLegacyRedirect('content/menus/items/{item}/edit', 'admin.menus.items.edit');
+adminLegacyRedirect('extensions/theme/customise', 'admin.header-footer');

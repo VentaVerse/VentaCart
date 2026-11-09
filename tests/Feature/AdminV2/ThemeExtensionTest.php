@@ -70,12 +70,12 @@ class ThemeExtensionTest extends TestCase
         $this->assertSame(0, \App\Models\HomepageSection::count());
     }
 
-    public function test_nav_contribution_appears_in_extensions_group_only_while_enabled(): void
+    public function test_themes_appears_in_the_storefront_group_only_while_enabled(): void
     {
         $user = User::factory()->create();
 
         $labels = fn () => collect(\App\Support\AdminNav::groups($user))
-            ->firstWhere('label', 'Extensions')['items'] ?? [];
+            ->firstWhere('label', 'Storefront')['items'] ?? [];
 
         $this->assertNotContains('Themes', collect($labels())->pluck('label')->all());
 

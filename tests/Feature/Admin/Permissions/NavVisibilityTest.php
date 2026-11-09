@@ -38,7 +38,7 @@ class NavVisibilityTest extends TestCase
         foreach (['dashboard', 'orders', 'couriers', 'products', 'customers'] as $key) {
             $this->assertContains($key, $keys);
         }
-        foreach (['categories', 'brands', 'menus', 'layout', 'all', 'modules', 'payments', 'settings'] as $key) {
+        foreach (['categories', 'brands', 'header-footer', 'layout', 'all', 'modules', 'payments', 'settings'] as $key) {
             $this->assertNotContains($key, $keys);
         }
         $this->assertSame([], SettingsNav::groups(User::factory()->role('staff')->create()));
@@ -49,7 +49,7 @@ class NavVisibilityTest extends TestCase
         $manager = User::factory()->role('store-manager')->create();
         $keys = $this->navKeys($manager);
 
-        foreach (['orders', 'products', 'categories', 'brands', 'attributes', 'customers', 'groups', 'pages', 'menus'] as $key) {
+        foreach (['orders', 'products', 'categories', 'brands', 'attributes', 'customers', 'groups', 'pages', 'header-footer'] as $key) {
             $this->assertContains($key, $keys);
         }
         foreach (['layout', 'all', 'modules', 'payments', 'shipping', 'order-totals', 'settings'] as $key) {

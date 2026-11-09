@@ -3,93 +3,11 @@
 namespace Extensions\Theme\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\FooterColumn;
-use App\Models\Setting;
-use App\Http\Middleware\EditTheme;
 use App\Services\ThemeService;
-use App\Support\SafeInput;
 use Illuminate\Http\Request;
 
 class ThemeController extends Controller
 {
-    /**
-     * The header and footer content of a theme without an editor of its
-     * own: the announcement bar, the top bar links and the footer columns.
-     * The look itself is the theme's and is not edited here.
-     */
-    public function index(ThemeService $theme)
-    {
-        // A theme with an editor of its own is customised there, not here.
-        $editSlug = $theme->getActiveTheme();
-        if ($away = $this->ownStorageAnswer($theme, $editSlug)) {
-            return $away;
-        }
-        if ($editor = $theme->editorRoute($editSlug)) {
-            return redirect()->route($editor);
-        }
-
-        return view('theme::index', [
-            'settings' => ['header' => Setting::where('group', 'header')->pluck('value', 'key')->all()],
-            'footerColumns' => FooterColumn::orderBy('sort_order')->get(),
-        ]);
-    }
-
-    public function updateSettings(Request $request, ThemeService $theme)
-    {
-        if ($away = $this->ownStorageAnswer($theme)) {
-            return $away;
-        }
-
-        $validated = $request->validate([
-            'groups.header.announcement_enabled' => ['nullable', 'boolean'],
-            'groups.header.announcement_text' => ['nullable', 'string', 'max:255'],
-            'groups.header.announcement_link' => ['nullable', 'string', 'max:500', function (string $attribute, mixed $value, \Closure $fail) {
-                if (trim((string) $value) !== '' && SafeInput::link($value) === '') {
-                    $fail('The announcement link must be a path such as /sale, or an http or https address.');
-                }
-            }],
-            'groups.header.topbar_links' => ['nullable', 'json', 'max:5000'],
-        ]);
-        $header = $validated['groups']['header'] ?? [];
-
-        $links = collect(json_decode((string) ($header['topbar_links'] ?? '[]'), true) ?: [])
-            ->filter(fn ($link) => is_array($link))
-            ->map(fn (array $link) => [
-                'label' => mb_substr(trim((string) ($link['label'] ?? '')), 0, 100),
-                // Only a path or an http(s), mailto or tel address: anything
-                // else (a javascript: address) would run in shoppers' browsers.
-                'url' => SafeInput::link(mb_substr(trim((string) ($link['url'] ?? '')), 0, 500)),
-            ])
-            ->filter(fn (array $link) => $link['label'] !== '' && $link['url'] !== '')
-            ->values()
-            ->all();
-
-        $values = [
-            'announcement_enabled' => ! empty($header['announcement_enabled']) ? '1' : '0',
-            'announcement_text' => (string) ($header['announcement_text'] ?? ''),
-            'announcement_link' => SafeInput::link($header['announcement_link'] ?? ''),
-            'topbar_links' => json_encode($links),
-        ];
-        foreach ($values as $key => $value) {
-            Setting::updateOrCreate(['group' => 'header', 'key' => $key], ['value' => $value]);
-        }
-        $theme->clearCache();
-
-        return back()->with('success', 'Header saved.');
-    }
-
-    /**
-     * A theme that keeps its settings in storage of its own is edited in its
-     * own panel, never on these pages: the answer that sends the request
-     * there (or 404) for the theme being edited, null for any other theme.
-     */
-    private function ownStorageAnswer(ThemeService $theme, ?string $slug = null): ?\Symfony\Component\HttpFoundation\Response
-    {
-        $slug ??= $theme->getActiveTheme();
-
-        return $theme->keepsOwnStorage($slug) ? EditTheme::sendAway($theme, $slug) : null;
-    }
-
     /**
      * The theme directory: what is installed, and which one the storefront runs.
      *

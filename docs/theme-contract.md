@@ -24,7 +24,7 @@ A theme sold as a download cannot count on the store running that build, so it m
 
 ### Install, uninstall, live
 
-Themes are discovered like extensions and recorded in the same registry under the name `theme-{slug}`. The Themes page (Extensions > Themes) lists every package on disk with Install, Use this theme and Uninstall. Installing runs the contract check and refuses a package that fails it, naming what is missing. Uninstalling rolls back every migration the theme ran (whichever batch each ran in, so tables from an earlier version go too) and removes the registry row. The folder, the theme's layout rows in core and its settings in core stay, so installing it again finds them. A theme's own extensions follow the same rule when they are uninstalled.
+Themes are discovered like extensions and recorded in the same registry under the name `theme-{slug}`. The Themes page (Storefront > Themes) lists every package on disk with Install, Use this theme and Uninstall. Installing runs the contract check and refuses a package that fails it, naming what is missing. Uninstalling rolls back every migration the theme ran (whichever batch each ran in, so tables from an earlier version go too) and removes the registry row. The folder, the theme's layout rows in core and its settings in core stay, so installing it again finds them. A theme's own extensions follow the same rule when they are uninstalled.
 
 ### Upload
 
@@ -391,5 +391,5 @@ The main menu is composed in Layout > Menus (`nav_menus`, nested `nav_menu_items
 2. Set the theme's colours and fonts in `css/theme.css`.
 3. Keep the four required regions; add system regions if the theme's header or product page should be rows.
 4. Keep every view in section 4 and every widget view in section 5.
-5. `npm run build`, then Extensions > Themes > Install. The install check names anything missing.
+5. `npm run build`, then Storefront > Themes > Install. The install check names anything missing.
 6. `php artisan test --filter=ThemePackagesTest` passes with the new theme on disk (the contract test checks every shipped theme).

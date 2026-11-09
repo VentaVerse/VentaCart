@@ -24,7 +24,7 @@ class UrlGrammarTest extends TestCase
 
     /** Section roots the grammar map defines (spec §Part 1 URL map). */
     private const ALLOWED_ROOTS = [
-        'dashboard', 'sales', 'catalog', 'customers', 'content',
+        'dashboard', 'sales', 'catalog', 'customers', 'content', 'storefront',
         'marketing', 'extensions', 'settings', 'profile',
     ];
 
@@ -512,7 +512,7 @@ class UrlGrammarTest extends TestCase
     // end through x-admin.page's auto-derivation (no :breadcrumb passed).
     // ------------------------------------------------------------------
 
-    public function test_breadcrumb_trail_on_extension_page_shows_settings_modules_and_manifest_title(): void
+    public function test_breadcrumb_trail_on_extension_page_starts_where_its_sidebar_entry_sits(): void
     {
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('banners');
@@ -520,9 +520,8 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/extensions/banners');
 
         $response->assertOk();
-        // v repin: the settings space IS Settings, so the trail starts
-        // at Modules like every other v settings page.
-        $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Banners']);
+        // Banners' entry sits in Storefront, so its pages trail from there.
+        $this->assertBreadcrumbTrail($response->getContent(), ['Storefront', 'Banners']);
     }
 
     /** Task 2: the Fulfillment sidebar item (admin-nav) supplies the queue's crumb. */

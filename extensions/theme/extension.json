@@ -2,29 +2,10 @@
     "name": "theme",
     "title": "Theme",
     "version": "1.0.0",
-    "description": "Storefront themes: install and switch them, and edit the header and footer content of a theme without an editor of its own.",
+    "description": "Storefront themes: install them and choose the one the store runs.",
     "provider": "Extensions\\Theme\\ThemeExtensionServiceProvider",
     "icon": "tags",
     "type": "theme",
     "configure_route": "admin.theme.index",
-    "admin_nav": [
-        {
-            "group": "Extensions",
-            "after": "shipping",
-            "key": "themes",
-            "label": "Themes",
-            "route": "admin.theme.index",
-            "icon": "tags",
-            "keywords": [
-                "storefront",
-                "homepage",
-                "logo",
-                "favicon",
-                "header",
-                "footer",
-                "announcement"
-            ]
-        }
-    ],
     "default_enabled": true
 }

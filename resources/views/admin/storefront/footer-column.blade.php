@@ -2,11 +2,9 @@
     <div class="v-head">
         <div class="v-head__body">
             <div class="v-head__trail">
-                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                <span>Storefront</span>
                 <span aria-hidden="true">/</span>
-                <a href="{{ route('admin.theme.index') }}">Theme</a>
-                <span aria-hidden="true">/</span>
-                <a href="{{ route('admin.theme.customise', ['tab' => 'footer']) }}">Footer</a>
+                <a href="{{ route('admin.header-footer', ['tab' => 'footer']) }}">Header &amp; footer</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $column->title }}</span>
             </div>
@@ -16,7 +14,7 @@
         </div>
     </div>
 
-    <x-admin.form :action="route('admin.theme.footer.update', $column)" method="PUT" enctype="multipart/form-data" class="v-settle">
+    <x-admin.form :action="route('admin.footer.update', $column)" method="PUT" enctype="multipart/form-data" class="v-settle">
         {{-- Row state nests inside the doctrine form (the form tag already
              carries vForm's own x-data). --}}
         <div x-data="{
@@ -87,7 +85,7 @@
                                         <img :src="icon.value.startsWith('http') || icon.value.startsWith('/') ? icon.value : '/storage/' + icon.value" class="v-payicon" alt="">
                                     </template>
                                     <input type="hidden" :name="'config[icons]['+idx+'][value]'" :value="icon.value">
-                                    <input type="file" :name="'icon_uploads['+idx+']'" accept="image/*" aria-label="Payment mark image" class="v-file">
+                                    <input type="file" :name="'icon_uploads['+idx+']'" accept="image/png,image/jpeg,image/gif,image/webp" aria-label="Payment mark image" class="v-file">
                                 </span>
                             </template>
                             <button type="button" class="v-row__x" @click="payIcons.splice(idx, 1); $nextTick(() => touch())" aria-label="Remove payment icon"><x-admin.icon name="x" /></button>

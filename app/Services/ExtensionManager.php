@@ -293,9 +293,11 @@ class ExtensionManager
             return $this->discovered()
                 ->filter(fn (array $m) => is_array($m['admin_nav'] ?? null)
                     && $this->state($m['name']) === 'enabled')
-                ->flatMap(fn (array $m) => array_values(array_filter(
-                    $m['admin_nav'],
-                    fn ($entry) => is_array($entry),
+                ->flatMap(fn (array $m) => array_values(array_map(
+                    // Each entry remembers its extension, so the extension's
+                    // own pages light it and trail back to it.
+                    fn (array $entry) => $entry + ['extension' => $m['name']],
+                    array_filter($m['admin_nav'], fn ($entry) => is_array($entry)),
                 )))
                 ->values()
                 ->all();

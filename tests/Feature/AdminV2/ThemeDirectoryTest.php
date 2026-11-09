@@ -44,13 +44,6 @@ class ThemeDirectoryTest extends TestCase
         $this->get(route('admin.theme.index'))->assertOk()->assertSee('Live', false);
     }
 
-    public function test_the_editor_has_its_own_address(): void
-    {
-        $this->get(route('admin.theme.customise'))
-            ->assertOk()
-            ->assertSee('Announcement bar', false);
-    }
-
     public function test_activating_an_installed_theme_points_the_storefront_at_it(): void
     {
         $this->post(route('admin.theme.activate'), ['theme' => 'venta'])->assertRedirect();

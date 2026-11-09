@@ -49,9 +49,9 @@ class ThemeOptionsStorageTest extends TestCase
         $before = $this->settingsSnapshot();
 
         $panel = route('admin.dashboard');
-        $this->get(route('admin.theme.customise', ['theme' => 'sample']))->assertRedirect($panel);
-        $this->post(route('admin.theme.settings.update'), ['theme' => 'sample', 'groups' => ['header' => ['announcement_text' => 'x']]])
-            ->assertRedirect($panel);
+        $this->get(route('admin.header-footer'))->assertRedirect($panel);
+        $this->post(route('admin.header-footer.announcement'), ['announcement_text' => 'x'])->assertRedirect($panel);
+        $this->post(route('admin.header-footer.top-bar'), ['topbar_links' => '[]'])->assertRedirect($panel);
 
         $this->assertSame($before, $this->settingsSnapshot());
     }
@@ -59,25 +59,20 @@ class ThemeOptionsStorageTest extends TestCase
     public function test_a_self_storing_theme_without_a_panel_is_refused_and_has_no_core_editor_links(): void
     {
         $this->boot(['storage' => 'own', 'editor' => ''], live: false);
-        $before = $this->settingsSnapshot();
 
-        $this->get(route('admin.theme.customise', ['theme' => 'sample']))->assertNotFound();
-        $this->post(route('admin.theme.settings.update'), ['theme' => 'sample', 'groups' => ['header' => ['announcement_text' => 'x']]])
-            ->assertNotFound();
-        $this->assertSame($before, $this->settingsSnapshot());
-
-        // The directory offers core's editors for the core theme only.
+        // The directory offers no core editor for it.
         $html = $this->get(route('admin.theme.index'))->assertOk()->getContent();
         $this->assertStringNotContainsString('theme=sample', $html);
         $this->assertStringContainsString('Use this theme', $html);
 
-        // Live, it offers no core editor either.
+        // Live, core's Header & footer is refused rather than written for it.
         app(ThemeService::class)->activateTheme($this->sampleTheme);
         app(ThemeService::class)->clearCache();
-        $html = $this->get(route('admin.theme.index'))->assertOk()->getContent();
-        // Venta, not live, can still have its pages arranged; the live theme has no core editor.
-        $this->assertStringContainsString(route('admin.layout', ['theme' => 'venta']), $html);
-        $this->assertStringNotContainsString('href="'.route('admin.theme.customise').'"', $html);
+        $before = $this->settingsSnapshot();
+
+        $this->get(route('admin.header-footer'))->assertNotFound();
+        $this->post(route('admin.header-footer.announcement'), ['announcement_text' => 'x'])->assertNotFound();
+        $this->assertSame($before, $this->settingsSnapshot());
     }
 
 }

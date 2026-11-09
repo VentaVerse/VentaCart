@@ -10,7 +10,7 @@ export function registerV(Alpine) {
     // The one image browser, replacing five hand-rolled copies.
     registerMediaPicker(Alpine);
 
-    // Content > Menus: the arrangeable tree and the item fields.
+    // Storefront > Header & footer, Main menu: the arrangeable tree and the item fields.
     registerMenuTree(Alpine);
 
     // ------------------------------------------------------------------

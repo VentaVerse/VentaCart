@@ -134,20 +134,20 @@ class CategoryInMenuTest extends TestCase
     /** One door. The theme page must not offer a second way in. */
     public function test_the_theme_page_no_longer_links_to_the_composer(): void
     {
-        $view = file_get_contents(base_path('extensions/theme/resources/views/index.blade.php'));
+        $view = file_get_contents(base_path('extensions/theme/resources/views/directory.blade.php'));
 
         $this->assertStringNotContainsString("route('admin.menus')", $view,
-            'Menus live under Content. A second entrance from the theme page is the teleport we removed.');
-        $this->assertStringNotContainsString("tab === 'navigation'", $view);
+            'The menu lives in Storefront > Header & footer. A second entrance from the theme page is the teleport we removed.');
+        $this->assertStringNotContainsString("route('admin.header-footer')", $view);
     }
 
     /** And the one door is actually in the sidebar. */
     public function test_menus_has_an_entry_in_the_admin_nav(): void
     {
-        $content = collect(config('admin-nav'))->firstWhere('segment', 'content');
+        $storefront = collect(config('admin-nav'))->firstWhere('segment', 'storefront');
 
-        $this->assertNotNull($content);
-        $this->assertContains('menus', array_column($content['items'], 'key'),
+        $this->assertNotNull($storefront);
+        $this->assertContains('header-footer', array_column($storefront['items'], 'key'),
             'The composer had no entry at all, which is why it could only be reached by teleport.');
     }
 }

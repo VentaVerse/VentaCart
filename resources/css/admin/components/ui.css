@@ -567,7 +567,8 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
     margin-bottom: -1px;
 }
 .v-tab:hover { color: var(--v-ink); }
-.v-tab[aria-selected="true"] { color: var(--v-act); border-bottom-color: var(--v-act-fill); font-weight: 620; }
+.v-tab[aria-selected="true"],
+.v-tab[aria-current="page"] { color: var(--v-act); border-bottom-color: var(--v-act-fill); font-weight: 620; }
 
 /* --- Stat figures ---------------------------------------------- */
 
@@ -671,6 +672,11 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
 .v-dragrow--bare { background: none; border: 0; margin: 0; padding: 10px 0; }
 .v-dragrow__grip { width: 16px; height: 16px; color: var(--v-ink-3); cursor: grab; flex-shrink: 0; }
 .v-dragrow__end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+/* A narrow screen wraps a row's end (status, Edit, delete) under its name rather than cutting it off. */
+@media (max-width: 560px) {
+    .v-dragrow { flex-wrap: wrap; }
+    .v-dragrow__end { flex-basis: 100%; justify-content: flex-end; }
+}
 .v-dragnest { margin-left: 30px; }
 
 .v-dragcard {
@@ -1885,7 +1891,7 @@ svg.v-dlb-ic { width: 14px; height: 14px; }
 }
 
 .v-tabs::-webkit-scrollbar { display: none; }
-.v-tab { scroll-snap-align: start; }
+.v-tab { scroll-snap-align: start; white-space: nowrap; }
 
 /* Publish state sits with Save, not inside a tab. */
 .v-head__live { margin-left: auto; font-size: 13px; }

@@ -6,7 +6,7 @@
     <div class="v-head">
         <div class="v-head__body">
             <div class="v-head__trail">
-                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                <span>Storefront</span>
                 <span aria-hidden="true">/</span>
                 <span>Themes</span>
             </div>
@@ -73,13 +73,6 @@
                     @elseif ($slug === $active)
                         @if (! empty($meta['editor']) && \Illuminate\Support\Facades\Route::has($meta['editor']))
                             <a href="{{ route($meta['editor']) }}" class="v-btn v-btn--primary v-btn--sm">Edit</a>
-                        @elseif (($meta['storage'] ?? null) === 'own')
-                            {{-- Its settings live in its own storage, so core's editors have nothing to offer. --}}
-                        @else
-                            <a href="{{ route('admin.theme.customise') }}" class="v-btn v-btn--primary v-btn--sm">Customise</a>
-                            @if (empty($meta['editor']))
-                                <a href="{{ route('admin.layout') }}" class="v-btn v-btn--sm">Arrange pages</a>
-                            @endif
                         @endif
                         <form method="POST" action="{{ route('admin.theme.package.uninstall') }}" x-data @submit.prevent="if (confirm('Uninstall the live theme? The storefront shows a plain page until another theme is made live.')) $el.submit()">
                             @csrf
@@ -89,10 +82,6 @@
                     @else
                         @if (! empty($meta['editor']) && \Illuminate\Support\Facades\Route::has($meta['editor']))
                             <a href="{{ route($meta['editor']) }}" class="v-btn v-btn--sm">Edit</a>
-                        @elseif (($meta['storage'] ?? null) === 'own')
-                            {{-- Its settings live in its own storage, so core's editors have nothing to offer. --}}
-                        @else
-                            <a href="{{ route('admin.layout', ['theme' => $slug]) }}" class="v-btn v-btn--sm">Arrange pages</a>
                         @endif
                         <form method="POST" action="{{ route('admin.theme.activate') }}">
                             @csrf

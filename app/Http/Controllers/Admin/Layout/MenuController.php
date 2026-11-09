@@ -26,22 +26,30 @@ use Illuminate\Validation\Rule;
  */
 class MenuController extends Controller
 {
+    /** The menu is edited on Storefront > Header & footer, Main menu tab. */
     public function index(Request $request)
     {
-        // The one menu the header draws. There is no switcher because there
-        // is nothing to switch to: a second menu could never reach the header.
+        return redirect()->route('admin.header-footer', ['tab' => 'main-menu']);
+    }
+
+    /**
+     * What the Main menu tab draws. The one menu the header draws: there is
+     * no switcher because a second menu could never reach the header.
+     */
+    public function screen(): array
+    {
         $menu = NavMenu::main();
 
         $items = $menu->items()->with(['category', 'page'])->get();
 
-        return view('admin.menus.index', [
+        return [
             'menu' => $menu,
             'tree' => $this->tree($items),
             'types' => NavMenuItem::TYPES,
             'system' => NavMenuItem::SYSTEM,
             'categories' => $this->categoryChoices(),
             'pages' => Page::where('is_active', true)->orderBy('title')->get(['id', 'title']),
-        ]);
+        ];
     }
 
     /** Items as the editor draws them: nested, with a one-line description. */
@@ -137,7 +145,7 @@ class MenuController extends Controller
         NavMenuItem::create($data);
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.menus', ['menu' => $menu->key])->with('success', ($data['label'] ?: NavMenuItem::TYPES[$data['type']]) . ' added.');
+        return redirect()->route('admin.header-footer', ['tab' => 'main-menu'])->with('success', ($data['label'] ?: NavMenuItem::TYPES[$data['type']]) . ' added.');
     }
 
     public function editItem(NavMenuItem $item)
@@ -160,7 +168,7 @@ class MenuController extends Controller
         $item->update($data);
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.menus', ['menu' => $item->menu->key])->with('success', ($item->label ?: NavMenuItem::TYPES[$item->type]) . ' updated.');
+        return redirect()->route('admin.header-footer', ['tab' => 'main-menu'])->with('success', ($item->label ?: NavMenuItem::TYPES[$item->type]) . ' updated.');
     }
 
     public function destroyItem(NavMenuItem $item)
@@ -169,7 +177,7 @@ class MenuController extends Controller
         $item->delete();
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.menus', ['menu' => $menu->key])->with('success', 'Menu item deleted.');
+        return redirect()->route('admin.header-footer', ['tab' => 'main-menu'])->with('success', 'Menu item deleted.');
     }
 
     /** One set of rules for adding and editing: a type says which fields count. */
