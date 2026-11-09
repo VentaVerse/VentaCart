@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Services\ThemeService;
+
 /**
  * What can be placed, and how each one gets its data.
  *
@@ -17,10 +19,20 @@ namespace App\Support;
  * The registry is process-global static state, the same shape as the courier
  * registry: registered from service providers at boot, never mutated per
  * request. A test that registers one must unregister it after.
+ *
+ * Widgets are kept by owner. Core's and the extensions' widgets are shared:
+ * every theme can place them. A theme's own widgets (registered with a
+ * 'theme') are kept with that theme, and every read sees the shared ones plus
+ * the current theme's own. Every installed theme boots, live or not, so its
+ * editor works before it goes live; keeping its widgets apart is what stops
+ * them from reaching another theme's editor or storefront.
  */
 class Widgets
 {
-    /** @var array<string, array> */
+    /** The owner shared widgets are kept under. */
+    private const SHARED = '';
+
+    /** @var array<string, array<string, array>> owner => key => spec */
     private static array $registry = [];
 
     /**
@@ -31,7 +43,7 @@ class Widgets
      */
     public static function register(string $key, array $spec): void
     {
-        self::$registry[$key] = $spec + [
+        self::$registry[(string) ($spec['theme'] ?? self::SHARED)][$key] = $spec + [
             'title' => $key,
             'resolve' => null,
             'view' => null,
@@ -44,8 +56,8 @@ class Widgets
             // A theme's own piece (its header, its product gallery), offered
             // where the theme declares a system region for it.
             'system' => false,
-            // The theme package that registers this widget, when one does;
-            // another theme is not asked to draw it.
+            // The theme package that registers this widget, when one does.
+            // It is kept with that theme: no other theme sees it.
             'theme' => null,
             // Core ships a plain view of its own (resources/views/widgets),
             // so a theme that declares the region need not draw it.
@@ -63,22 +75,51 @@ class Widgets
 
     public static function forget(string $key): void
     {
-        unset(self::$registry[$key]);
+        foreach (array_keys(self::$registry) as $owner) {
+            unset(self::$registry[$owner][$key]);
+        }
     }
 
-    public static function all(): array
+    /**
+     * Every widget a theme can place: the shared ones plus its own. A theme's
+     * own widget wins over a shared one with the same key, inside that theme.
+     *
+     * @param  string|null  $theme  the theme asking; the current one when null
+     */
+    public static function all(?string $theme = null): array
     {
-        return self::$registry;
+        $theme ??= self::currentTheme();
+        $shared = self::$registry[self::SHARED] ?? [];
+
+        return $theme === self::SHARED ? $shared : array_replace($shared, self::$registry[$theme] ?? []);
     }
 
     public static function has(string $key): bool
     {
-        return isset(self::$registry[$key]);
+        return self::get($key) !== null;
     }
 
     public static function get(string $key): ?array
     {
-        return self::$registry[$key] ?? null;
+        $theme = self::currentTheme();
+
+        return ($theme !== self::SHARED ? self::$registry[$theme][$key] ?? null : null)
+            ?? self::$registry[self::SHARED][$key]
+            ?? null;
+    }
+
+    /**
+     * The theme this request draws or edits: the live one, or the one a
+     * theme's editor scopes its requests to. Shared widgets only when there
+     * is no theme to ask about yet (no settings table on a fresh install).
+     */
+    private static function currentTheme(): string
+    {
+        try {
+            return app(ThemeService::class)->getActiveTheme();
+        } catch (\Throwable) {
+            return self::SHARED;
+        }
     }
 
     /** Can this widget sit in this region, per its own declaration? */

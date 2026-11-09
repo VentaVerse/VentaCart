@@ -296,6 +296,8 @@ Pages start with `<x-store-layout :title="…">` and yield their content inside 
 
 Core keeps the catalogue (`App\Support\Widgets`, registered by `App\Storefront\Widgets\CoreWidgets` and by extensions). A widget is a key, a title, a schema for its settings, and a view name; the theme supplies the view under `views/widgets/{module}/{key}.blade.php`, receiving `$config` (the placement's settings, resolved against the schema) and `$placement`.
 
+Core's and the extensions' widgets are shared: every theme can place them. A theme may also register widgets of its own, by naming itself in the widget's spec (`'theme' => '{slug}'`). Those are kept with that theme: the catalogue, the Layout editor, the storefront and the install check of every other theme never see them, so two themes installed side by side cannot reach each other's widgets, and a theme's own widget may even share a key with another theme's. `Widgets::all()`, `get()` and `has()` read the shared widgets plus the current theme's own; the current theme is the live one, or the one a theme's editor scopes its admin requests to (`ThemeService::overlay(['identity' => ['active_theme' => '{slug}']])`).
+
 ### 5.1 Core widgets
 
 | key | view |

@@ -139,11 +139,11 @@ final class ThemeContract
             }
         }
 
-        // Every widget the store can place must have a view in the theme,
-        // except a theme's own pieces, which are only required where the
-        // theme declares the region they belong to.
+        // Every widget this theme can place (the shared ones and its own)
+        // must have a view in the theme, except system pieces, which are only
+        // required where the theme declares the region they belong to.
         $slug = basename(rtrim($path, '/'));
-        foreach (Widgets::all() as $key => $spec) {
+        foreach (Widgets::all($slug) as $key => $spec) {
             // A namespaced view belongs to the extension that registered
             // the widget, not to the theme.
             if (empty($spec['view']) || str_contains($spec['view'], '::')) {
@@ -151,10 +151,6 @@ final class ThemeContract
             }
             // Core draws this one when the theme does not.
             if (! empty($spec['optional'])) {
-                continue;
-            }
-            // Another theme's own block is that theme's to draw.
-            if (! empty($spec['theme']) && $spec['theme'] !== $slug) {
                 continue;
             }
             if (! empty($spec['system'])) {
