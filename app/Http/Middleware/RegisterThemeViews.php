@@ -31,12 +31,15 @@ use Illuminate\Support\Facades\View;
  * database is briefly unreachable would otherwise serve unthemed pages until
  * the process was restarted.
  *
- * Cost after the first success is one in_array over a handful of paths. The
- * duplicate guard is load-bearing rather than tidy: without it a long-running
- * worker (Octane) would prepend the same folder on every request forever.
+ * Cost after the first success is one comparison. The guard is load-bearing
+ * rather than tidy: without it a long-running worker (Octane) would prepend
+ * the same folder on every request forever.
  */
 class RegisterThemeViews
 {
+    /** The folder this process last put first. */
+    private static ?string $registered = null;
+
     public function handle(Request $request, Closure $next)
     {
         self::register();
@@ -72,7 +75,7 @@ class RegisterThemeViews
     }
 
     /**
-     * Prepend the active theme's view folder if it is not already there.
+     * Put the active theme's view folder first, if it is not already.
      *
      * Returns false when the theme could not be resolved (no database yet) or
      * names a folder that is not on disk. Both are non-fatal: the caller is a
@@ -94,13 +97,23 @@ class RegisterThemeViews
             return false;
         }
 
+        // The finder keeps resolved paths, so a theme folder that is a link
+        // (a theme developed in its own repository) is compared resolved.
+        $path = realpath($path) ?: $path;
         $finder = View::getFinder();
+        $paths = $finder->getPaths();
 
-        if (in_array($path, $finder->getPaths(), true)) {
+        if (($paths[0] ?? null) === $path && self::$registered === $path) {
             return true;
         }
 
+        // A theme was switched while the process lives on (a long-running
+        // worker), or something else put another folder first: put this
+        // one first, once, and forget the views resolved for the other.
+        $finder->setPaths(array_values(array_diff($paths, [$path])));
         $finder->prependLocation($path);
+        $finder->flush();
+        self::$registered = $path;
 
         return true;
     }
