@@ -15,7 +15,7 @@
                     @php
                         $storeName = \App\Models\Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? config('app.name', 'Venta');
                         $storeLogo = \App\Models\Setting::where('group', 'identity')->where('key', 'logo')->value('value');
-                        $primaryColor = \App\Models\Setting::where('group', 'colors')->where('key', 'primary')->value('value') ?? '#BE3144';
+                        $primaryColor = \App\Models\Setting::where('group', 'colors')->where('key', 'primary')->value('value') ?? '#2563EB';
                         $country = $order->shipping_country_id ? \App\Models\Country::find($order->shipping_country_id) : null;
                         $countryName = $order->shipping_country_name ?? $country?->name;
                     @endphp

@@ -31,17 +31,29 @@ class ThemeTokenCoverageTest extends TestCase
         app(ExtensionManager::class)->bootEnabled();
     }
 
-    public function test_every_colour_the_theme_declares_has_a_control(): void
+    /**
+     * The default theme declares its colours as --color-{key} custom
+     * properties in its stylesheet; the editor's vocabulary is those keys.
+     */
+    private function defaultThemeTokens(): array
     {
-        $missing = array_diff(ColorGroups::themeTokens('venta'), ColorGroups::tokens());
+        $css = (string) file_get_contents(resource_path('themes/venta/css/theme.css'));
+        preg_match_all('/^\s*--color-([a-z0-9-]+):/m', $css, $m);
 
-        $this->assertSame([], array_values($missing),
-            'These colours exist in theme.json but cannot be edited: ' . implode(', ', $missing));
+        return array_values(array_unique(array_map(fn ($k) => str_replace('-', '_', $k), $m[1])));
     }
 
-    public function test_no_control_edits_a_colour_the_theme_does_not_have(): void
+    public function test_every_colour_the_default_theme_paints_with_has_a_control(): void
     {
-        $ghosts = array_diff(ColorGroups::tokens(), ColorGroups::themeTokens('venta'));
+        $missing = array_diff($this->defaultThemeTokens(), ColorGroups::tokens());
+
+        $this->assertSame([], array_values($missing),
+            'These colours exist in the default theme but cannot be edited: ' . implode(', ', $missing));
+    }
+
+    public function test_no_control_edits_a_colour_the_default_theme_does_not_have(): void
+    {
+        $ghosts = array_diff(ColorGroups::tokens(), $this->defaultThemeTokens());
 
         $this->assertSame([], array_values($ghosts),
             'These controls edit nothing: ' . implode(', ', $ghosts));
@@ -56,7 +68,6 @@ class ThemeTokenCoverageTest extends TestCase
         $this->assertSame([], $dupes, 'Offered in more than one group: ' . implode(', ', $dupes));
     }
 
-    /** Two tokens that once had no control; they must still reach the page. */
     /**
      * A theme that groups a core colour under a heading of its own moves the
      * control there: one control per colour, in the theme's group, and
@@ -94,11 +105,9 @@ class ThemeTokenCoverageTest extends TestCase
         $this->assertSame([], array_intersect(['input_bg', 'input_border', 'dropdown_bg'], array_keys($groups['Page'])));
     }
 
-    public function test_the_new_tokens_reach_the_storefront_as_css_variables(): void
+    public function test_the_default_theme_declares_every_token_it_paints_with(): void
     {
-        $this->get('/')
-            ->assertOk()
-            ->assertSee('--color-warning:', false)
-            ->assertSee('--color-overlay-btn-bg:', false);
+        $this->assertContains('warning', $this->defaultThemeTokens());
+        $this->assertContains('overlay_btn_bg', $this->defaultThemeTokens());
     }
 }

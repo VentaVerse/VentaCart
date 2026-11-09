@@ -49,16 +49,8 @@ class ThemeOptionsStorageTest extends TestCase
         $before = $this->settingsSnapshot();
 
         $panel = route('admin.dashboard');
-        $this->get(route('admin.theme.customise', ['theme' => 'sample', 'tab' => 'theme_settings']))->assertRedirect($panel);
-        $this->post(route('admin.theme.update-theme-settings'), ['theme' => 'sample', 'theme_settings' => ['glow_intensity' => 'high']])
-            ->assertRedirect($panel);
-        $this->post(route('admin.theme.settings.update'), ['theme' => 'sample', 'groups' => ['colors' => ['primary' => '#010203']]])
-            ->assertRedirect($panel);
-        $this->post(route('admin.theme.revert-colors'), ['theme' => 'sample'])->assertRedirect($panel);
-
-        // The live preview edits the live theme's colors: refused too.
-        $this->get(route('admin.theme.preview'))->assertRedirect($panel);
-        $this->post(route('admin.theme.preview.save'), ['payload' => json_encode(['global' => ['primary' => '#010203']])])
+        $this->get(route('admin.theme.customise', ['theme' => 'sample']))->assertRedirect($panel);
+        $this->post(route('admin.theme.settings.update'), ['theme' => 'sample', 'groups' => ['header' => ['announcement_text' => 'x']]])
             ->assertRedirect($panel);
 
         $this->assertSame($before, $this->settingsSnapshot());
@@ -70,9 +62,7 @@ class ThemeOptionsStorageTest extends TestCase
         $before = $this->settingsSnapshot();
 
         $this->get(route('admin.theme.customise', ['theme' => 'sample']))->assertNotFound();
-        $this->post(route('admin.theme.update-theme-settings'), ['theme' => 'sample', 'theme_settings' => ['glow_intensity' => 'high']])
-            ->assertNotFound();
-        $this->post(route('admin.theme.settings.update'), ['theme' => 'sample', 'groups' => ['colors' => ['primary' => '#010203']]])
+        $this->post(route('admin.theme.settings.update'), ['theme' => 'sample', 'groups' => ['header' => ['announcement_text' => 'x']]])
             ->assertNotFound();
         $this->assertSame($before, $this->settingsSnapshot());
 
@@ -81,49 +71,13 @@ class ThemeOptionsStorageTest extends TestCase
         $this->assertStringNotContainsString('theme=sample', $html);
         $this->assertStringContainsString('Use this theme', $html);
 
-        // Live, it offers no core editor either, and the preview is refused.
+        // Live, it offers no core editor either.
         app(ThemeService::class)->activateTheme($this->sampleTheme);
         app(ThemeService::class)->clearCache();
         $html = $this->get(route('admin.theme.index'))->assertOk()->getContent();
-        // Venta, not live, still offers its own Customise; the live theme has none.
-        $this->assertStringContainsString(route('admin.theme.customise', ['theme' => 'venta']), $html);
+        // Venta, not live, can still have its pages arranged; the live theme has no core editor.
+        $this->assertStringContainsString(route('admin.layout', ['theme' => 'venta']), $html);
         $this->assertStringNotContainsString('href="'.route('admin.theme.customise').'"', $html);
-        $this->assertStringNotContainsString(route('admin.theme.preview'), $html);
-        $this->get(route('admin.theme.preview'))->assertNotFound();
     }
 
-    public function test_the_default_theme_keeps_its_options_page(): void
-    {
-        $this->boot([], live: false);
-
-        $this->get(route('admin.theme.customise', ['tab' => 'theme_settings']))->assertOk()
-            ->assertSee('<option value="medium"', false)
-            ->assertSee('>Medium</option>', false);
-
-        $this->post(route('admin.theme.update-theme-settings'), ['theme_settings' => ['glow_intensity' => 'high']])->assertRedirect();
-        $this->assertSame('high', Setting::where('group', 'theme_settings')->where('key', 'venta_glow_intensity')->value('value'));
-    }
-
-    public function test_a_labelled_option_shows_its_label_and_stores_its_value(): void
-    {
-        $this->boot([
-            'editor' => '',
-            'settings' => ['card_corners' => [
-                'type' => 'select', 'label' => 'Card corners', 'default' => 'soft',
-                'options' => ['soft' => 'Rounded corners', 'sharp' => 'Square corners'],
-            ]],
-        ], live: true);
-
-        $this->get(route('admin.theme.customise', ['tab' => 'theme_settings']))->assertOk()
-            ->assertSee('<option value="sharp" >Square corners</option>', false)
-            ->assertSee('Rounded corners');
-
-        $this->post(route('admin.theme.update-theme-settings'), ['theme_settings' => ['card_corners' => 'sharp']])->assertRedirect();
-        $this->assertSame('sharp', Setting::where('group', 'theme_settings')->where('key', 'sample_card_corners')->value('value'));
-
-        // The label is not a value: it is refused and nothing changes.
-        $this->post(route('admin.theme.update-theme-settings'), ['theme_settings' => ['card_corners' => 'Rounded corners']])
-            ->assertSessionHasErrors('theme_settings.card_corners');
-        $this->assertSame('sharp', Setting::where('group', 'theme_settings')->where('key', 'sample_card_corners')->value('value'));
-    }
 }

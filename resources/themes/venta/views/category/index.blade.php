@@ -20,12 +20,7 @@
     </div>
 
     <div class="container-store py-6">
-        @php
-            $vCatWrap = app(\App\Services\ThemeService::class)->getThemeSetting('category_layout', 'sidebar-left') === 'offcanvas'
-                ? 'flex flex-col gap-4'
-                : 'flex flex-col lg:flex-row gap-6';
-        @endphp
-        <div class="{{ $vCatWrap }}">
+        <div class="flex flex-col lg:flex-row gap-6">
 
             {{-- Sidebar Filters --}}
             @include('partials.listing-sidebar')
@@ -61,14 +56,8 @@
                     </div>
                 @endif
 
-                @php
-                    $colsMobile = $settings['columns_mobile'] ?? 2;
-                    $colsTablet = $settings['columns_tablet'] ?? 3;
-                    $colsDesktop = $settings['columns_desktop'] ?? 4;
-                @endphp
-
                 @if ($products->isNotEmpty())
-                    <div id="category-grid" class="grid gap-4">
+                    <div id="category-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         @foreach ($products as $product)
                             @include('partials.product-card', ['product' => $product])
                         @endforeach
@@ -87,13 +76,6 @@
         </div>
     </div>
 
-    @push('head')
-    <style>
-        #category-grid { grid-template-columns: repeat({{ $colsMobile }}, minmax(0, 1fr)); }
-        @media (min-width: 768px) { #category-grid { grid-template-columns: repeat({{ $colsTablet }}, minmax(0, 1fr)); } }
-        @media (min-width: 1024px) { #category-grid { grid-template-columns: repeat({{ $colsDesktop }}, minmax(0, 1fr)); } }
-    </style>
-    @endpush
 
     @push('scripts')
     <script>

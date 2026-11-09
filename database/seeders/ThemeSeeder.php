@@ -13,29 +13,7 @@ class ThemeSeeder extends Seeder
 {
     public function run(): void
     {
-        // Colors and fonts come from the one theme's theme.json. There is no
-        // theme choice to read: looks are presets over this contract.
         $activeTheme = \App\Services\ThemeService::THEME;
-        $themePath = resource_path("themes/{$activeTheme}/theme.json");
-        $themeJson = file_exists($themePath) ? json_decode(file_get_contents($themePath), true) : [];
-
-        $themeColors = $themeJson['colors'] ?? [
-            'primary' => '#F5A623',
-            'secondary' => '#E2293D',
-            'bg' => '#0D0D0D',
-            'text' => '#C8C8C8',
-            'text_heading' => '#E8E8E8',
-            'text_muted' => '#999999',
-            'card_bg' => '#1A1A1A',
-            'border' => '#2A2A2A',
-            'btn_text' => '#0D0D0D',
-            'nav_bg' => '#111111',
-            'nav_text' => '#E8E8E8',
-            'footer_bg' => '#080808',
-            'footer_text' => '#B0B0B0',
-            'announcement_bg' => '#F5A623',
-            'announcement_text' => '#0D0D0D',
-        ];
 
         // Settings
         $settings = [
@@ -45,14 +23,6 @@ class ThemeSeeder extends Seeder
                 'logo' => null,
                 'favicon' => null,
                 'active_theme' => $activeTheme,
-                'active_preset' => 'standard',
-            ],
-            'colors' => $themeColors,
-            'fonts' => [
-                'heading' => $themeJson['fonts']['heading'] ?? 'Inter',
-                'body' => $themeJson['fonts']['body'] ?? 'Inter',
-                'heading_stack' => $themeJson['fonts']['heading_stack'] ?? 'sans-serif',
-                'body_stack' => $themeJson['fonts']['body_stack'] ?? 'sans-serif',
             ],
             'header' => [
                 'announcement_enabled' => '0',
@@ -79,14 +49,10 @@ class ThemeSeeder extends Seeder
                 'show_stock' => '1',
                 'show_brand' => '1',
                 'show_badges' => '1',
-                'thumbnail_position' => 'left',
                 'below_modules' => json_encode(['related', 'you_might_like', 'same_brand', 'related_articles']),
             ],
             'category_page' => [
                 'products_per_page' => '12',
-                'columns_mobile' => '2',
-                'columns_tablet' => '3',
-                'columns_desktop' => '4',
                 'default_sort' => 'default',
             ],
             'blog' => [
@@ -104,7 +70,7 @@ class ThemeSeeder extends Seeder
         // firstOrCreate, NOT updateOrCreate. These are DEFAULTS, and a store
         // that has answered for itself owns that answer forever: seeders run
         // again on every upgrade, so overwriting here would reset the site
-        // name, blank the logo and favicon, and throw away the palette every
+        // name, blank the logo and favicon, and throw away its answers every
         // time somebody deployed. A key the store genuinely lacks is still
         // filled, which is the whole job. Same contract the blocks below have
         // always had, and the one AutomationSeeder documents.

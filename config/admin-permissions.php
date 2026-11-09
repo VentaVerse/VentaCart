@@ -134,7 +134,6 @@ return [
         'admin.extensions.install',
         'admin.extensions.uninstall',
         'admin.theme.package.*',
-        'admin.theme.presets.import',
         'admin.layout.templates.import',
         'admin.settings.reveal-secret',
         'admin.erp-sync.keys.*',

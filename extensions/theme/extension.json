@@ -2,7 +2,7 @@
     "name": "theme",
     "title": "Theme",
     "version": "1.0.0",
-    "description": "Storefront appearance: looks and presets, colors, homepage sections, navigation, footer.",
+    "description": "Storefront themes: install and switch them, and edit the header and footer content of a theme without an editor of its own.",
     "provider": "Extensions\\Theme\\ThemeExtensionServiceProvider",
     "icon": "tags",
     "type": "theme",
@@ -17,13 +17,12 @@
             "icon": "tags",
             "keywords": [
                 "storefront",
-                "colors",
-                "fonts",
                 "homepage",
                 "logo",
                 "favicon",
-                "presets",
-                "looks"
+                "header",
+                "footer",
+                "announcement"
             ]
         }
     ],

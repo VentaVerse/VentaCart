@@ -82,23 +82,26 @@ class SettingsMultiGroupSaveTest extends TestCase
           ->assertJsonPath('message', 'The server details changed. Type the password to test the new transport.');
     }
 
-    public function test_theme_settings_save_carries_every_tab_in_one_submit(): void
+    public function test_the_catalog_section_saves_its_groups_in_one_submit(): void
     {
-        app(\App\Services\ExtensionManager::class)->install('theme');
-        app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->actingAs(User::factory()->create());
 
-        $this->post(route('admin.theme.settings.update'), [
+        $this->get(route('admin.settings.section', 'catalog'))->assertOk()->assertSee('Products per page');
+
+        $this->post(route('admin.settings.update'), [
+            '_redirect' => route('admin.settings.section', 'catalog'),
             'groups' => [
-                'colors' => ['primary' => '#123456'],
                 'badges' => ['new_count' => '7'],
                 'filters' => ['price_enabled' => '1'],
+                'category_page' => ['products_per_page' => '24'],
+                'product_page' => ['show_stock' => '0'],
             ],
-        ])->assertRedirect();
+        ])->assertRedirect(route('admin.settings.section', 'catalog'));
 
-        $this->assertSame('#123456', Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
         $this->assertSame('7', Setting::where('group', 'badges')->where('key', 'new_count')->value('value'));
         $this->assertSame('1', Setting::where('group', 'filters')->where('key', 'price_enabled')->value('value'));
+        $this->assertSame('24', Setting::where('group', 'category_page')->where('key', 'products_per_page')->value('value'));
+        $this->assertSame('0', Setting::where('group', 'product_page')->where('key', 'show_stock')->value('value'));
     }
 
     public function test_identity_endpoint_only_writes_the_general_group(): void

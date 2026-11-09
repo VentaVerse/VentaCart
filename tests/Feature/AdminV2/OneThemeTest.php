@@ -55,16 +55,6 @@ class OneThemeTest extends TestCase
         $this->assertArrayHasKey(ThemeService::THEME, app(ThemeService::class)->getInstalledThemes());
     }
 
-    /** The looks survive the folders: each retired theme is still a preset. */
-    public function test_every_retired_theme_is_still_available_as_a_preset(): void
-    {
-        $presets = app(ThemeService::class)->getInstalledPresets();
-
-        foreach (['stage-ready', 'clean-light', 'crimson-dusk'] as $slug) {
-            $this->assertArrayHasKey($slug, $presets, "The {$slug} look was lost with its folder.");
-        }
-    }
-
     /** The default theme is always installed; others may join it. */
     public function test_the_default_theme_ships(): void
     {
@@ -74,34 +64,4 @@ class OneThemeTest extends TestCase
         $this->assertNotContains('stage-ready', $dirs);
     }
 
-    /**
-     * The one-off that carries an existing store across. It is the only thing
-     * that still needs identity.active_theme, because it is the only record of
-     * what the store used to run: it maps that to the matching preset and
-     * rewrites theme_settings keys from the old slug prefix to the master's.
-     *
-     * Without this run, a live store keeps its colours (one shared group) but
-     * loses its theme options, because the master reads venta_* and the store
-     * still holds stage-ready_*.
-     */
-    public function test_the_one_off_carries_a_legacy_store_onto_the_master(): void
-    {
-        Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_theme'], ['value' => 'stage-ready']);
-        Setting::updateOrCreate(['group' => 'theme_settings', 'key' => 'stage-ready_show_brands'], ['value' => '1']);
-        app(ThemeService::class)->clearCache();
-
-        $this->artisan('venta:adopt-master-theme')->assertSuccessful();
-
-        $this->assertSame('stage-ready',
-            Setting::where('group', 'identity')->where('key', 'active_preset')->value('value'),
-            'The look the store was running was not preserved as its preset.');
-
-        $this->assertSame('1',
-            Setting::where('group', 'theme_settings')->where('key', 'venta_show_brands')->value('value'),
-            'A theme option was dropped instead of being remapped onto the master.');
-
-        $this->assertNull(
-            Setting::where('group', 'theme_settings')->where('key', 'stage-ready_show_brands')->value('value'),
-            'The legacy key was left behind, so the option now exists twice.');
-    }
 }

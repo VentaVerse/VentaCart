@@ -4,54 +4,70 @@
 @tailwind utilities;
 
 /* ============================================
- CSS Custom Properties (overridden by inline vars from ThemeService)
+ The look: fixed. A merchant arranges Layout; the colors and fonts are
+ the theme's own.
  ============================================ */
 :root {
- --color-primary: #2563EB;
- --color-secondary: #DC2626;
- --color-nav-bg: #FFFFFF;
- --color-nav-text: #374151;
- --color-footer-bg: #F9FAFB;
- --color-footer-text: #6B7280;
  --color-announcement-bg: #2563EB;
  --color-announcement-text: #FFFFFF;
+ --color-badge-free-shipping: #16a34a;
+ --color-badge-hot: #f59e0b;
+ --color-badge-new: #16a34a;
  --color-bg: #FFFFFF;
- --color-text: #374151;
- --color-text-heading: #111827;
- --color-text-muted: #9CA3AF;
- --color-card-bg: #F9FAFB;
  --color-border: #E5E7EB;
- --color-content-text: #4B5563;
+ --color-brand-tile-bg: transparent;
+ --color-breadcrumb-bg: #F9FAFB;
  --color-btn-text: #FFFFFF;
+ --color-card-bg: #F9FAFB;
+ --color-card-hover: #2563EB;
+ --color-checkout-option-bg: #F9FAFB;
+ --color-content-text: #4B5563;
+ --color-danger-accent: #EF4444;
+ --color-danger-bg: #FEF2F2;
+ --color-danger-border: #FECACA;
+ --color-danger-text: #B91C1C;
+ --color-dropdown-bg: #FFFFFF;
+ --color-error: #dc2626;
+ --color-footer-bg: #F9FAFB;
  --color-footer-heading: #111827;
- --color-price: #111827;
+ --color-footer-text: #6B7280;
  --color-input-bg: #FFFFFF;
  --color-input-border: #D1D5DB;
- --color-breadcrumb-bg: #F9FAFB;
- --color-search-bg: #F3F4F6;
- --color-badge-new: #16a34a;
- --color-badge-hot: #f59e0b;
- --color-star-rating: #f59e0b;
- --color-sale-price: #DC2626;
  --color-logo-text: #111827;
- --color-badge-free-shipping: #16a34a;
- --color-card-hover: #2563EB;
- --color-dropdown-bg: #FFFFFF;
- --color-sidebar-bg: #F9FAFB;
- --color-checkout-option-bg: #F9FAFB;
- --color-review-bg: #F9FAFB;
- --color-success: #16a34a;
- --color-error: #dc2626;
- --color-warning: #D97706;
+ --color-nav-bg: #FFFFFF;
+ --color-nav-text: #374151;
  --color-overlay-btn-bg: #FFFFFF;
+ --color-payment-badge-bg: #F3F4F6;
+ --color-price: #111827;
+ --color-primary: #2563EB;
+ --color-review-bg: #F9FAFB;
+ --color-sale-price: #DC2626;
+ --color-search-bg: #F3F4F6;
+ --color-secondary: #DC2626;
+ --color-sidebar-bg: #F9FAFB;
+ --color-star-rating: #f59e0b;
+ --color-success: #16a34a;
+ --color-success-accent: #22C55E;
+ --color-success-bg: #F0FDF4;
+ --color-success-text: #15803D;
+ --color-text: #374151;
+ --color-text-heading: #111827;
+ --color-text-muted: #696D75;
+ --color-warning: #D97706;
+ --glow-primary: transparent;
+ --glow-secondary: transparent;
+ --track-nav: 0;
+ --track-heading: 0;
+ --brand-tile-dim: 0.6;
+ --font-heading: 'Figtree', sans-serif;
+ --font-body: 'Figtree', sans-serif;
+ --font-price: 'Figtree', sans-serif;
  --size-logo: 32px;
  --size-section-title: 24px;
  --size-product-name: 14px;
  --size-price: 16px;
  --size-body: 14px;
  --size-nav: 14px;
- --font-heading: 'Inter', sans-serif;
- --font-body: 'Inter', sans-serif;
 }
 
 /* ============================================
@@ -2393,31 +2409,6 @@
 
  .review-form-input::placeholder {
         color: var(--color-text-muted);
- }
-
- /* ============================================
- Preset effect layer: every rule below is inert unless
- the preset turns it on (body class or glow tokens)
- ============================================ */
- .noise-bg::before {
- content: '';
- position: fixed;
- top: 0;
- left: 0;
- width: 100%;
- height: 100%;
- opacity: 0.03;
- z-index: 0;
- pointer-events: none;
- background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
- }
-
- .v-noleds .led {
- display: none;
- }
-
- .v-glow .led {
- box-shadow: 0 0 6px currentColor, 0 0 12px currentColor;
  }
 
   .mobile-nav-parent {

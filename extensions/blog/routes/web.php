@@ -2,6 +2,7 @@
 
 use Extensions\Blog\Http\Controllers\BlogCategoryController;
 use Extensions\Blog\Http\Controllers\BlogPostController;
+use Extensions\Blog\Http\Controllers\BlogSettingsController;
 use Extensions\Blog\Http\Controllers\StorefrontBlogController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,8 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // The module's bare home lands on its first page.
         Route::get('/', fn () => redirect()->route('admin.blog.index'))->name('blog.home');
         Route::resource('posts', BlogPostController::class)->except(['show'])->parameters(['posts' => 'blog'])->names('blog');
+        Route::get('settings', [BlogSettingsController::class, 'edit'])->name('blog.settings');
+        Route::post('settings', [BlogSettingsController::class, 'update'])->name('blog.settings.update');
         Route::resource('categories', BlogCategoryController::class)->except(['show'])->parameters(['categories' => 'blog_category'])->names('blog-categories');
     });
 

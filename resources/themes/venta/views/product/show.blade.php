@@ -60,11 +60,10 @@
                 $images = $images->reject(fn($img) => $img->path === $product->image)->prepend($mainInGallery)->values();
             }
         }
-        $thumbPosition = $settings['thumbnail_position'] ?? 'left';
     @endphp
 
     <div class="container-store py-8">
-        <div class="flex flex-col lg:flex-row gap-10 {{ app(\App\Services\ThemeService::class)->getThemeSetting('product_gallery_side', 'left') === 'right' ? 'lg:flex-row-reverse' : '' }}"
+        <div class="flex flex-col lg:flex-row gap-10"
              x-data="addToCart({
                  productId: {{ $product->id }},
                  hasVariants: {{ $product->has_variants ? 'true' : 'false' }},
@@ -122,18 +121,18 @@
                  @keydown.escape.window="lightbox = false"
                  @keydown.left.window="if (lightbox) goTo(activeImage - 1)"
                  @keydown.right.window="if (lightbox) goTo(activeImage + 1)">
-                <div class="flex {{ $thumbPosition === 'bottom' ? 'flex-col' : 'flex-row' }} gap-3">
+                <div class="flex flex-row gap-3">
                     {{-- Thumbnails --}}
                     @if ($images->count() > 1)
-                        <div class="{{ $thumbPosition === 'bottom' ? 'order-2' : 'order-1 w-16 flex-shrink-0' }} relative" x-data="{ thumbContainer: null }" x-init="thumbContainer = $refs.thumbScroll">
-                            @if ($thumbPosition !== 'bottom' && $images->count() > 6)
+                        <div class="order-1 w-16 flex-shrink-0 relative" x-data="{ thumbContainer: null }" x-init="thumbContainer = $refs.thumbScroll">
+                            @if ($images->count() > 6)
                                 <button @click="thumbContainer.scrollBy({ top: -200, behavior: 'smooth' })"
                                     class="absolute -top-1 left-0 w-full h-6 flex items-center justify-center bg-gradient-to-b from-[var(--color-bg)] to-transparent z-10 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
                                 </button>
                             @endif
-                            <div x-ref="thumbScroll" class="{{ $thumbPosition === 'bottom' ? 'flex gap-2 overflow-x-auto' : 'flex flex-col gap-2 overflow-y-auto' }}"
-                                 style="{{ $thumbPosition !== 'bottom' ? 'max-height: 420px;' : '' }} scrollbar-width: none;">
+                            <div x-ref="thumbScroll" class="flex flex-col gap-2 overflow-y-auto"
+                                 style="max-height: 420px; scrollbar-width: none;">
                                 @foreach ($images as $i => $img)
                                     <button @click="activeImage = {{ $i }}"
                                         :class="activeImage === {{ $i }} ? 'active' : ''"
@@ -142,7 +141,7 @@
                                     </button>
                                 @endforeach
                             </div>
-                            @if ($thumbPosition !== 'bottom' && $images->count() > 6)
+                            @if ($images->count() > 6)
                                 <button @click="thumbContainer.scrollBy({ top: 200, behavior: 'smooth' })"
                                     class="absolute -bottom-1 left-0 w-full h-6 flex items-center justify-center bg-gradient-to-t from-[var(--color-bg)] to-transparent z-10 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
@@ -152,7 +151,7 @@
                     @endif
 
                     {{-- Main Image --}}
-                    <div class="flex-1 {{ $thumbPosition === 'bottom' ? 'order-1' : 'order-2' }} product-gallery-main relative"
+                    <div class="flex-1 order-2 product-gallery-main relative"
                          @mouseenter="zooming = true"
                          @mouseleave="zooming = false"
                          @mousemove="const r = $el.getBoundingClientRect(); zoomX = ((event.clientX - r.left) / r.width) * 100; zoomY = ((event.clientY - r.top) / r.height) * 100"
@@ -507,33 +506,6 @@
         </div>
 
         {{-- Description Tabs --}}
-        @php
-            $vProdInfo = (string) app(\App\Services\ThemeService::class)->getThemeSetting('product_info_style', 'tabs');
-        @endphp
-        @if ($vProdInfo === 'stacked')
-            {{-- Stacked description and reviews --}}
-            <div class="mt-12" id="reviews">
-                <h2 class="text-lg font-bold mb-4" style="font-family: var(--font-heading); letter-spacing: var(--track-heading, 0); color: var(--color-text-heading);">Description</h2>
-                <div class="product-description">
-                    {!! $product->description !!}
-                </div>
-                @if (! empty($attributeGroups))
-                    <h2 class="product-attributes__title">Specifications</h2>
-                    @include('product.partials.attributes')
-                @endif
-                {{-- Reviews belong to the reviews extension. ProductController
-                     already gates the QUERY on the same helper; without this the
-                     markup still rendered "Reviews (0)" over an empty panel on a
-                     store that had switched the module off. --}}
-                @if (\App\Support\Reviews::enabled() && \App\Support\PageSetting::on('show_reviews'))
-                    <h2 class="text-lg font-bold mt-10 mb-4" style="font-family: var(--font-heading); letter-spacing: var(--track-heading, 0); color: var(--color-text-heading);">Reviews ({{ $reviewCount }})</h2>
-                    <div x-data="{ reviewPage: 1, perPage: 20 }">
-                        @include('product.partials.reviews')
-                    </div>
-                @endif
-            </div>
-        @else
-            {{-- Description Tabs --}}
             <div class="mt-12" x-data="{ tab: 'description' }" id="reviews">
                 <div class="flex border-b border-[var(--color-border)]">
                     <button @click="tab = 'description'" :class="tab === 'description' ? 'active' : ''" class="product-tab-btn">
@@ -566,7 +538,6 @@
                     @endif
                 </div>
             </div>
-        @endif
 
         {{-- Related Products --}}
         @if (in_array('related', $belowModules) && $relatedProducts->isNotEmpty())

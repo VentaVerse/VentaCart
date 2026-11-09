@@ -9,7 +9,7 @@
     @php
         $storeName = \App\Models\Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? config('app.name', 'Venta');
         $storeLogo = \App\Models\Setting::where('group', 'identity')->where('key', 'logo')->value('value');
-        $primaryColor = \App\Models\Setting::where('group', 'colors')->where('key', 'primary')->value('value') ?? '#1f2937';
+        $primaryColor = \App\Models\Setting::where('group', 'colors')->where('key', 'primary')->value('value') ?? '#2563EB';
     @endphp
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5;">
         <tr>

@@ -26,13 +26,7 @@
                 <p class="text-sm text-[var(--color-text-muted)] mt-1">{{ $products->total() }} product{{ $products->total() !== 1 ? 's' : '' }}</p>
             </div>
         </div>
-
-        @php
-            $vCatWrap = app(\App\Services\ThemeService::class)->getThemeSetting('category_layout', 'sidebar-left') === 'offcanvas'
-                ? 'flex flex-col gap-4'
-                : 'flex flex-col lg:flex-row gap-6';
-        @endphp
-        <div class="{{ $vCatWrap }}">
+        <div class="flex flex-col lg:flex-row gap-6">
             {{-- Sidebar Filters --}}
             @include('partials.listing-sidebar')
 

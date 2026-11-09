@@ -6,12 +6,6 @@ window.Alpine = Alpine;
    Scroll Reveal Observer
    ============================================ */
 document.addEventListener('DOMContentLoaded', () => {
-    // The scroll_reveal theme option turns the whole effect off: mark
-    // everything revealed immediately so nothing sits at opacity 0.
-    if (document.body.dataset.reveal === '0') {
-        document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => el.classList.add('revealed'));
-        return;
-    }
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {

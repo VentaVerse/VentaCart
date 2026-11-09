@@ -130,13 +130,13 @@ class DeclaredPermissionsTest extends TestCase
         AdminPermissions::map([
             'admin.users.*' => '@admin',
             'admin.extensions.install' => '@admin',
-            'admin.theme.presets.import' => 'themes.edit',
+            'admin.theme.package.install' => 'themes.edit',
         ]);
         $permissions = app(AdminPermissions::class);
 
         $this->assertSame(AdminPermissions::SUPER_ADMIN, $permissions->requirementFor('admin.users.store', 'POST'));
         $this->assertSame(AdminPermissions::SUPER_ADMIN, $permissions->requirementFor('admin.extensions.install', 'POST'));
-        $this->assertSame(AdminPermissions::SUPER_ADMIN, $permissions->requirementFor('admin.theme.presets.import', 'POST'));
+        $this->assertSame(AdminPermissions::SUPER_ADMIN, $permissions->requirementFor('admin.theme.package.install', 'POST'));
     }
 
     public function test_a_declaration_broader_than_its_own_prefix_is_ignored(): void

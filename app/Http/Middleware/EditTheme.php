@@ -10,9 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * ?theme={slug} on a layout route edits that installed theme instead of
- * the live one: the layout scope, the regions, the settings prefix and the
- * palette all follow, and the theme's own stashed look is laid over the
- * live groups so colour chips speak its vocabulary. Put back afterwards.
+ * the live one: the layout scope, the regions and the settings prefix all
+ * follow. Put back afterwards.
  *
  * A theme that keeps its settings in storage of its own (`"storage": "own"`)
  * is never edited here: a request for it is sent to the theme's own editor,
@@ -77,18 +76,7 @@ class EditTheme
             return $next($request);
         }
 
-        $overlay = ['identity' => ['active_theme' => $slug]];
-        foreach (['colors', 'fonts', 'vars'] as $group) {
-            $stash = $theme->getGroup("{$group}__theme_{$slug}");
-            if ($stash !== []) {
-                $overlay[$group] = $stash;
-            }
-        }
-        $preset = $theme->getGroup("identity__theme_{$slug}")['active_preset'] ?? null;
-        if ($preset !== null) {
-            $overlay['identity']['active_preset'] = $preset;
-        }
-        $theme->overlay($overlay);
+        $theme->overlay(['identity' => ['active_theme' => $slug]]);
 
         try {
             return $next($request);

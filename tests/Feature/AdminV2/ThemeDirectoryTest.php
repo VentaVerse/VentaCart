@@ -48,7 +48,7 @@ class ThemeDirectoryTest extends TestCase
     {
         $this->get(route('admin.theme.customise'))
             ->assertOk()
-            ->assertSee('Colors', false);
+            ->assertSee('Announcement bar', false);
     }
 
     public function test_activating_an_installed_theme_points_the_storefront_at_it(): void

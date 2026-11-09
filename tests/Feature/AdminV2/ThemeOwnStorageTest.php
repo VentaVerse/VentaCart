@@ -82,27 +82,17 @@ class ThemeOwnStorageTest extends TestCase
         $this->assertSame(0, LayoutPlacement::where('theme', $this->sampleTheme)->count());
     }
 
-    public function test_switching_to_a_theme_without_the_flag_still_keeps_its_look_and_layout_in_core(): void
+    public function test_switching_to_a_theme_without_the_flag_still_keeps_its_layout_in_core(): void
     {
         $this->liveStore();
-        $this->installSampleTheme(manifest: ['colors' => ['primary' => '#abcdef']]);
+        $this->installSampleTheme();
         $themes = app(ThemeService::class);
         $this->assertFalse($themes->keepsOwnStorage($this->sampleTheme));
 
         $themes->activateTheme($this->sampleTheme);
 
-        // The outgoing look is stashed, the incoming default look applied.
-        $this->assertSame('#123456', Setting::where('group', 'colors__theme_'.ThemeService::THEME)->where('key', 'primary')->value('value'));
-        $this->assertSame('#abcdef', Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
-
         // A theme with no shipped arrangement takes the merchant's rows along.
         $this->assertSame(['Our brands'], LayoutPlacement::where('theme', $this->sampleTheme)->pluck('title')->all());
-
-        // And it keeps its own look when the store comes back to it.
-        Setting::where('group', 'colors')->where('key', 'primary')->update(['value' => '#0a0b0c']);
-        $themes->activateTheme(ThemeService::THEME);
-        $this->assertSame('#123456', Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
-        $this->assertSame('#0a0b0c', Setting::where('group', 'colors__theme_'.$this->sampleTheme)->where('key', 'primary')->value('value'));
     }
     /** @return array<string, string> core's settings and layout tables, as JSON */
     private function coreSnapshot(): array
@@ -144,37 +134,4 @@ class ThemeOwnStorageTest extends TestCase
         $this->assertGreaterThan(0, LayoutPlacement::where('theme', $this->sampleTheme)->where('page_type', 'home')->count());
     }
 
-    public function test_applying_a_preset_while_a_self_storing_theme_is_live_writes_no_core_look_or_layout(): void
-    {
-        $this->liveStore();
-        $this->installSampleTheme(activate: true, manifest: ['storage' => 'own']);
-        $dir = storage_path('app/themes/'.$this->sampleTheme.'/presets');
-        File::ensureDirectoryExists($dir);
-        file_put_contents($dir.'/demo-look.json', json_encode([
-            'name' => 'Demo look',
-            'colors' => ['primary' => '#0a0b0c'],
-            'fonts' => ['heading' => 'Demo Face'],
-            'options' => ['sticky_header' => true],
-            'layouts' => ['home' => ['content_top' => [['columns' => [8], 'placements' => [['column' => 0, 'widget' => 'content.text', 'config' => ['content' => 'Demo row']]]]]]],
-        ]));
-        $this->beforeApplicationDestroyed(fn () => File::deleteDirectory(storage_path('app/themes/'.$this->sampleTheme)));
-
-        // The theme's own installer is still handed the preset, for its own tables.
-        $installers = new \ReflectionProperty(ThemeService::class, 'presetContentInstallers');
-        $kept = $installers->getValue();
-        $this->beforeApplicationDestroyed(fn () => $installers->setValue(null, $kept));
-        $received = [];
-        ThemeService::onPresetContent(function (array $preset) use (&$received) {
-            $received[] = $preset['slug'] ?? null;
-        });
-
-        $themes = app(ThemeService::class);
-        $before = $this->coreSnapshot();
-
-        $themes->applyPreset('demo-look');
-        $themes->applyPresetContent($themes->getInstalledPresets()['demo-look']);
-
-        $this->assertSame($before, $this->coreSnapshot(), "Core's settings and layout rows are exactly as they were.");
-        $this->assertSame(['demo-look', 'demo-look'], $received);
-    }
 }

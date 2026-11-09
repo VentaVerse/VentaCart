@@ -1,8 +1,8 @@
 # Venta Theme Contract
 
-A theme is a package that draws the storefront. Core owns the data (products, layout rows, menus, looks, settings) and the routes; the theme owns every view, its stylesheet and its script. Any package that keeps this contract works with Layout, the looks editor, the widget catalogue and every storefront route. The contract is enforced in code by `App\Support\ThemeContract::check()` at install time; this document is the written form of the same rules.
+A theme is a package that draws the storefront. Core owns the data (products, layout rows, menus, settings) and the routes; the theme owns every view, its stylesheet, its script and its look. Any package that keeps this contract works with Layout, the widget catalogue and every storefront route. The contract is enforced in code by `App\Support\ThemeContract::check()` at install time; this document is the written form of the same rules.
 
-The default theme, `venta`, ships with core and is the reference implementation.
+The default theme, `venta`, ships with core and is the reference implementation. Its look is fixed: a merchant arranges its pages in Layout and edits nothing else about it.
 
 ## 1. Package
 
@@ -10,11 +10,10 @@ A theme lives at `resources/themes/{slug}/`. The slug is lowercase letters, digi
 
 ```
 resources/themes/{slug}/
-  theme.json          identity, colours, fonts, settings, regions, page settings
+  theme.json          identity, regions, page settings, and settings for a theme's own editor
   css/theme.css       the stylesheet (compiled by Vite)
   js/theme.js         the script (optional, compiled by Vite)
   views/              every view in section 4
-  presets/*.json      looks shipped with the theme (optional)
   layouts/*.json      shipped arrangements the Layout editor offers as templates (optional)
   build/              the compiled stylesheets and scripts, for a theme sold as a download (optional)
 ```
@@ -80,38 +79,21 @@ cannot be uninstalled while one of its extensions is still installed.
   "author": "Venta",
   "description": "…",
   "thumbnail": "thumbnail.png",
-  "colors": { "primary": "#1f6f43", … },
-  "fonts": { "heading": "Bricolage Grotesque", "body": "Source Sans 3", "heading_stack": "…", "body_stack": "…" },
   "settings": { "header_layout": { "type": "layout", "label": "Header", "default": "marketplace", "options": { … } } },
-  "vars": { … },
   "regions": { "header_top": { "label": "Above the header" }, … },
   "page_settings": { … }
 }
 ```
 
-Required: `name`, `version`, `colors` with every key in section 2.1, `fonts.heading` and `fonts.body`, `regions` with every key in section 3.1. Every entry in `settings` needs a `type` and a `label`.
+Required: `name`, `version`, and `regions` with every key in section 3.1. Every entry in `settings` needs a `type` and a `label`.
 
-### 2.1 Colour vocabulary
+### 2.1 Colors and fonts
 
-A look (preset) is a value for each of these keys. The theme reads them as CSS custom properties named `--color-{key}` (underscores kept: `--color-text_muted`). Core writes the properties; the theme paints with them.
+A theme's colors and fonts are its own. It sets them in its stylesheet (the default theme declares them as CSS custom properties on `:root` in `css/theme.css`) and loads its fonts itself. Core neither stores nor prints them. A theme that lets the merchant change them does so in an editor of its own (section 2.5), keeping the values in its own storage.
 
-```
-primary secondary bg text text_heading text_muted card_bg border content_text btn_text
-nav_bg nav_text footer_bg footer_text footer_heading price input_bg input_border
-breadcrumb_bg payment_badge_bg search_bg badge_new badge_hot star_rating sale_price
-announcement_bg announcement_text logo_text badge_free_shipping card_hover dropdown_bg
-sidebar_bg checkout_option_bg review_bg success error danger_bg danger_border danger_text danger_accent
-```
+### 2.2 Settings
 
-`text_muted` on a light background must reach WCAG AA (4.5:1) against `bg`; `tests/Feature/PresetContrastTest.php` checks the shipped presets.
-
-### 2.2 Fonts
-
-`fonts.heading` and `fonts.body` are Google Fonts family names; `heading_stack` and `body_stack` are the fallback stacks. Core loads the families and writes `--font-heading` and `--font-body`.
-
-### 2.3 Settings
-
-Each entry is a control on the looks editor's Settings tab, stored as `theme_settings.{slug}_{key}` with the declared `default`. Types the editor draws:
+Settings are for a theme with an editor of its own (`editor` in theme.json): each entry is a control in that editor, read as `theme_settings.{slug}_{key}` with the declared `default`. Core has no editor for them. The types a theme's editor is expected to draw:
 
 | type | draws |
 |---|---|
@@ -129,17 +111,13 @@ Each entry is a control on the looks editor's Settings tab, stored as `theme_set
 | `rules` | a JSON list of rows whose columns are named in `fields` (colour rules, page backgrounds) |
 | `images` | a JSON list of storage paths chosen from the media library (payment marks) |
 
-A theme with an editor of its own (`editor` in theme.json) draws these with its own controls; the core looks editor draws the last five as plain inputs. Every setting may also carry `section`, `tab` and `heading` to say where the theme's editor shows it.
+Every setting may also carry `section`, `tab` and `heading` to say where the theme's editor shows it.
 
 Read a setting from any view with `\App\Support\ThemeOptions::get('key', $default)`. It is memoised per request and safe in views that render before the layout.
 
-### 2.4 Presets
+### 2.3 Demo products and posts
 
-`presets/{look}.json` holds `colors` (and optionally `fonts`) for a look. The looks editor lists them beside the merchant's own saved looks (which live in `storage/app/themes/{slug}/presets`). Shipped presets are read only.
-
-### 2.4.1 Demo products and posts
-
-A preset may carry `products` and `posts`, installed by `App\Services\DemoContentService` only while the catalogue is empty or entirely demo content. A product entry takes `name`, `price`, `sale`, `quantity`, `views`, `image` and `description`, and may also carry:
+A theme may install demo `products` and `posts` with `App\Services\DemoContentService::install($slug, $definition)`, which adds them only while the catalogue is empty or entirely demo content. A product entry takes `name`, `price`, `sale`, `quantity`, `views`, `image` and `description`, and may also carry:
 
 - `images`: more pictures after the main one (storage paths);
 - `categories`: category names; a category the store lacks is made and removed again with the demo;
@@ -147,21 +125,21 @@ A preset may carry `products` and `posts`, installed by `App\Services\DemoConten
 
 A theme or extension adds its own extras with `DemoContentService::afterProduct(fn (Product $product, array $definition, string $slug) => …)`.
 
-### 2.5 Shipped arrangements
+### 2.4 Shipped arrangements
 
 `layouts/{name}.json` is an exported Layout template (the same format Layout exports): a list of rows with columns, style and placements. The Layout editor offers them under Templates as `theme:{name}`, and the merchant loads one into a region. A theme should ship at least a `home` arrangement so a store that switches to it has a homepage.
 
-### 2.6 A theme with storage of its own
+### 2.5 A theme with storage of its own
 
 ```json
 { "editor": "admin.example.panel", "storage": "own" }
 ```
 
-By default a theme keeps its look (colours, fonts, vars, the preset in use) and its layouts in core: in the `colors`, `fonts`, `vars` and `identity` settings groups and in `layout_rows`, `layout_placements` and `layout_columns`, keyed by the theme's slug. Switching themes stashes the outgoing theme's look under its own name, gives the incoming theme its kept look (or its theme.json defaults and default preset the first time), and installs its `layouts/home.json`, or copies the outgoing theme's rows when it ships none.
+By default a theme keeps its layouts in core, in `layout_rows`, `layout_placements` and `layout_columns`, keyed by the theme's slug. Switching to such a theme installs its `layouts/home.json`, or copies the outgoing theme's rows when it ships none.
 
-A theme that declares `"storage": "own"` keeps its look and layouts in tables of its own (from its `database/migrations`) and only reads core. Switching to it sets `identity.active_theme` and nothing else: core writes no look, no default preset and no layout rows for it. Switching away from it leaves no stash behind, and a theme switched to from it does not take its rows. The look of the core-storing theme that was live before is kept under that theme's name as usual, so it comes back intact.
+A theme that declares `"storage": "own"` keeps its settings and layouts in tables of its own (from its `database/migrations`) and only reads core. Switching to it sets `identity.active_theme` and nothing else: core writes no layout rows for it, and a theme switched to from it does not take its rows.
 
-`editor` and `storage` are separate: a theme may bring an editor of its own and still keep its data in core. A theme with storage of its own needs an editor of its own, since the core looks and Layout editors write core's tables. Without the key, or with any other value, a theme keeps today's behaviour.
+`editor` and `storage` are separate: a theme may bring an editor of its own and still keep its data in core. A theme with storage of its own needs an editor of its own, since core's Layout editor writes core's tables. Without the key, or with any other value, a theme keeps today's behaviour.
 
 Such a theme hands its rows to core's region renderer through `App\Support\LayoutHooks::units()`, and its pages' side column widths and page settings (the `page_settings` it declares) through `App\Models\LayoutColumns::register()`. Core's `x-storefront.columns` and `PageSetting::on()` then read the theme's answer instead of `layout_columns`:
 
@@ -410,7 +388,7 @@ The main menu is composed in Layout > Menus (`nav_menus`, nested `nav_menu_items
 ## 8. Checklist for a new theme
 
 1. Copy `resources/themes/venta` to `resources/themes/{slug}`; change `name`, `version`, `description`, `thumbnail` in `theme.json`.
-2. Keep every colour key; change the values. Ship at least one preset.
+2. Set the theme's colours and fonts in `css/theme.css`.
 3. Keep the four required regions; add system regions if the theme's header or product page should be rows.
 4. Keep every view in section 4 and every widget view in section 5.
 5. `npm run build`, then Extensions > Themes > Install. The install check names anything missing.

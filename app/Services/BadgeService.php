@@ -33,7 +33,7 @@ class BadgeService
             $badges[] = [
                 'type' => 'hot',
                 'label' => 'HOT',
-                'color' => $this->theme->get('colors.primary', '#E2293D'),
+                'color' => $this->theme->get('colors.primary', '#2563EB'),
                 'text_color' => '#ffffff',
             ];
         }
@@ -54,7 +54,7 @@ class BadgeService
             $badges[] = [
                 'type' => 'sale',
                 'label' => '-' . $saleInfo['percent'] . '%',
-                'color' => $this->theme->get('colors.primary', '#E2293D'),
+                'color' => $this->theme->get('colors.primary', '#2563EB'),
                 'text_color' => '#ffffff',
                 'end_date' => $saleInfo['end_date'],
             ];

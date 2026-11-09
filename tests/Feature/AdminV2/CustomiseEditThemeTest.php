@@ -43,39 +43,34 @@ class CustomiseEditThemeTest extends TestCase
         $this->get(route('admin.theme.customise', ['theme' => 'sample']))->assertOk()->assertSee('Theme: Venta');
     }
 
-    public function test_customising_a_riding_theme_that_is_not_live_edits_its_stash(): void
+    public function test_the_page_edits_the_header_and_footer_only(): void
     {
-        // Sample first (so venta's look is stashed when sample goes live).
         $this->boot('venta');
-        app(ThemeService::class)->activateTheme('sample');
-        app(ThemeService::class)->clearCache();
-        $samplePrimary = (string) Setting::where('group', 'colors')->where('key', 'primary')->value('value');
-        $stashPrimary = (string) Setting::where('group', 'colors__theme_venta')->where('key', 'primary')->value('value');
 
-        // The page shows Venta's stashed look, not the live Sample one, and
-        // hides the presets section while editing a non-live theme.
-        $html = $this->get(route('admin.theme.customise', ['theme' => 'venta']))->assertOk()->getContent();
-        $this->assertStringContainsString('Theme: Venta', $html);
-        $this->assertStringContainsString($stashPrimary, $html);
-        $this->assertStringNotContainsString('>Presets<', $html);
-
-        // Saving writes the stash; the live look does not move.
-        $this->post(route('admin.theme.settings.update'), ['theme' => 'venta', 'groups' => ['colors' => ['primary' => '#654321']]])->assertRedirect();
-        $this->assertSame('#654321', Setting::where('group', 'colors__theme_venta')->where('key', 'primary')->value('value'));
-        $this->assertSame($samplePrimary, (string) Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
-
-        // Going live, Venta wears the edit.
-        app(ThemeService::class)->activateTheme('venta');
-        app(ThemeService::class)->clearCache();
-        $this->assertSame('#654321', Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
-        $this->assertStringContainsString('--color-primary: #654321;', $this->get('/')->assertOk()->getContent());
+        $html = $this->get(route('admin.theme.customise'))->assertOk()->getContent();
+        $this->assertStringContainsString('Announcement bar', $html);
+        $this->assertStringContainsString('Footer columns', $html);
+        foreach (['Presets', 'Colors', 'Fonts', 'Theme options', 'Live preview'] as $gone) {
+            $this->assertStringNotContainsString('>' . $gone . '<', $html);
+        }
     }
 
-    public function test_the_live_riding_theme_is_edited_exactly_as_before(): void
+    public function test_saving_writes_the_header_and_nothing_else(): void
     {
         $this->boot('venta');
-        $this->get(route('admin.theme.customise'))->assertOk()->assertSee('Presets');
-        $this->post(route('admin.theme.settings.update'), ['groups' => ['colors' => ['primary' => '#111222']]])->assertRedirect();
-        $this->assertSame('#111222', Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
+
+        $this->post(route('admin.theme.settings.update'), ['groups' => [
+            'header' => [
+                'announcement_enabled' => '1',
+                'announcement_text' => 'Free delivery this week',
+                'announcement_link' => '/delivery',
+                'topbar_links' => json_encode([['label' => 'Help', 'url' => '/help'], ['label' => '', 'url' => '/blank'], 'junk']),
+            ],
+            'colors' => ['primary' => '#111222'],
+        ]])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame('Free delivery this week', Setting::where('group', 'header')->where('key', 'announcement_text')->value('value'));
+        $this->assertSame([['label' => 'Help', 'url' => '/help']], json_decode(Setting::where('group', 'header')->where('key', 'topbar_links')->value('value'), true));
+        $this->assertNull(Setting::where('group', 'colors')->where('key', 'primary')->value('value'), 'The look is the theme\'s, not the merchant\'s.');
     }
 }

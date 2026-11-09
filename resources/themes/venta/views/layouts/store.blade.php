@@ -65,41 +65,13 @@
         <link rel="icon" href="{{ $vFavicon }}">
     @endif
 
-    {{-- Google Fonts --}}
+    {{-- The theme's font --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="{{ $googleFontsUrl }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
 
     @php
         $activeTheme = app(\App\Services\ThemeService::class)->getActiveTheme();
-        // theme.json is the base contract: every token defaults from it, DB values override.
-        $vThemeMeta = json_decode((string) @file_get_contents(resource_path("themes/{$activeTheme}/theme.json")), true) ?: [];
-        $vBaseColors = $vThemeMeta['colors'] ?? [];
-        // Per-page-type overrides. Emitted AFTER the store's own values in
-        // the same :root block, so the cascade does the overriding and no
-        // token needs two sources of truth.
-        $vPageColors = $theme->pageOverrides($vPageType, 'colors');
-        $vPageVars = $theme->pageOverrides($vPageType, 'vars');
-        $vOption = function (string $key, $fallback = null) use ($theme, $vThemeMeta) {
-            return $theme->getThemeSetting($key, $vThemeMeta['settings'][$key]['default'] ?? $fallback);
-        };
-        $vRgba = function (string $hex, float $alpha) {
-            $hex = ltrim($hex, '#');
-            if (strlen($hex) === 3) {
-                $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
-            }
-            if (strlen($hex) !== 6 || !ctype_xdigit($hex)) {
-                return 'transparent';
-            }
-            [$r, $g, $b] = sscanf($hex, '%02x%02x%02x');
-            return "rgba({$r}, {$g}, {$b}, {$alpha})";
-        };
-        $vGlowAlpha = ['none' => 0.0, 'low' => 0.15, 'medium' => 0.25, 'high' => 0.35][$vOption('glow_intensity', 'none')] ?? 0.0;
-        $vNoise = filter_var($vOption('noise_texture', false), FILTER_VALIDATE_BOOL);
-        $vLeds = filter_var($vOption('led_indicators', true), FILTER_VALIDATE_BOOL);
-        $vReveal = filter_var($vOption('scroll_reveal', true), FILTER_VALIDATE_BOOL);
-        $vHeadingStack = $theme->get('fonts.heading_stack', $vThemeMeta['fonts']['heading_stack'] ?? 'sans-serif');
-        $vBodyStack = $theme->get('fonts.body_stack', $vThemeMeta['fonts']['body_stack'] ?? 'sans-serif');
     @endphp
     @vite([
         'resources/themes/' . $activeTheme . '/css/theme.css',
@@ -109,34 +81,6 @@
         @vite('resources/js/preview.js')
     @endif
 
-    {{-- CSS Variables from Theme Settings (AFTER @vite so DB values override compiled defaults) --}}
-    <style>
-        :root {
-            @foreach ($vBaseColors as $vKey => $vDefault)
-                --color-{{ str_replace('_', '-', $vKey) }}: {{ $theme->get("colors.{$vKey}", $vDefault) }};
-            @endforeach
-            --glow-primary: {{ $vGlowAlpha > 0 ? $vRgba($theme->get('colors.primary', $vBaseColors['primary'] ?? '#2563EB'), $vGlowAlpha) : 'transparent' }};
-            --glow-secondary: {{ $vGlowAlpha > 0 ? $vRgba($theme->get('colors.secondary', $vBaseColors['secondary'] ?? '#DC2626'), $vGlowAlpha + 0.05) : 'transparent' }};
-            @foreach (($vThemeMeta['vars'] ?? []) as $vKey => $vDefault)
-                --{{ str_replace('_', '-', $vKey) }}: {{ $theme->get("vars.{$vKey}", $vDefault) }};
-            @endforeach
-            --font-heading: '{{ $headingFont }}', {{ $vHeadingStack }};
-            --font-body: '{{ $bodyFont }}', {{ $vBodyStack }};
-            --font-price: '{{ $theme->get('fonts.price', $headingFont) }}', {{ $theme->get('fonts.price_stack', $vHeadingStack) }};
-            --size-logo: {{ $theme->get('fonts.size_logo', '32') }}px;
-            --size-section-title: {{ $theme->get('fonts.size_section_title', '24') }}px;
-            --size-product-name: {{ $theme->get('fonts.size_product_name', '14') }}px;
-            --size-price: {{ $theme->get('fonts.size_price', '16') }}px;
-            @foreach ($vPageColors as $vKey => $vValue)
-                --color-{{ str_replace('_', '-', $vKey) }}: {{ $vValue }};
-            @endforeach
-            @foreach ($vPageVars as $vKey => $vValue)
-                --{{ str_replace('_', '-', $vKey) }}: {{ $vValue }};
-            @endforeach
-            --size-body: {{ $theme->get('fonts.size_body', '14') }}px;
-            --size-nav: {{ $theme->get('fonts.size_nav', '14') }}px;
-        }
-    </style>
     <script>
         window.__countryIso2Map = @json(\App\Models\Country::where('is_active', true)->pluck('iso2', 'id'));
         window.__phoneCodes = @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'id'));
@@ -153,7 +97,7 @@
     </script>
     @stack('head')
 </head>
-<body x-data="mobileNav()" class="venta{{ $vNoise ? ' noise-bg' : '' }}{{ $vLeds ? '' : ' v-noleds' }}{{ $vGlowAlpha > 0 ? ' v-glow' : '' }}" data-reveal="{{ $vReveal ? '1' : '0' }}">
+<body x-data="mobileNav()" class="venta">
 
     @if (session('impersonating_customer_id') && Auth::guard('web')->check())
         <div class="impersonation-bar">
@@ -182,13 +126,7 @@
         </div>
     @endif
 
-    @php
-        $vHeaderLayout = (string) $vOption('header_layout', 'marketplace');
-        if (! in_array($vHeaderLayout, ['marketplace', 'centered', 'inline', 'search-under'], true)) {
-            $vHeaderLayout = 'marketplace';
-        }
-    @endphp
-    @include('partials.header.' . $vHeaderLayout)
+    @include('partials.header.marketplace')
 
     {{-- Mobile Navigation --}}
     <template x-if="open">
@@ -222,13 +160,7 @@
     @if (\App\Support\PageSetting::on('show_footer'))
 
     {{-- Footer --}}
-    @php
-        $vFooterLayout = (string) $vOption('footer_layout', 'columns');
-        if (! in_array($vFooterLayout, ['columns', 'centered', 'split'], true)) {
-            $vFooterLayout = 'columns';
-        }
-    @endphp
-    @include('partials.footer.' . $vFooterLayout)
+    @include('partials.footer.columns')
 
     {{-- Back to Top --}}
     <button

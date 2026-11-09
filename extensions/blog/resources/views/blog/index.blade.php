@@ -10,6 +10,7 @@
         </div>
         <div class="v-head__actions">
             <a href="{{ route('admin.blog-categories.index') }}" class="v-btn v-btn--secondary">Categories</a>
+            <a href="{{ route('admin.blog.settings') }}" class="v-btn v-btn--secondary">Settings</a>
             <a href="{{ route('admin.blog.create') }}" class="v-btn v-btn--primary">New post</a>
             <x-admin.extension-switch name="blog" />
         </div>

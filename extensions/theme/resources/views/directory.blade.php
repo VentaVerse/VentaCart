@@ -1,6 +1,6 @@
 <x-admin.shell title="Themes">
     @push('head')
-        @vite('extensions/theme/resources/css/theme-bench.css')
+        @vite('extensions/theme/resources/css/theme-directory.css')
     @endpush
 
     <div class="v-head">
@@ -50,7 +50,6 @@
                     <dl class="v-theme__facts">
                         <div><dt>Folder</dt><dd>resources/themes/{{ $slug }}</dd></div>
                         <div><dt>Version</dt><dd>{{ ! empty($meta['update_available']) ? $meta['installed_version'] : ($meta['version'] ?? '1.0.0') }}</dd></div>
-                        <div><dt>Colours</dt><dd>{{ count($meta['colors'] ?? []) }}</dd></div>
                         <div><dt>Regions</dt><dd>{{ count($meta['regions'] ?? []) }}</dd></div>
                     </dl>
                 </div>
@@ -81,7 +80,6 @@
                             @if (empty($meta['editor']))
                                 <a href="{{ route('admin.layout') }}" class="v-btn v-btn--sm">Arrange pages</a>
                             @endif
-                            <a href="{{ route('admin.theme.preview') }}" class="v-btn v-btn--sm">Live preview</a>
                         @endif
                         <form method="POST" action="{{ route('admin.theme.package.uninstall') }}" x-data @submit.prevent="if (confirm('Uninstall the live theme? The storefront shows a plain page until another theme is made live.')) $el.submit()">
                             @csrf
@@ -94,7 +92,6 @@
                         @elseif (($meta['storage'] ?? null) === 'own')
                             {{-- Its settings live in its own storage, so core's editors have nothing to offer. --}}
                         @else
-                            <a href="{{ route('admin.theme.customise', ['theme' => $slug]) }}" class="v-btn v-btn--sm">Customise</a>
                             <a href="{{ route('admin.layout', ['theme' => $slug]) }}" class="v-btn v-btn--sm">Arrange pages</a>
                         @endif
                         <form method="POST" action="{{ route('admin.theme.activate') }}">

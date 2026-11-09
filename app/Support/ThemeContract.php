@@ -7,31 +7,13 @@ use App\Services\ExtensionManager;
 /**
  * The Venta Theme Contract, as code: what a theme package must contain to
  * be installed. The written form is docs/theme-contract.md; the two agree,
- * and a theme that passes here works with Layout, the looks editor, the
- * widgets, and every storefront route.
+ * and a theme that passes here works with Layout, the widgets, and every
+ * storefront route.
  */
 final class ThemeContract
 {
     /** Regions every theme draws, so a merchant's placements survive a switch. */
     public const REQUIRED_REGIONS = ['header_top', 'content_top', 'content_bottom', 'footer_top'];
-
-    /** Font roles the looks editor sets. */
-    public const REQUIRED_FONTS = ['heading', 'body'];
-
-    /**
-     * The colour vocabulary. A look is a set of these; a theme reads them as
-     * --color-{key} custom properties, and a theme.json without one of them
-     * would leave a look with a colour nobody paints.
-     */
-    public const COLOURS = [
-        'primary', 'secondary', 'bg', 'text', 'text_heading', 'text_muted', 'card_bg', 'border',
-        'content_text', 'btn_text', 'nav_bg', 'nav_text', 'footer_bg', 'footer_text', 'footer_heading',
-        'price', 'input_bg', 'input_border', 'breadcrumb_bg', 'payment_badge_bg', 'search_bg',
-        'badge_new', 'badge_hot', 'star_rating', 'sale_price', 'announcement_bg', 'announcement_text',
-        'logo_text', 'badge_free_shipping', 'card_hover', 'dropdown_bg', 'sidebar_bg',
-        'checkout_option_bg', 'review_bg', 'success', 'error', 'danger_bg', 'danger_border',
-        'danger_text', 'danger_accent',
-    ];
 
     /** Views core routes render, as view names; the theme owns every one. */
     public const REQUIRED_VIEWS = [
@@ -54,7 +36,7 @@ final class ThemeContract
      */
     public const OPTIONAL_VIEWS = ['product.quick-view', 'maintenance', 'sitemap', 'wishlist.index'];
 
-    /** Setting types the looks editor draws (extensions/theme index view). */
+    /** Setting types a theme's own editor is expected to draw (docs/theme-contract.md, 2.2). */
     public const SETTING_TYPES = ['layout', 'select', 'toggle', 'text', 'textarea', 'number', 'color', 'font', 'media', 'box', 'multi', 'rules', 'images'];
 
     /**
@@ -81,17 +63,6 @@ final class ThemeContract
         foreach (['name', 'version'] as $key) {
             if (empty($meta[$key]) || ! is_string($meta[$key])) {
                 $problems[] = "theme.json needs a {$key}.";
-            }
-        }
-
-        $colours = array_keys((array) ($meta['colors'] ?? []));
-        if ($missing = array_diff(self::COLOURS, $colours)) {
-            $problems[] = 'theme.json colors is missing ' . implode(', ', $missing) . '.';
-        }
-
-        foreach (self::REQUIRED_FONTS as $font) {
-            if (empty($meta['fonts'][$font])) {
-                $problems[] = "theme.json fonts needs a {$font} font.";
             }
         }
 
@@ -123,7 +94,7 @@ final class ThemeContract
             if (! is_array($spec) || empty($spec['type']) || empty($spec['label'])) {
                 $problems[] = "Setting [{$key}] needs a type and a label.";
             } elseif (! in_array($spec['type'], self::SETTING_TYPES, true)) {
-                $problems[] = "Setting [{$key}] has a type the looks editor cannot draw: {$spec['type']}.";
+                $problems[] = "Setting [{$key}] has an unknown type: {$spec['type']}.";
             }
         }
 

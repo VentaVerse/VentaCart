@@ -1,4 +1,4 @@
-<x-admin.shell :title="$editingNonLive ? 'Theme: ' . $editThemeName : 'Theme'">
+<x-admin.shell title="Theme">
     <div class="v-head">
         <div class="v-head__body">
             <div class="v-head__trail">
@@ -7,29 +7,18 @@
                 <span>Theme</span>
             </div>
             <h1 class="v-head__title">Theme</h1>
-                    </div>
+        </div>
         <div class="v-head__actions">
-            {{-- The preview edits the live theme's colors, which a theme with storage of its own keeps in its own panel. --}}
-            @unless (app(\App\Services\ThemeService::class)->keepsOwnStorage(app(\App\Services\ThemeService::class)->getActiveTheme()))
-                <a href="{{ route('admin.theme.preview') }}" class="v-btn v-btn--sm">Live preview</a>
-            @endunless
             <x-admin.extension-switch name="theme" />
         </div>
     </div>
 
-
     @php
-        // A tab the page does not have used to render NOTHING: every pane is
-        // x-show, so an unknown value hid all of them and left a white column
-        // with no active nav item, no message and no 404. That is what a stale
-        // bookmark, a shared link or a rename produces.
-        $vTabs = ['presets','colors','fonts','badges','header','footer',
-                  'product_page','category_page','blog','theme_settings'];
-        // The old kebab key, kept so existing links do not break.
-        $vAliases = ['theme-settings' => 'theme_settings', 'options' => 'theme_settings', 'homepage' => 'presets'];
-        $vTab = session('tab', request('tab', 'presets'));
-        $vTab = $vAliases[$vTab] ?? $vTab;
-        $vTab = in_array($vTab, $vTabs, true) ? $vTab : 'presets';
+        // An unknown tab falls back to the first, so a stale link never
+        // opens a page with every pane hidden.
+        $vTabs = ['header', 'footer'];
+        $vTab = session('tab', request('tab', 'header'));
+        $vTab = in_array($vTab, $vTabs, true) ? $vTab : 'header';
     @endphp
 
     <div x-data="themeSections(@js($vTab))"
@@ -38,282 +27,34 @@
         <div class="v-modgrid">
         <nav class="v-snav" aria-label="Theme sections">
             @php
-                // Grouped by subject, which only became honest once every
-                // section saves itself: Header used to sit apart from
-                // Navigation and Footer purely because it lived in a
-                // different form. Presets leads, ungrouped: it is a
-                // snapshot of everything below it, not a peer of it.
-                $vThemeNav = [
-                    '' => $editingNonLive ? [] : ['presets' => ['Presets', 'tags']],
-                    'Look' => ['colors' => ['Colors', 'theme'], 'fonts' => ['Fonts', 'text'], 'badges' => ['Badges', 'check']],
-                    // "Structure", not "Layout": the layout editor is a
-                    // different thing one item below, and two menu entries a
-                    // group apart both called Layout is a trap.
-                    'Structure' => ['header' => ['Header', 'menu'], 'footer' => ['Footer', 'layers']],
-                    // The Homepage tab is gone. It was a panel titled "Pages"
-                    // holding a sentence and eleven links: a redirect wearing a
-                    // tab's clothes. The redirect is now a link, in the menu,
-                    // where a link belongs.
-                    'Pages' => ['product_page' => ['Product page', 'products'], 'category_page' => ['Category page', 'folder'], 'blog' => ['Blog', 'content']],
-                    'Advanced' => ['theme_settings' => ['Theme options', 'settings']],
-                ];
-
-                // Menu entries that leave this page. The Pages group used to
-                // promise eleven page types and deliver four, one of which was
-                // a redirect; the arranging of all eleven lives in Layout.
+                $vThemeNav = ['header' => ['Header', 'menu'], 'footer' => ['Footer', 'layers']];
+                // Arranging pages lives in Layout, one entry per installed theme.
                 $vInstalledThemes = \App\Http\Middleware\EditTheme::rideable(app(\App\Services\ThemeService::class));
                 $vLiveTheme = app(\App\Services\ThemeService::class)->getActiveTheme();
-                $vThemeLinks = [
-                    'Pages' => count($vInstalledThemes) > 1
-                        ? collect($vInstalledThemes)->map(fn ($t, $vSlug) => [
-                            'label' => 'Arrange pages: ' . ($t['name'] ?? $vSlug),
-                            'icon' => 'layers',
-                            'url' => route('admin.layout', $vSlug === $vLiveTheme ? [] : ['theme' => $vSlug]),
-                        ])->values()->all()
-                        : [['label' => 'Arrange pages', 'icon' => 'layers', 'url' => route('admin.layout')]],
-                ];
+                $vThemeLinks = count($vInstalledThemes) > 1
+                    ? collect($vInstalledThemes)->map(fn ($t, $vSlug) => [
+                        'label' => 'Arrange pages: ' . ($t['name'] ?? $vSlug),
+                        'url' => route('admin.layout', $vSlug === $vLiveTheme ? [] : ['theme' => $vSlug]),
+                    ])->values()->all()
+                    : [['label' => 'Arrange pages', 'url' => route('admin.layout')]];
             @endphp
-            @foreach ($vThemeNav as $vGroup => $vItems)
-                @if ($vGroup !== '')<div class="v-snav__group">{{ $vGroup }}</div>@endif
-                @foreach ($vItems as $tid => [$tlabel, $ticon])
-                    <button type="button" class="v-snav__item" :aria-current="tab === @js($tid) ? 'page' : false" @click="pick(@js($tid))">
-                        <x-admin.icon :name="$ticon" />
-                        {{ $tlabel }}
-                    </button>
-                @endforeach
-                @foreach ($vThemeLinks[$vGroup] ?? [] as $vLink)
-                    <a class="v-snav__item v-snav__item--away" href="{{ $vLink['url'] }}">
-                        <x-admin.icon :name="$vLink['icon']" />
-                        {{ $vLink['label'] }}
-                    </a>
-                @endforeach
+            @foreach ($vThemeNav as $tid => [$tlabel, $ticon])
+                <button type="button" class="v-snav__item" :aria-current="tab === @js($tid) ? 'page' : false" @click="pick(@js($tid))">
+                    <x-admin.icon :name="$ticon" />
+                    {{ $tlabel }}
+                </button>
+            @endforeach
+            <div class="v-snav__group">Pages</div>
+            @foreach ($vThemeLinks as $vLink)
+                <a class="v-snav__item v-snav__item--away" href="{{ $vLink['url'] }}">
+                    <x-admin.icon name="layers" />
+                    {{ $vLink['label'] }}
+                </a>
             @endforeach
         </nav>
         <div class="v-modmain">
 
-        {{-- ========== PRESETS ========== --}}
-        <div x-show="tab === 'presets'" x-cloak>
-            <x-admin.panel title="Presets" flush>
-                <x-slot:acts>
-                    <button type="button" class="v-btn v-btn--secondary v-btn--sm"
-                            onclick="document.getElementById('preset-import-form').querySelector('input[type=file]').click()">Import preset</button>
-                </x-slot:acts>
-                <div class="v-tablewrap">
-                    <table class="v-table">
-                        <thead>
-                            <tr><th>Preset</th><th>Palette</th><th class="v-cell-act"><span class="v-sr">Actions</span></th></tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($installedPresets as $slug => $meta)
-                                <tr>
-                                    <td>
-                                        <span class="v-namerow">
-                                            <strong>{{ $meta['name'] ?? $slug }}</strong>
-                                            @if ($slug === $activePreset)
-                                                <span class="v-badge v-badge--good">Live</span>
-                                            @endif
-                                        </span>
-                                        <span class="v-cell-quiet v-block">{{ $meta['description'] ?? '' }}</span>
-                                    </td>
-                                    <td>
-                                        <span class="v-palrow">
-                                            @foreach (['bg', 'primary', 'secondary', 'text_heading', 'card_bg'] as $chipKey)
-                                                @if (!empty($meta['colors'][$chipKey]))
-                                                    {{-- The color is a record's own data, carried as an SVG
-                                                         presentation attribute rather than a stylesheet rule. --}}
-                                                    <svg class="v-palchip" viewBox="0 0 10 10" role="img" aria-label="{{ $chipKey }} {{ $meta['colors'][$chipKey] }}"><title>{{ $chipKey }}: {{ $meta['colors'][$chipKey] }}</title><rect width="10" height="10" rx="3" fill="{{ $meta['colors'][$chipKey] }}"/></svg>
-                                                @endif
-                                            @endforeach
-                                        </span>
-                                    </td>
-                                    <td class="v-cell-act">
-                                        @if ($slug !== $activePreset)
-                                            <button type="button" class="v-btn v-btn--secondary v-btn--sm"
-                                                    @click="$dispatch('v-confirm', 'apply-preset-{{ $slug }}')">Apply</button>
-                                        @endif
-                                        <a href="{{ route('admin.theme.presets.export', $slug) }}" class="v-btn v-btn--ghost v-btn--sm">Export</a>
-                                        @if ($slug !== $activePreset)
-                                            <button type="button" class="v-btn v-btn--danger v-btn--sm"
-                                                    @click="$dispatch('v-confirm', 'delete-preset-{{ $slug }}')">Delete</button>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </x-admin.panel>
-
-            @foreach ($installedPresets as $slug => $meta)
-                @if ($slug !== $activePreset)
-                    <x-admin.confirm name="apply-preset-{{ $slug }}" title="Switch to {{ $meta['name'] ?? $slug }}?"
-                        message="Shoppers see the new look immediately. Colors, fonts, and options saved for it are restored; the current look's are kept for switching back."
-                        confirm="Switch look" :danger="false"
-                        :action="route('admin.theme.switch')" method="POST">
-                        <input type="hidden" name="preset" value="{{ $slug }}">
-                    </x-admin.confirm>
-                    <x-admin.confirm name="delete-preset-{{ $slug }}" title="Delete {{ $meta['name'] ?? $slug }}?"
-                        message="The preset file and its saved edits are removed. The live look is untouched."
-                        confirm="Delete"
-                        :action="route('admin.theme.presets.destroy', $slug)" method="DELETE" />
-                @endif
-            @endforeach
-
-            {{-- Capture the settings as they stand into a new named preset. --}}
-            <x-admin.panel title="New preset">
-                <form method="POST" action="{{ route('admin.theme.presets.store') }}" class="v-addrow v-addrow--3">
-                    @csrf
-                    <input type="text" name="name" required maxlength="60" placeholder="Preset name" aria-label="Preset name" class="v-control">
-                    <input type="text" name="description" maxlength="200" placeholder="Description" aria-label="Preset description" class="v-control">
-                    <button type="submit" class="v-btn v-btn--primary">Save as preset</button>
-                </form>
-            </x-admin.panel>
-
-            <form id="preset-import-form" method="POST" action="{{ route('admin.theme.presets.import') }}" enctype="multipart/form-data" hidden>
-                @csrf
-                <input type="file" name="preset_file" accept="application/json,.json" aria-label="Preset JSON file" onchange="this.form.submit()">
-            </form>
-        </div>
-
-
-        {{-- ONE form across every settings tab.
-
-             It was seven, each with its own Save at the bottom left of a
-             1830px page, while every sibling screen in this area puts Save
-             in the header. ThemeController::updateSettings() already carries
-             every group in a single request and says so in its own comment:
-             the split was only ever in the markup, and it needed a bespoke
-             leave-guard modal to survive itself.
-
-             One form also restores the house rule the area had lost: the Save
-             arms when something is dirty instead of standing permanently live
-             with nothing to save. --}}
         <x-admin.form :action="route('admin.theme.settings.update')" :save-only-when-dirty="true">
-            @if ($editingNonLive)<input type="hidden" name="theme" value="{{ $editThemeSlug }}">@endif
-            {{-- ========== COLORS ========== --}}
-            <div x-show="tab === 'colors'">
-                <x-admin.panel title="Colors">
-                    <x-slot:acts>
-                        <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="$dispatch('v-confirm', 'revert-colors')">Revert colors &amp; fonts to defaults</button>
-                    </x-slot:acts>
-                    @php
-                        $colorGroups = \Extensions\Theme\ColorGroups::all();
-                    @endphp
-                    <div class="v-wells">
-                        @foreach ($colorGroups as $groupLabel => $fields)
-                            <div class="v-well">
-                                <div class="v-label v-gap-sm">{{ $groupLabel }}</div>
-                                @foreach ($fields as $key => $label)
-                                    <div class="v-colorrow">
-                                        <label for="color-{{ $key }}" class="v-colorrow__label">{{ $label }}</label>
-                                        <span class="v-colorrow__pair">
-                                            <input type="color" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="v-swatch"
-                                                   aria-label="{{ $label }} color picker"
-                                                   oninput="this.nextElementSibling.value = this.value; this.nextElementSibling.dispatchEvent(new Event('input', { bubbles: true }))">
-                                            <input type="text" id="color-{{ $key }}" name="groups[colors][{{ $key }}]"
-                                                   value="{{ $settings['colors'][$key] ?? '#000000' }}" placeholder="#000000"
-                                                   class="v-control v-mono v-w-hex"
-                                                   oninput="this.previousElementSibling.value = this.value">
-                                        </span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endforeach
-                    </div>
-                </x-admin.panel>
-            </div>
-
-            {{-- ========== FONTS ========== --}}
-            <div x-show="tab === 'fonts'" x-cloak
-                 x-data="{
-                    headingFont: @js($settings['fonts']['heading'] ?? 'Oswald'),
-                    bodyFont: @js($settings['fonts']['body'] ?? 'Roboto'),
-                    loadPreviewFont(font) {
-                        if (!document.querySelector('link[data-font=\'' + font + '\']')) {
-                            const link = document.createElement('link');
-                            link.rel = 'stylesheet';
-                            link.dataset.font = font;
-                            link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(font) + ':wght@400;600;700&display=swap';
-                            document.head.appendChild(link);
-                        }
-                    }
-                 }">
-                <x-admin.panel title="Fonts">
-                    @php
-                        $fontOptions = ['Anton','Archivo','Barlow','Bebas Neue','Bitter','Bricolage Grotesque','Cormorant Garamond','DM Sans','DM Serif Display','Figtree','Fira Sans','IBM Plex Sans','Inter','Josefin Sans','Karla','Lato','Libre Baskerville','Libre Franklin','Lora','Merriweather','Montserrat','Nunito','Nunito Sans','Open Sans','Oswald','Playfair Display','Poppins','PT Sans','PT Serif','Rajdhani','Raleway','Roboto','Roboto Slab','Rubik','Saira','Saira Condensed','Source Sans 3','Space Grotesk','Space Mono','Spline Sans','Spline Sans Mono','Ubuntu','Work Sans'];
-                        $sizeFields = [
-                            'size_logo' => ['label' => 'Logo / Store Name', 'default' => '32', 'min' => 18, 'max' => 60],
-                            'size_section_title' => ['label' => 'Section Titles', 'default' => '24', 'min' => 16, 'max' => 48],
-                            'size_product_name' => ['label' => 'Product Name (card)', 'default' => '14', 'min' => 11, 'max' => 20],
-                            'size_price' => ['label' => 'Product Price', 'default' => '16', 'min' => 12, 'max' => 24],
-                            'size_body' => ['label' => 'Body Text', 'default' => '14', 'min' => 12, 'max' => 20],
-                            'size_nav' => ['label' => 'Navigation Menu', 'default' => '14', 'min' => 11, 'max' => 20],
-                        ];
-                    @endphp
-                    <div class="v-grid v-grid--2">
-                        <div>
-                            <x-admin.field name="groups.fonts.heading" label="Heading font">
-                                <select name="groups[fonts][heading]" class="v-control" x-model="headingFont" @change="loadPreviewFont(headingFont)">
-                                    @foreach ($fontOptions as $font)
-                                        <option value="{{ $font }}" @selected(($settings['fonts']['heading'] ?? '') === $font)>{{ $font }}</option>
-                                    @endforeach
-                                </select>
-                            </x-admin.field>
-                            <div class="v-gap">
-                                <x-admin.field name="groups.fonts.body" label="Body font">
-                                    <select name="groups[fonts][body]" class="v-control" x-model="bodyFont" @change="loadPreviewFont(bodyFont)">
-                                        @foreach ($fontOptions as $font)
-                                            <option value="{{ $font }}" @selected(($settings['fonts']['body'] ?? '') === $font)>{{ $font }}</option>
-                                        @endforeach
-                                    </select>
-                                </x-admin.field>
-                            </div>
-                            <div class="v-gap">
-                                <div class="v-label v-gap-sm">Letter spacing <x-admin.help text="CSS letter-spacing for the nav links and section headings, e.g. 0.05em. 0 is normal." /></div>
-                                <div class="v-grid v-grid--2">
-                                    <x-admin.field name="groups.vars.track_nav" label="Navigation">
-                                        <input type="text" name="groups[vars][track_nav]" value="{{ $settings['vars']['track_nav'] ?? '0' }}" placeholder="0" class="v-control v-mono">
-                                    </x-admin.field>
-                                    <x-admin.field name="groups.vars.track_heading" label="Headings">
-                                        <input type="text" name="groups[vars][track_heading]" value="{{ $settings['vars']['track_heading'] ?? '0' }}" placeholder="0" class="v-control v-mono">
-                                    </x-admin.field>
-                                </div>
-                            </div>
-                            <div class="v-gap">
-                                <div class="v-label v-gap-sm">Font sizes</div>
-                                @foreach ($sizeFields as $key => $cfg)
-                                    <div class="v-colorrow">
-                                        <label for="size-{{ $key }}" class="v-colorrow__label">{{ $cfg['label'] }}</label>
-                                        <span class="v-colorrow__pair">
-                                            <input type="number" id="size-{{ $key }}" name="groups[fonts][{{ $key }}]"
-                                                   value="{{ $settings['fonts'][$key] ?? $cfg['default'] }}"
-                                                   min="{{ $cfg['min'] }}" max="{{ $cfg['max'] }}"
-                                                   class="v-control v-mono v-w-hex">
-                                            <span class="v-cell-quiet">px</span>
-                                        </span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                        <div>
-                            <div class="v-label v-gap-sm">Preview</div>
-                            <div class="v-well">
-                                <div :style="'font-family: \'' + headingFont + '\', sans-serif'">
-                                    <div class="v-preview-h" x-text="headingFont">Heading font</div>
-                                    <div class="v-preview-sub">Section Title Example</div>
-                                    <div class="v-preview-price">₱12,990.00</div>
-                                </div>
-                                <hr class="v-irail__rule v-preview-rule">
-                                <div :style="'font-family: \'' + bodyFont + '\', sans-serif'">
-                                    <div class="v-preview-body" x-text="bodyFont + ': body font'">Body font</div>
-                                    <p class="v-preview-copy">This is how product descriptions, paragraphs, and general content read on the storefront. The quick brown fox jumps over the lazy dog.</p>
-                                    <p class="v-preview-hint">Hints and small descriptions appear like this.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </x-admin.panel>
-            </div>
 
             {{-- ========== HEADER ========== --}}
             <div x-show="tab === 'header'" x-cloak>
@@ -356,139 +97,9 @@
                 </x-admin.panel>
             </div>
 
-            {{-- ========== PRODUCT PAGE ========== --}}
-            <div x-show="tab === 'product_page'" x-cloak>
-                <x-admin.panel title="Product page">
-                    @foreach (['show_ratings' => 'Show star ratings', 'show_stock' => 'Show stock and availability', 'show_brand' => 'Show the brand logo', 'show_badges' => 'Show product badges'] as $key => $label)
-                        <div class="{{ $loop->first ? '' : 'v-gap' }}">
-                            <label class="v-toggle">
-                                <input type="hidden" name="groups[product_page][{{ $key }}]" value="0">
-                                <input type="checkbox" name="groups[product_page][{{ $key }}]" value="1"
-                                       @checked(($settings['product_page'][$key] ?? '0') === '1')>
-                                <span class="v-toggle__track" aria-hidden="true"></span>
-                                {{ $label }}
-                            </label>
-                        </div>
-                    @endforeach
-                    <div class="v-gap v-narrow">
-                        <x-admin.field name="groups.product_page.thumbnail_position" label="Thumbnail position">
-                            <select name="groups[product_page][thumbnail_position]" class="v-control">
-                                <option value="left" @selected(($settings['product_page']['thumbnail_position'] ?? 'left') === 'left')>Left</option>
-                                <option value="below" @selected(($settings['product_page']['thumbnail_position'] ?? '') === 'below')>Below</option>
-                            </select>
-                        </x-admin.field>
-                    </div>
-                </x-admin.panel>
-            </div>
-
-            {{-- ========== CATEGORY PAGE ========== --}}
-            <div x-show="tab === 'category_page'" x-cloak>
-                <x-admin.panel title="Category page">
-                    <div class="v-narrow">
-                        <x-admin.field name="groups.category_page.products_per_page" label="Products per page">
-                            <input type="number" name="groups[category_page][products_per_page]" min="4" max="60" class="v-control v-mono v-w-rate" value="{{ $settings['category_page']['products_per_page'] ?? '12' }}">
-                        </x-admin.field>
-                    </div>
-                    <div class="v-grid v-grid--3 v-gap">
-                        <x-admin.field name="groups.category_page.columns_mobile" label="Mobile columns">
-                            <input type="number" name="groups[category_page][columns_mobile]" min="1" max="3" class="v-control v-mono" value="{{ $settings['category_page']['columns_mobile'] ?? '2' }}">
-                        </x-admin.field>
-                        <x-admin.field name="groups.category_page.columns_tablet" label="Tablet columns">
-                            <input type="number" name="groups[category_page][columns_tablet]" min="2" max="4" class="v-control v-mono" value="{{ $settings['category_page']['columns_tablet'] ?? '3' }}">
-                        </x-admin.field>
-                        <x-admin.field name="groups.category_page.columns_desktop" label="Desktop columns">
-                            <input type="number" name="groups[category_page][columns_desktop]" min="3" max="8" class="v-control v-mono" value="{{ $settings['category_page']['columns_desktop'] ?? '4' }}">
-                        </x-admin.field>
-                    </div>
-                    <div class="v-gap v-narrow">
-                        <x-admin.field name="groups.category_page.default_sort" label="Default sort">
-                            <select name="groups[category_page][default_sort]" class="v-control">
-                                @foreach (['default' => 'Default', 'name_asc' => 'Name A-Z', 'name_desc' => 'Name Z-A', 'price_asc' => 'Price low to high', 'price_desc' => 'Price high to low', 'newest' => 'Newest'] as $v => $label)
-                                    <option value="{{ $v }}" @selected(($settings['category_page']['default_sort'] ?? '') === $v)>{{ $label }}</option>
-                                @endforeach
-                            </select>
-                        </x-admin.field>
-                    </div>
-                </x-admin.panel>
-
-                <x-admin.panel title="Sidebar filters">
-                    @foreach (['price_enabled' => 'Price range', 'availability_enabled' => 'Availability', 'brand_enabled' => 'Brand', 'rating_enabled' => 'Rating', 'on_sale_enabled' => 'On sale', 'tags_enabled' => 'Tags'] as $key => $label)
-                        <div class="{{ $loop->first ? '' : 'v-gap' }}">
-                            <label class="v-toggle">
-                                <input type="hidden" name="groups[filters][{{ $key }}]" value="0">
-                                <input type="checkbox" name="groups[filters][{{ $key }}]" value="1"
-                                       @checked(($settings['filters'][$key] ?? '0') === '1')>
-                                <span class="v-toggle__track" aria-hidden="true"></span>
-                                {{ $label }}
-                            </label>
-                        </div>
-                    @endforeach
-                </x-admin.panel>
-            </div>
-
-            {{-- ========== BADGES ========== --}}
-            <div x-show="tab === 'badges'" x-cloak>
-                <x-admin.panel title="Badges">
-                    <div class="v-narrow">
-                        <x-admin.field name="groups.badges.new_count" label="NEW badge: last X products" hint="Products added most recently. 0 disables it.">
-                            <input type="number" name="groups[badges][new_count]" min="0" max="100" class="v-control v-mono v-w-rate" value="{{ $settings['badges']['new_count'] ?? '10' }}">
-                        </x-admin.field>
-                        <div class="v-gap">
-                            <x-admin.field name="groups.badges.hot_count" label="HOT badge: top X best sellers" hint="Products with the most orders. 0 disables it.">
-                                <input type="number" name="groups[badges][hot_count]" min="0" max="100" class="v-control v-mono v-w-rate" value="{{ $settings['badges']['hot_count'] ?? '5' }}">
-                            </x-admin.field>
-                        </div>
-                    </div>
-                </x-admin.panel>
-            </div>
-
-            {{-- ========== BLOG ========== --}}
-            <div x-show="tab === 'blog'" x-cloak>
-                <x-admin.panel title="Blog">
-                    <div class="v-narrow">
-                        <x-admin.field name="groups.blog.posts_per_page" label="Posts per page">
-                            <input type="number" name="groups[blog][posts_per_page]" min="4" max="48" class="v-control v-mono v-w-rate" value="{{ $settings['blog']['posts_per_page'] ?? '12' }}">
-                        </x-admin.field>
-                        <div class="v-gap">
-                            <x-admin.field name="groups.blog.default_view" label="Default view">
-                                <select name="groups[blog][default_view]" class="v-control">
-                                    <option value="grid" @selected(($settings['blog']['default_view'] ?? 'grid') === 'grid')>Grid</option>
-                                    <option value="list" @selected(($settings['blog']['default_view'] ?? '') === 'list')>List</option>
-                                </select>
-                            </x-admin.field>
-                        </div>
-                        <div class="v-gap">
-                            <x-admin.field name="groups.blog.excerpt_length" label="Excerpt length (characters)">
-                                <input type="number" name="groups[blog][excerpt_length]" min="50" max="500" class="v-control v-mono v-w-rate" value="{{ $settings['blog']['excerpt_length'] ?? '150' }}">
-                            </x-admin.field>
-                        </div>
-                        <div class="v-gap">
-                            <label class="v-toggle">
-                                <input type="hidden" name="groups[blog][show_view_count]" value="0">
-                                <input type="checkbox" name="groups[blog][show_view_count]" value="1" @checked(($settings['blog']['show_view_count'] ?? '0') === '1')>
-                                <span class="v-toggle__track" aria-hidden="true"></span>
-                                Show view counts
-                            </label>
-                        </div>
-                        <div class="v-gap">
-                            <label class="v-toggle">
-                                <input type="hidden" name="groups[blog][show_related_articles]" value="0">
-                                <input type="checkbox" name="groups[blog][show_related_articles]" value="1" @checked(($settings['blog']['show_related_articles'] ?? '0') === '1')>
-                                <span class="v-toggle__track" aria-hidden="true"></span>
-                                Show related articles on product pages
-                            </label>
-                        </div>
-                    </div>
-                </x-admin.panel>
-            </div>
-
         </x-admin.form>
 
-        <x-admin.confirm name="revert-colors" title="Revert to theme defaults?"
-            message="Reverts BOTH colors and fonts to this theme's defaults. Unsaved edits on those tabs are lost."
-            confirm="Revert" :action="route('admin.theme.revert-colors', $editingNonLive ? ['theme' => $editThemeSlug] : [])" method="POST" />
-
-        {{-- ========== HOMEPAGE (records) ========== --}}
+        {{-- ========== FOOTER ========== --}}
         <div x-show="tab === 'footer'" x-cloak>
             <x-admin.panel title="Footer columns">
                 <div x-init="initSortable($el.querySelector('[data-sortable]'), @js(route('admin.theme.footer.reorder')))">
@@ -545,58 +156,6 @@
             @endforeach
         </div>
 
-        {{-- ========== THEME OPTIONS (per-theme schema) ========== --}}
-        <div x-show="tab === 'theme_settings'" x-cloak>
-            <x-admin.panel title="Theme options" note="Settings this theme's own manifest declares.">
-                @if (count($themeSettingsSchema) > 0)
-                    <x-admin.form :header-save="false" :action="route('admin.theme.update-theme-settings')">
-                        @if ($editingNonLive)<input type="hidden" name="theme" value="{{ $editThemeSlug }}">@endif
-                        <div class="v-narrow">
-                            @foreach ($themeSettingsSchema as $key => $schema)
-                                <div class="{{ $loop->first ? '' : 'v-gap' }}">
-                                    <x-admin.field name="theme_settings.{{ $key }}" :label="$schema['label'] ?? $key">
-                                        @if (($schema['type'] ?? '') === 'layout')
-                                            <x-admin.layout-pick :kind="$key" name="theme_settings[{{ $key }}]"
-                                                :options="$schema['options'] ?? []"
-                                                :value="$themeSettingValues[$key] ?? ($schema['default'] ?? '')" />
-                                        @elseif (($schema['type'] ?? '') === 'select')
-                                            <select name="theme_settings[{{ $key }}]" class="v-control">
-                                                @foreach (\App\Support\ThemeOptions::choices($schema['options'] ?? []) as $optionValue => $optionLabel)
-                                                    <option value="{{ $optionValue }}" @selected((string) ($themeSettingValues[$key] ?? ($schema['default'] ?? '')) === (string) $optionValue)>{{ $optionLabel }}</option>
-                                                @endforeach
-                                            </select>
-                                        @elseif (($schema['type'] ?? '') === 'toggle')
-                                            <label class="v-toggle">
-                                                <input type="hidden" name="theme_settings[{{ $key }}]" value="0">
-                                                <input type="checkbox" name="theme_settings[{{ $key }}]" value="1" @checked(($themeSettingValues[$key] ?? ($schema['default'] ?? false)) ? true : false)>
-                                                <span class="v-toggle__track" aria-hidden="true"></span>
-                                                Enabled
-                                            </label>
-                                        @elseif (($schema['type'] ?? '') === 'color')
-                                            <input type="color" name="theme_settings[{{ $key }}]" value="{{ $themeSettingValues[$key] ?? ($schema['default'] ?? '#000000') }}" class="v-swatch v-swatch--lg">
-                                        @elseif (($schema['type'] ?? '') === 'textarea')
-                                            <textarea name="theme_settings[{{ $key }}]" rows="6" class="v-control v-mono">{{ $themeSettingValues[$key] ?? ($schema['default'] ?? '') }}</textarea>
-                                        @elseif (($schema['type'] ?? '') === 'images')
-                                            <textarea name="theme_settings[{{ $key }}]" rows="3" class="v-control v-mono">{{ $themeSettingValues[$key] ?? ($schema['default'] ?? '[]') }}</textarea>
-                                        @elseif (($schema['type'] ?? '') === 'rules')
-                                            <textarea name="theme_settings[{{ $key }}]" rows="4" class="v-control v-mono">{{ $themeSettingValues[$key] ?? ($schema['default'] ?? '[]') }}</textarea>
-                                        @elseif (($schema['type'] ?? '') === 'number')
-                                            <input type="number" name="theme_settings[{{ $key }}]" value="{{ $themeSettingValues[$key] ?? ($schema['default'] ?? '') }}" class="v-control v-mono v-w-rate">
-                                        @else
-                                            <input type="text" name="theme_settings[{{ $key }}]" value="{{ $themeSettingValues[$key] ?? ($schema['default'] ?? '') }}" class="v-control">
-                                        @endif
-                                    </x-admin.field>
-                                </div>
-                            @endforeach
-                        </div>
-                    </x-admin.form>
-                @else
-                    <div class="v-empty">
-                        <p class="v-empty__title">This theme has no configurable options</p>
-                    </div>
-                @endif
-            </x-admin.panel>
-        </div>
         </div>
         </div>
     </div>

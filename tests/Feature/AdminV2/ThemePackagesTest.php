@@ -39,16 +39,16 @@ class ThemePackagesTest extends TestCase
         $dir = storage_path('framework/testing/theme-broken');
         File::deleteDirectory($dir);
         File::ensureDirectoryExists($dir . '/views');
-        File::put($dir . '/theme.json', json_encode(['name' => 'Broken', 'version' => '0.1', 'colors' => ['primary' => '#000'], 'fonts' => ['heading' => 'X'], 'regions' => ['header_top' => ['label' => 'Top']], 'settings' => ['thing' => ['type' => 'wizard', 'label' => 'Thing']]]));
+        File::put($dir . '/theme.json', json_encode(['name' => 'Broken', 'version' => '0.1', 'regions' => ['header_top' => ['label' => 'Top']], 'settings' => ['thing' => ['type' => 'wizard', 'label' => 'Thing']]]));
 
         $problems = ThemeContract::check($dir);
         File::deleteDirectory($dir);
 
-        $this->assertContains('theme.json fonts needs a body font.', $problems);
         $this->assertContains('css/theme.css is missing.', $problems);
         $this->assertContains('View [layouts.store] is missing.', $problems);
-        $this->assertContains('Setting [thing] has a type the looks editor cannot draw: wizard.', $problems);
-        $this->assertTrue(collect($problems)->contains(fn ($p) => str_starts_with($p, 'theme.json colors is missing ')));
+        $this->assertContains('Setting [thing] has an unknown type: wizard.', $problems);
+        // Colors and fonts are the theme's own business, in its stylesheet.
+        $this->assertFalse(collect($problems)->contains(fn ($p) => str_contains($p, 'colors') || str_contains($p, 'font')));
         $this->assertTrue(collect($problems)->contains(fn ($p) => str_starts_with($p, 'theme.json regions is missing ')));
     }
 

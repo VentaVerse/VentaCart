@@ -62,35 +62,12 @@ class ThemeSaveDoctrineTest extends TestCase
             ->assertDontSee('Discard and move on', false);
     }
 
-    /** The thing that matters: one submit still carries several groups. */
-    public function test_one_submit_saves_colours_and_fonts_together(): void
-    {
-        $this->post(route('admin.theme.settings.update'), [
-            'groups' => [
-                'colors' => ['primary' => '#123456'],
-                'fonts' => ['heading' => 'Archivo'],
-            ],
-        ])->assertRedirect();
-
-        app(ThemeService::class)->clearCache();
-
-        $this->assertSame('#123456', Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
-        $this->assertSame('Archivo', Setting::where('group', 'fonts')->where('key', 'heading')->value('value'));
-    }
-
     /** A tab nobody has heard of renders the default, never a blank page. */
     public function test_an_unknown_tab_falls_back_rather_than_rendering_nothing(): void
     {
         $this->get(route('admin.theme.customise', ['tab' => 'nonsense']))
             ->assertOk()
-            ->assertSee('Presets', false);
-    }
-
-    public function test_the_old_tab_key_still_works(): void
-    {
-        $this->get(route('admin.theme.customise', ['tab' => 'theme-settings']))
-            ->assertOk()
-            ->assertSee('Theme options', false);
+            ->assertSee('Announcement bar', false);
     }
 
     /** The editor that reported success and changed nothing is gone. */
