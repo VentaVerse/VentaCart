@@ -73,4 +73,26 @@ class CustomiseEditThemeTest extends TestCase
         $this->assertSame([['label' => 'Help', 'url' => '/help']], json_decode(Setting::where('group', 'header')->where('key', 'topbar_links')->value('value'), true));
         $this->assertNull(Setting::where('group', 'colors')->where('key', 'primary')->value('value'), 'The look is the theme\'s, not the merchant\'s.');
     }
+
+    public function test_a_header_link_that_is_not_a_path_or_web_address_is_refused_and_never_printed(): void
+    {
+        $this->boot('venta');
+
+        $this->post(route('admin.theme.settings.update'), ['groups' => ['header' => [
+            'announcement_enabled' => '1', 'announcement_text' => 'Sale', 'announcement_link' => 'javascript:alert(1)',
+        ]]])->assertSessionHasErrors('groups.header.announcement_link');
+
+        $this->post(route('admin.theme.settings.update'), ['groups' => ['header' => [
+            'announcement_enabled' => '1', 'announcement_text' => 'Sale', 'announcement_link' => '/sale',
+            'topbar_links' => json_encode([['label' => 'Bad', 'url' => 'javascript:alert(1)'], ['label' => 'Help', 'url' => '/help']]),
+        ]]])->assertSessionHasNoErrors();
+        $this->assertSame([['label' => 'Help', 'url' => '/help']], json_decode(Setting::where('group', 'header')->where('key', 'topbar_links')->value('value'), true));
+
+        // A value stored before the check existed is not printed either.
+        Setting::where('group', 'header')->where('key', 'announcement_link')->update(['value' => 'javascript:alert(2)']);
+        Setting::where('group', 'header')->where('key', 'topbar_links')->update(['value' => json_encode([['label' => 'Old', 'url' => 'javascript:alert(3)']])]);
+        app(\App\Services\ThemeService::class)->clearCache();
+
+        $this->assertStringNotContainsString('javascript:', $this->get('/')->assertOk()->getContent());
+    }
 }

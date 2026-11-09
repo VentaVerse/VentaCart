@@ -6,7 +6,9 @@
                     $topbarLinks = $theme->getJson('header.topbar_links', []);
                 @endphp
                 @foreach ($topbarLinks as $link)
-                    <a href="{{ $link['url'] ?? '#' }}">{{ $link['label'] ?? '' }}</a>
+                    @if (is_array($link) && ($vTopbarUrl = \App\Support\SafeInput::link($link['url'] ?? '')) !== '')
+                        <a href="{{ $vTopbarUrl }}">{{ $link['label'] ?? '' }}</a>
+                    @endif
                 @endforeach
             </div>
             <div class="flex items-center gap-5">

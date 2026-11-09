@@ -116,8 +116,8 @@
     {{-- Announcement Bar --}}
     @if ($theme->get('header.announcement_enabled'))
         <div class="announcement-bar">
-            @if ($theme->get('header.announcement_link'))
-                <a href="{{ $theme->get('header.announcement_link') }}">
+            @if ($vAnnouncementLink = \App\Support\SafeInput::link($theme->get('header.announcement_link')))
+                <a href="{{ $vAnnouncementLink }}">
                     {{ $theme->get('header.announcement_text') }}
                 </a>
             @else
