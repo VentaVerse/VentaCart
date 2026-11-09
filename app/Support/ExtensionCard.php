@@ -61,8 +61,9 @@ class ExtensionCard
                 ? self::configureUrl($manifest, $name)
                 : null,
             // Where its own pages sit in the sidebar, so Configure is not a
-            // jump into the unknown.
-            'home' => $state === 'enabled' ? AdminNav::homeOf($name) : null,
+            // jump into the unknown. Themes, and the extension that manages
+            // them, live in Storefront > Themes.
+            'home' => $state === 'enabled' ? AdminNav::homeOf(self::isTheme($manifest) ? 'theme' : $name) : null,
         ];
     }
 
@@ -78,9 +79,23 @@ class ExtensionCard
      */
     private static function configureUrl(array $manifest, string $name): ?string
     {
+        // A theme package opens its own editor when it brings one, else the
+        // theme directory it is chosen in.
+        if (! empty($manifest['theme'])) {
+            $route = app(\App\Services\ThemeService::class)->editorRoute((string) $manifest['theme']) ?? 'admin.theme.index';
+
+            return Route::has($route) ? route($route) : null;
+        }
+
         $route = $manifest['configure_route'] ?? "admin.{$name}.index";
 
         return Route::has($route) ? route($route, $manifest['configure_params'] ?? []) : null;
+    }
+
+    /** A theme package, or the extension that manages themes. */
+    private static function isTheme(array $manifest): bool
+    {
+        return ($manifest['type'] ?? null) === 'theme';
     }
 
     private static function actionsForState(string $state): array

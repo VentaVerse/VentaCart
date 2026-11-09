@@ -174,4 +174,16 @@ class StorefrontAreaTest extends TestCase
 
         $this->assertStringNotContainsString('javascript:', $this->get('/')->assertOk()->getContent());
     }
+
+    /** Themes have no Extensions filter of their own; their rows say where they live. */
+    public function test_theme_rows_in_all_extensions_point_to_storefront_themes(): void
+    {
+        $cards = collect(app(\App\Http\Controllers\Admin\ExtensionsController::class)->index()->getData()['modules'])->keyBy('name');
+
+        foreach (['theme', 'theme-venta'] as $name) {
+            $this->assertSame('Storefront > Themes', $cards[$name]['home'], $name);
+            $this->assertSame(route('admin.theme.index'), $cards[$name]['configure'], $name);
+        }
+        $this->get(route('admin.extensions.index'))->assertOk()->assertSee('Storefront &gt; Themes', false);
+    }
 }
