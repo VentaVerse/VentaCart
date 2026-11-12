@@ -12,6 +12,7 @@ use Extensions\CourierFulfillment\Console\Commands\LbcPickupProofOfConcept;
 use Extensions\CourierFulfillment\Console\Commands\LbcTrack;
 use Extensions\CourierFulfillment\Console\Commands\LbcWaybill;
 use Extensions\CourierFulfillment\Console\Commands\MigrateLbcKeysToModes;
+use Extensions\CourierFulfillment\Console\Commands\SpxLocationsCompile;
 use Extensions\CourierFulfillment\Database\Seeders\CourierFulfillmentAutomationSeeder;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -26,6 +27,11 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
 
     /** And per hour, so a steady trickle cannot add up either. */
     public const SECRET_REVEALS_PER_HOUR = 60;
+
+    public function register(): void
+    {
+        $this->mergeConfigFrom(__DIR__ . '/../config/courier-fulfillment.php', 'courier-fulfillment');
+    }
 
     public function boot(): void
     {
@@ -77,6 +83,7 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
             LbcPickupProofOfConcept::class,
             LbcTrack::class,
             LbcWaybill::class,
+            SpxLocationsCompile::class,
         ]);
 
         // Who may configure this module. Same answer FulfillmentController
