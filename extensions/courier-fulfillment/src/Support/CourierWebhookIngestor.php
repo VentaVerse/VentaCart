@@ -3,6 +3,8 @@
 namespace Extensions\CourierFulfillment\Support;
 
 use App\Models\Order;
+use Extensions\CourierFulfillment\Contracts\ReportsShippingCost;
+use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\StatusMapper;
 use Illuminate\Support\Facades\Log;
 
@@ -40,7 +42,10 @@ use Illuminate\Support\Facades\Log;
  */
 class CourierWebhookIngestor
 {
-    /** @param array<int, array{reference_id:?string, tracking_number:?string, status:string, occurred_at:?string, remarks:?string}> $events */
+    /**
+     * @param array<int, array{reference_id:?string, tracking_number:?string, status:?string, occurred_at:?string, remarks:?string, courier_reference?:string, meta?:array, actual_fee?:float}> $events
+     *   An event with a null status only adds facts (SPX's evidence pushes).
+     */
     public static function ingest(string $provider, array $events): void
     {
         foreach ($events as $event) {
@@ -74,7 +79,7 @@ class CourierWebhookIngestor
                 if ((string) $order->courier_provider !== $provider) {
                     Log::info('Courier webhook: event provider does not match the order\'s current booking — ignored', [
                         'provider' => $provider, 'order' => $order->id,
-                        'order_provider' => $order->courier_provider, 'event' => $event,
+                        'order_provider' => $order->courier_provider, 'event' => self::loggable($event),
                     ]);
                     return;
                 }
@@ -84,7 +89,7 @@ class CourierWebhookIngestor
                 if ($orderTracking !== '' && $eventTracking !== '' && $orderTracking !== $eventTracking) {
                     Log::info('Courier webhook: event tracking number does not match the order\'s current shipment — ignored (late event from a superseded booking?)', [
                         'provider' => $provider, 'order' => $order->id,
-                        'order_tracking' => $orderTracking, 'event' => $event,
+                        'order_tracking' => $orderTracking, 'event' => self::loggable($event),
                     ]);
                     return;
                 }
@@ -95,13 +100,67 @@ class CourierWebhookIngestor
                 ->where('courier_provider', $provider)
                 ->first();
         }
+        // A courier that knows a booking by its own reference (SPX's
+        // order_id, kept as courier_meta.reference_id) rather than by the
+        // store's order id.
+        if (!$order && !empty($event['courier_reference'])) {
+            $order = Order::where('courier_provider', $provider)
+                ->where('courier_meta->reference_id', (string) $event['courier_reference'])
+                ->first();
+        }
 
         if (!$order) {
-            Log::info('Courier webhook: no matching order', ['provider' => $provider, 'event' => $event]);
+            Log::info('Courier webhook: no matching order', [
+                'provider' => $provider,
+                'reference_id' => $event['reference_id'] ?? null,
+                'courier_reference' => $event['courier_reference'] ?? null,
+                'tracking_number' => $event['tracking_number'] ?? null,
+                'status' => $event['status'] ?? null,
+            ]);
             return;
         }
 
-        $order->forceFill(['courier_status' => $event['status']])->save();
-        StatusMapper::apply($order, $event['status'] ?? null);
+        $status = isset($event['status']) && $event['status'] !== '' ? (string) $event['status'] : null;
+        $fill = [];
+        if ($status !== null) {
+            $fill['courier_status'] = $status;
+        }
+
+        // Facts an event may carry besides its status (SPX: delivery
+        // estimate, driver, proof photos, the running actual fee).
+        $facts = is_array($event['meta'] ?? null) ? $event['meta'] : [];
+        $fee = isset($event['actual_fee']) && is_numeric($event['actual_fee']) ? round((float) $event['actual_fee'], 2) : null;
+        if ($facts !== [] || $fee !== null) {
+            $meta = $order->courier_meta ? (json_decode((string) $order->courier_meta, true) ?: []) : [];
+            foreach ($facts as $key => $value) {
+                if ($key === 'proofs' && is_array($value)) {
+                    $meta['proofs'] = array_replace(is_array($meta['proofs'] ?? null) ? $meta['proofs'] : [], $value);
+                } else {
+                    $meta[$key] = $value;
+                }
+            }
+            if ($fee !== null) {
+                $meta['webhook_actual_fee'] = $fee;
+            }
+            $fill['courier_meta'] = json_encode($meta);
+
+            $courier = CourierManager::get($provider);
+            if ($fee !== null && $courier instanceof ReportsShippingCost) {
+                $fill['shipping_cost_actual'] = $courier->actualShippingCost($meta);
+            }
+        }
+
+        if ($fill !== []) {
+            $order->forceFill($fill)->save();
+        }
+        if ($status !== null) {
+            StatusMapper::apply($order, $status);
+        }
+    }
+
+    /** What identifies an event, for a log line: never the driver, proofs or other facts it carries. */
+    private static function loggable(array $event): array
+    {
+        return array_intersect_key($event, array_flip(['reference_id', 'courier_reference', 'tracking_number', 'status', 'occurred_at']));
     }
 }

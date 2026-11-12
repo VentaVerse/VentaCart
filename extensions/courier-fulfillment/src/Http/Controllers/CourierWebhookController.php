@@ -9,6 +9,7 @@ use Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment;
 use Extensions\CourierFulfillment\Jobs\ProcessCourierWebhookJob;
 use Extensions\CourierFulfillment\Support\CourierWebhookIngestor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Generic courier webhook receiver: /webhooks/courier/{provider}?token=...
@@ -61,26 +62,87 @@ class CourierWebhookController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /** How far the signed `timestamp` header of an SPX push may be from now, either way. */
+    public const SPX_FRESH_SECONDS = 600;
+
+    /** The most of an unverified body that is ever written to the log. */
+    public const SPX_LOG_BYTES = 2048;
+
+    /** A push larger than this is not one of SPX's events. */
+    private const SPX_MAX_BYTES = 65536;
+
+    /** The only fields of an unverified push worth logging: they identify the parcel, not a person. */
+    private const SPX_LOGGED_FIELDS = ['tracking_no', 'order_id', 'customer_order_id', 'status_code', 'timestamp'];
+
     /**
-     * SPX's signed, fast-ack branch. Rejects with 401 on a bad/missing
-     * signature (never 403 — reserved for the shared-token couriers above,
-     * so a log/monitoring split between "wrong secret" (401, signature
-     * schemes) and "wrong token" (403, shared-secret schemes) stays clean).
-     * On a valid signature: parse the events NOW (cheap, no I/O), hand them
-     * to the queued job via `->afterResponse()`, and return 200 immediately
-     * — the actual order-matching/StatusMapper work happens only after
-     * Laravel has already flushed the HTTP response to SPX.
+     * SPX's signed, fast-ack branch. Always answers 200: SPX stops pushing
+     * to an endpoint that keeps failing, and a rejected push is no reason to
+     * lose every later one. A push that fails the signature, carries a
+     * `timestamp` more than SPX_FRESH_SECONDS from now (a replay), or is too
+     * large is logged, without personal data, and dropped. A verified push
+     * is parsed now and applied after the response is sent.
      */
     private function handleSpx(Request $request, SpxFulfillment $courier)
     {
-        if (!$courier->verifyWebhookSignature($request)) {
-            return response()->json(['error' => 'unauthorized'], 401);
+        $raw = $request->getContent();
+
+        $problem = null;
+        if (strlen($raw) > self::SPX_MAX_BYTES) {
+            $problem = 'body too large';
+        } elseif (!$courier->verifyWebhookSignature($request)) {
+            $problem = 'signature mismatch';
+        } else {
+            $skew = abs(now()->getTimestamp() - (int) $request->header('timestamp'));
+            if ($skew > self::SPX_FRESH_SECONDS) {
+                $problem = "timestamp {$skew}s from now";
+            }
         }
 
-        $events = $courier->parseWebhook($request->all());
+        if ($problem !== null) {
+            Log::warning('SPX webhook rejected', [
+                'reason' => $problem,
+                'bytes'  => strlen($raw),
+                'has_app_id' => $request->headers->has('app-id'),
+                'fields' => self::loggableFields($raw),
+            ]);
 
-        dispatch(new ProcessCourierWebhookJob('spx', $events))->afterResponse();
+            return response()->json(['ok' => true]);
+        }
+
+        $payload = json_decode($raw, true);
+        $events = is_array($payload) ? $courier->parseWebhook($payload) : [];
+
+        if ($events !== []) {
+            dispatch(new ProcessCourierWebhookJob('spx', $events))->afterResponse();
+        }
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * The identifying fields of an unverified body, each shortened, the
+     * whole capped at SPX_LOG_BYTES. Names, phones, addresses and photo
+     * links are never kept.
+     *
+     * @return array<string, string>|string
+     */
+    private static function loggableFields(string $raw): array|string
+    {
+        $decoded = json_decode(substr($raw, 0, self::SPX_MAX_BYTES), true);
+        if (!is_array($decoded)) {
+            return 'not JSON';
+        }
+
+        $kept = [];
+        foreach (self::SPX_LOGGED_FIELDS as $field) {
+            if (isset($decoded[$field]) && is_scalar($decoded[$field])) {
+                $kept[$field] = mb_substr((string) $decoded[$field], 0, 64);
+            }
+        }
+        while ($kept !== [] && strlen((string) json_encode($kept)) > self::SPX_LOG_BYTES) {
+            array_pop($kept);
+        }
+
+        return $kept;
     }
 }

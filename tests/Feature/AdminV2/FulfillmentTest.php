@@ -1058,7 +1058,7 @@ class FulfillmentTest extends TestCase
             'contact_phone' => '09171112222',
             'address_1' => '456 Warehouse Ave',
             'barangay' => 'Bel-Air',
-            'city' => 'Makati',
+            'city' => 'Makati City',
             'state' => 'Metro Manila',
             'postcode' => '1200',
             'country_id' => $country->id,
@@ -1373,6 +1373,11 @@ class FulfillmentTest extends TestCase
         $this->assertSame('2001', $order->fresh()->courier_status);
     }
 
+    /**
+     * A rejected push is still answered 200: SPX stops pushing to an
+     * endpoint that keeps failing, which would lose every later, genuine
+     * event. It is logged and nothing is written.
+     */
     public function test_spx_webhook_with_invalid_signature_is_rejected_and_writes_nothing(): void
     {
         $this->installExtension();
@@ -1396,20 +1401,20 @@ class FulfillmentTest extends TestCase
         $tamperedHeaders['check-sign'] = str_repeat('0', 64);
 
         $this->postJson('/webhooks/courier/spx', $body, $tamperedHeaders)
-            ->assertStatus(401)
-            ->assertJson(['error' => 'unauthorized']);
+            ->assertOk()
+            ->assertJson(['ok' => true]);
 
         // Missing signature headers entirely.
         $this->postJson('/webhooks/courier/spx', $body)
-            ->assertStatus(401)
-            ->assertJson(['error' => 'unauthorized']);
+            ->assertOk()
+            ->assertJson(['ok' => true]);
 
         // Signed with the WRONG app-secret (a stolen/guessed body signed by
         // someone who doesn't actually hold our app-secret).
         $wrongSecret = $this->spxSignedHeaders($body, appSecret: 'not-the-real-secret');
         $this->postJson('/webhooks/courier/spx', $body, $wrongSecret['headers'])
-            ->assertStatus(401)
-            ->assertJson(['error' => 'unauthorized']);
+            ->assertOk()
+            ->assertJson(['ok' => true]);
 
         $order->refresh();
         $this->assertSame('2001', $order->courier_status);
