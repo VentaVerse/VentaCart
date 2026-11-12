@@ -94,7 +94,7 @@ class SpxFulfillmentTest extends TestCase
             'address_1'     => '456 Warehouse Ave',
             'barangay'      => 'Bel-Air',
             'district'      => null,
-            'city'          => 'Makati',
+            'city'          => 'Makati City',
             'state'         => 'Metro Manila',
             'postcode'      => '1200',
             'country_id'    => $country->id,
@@ -116,7 +116,7 @@ class SpxFulfillmentTest extends TestCase
             'shipping_first_name' => 'Jane',
             'shipping_last_name' => 'Doe',
             'shipping_address_1' => '123 Mango St',
-            'shipping_barangay' => 'Lahug',
+            'shipping_barangay' => 'Apas',
             'shipping_city' => 'Cebu City',
             'shipping_state' => 'Cebu',
             'shipping_postcode' => '6000',
@@ -164,7 +164,7 @@ class SpxFulfillmentTest extends TestCase
             'order_id' => $order->id, 'name' => 'Guitar Strap', 'price' => 500, 'quantity' => 2, 'total' => 1000,
         ]);
 
-        $result = $this->courier()->createShipment($order, [
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 
             'service' => 'standard',
             'parcel'  => 'medium', // Str::slug('Medium')
             'shipping_payment' => 'sender_pay',
@@ -184,7 +184,8 @@ class SpxFulfillmentTest extends TestCase
 
             return $body['user_id'] === 999999
                 && $body['user_secret'] === 'fake-user-secret-not-real'
-                && $o['order_id'] === (string) $order->id
+                // Its own reference, never the store's order id: the date and six characters.
+                && preg_match('/^\d{8}[A-Z0-9]{6}$/', $o['order_id']) === 1
                 && $o['base_info']['service_type'] === 1
                 // sender_info from the shared pickup-address record. Address
                 // hierarchy per api.md's own worked examples (T2 review,
@@ -192,10 +193,12 @@ class SpxFulfillmentTest extends TestCase
                 // (this record carries no district, so it falls back to city),
                 // *_detail_address <- the actual address text, never
                 // duplicated with street.
+                // Placed on SPX's own location list: island group, province,
+                // city, barangay, spelled as SPX spells them.
                 && $o['sender_info']['sender_state'] === 'Metro Manila'
-                && $o['sender_info']['sender_city'] === 'Makati'
-                && $o['sender_info']['sender_district'] === 'Makati'
-                && $o['sender_info']['sender_street'] === 'Bel-Air'
+                && $o['sender_info']['sender_city'] === 'Metro Manila'
+                && $o['sender_info']['sender_district'] === 'Makati City'
+                && $o['sender_info']['sender_street'] === 'Bel-air'
                 && $o['sender_info']['sender_detail_address'] === '456 Warehouse Ave'
                 && $o['sender_info']['sender_post_code'] === '1200'
                 // Already valid PH format (11 digits, starts with 0) -> passes through unchanged.
@@ -204,10 +207,10 @@ class SpxFulfillmentTest extends TestCase
                 // hierarchy fix: street <- barangay, district <- Venta's own
                 // (blank) shipping_district falling back to city,
                 // detail_address <- address_1.
-                && $o['deliver_info']['deliver_state'] === 'Cebu'
-                && $o['deliver_info']['deliver_city'] === 'Cebu City'
+                && $o['deliver_info']['deliver_state'] === 'Visayas'
+                && $o['deliver_info']['deliver_city'] === 'Cebu'
                 && $o['deliver_info']['deliver_district'] === 'Cebu City'
-                && $o['deliver_info']['deliver_street'] === 'Lahug'
+                && $o['deliver_info']['deliver_street'] === 'Apas'
                 && $o['deliver_info']['deliver_detail_address'] === '123 Mango St'
                 && $o['deliver_info']['deliver_post_code'] === '6000'
                 && $o['deliver_info']['deliver_name'] === 'Jane Doe'
@@ -225,7 +228,8 @@ class SpxFulfillmentTest extends TestCase
                 && (float) $o['parcel_info']['parcel_length'] === 35.0
                 && (float) $o['parcel_info']['parcel_width'] === 25.0
                 && (float) $o['parcel_info']['parcel_height'] === 15.0
-                && (float) $o['parcel_info']['parcel_weight'] === 5.0
+                // The parcel's own weight, never the preset's 5 kg ceiling.
+                && (float) $o['parcel_info']['parcel_weight'] === 1.2
                 && (int) $o['parcel_info']['express_insured_value'] === 0
                 && $o['parcel_info']['parcel_item_type'] === 'General merchandise';
         });
@@ -248,7 +252,7 @@ class SpxFulfillmentTest extends TestCase
         // Real dev-DB shape: 10 digits, no leading 0.
         $order = $this->makeOrder(['shipping_phone' => '9171234567', 'phone' => '9171234567']);
 
-        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertTrue($result['success']);
         Http::assertSent(function ($request) {
@@ -266,7 +270,7 @@ class SpxFulfillmentTest extends TestCase
         Http::fake();
 
         $order = $this->makeOrder(['shipping_phone' => '', 'phone' => '']);
-        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('valid PH mobile number', $result['error']);
@@ -284,7 +288,7 @@ class SpxFulfillmentTest extends TestCase
         ]);
 
         $order = $this->makeOrder(['shipping_phone' => '', 'phone' => '09171234567']);
-        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertTrue($result['success']);
         Http::assertSent(function ($request) {
@@ -307,7 +311,7 @@ class SpxFulfillmentTest extends TestCase
 
         $order = $this->makeOrder(['payment_method' => 'cod', 'total' => 1500]);
 
-        $this->courier()->createShipment($order, [
+        $this->courier()->createShipment($order, ['weight_kg' => 1.2, 
             'parcel' => 'small',
             'shipping_payment' => 'receiver_pay',
             'insure' => true,
@@ -337,7 +341,7 @@ class SpxFulfillmentTest extends TestCase
 
         $order = $this->makeOrder();
 
-        $result = $this->courier()->createShipment($order, [
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 
             'parcel' => 'custom', 'length_cm' => 60, 'width_cm' => 40, 'height_cm' => 30, 'weight_kg' => 12,
             'shipping_payment' => 'sender_pay',
         ]);
@@ -359,7 +363,7 @@ class SpxFulfillmentTest extends TestCase
         Http::fake();
 
         $order = $this->makeOrder();
-        $result = $this->courier()->createShipment($order, ['parcel' => 'custom', 'shipping_payment' => 'sender_pay']);
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 'parcel' => 'custom', 'shipping_payment' => 'sender_pay']);
 
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('Custom parcel dimensions', $result['error']);
@@ -378,7 +382,7 @@ class SpxFulfillmentTest extends TestCase
         Http::fake();
 
         $order = $this->makeOrder();
-        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('User ID / User Secret', $result['error']);
@@ -392,7 +396,7 @@ class SpxFulfillmentTest extends TestCase
         Http::fake();
 
         $order = $this->makeOrder();
-        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('pickup address', $result['error']);
@@ -406,10 +410,10 @@ class SpxFulfillmentTest extends TestCase
         Http::fake();
 
         $order = $this->makeOrder(['shipping_city' => '', 'shipping_state' => '']);
-        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertFalse($result['success']);
-        $this->assertStringContainsString('shipping province/city/postal code', $result['error']);
+        $this->assertStringContainsString("shipping address has no province", $result['error']);
         Http::assertNothingSent();
     }
 
@@ -431,7 +435,7 @@ class SpxFulfillmentTest extends TestCase
         ]);
 
         $order = $this->makeOrder();
-        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertTrue($result['success']);
         $this->assertNull($result['tracking_number']);
@@ -462,10 +466,12 @@ class SpxFulfillmentTest extends TestCase
         ]);
 
         $order = $this->makeOrder();
-        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertFalse($result['success']);
-        $this->assertStringContainsString('Address invalid.', $result['error']);
+        // A plain sentence for the merchant; SPX's own words go to support.
+        $this->assertSame("SPX doesn't pick up here. Check the pickup address.", $result['error']);
+        $this->assertSame('SPX 10018: Address invalid. | x', $result['courier_error']);
     }
 
     /**
@@ -495,10 +501,10 @@ class SpxFulfillmentTest extends TestCase
         ]);
 
         $order = $this->makeOrder();
-        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $result = $this->courier()->createShipment($order, ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertFalse($result['success']);
-        $this->assertStringContainsString('Failed', $result['error']);
+        $this->assertSame("SPX couldn't book this shipment. Check the details and try again.", $result['error']);
         // 1 create + exactly 1 poll — proves it stopped immediately rather
         // than exhausting the full bounded backoff window.
         Http::assertSentCount(2);
@@ -567,7 +573,8 @@ class SpxFulfillmentTest extends TestCase
         $this->assertNull($order->courier_tracking_number);
         $meta = json_decode($order->courier_meta, true);
         $this->assertTrue($meta['creation_failed']);
-        $this->assertSame('Weight exceeds limit.', $meta['creation_error']);
+        $this->assertSame("SPX doesn't pick up here. Check the pickup address.", $meta['creation_error']);
+        $this->assertSame('SPX 10025: Weight exceeds limit.', $meta['creation_error_courier']);
     }
 
     /**
@@ -602,7 +609,8 @@ class SpxFulfillmentTest extends TestCase
         $this->assertNull($order->courier_tracking_number);
         $meta = json_decode($order->courier_meta, true);
         $this->assertTrue($meta['creation_failed']);
-        $this->assertStringContainsString('Failed', $meta['creation_error']);
+        $this->assertStringContainsString("couldn't book", $meta['creation_error']);
+        $this->assertSame('SPX: batch failed | Failed', $meta['creation_error_courier']);
     }
 
     // ------------------------------------------------------------------
@@ -683,7 +691,31 @@ class SpxFulfillmentTest extends TestCase
         $this->assertSame('1001', $result['status']);
         $this->assertSame(['delivery' => 'https://uat.spx.ph/track?SPEPH1'], $result['links']);
         $this->assertSame([['status' => '1001', 'at' => 1753171999]], $result['timeline']);
-        $this->assertSame(['actual_shipping_fee' => 30], $result['fee_info']);
+        // The actual fee is asked only once the parcel is delivered or returned.
+        $this->assertNull($result['fee_info']);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'batch_get_asf'));
+    }
+
+    public function test_get_tracking_asks_the_actual_fee_once_delivered_and_at_most_once_a_day(): void
+    {
+        $this->configureAccountCredentials();
+        Http::fake([
+            '*batch_search_order*' => Http::response($this->trackOrderResponse('SPEPH1', ['status_code' => '4001'])),
+            '*batch_get_asf*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => ['orders' => [['tracking_no' => 'SPEPH1', 'fee_info' => ['actual_shipping_fee' => 30, 'return_shipping_fee' => 0]]], 'fail_list' => []],
+            ]),
+        ]);
+
+        $first = $this->courier()->getTracking('SPEPH1');
+        $second = $this->courier()->getTracking('SPEPH1');
+
+        $this->assertSame(['actual_shipping_fee' => 30, 'return_shipping_fee' => 0], $first['fee_info']);
+        $this->assertSame(30.0, $first['actual_fee']);
+        // A zero return fee is SPX's "not set", never stored.
+        $this->assertArrayNotHasKey('actual_return_fee', $first['meta']);
+        $this->assertNull($second['fee_info']);
+        Http::assertSentCount(3);
     }
 
     public function test_get_tracking_retries_on_13251_then_succeeds(): void
@@ -725,7 +757,8 @@ class SpxFulfillmentTest extends TestCase
             '1001 Pending Pickup'   => ['1001', 'to_handover'],
             '2001 In Transit'       => ['2001', 'in_transit'],
             '2006 Delivering'       => ['2006', 'in_transit'],
-            '3001 On Hold'          => ['3001', 'failed'],
+            // Held during delivery: SPX has the parcel and nothing has failed for good.
+            '3001 On Hold'          => ['3001', 'in_transit'],
             '4001 Delivered'        => ['4001', 'delivered'],
             '5001 Pickup Failed'    => ['5001', 'failed'],
             '5002 Damaged'          => ['5002', 'failed'],
@@ -779,7 +812,7 @@ class SpxFulfillmentTest extends TestCase
             'data' => ['orders' => [['order_id' => '1', 'estimated_shipping_fee' => 23.2, 'basic_shipping_fee' => 29]], 'fail_list' => []],
         ])]);
 
-        $fee = $this->courier()->estimateFee($this->makeOrder(), ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $fee = $this->courier()->estimateFee($this->makeOrder(), ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertNotNull($fee);
         $this->assertSame(23.2, $fee->amount);
@@ -793,99 +826,55 @@ class SpxFulfillmentTest extends TestCase
         // No pickup address on file — never even calls SPX for an estimate it can't build.
         Http::fake();
 
-        $fee = $this->courier()->estimateFee($this->makeOrder(), ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+        $fee = $this->courier()->estimateFee($this->makeOrder(), ['weight_kg' => 1.2, 'parcel' => 'small', 'shipping_payment' => 'sender_pay']);
 
         $this->assertNull($fee);
         Http::assertNothingSent();
     }
 
-    /** Date-based picker (owner call: no time-window picker, one option per date): a single date with "Now" offered collapses to one option carrying that "Now" slot, labeled as a readable date (not a time window). */
-    public function test_get_pickup_slots_returns_one_dated_option_preferring_now(): void
+    /** Every window SPX offers is an option, "Now" first within its day, labeled with the day and the window. */
+    public function test_get_pickup_slots_lists_every_window_with_now_first(): void
     {
+        $this->travelTo(\Carbon\Carbon::parse('2022-02-17 08:00', 'Asia/Manila'));
         $this->configureAccountCredentials();
         Http::fake(['*get_pickup_time*' => Http::response([
             'ret_code' => 0, 'message' => 'success.',
             'data' => [[
                 'date' => '2022-02-17', 'pickup_time' => 1645088400,
                 'slots' => [
-                    ['pickup_time_range_id' => 0, 'pickup_time_range' => 'Now'],
                     ['pickup_time_range_id' => 2, 'pickup_time_range' => '2:00pm-4:00pm'],
+                    ['pickup_time_range_id' => 0, 'pickup_time_range' => 'Now'],
                 ],
             ]],
         ])]);
 
         $slots = $this->courier()->getPickupSlots($this->makeOrder());
 
-        $this->assertCount(1, $slots);
-        $decoded = json_decode($slots[0]['value'], true);
-        $this->assertSame(1645088400, $decoded['pickup_time']);
-        $this->assertSame(0, $decoded['pickup_time_range_id']);
-        $this->assertSame('Now', $decoded['pickup_time_range']);
-        // Readable date label, e.g. "Thu, Feb 17" — no time window in the label.
-        $this->assertMatchesRegularExpression('/^[A-Za-z]{3}, [A-Za-z]{3} \d{2}$/', $slots[0]['label']);
-        $this->assertStringNotContainsString('Now', $slots[0]['label']);
-    }
-
-    /** Collapse-by-date: 2 dates x 2 windows each yields exactly 2 options (one per date), not 4. */
-    public function test_get_pickup_slots_collapses_multiple_windows_per_date(): void
-    {
-        $this->configureAccountCredentials();
-        Http::fake(['*get_pickup_time*' => Http::response([
-            'ret_code' => 0, 'message' => 'success.',
-            'data' => [
-                [
-                    'date' => '2022-02-17', 'pickup_time' => 1645088400,
-                    'slots' => [
-                        ['pickup_time_range_id' => 1, 'pickup_time_range' => '10:00am-12:00am'],
-                        ['pickup_time_range_id' => 2, 'pickup_time_range' => '2:00pm-4:00pm'],
-                    ],
-                ],
-                [
-                    'date' => '2022-02-18', 'pickup_time' => 1645174800,
-                    'slots' => [
-                        ['pickup_time_range_id' => 1, 'pickup_time_range' => '10:00am-12:00am'],
-                        ['pickup_time_range_id' => 2, 'pickup_time_range' => '2:00pm-4:00pm'],
-                    ],
-                ],
-            ],
-        ])]);
-
-        $slots = $this->courier()->getPickupSlots($this->makeOrder());
-
         $this->assertCount(2, $slots);
-
-        // No range id 0 offered on either date -> earliest falls back to the
-        // FIRST slot in that date's own slots[] array (SPX's own ordering).
         $first = json_decode($slots[0]['value'], true);
-        $this->assertSame(1645088400, $first['pickup_time']);
-        $this->assertSame(1, $first['pickup_time_range_id']);
-        $this->assertSame('10:00am-12:00am', $first['pickup_time_range']);
-
-        $second = json_decode($slots[1]['value'], true);
-        $this->assertSame(1645174800, $second['pickup_time']);
-        $this->assertSame(1, $second['pickup_time_range_id']);
+        $this->assertSame(['pickup_time' => 1645088400, 'pickup_time_range_id' => 0, 'pickup_time_range' => 'Now'], $first);
+        $this->assertSame(2, json_decode($slots[1]['value'], true)['pickup_time_range_id']);
+        $this->assertStringEndsWith('2:00pm-4:00pm', $slots[1]['label']);
     }
 
-    /** A date with no usable slots (empty slots[]) is skipped entirely, never a phantom/blocked date. */
-    public function test_get_pickup_slots_skips_dates_with_no_slots(): void
+    /** A day already over, or one with no windows, is never offered. */
+    public function test_get_pickup_slots_skips_past_days_and_days_with_no_slots(): void
     {
+        $this->travelTo(\Carbon\Carbon::parse('2022-02-18 08:00', 'Asia/Manila'));
         $this->configureAccountCredentials();
         Http::fake(['*get_pickup_time*' => Http::response([
             'ret_code' => 0, 'message' => 'success.',
             'data' => [
-                ['date' => '2022-02-17', 'pickup_time' => 1645088400, 'slots' => []],
-                [
-                    'date' => '2022-02-18', 'pickup_time' => 1645174800,
-                    'slots' => [['pickup_time_range_id' => 0, 'pickup_time_range' => 'Now']],
-                ],
+                ['date' => '2022-02-17', 'pickup_time' => 1645088400, 'slots' => [['pickup_time_range_id' => 1, 'pickup_time_range' => '10:00am-12:00pm']]],
+                ['date' => '2022-02-18', 'pickup_time' => 1645174800, 'slots' => []],
+                ['date' => '2022-02-19', 'pickup_time' => 1645261200, 'slots' => [['pickup_time_range_id' => 1, 'pickup_time_range' => '10:00am-12:00pm']]],
             ],
         ])]);
 
         $slots = $this->courier()->getPickupSlots($this->makeOrder());
 
         $this->assertCount(1, $slots);
-        $decoded = json_decode($slots[0]['value'], true);
-        $this->assertSame(1645174800, $decoded['pickup_time']);
+        $this->assertSame(1645261200, json_decode($slots[0]['value'], true)['pickup_time']);
     }
 
     public function test_get_pickup_slots_is_empty_without_user_credentials(): void
@@ -898,6 +887,7 @@ class SpxFulfillmentTest extends TestCase
     /** createShipment still sends the three pickup fields exactly as returned by a chosen date option (collapsed pickup_slot value flows through unchanged), switching collect_type to pickup. */
     public function test_create_shipment_sends_pickup_fields_from_a_chosen_date_option(): void
     {
+        $this->travelTo(\Carbon\Carbon::parse('2022-02-17 08:00', 'Asia/Manila'));
         $this->configureAccountCredentials();
         $this->configurePickupOrigin();
 
@@ -920,7 +910,7 @@ class SpxFulfillmentTest extends TestCase
             'pickup_time_range'    => 'Now',
         ]);
 
-        $this->courier()->createShipment($order, [
+        $this->courier()->createShipment($order, ['weight_kg' => 1.2, 
             'service' => 'standard',
             'parcel'  => 'medium',
             'shipping_payment' => 'sender_pay',
@@ -1351,12 +1341,17 @@ class SpxFulfillmentTest extends TestCase
         ]);
 
         $this->assertCount(1, $events);
+        // SPX's order_id is the booking's own reference, matched against
+        // courier_meta.reference_id; only an all-digit id (a booking made
+        // when the store's order id was sent) is an order id.
         $this->assertSame([
-            'reference_id' => 'GW123456789',
+            'reference_id' => null,
+            'courier_reference' => 'GW123456789',
             'tracking_number' => 'SPXTH026817968592',
             'status' => '1001',
             'occurred_at' => date(DATE_ATOM, 1639385434),
             'remarks' => 'xxx',
+            'meta' => ['tracking_links' => ['delivery' => 'https://test.spx.co.th/track?SPXTH026817968592']],
         ], $events[0]);
     }
 
@@ -1459,6 +1454,7 @@ class SpxFulfillmentTest extends TestCase
         ]);
 
         $result = $this->courier()->createShipment($order->fresh(), [
+            'weight_kg' => 1.2,
             'service' => 'standard',
             'parcel' => 'medium',
             'shipping_payment' => 'sender_pay',
@@ -1491,6 +1487,7 @@ class SpxFulfillmentTest extends TestCase
         ]);
 
         $result = $this->courier()->createShipment($order->fresh(), [
+            'weight_kg' => 1.2,
             'service' => 'standard',
             'parcel' => 'medium',
             'shipping_payment' => 'sender_pay',

@@ -116,7 +116,7 @@ class FulfillmentServiceabilityTest extends TestCase
     }
 
     /** An order sitting where booking starts (To Pack), bound for a real PH barangay. */
-    private function makeOrder(): Order
+    private function makeOrder(array $overrides = []): Order
     {
         $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Processing'],
@@ -125,7 +125,7 @@ class FulfillmentServiceabilityTest extends TestCase
         PlacementMap::put($status->id, 'to_pack');
         \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
 
-        return Order::create([
+        return Order::create(array_merge([
             'store_id'            => 1,
             'order_status_id'     => $status->id,
             'first_name'          => 'Jane',
@@ -146,8 +146,11 @@ class FulfillmentServiceabilityTest extends TestCase
             'subtotal'            => 1000,
             'shipping_cost'       => 100,
             'total'               => 1100,
-        ]);
+        ], $overrides));
     }
+
+    /** A barangay SPX's location list says it delivers to, so SPX itself is asked. */
+    private const SPX_LISTED = ['shipping_barangay' => 'Apas', 'shipping_city' => 'Cebu City', 'shipping_state' => 'Cebu', 'shipping_postcode' => '6000'];
 
     private function serviceabilityUrl(Order $order): string
     {
@@ -348,7 +351,7 @@ class FulfillmentServiceabilityTest extends TestCase
             'data'     => ['fail_list' => [['ret_code' => $code, 'message' => 'SPX said something about ' . $code, 'order_id' => '1']]],
         ], 200)]);
 
-        $order = $this->makeOrder();
+        $order = $this->makeOrder(self::SPX_LISTED);
 
         $this->getJson($this->serviceabilityUrl($order))
             ->assertOk()
@@ -388,12 +391,30 @@ class FulfillmentServiceabilityTest extends TestCase
             'ret_code' => 10044, 'message' => 'system error', 'data' => [],
         ], 200)]);
 
-        $order = $this->makeOrder();
+        $order = $this->makeOrder(self::SPX_LISTED);
 
         $response = $this->getJson($this->serviceabilityUrl($order))->assertOk();
         $this->assertSame('unknown', $response->json('couriers.spx.status'));
         $this->assertSame('their_side', $response->json('couriers.spx.kind'));
         $response->assertJsonPath('all_refused', false);
+    }
+
+    public function test_an_address_spx_lists_without_delivery_is_refused_without_asking_spx(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableSpx();
+        $this->configurePickupOrigin();
+        Http::fake();
+
+        // Caluya, Antique is on SPX's location list with delivery switched off.
+        $order = $this->makeOrder();
+
+        $response = $this->getJson($this->serviceabilityUrl($order))->assertOk();
+        $this->assertSame('not_serviceable', $response->json('couriers.spx.status'));
+        $this->assertSame('destination', $response->json('couriers.spx.kind'));
+        $this->assertSame('spx_no_delivery', $response->json('couriers.spx.code'));
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'spx.ph'));
     }
 
     // --- the all-refused line -------------------------------------------

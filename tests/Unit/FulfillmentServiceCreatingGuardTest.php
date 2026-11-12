@@ -72,7 +72,7 @@ class FulfillmentServiceCreatingGuardTest extends TestCase
             'store_id' => 1, 'order_status_id' => $status->id,
             'first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com',
             'shipping_first_name' => 'Jane', 'shipping_last_name' => 'Doe',
-            'shipping_address_1' => '123 Mango St', 'shipping_barangay' => 'Lahug',
+            'shipping_address_1' => '123 Mango St', 'shipping_barangay' => 'Apas',
             'shipping_city' => 'Cebu City', 'shipping_state' => 'Cebu', 'shipping_postcode' => '6000',
             'shipping_phone' => '09171234567', 'payment_method' => 'bank_transfer',
             'subtotal' => 1000, 'shipping_cost' => 100, 'total' => 1100,
@@ -167,7 +167,7 @@ class FulfillmentServiceCreatingGuardTest extends TestCase
             'address_1'     => '456 Warehouse Ave',
             'barangay'      => 'Bel-Air',
             'district'      => null,
-            'city'          => 'Makati',
+            'city'          => 'Makati City',
             'state'         => 'Metro Manila',
             'postcode'      => '1200',
             'country_id'    => $country->id,
@@ -176,7 +176,7 @@ class FulfillmentServiceCreatingGuardTest extends TestCase
         $order = $this->makeOrder(); // courier_status is null — a fresh, never-booked order.
 
         $result = app(FulfillmentService::class)->book($order, [
-            'courier' => 'spx', 'parcel' => 'small', 'shipping_payment' => 'sender_pay',
+            'courier' => 'spx', 'parcel' => 'small', 'shipping_payment' => 'sender_pay', 'weight_kg' => 1.2,
         ]);
 
         $this->assertTrue($result['success']);

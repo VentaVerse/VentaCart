@@ -108,18 +108,15 @@ class PollCourierStatus extends Command
                     $meta['timeline'] = $timeline;
                     $metaChanged = true;
                 }
-                // Task T2 fix (review IMPORTANT 4): SPX's getTracking() also
-                // fetches the actual post-booking fee (2.2 batch_get_asf) on
-                // every call — this scheduled loop is the ONE hook that
-                // actually persists it (was previously fetched every poll
-                // and silently discarded by every caller, doubling outbound
-                // HTTP for data nobody stored). A courier that doesn't
-                // support this (fee_info absent/null) leaves meta untouched.
-                $feeInfo = $result['fee_info'] ?? null;
-                if (!empty($feeInfo) && ($meta['actual_fee'] ?? null) !== $feeInfo) {
-                    $meta['actual_fee'] = $feeInfo;
+                // Facts beyond the status (SPX: the actual fee once
+                // delivered or returned, the delivery estimate, the return
+                // fee). Shared with the manual refresh.
+                $costBefore = \Extensions\CourierFulfillment\FulfillmentService::courierCost($courier, $meta);
+                if (\Extensions\CourierFulfillment\FulfillmentService::mergeTrackingFacts($meta, $result)) {
                     $metaChanged = true;
                 }
+                $costAfter = \Extensions\CourierFulfillment\FulfillmentService::courierCost($courier, $meta);
+                $costChanged = $costAfter !== null && $costAfter !== $costBefore;
 
                 // Core tracking_link snapshot: prefer the delivery URL, then pickup.
                 // When this poll cycle returned no usable link, keep whatever core
@@ -131,7 +128,7 @@ class PollCourierStatus extends Command
                 $linkChanged = $trackingLink !== $order->getRawOriginal('tracking_link');
                 $nameMissing = $order->shipping_courier_name === null && $order->shipping_courier_id === null;
 
-                if ($statusChanged || $metaChanged || $linkChanged || $nameMissing) {
+                if ($statusChanged || $metaChanged || $linkChanged || $nameMissing || $costChanged) {
                     $fill = [];
                     if ($nameMissing) {
                         // Pre-stamp bookings: the shopper saw a bare number.
@@ -145,6 +142,9 @@ class PollCourierStatus extends Command
                     }
                     if ($linkChanged) {
                         $fill['tracking_link'] = $trackingLink;
+                    }
+                    if ($costChanged) {
+                        $fill['shipping_cost_actual'] = $costAfter;
                     }
                     // courier_* columns aren't in core Order::$fillable — must forceFill.
                     // tracking_link IS fillable, but forceFill here keeps this a single call.

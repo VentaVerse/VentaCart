@@ -1465,6 +1465,18 @@
                                         @if (isset($courierOptions['spx']))
                                         <template x-if="courier === 'spx'">
                                         <div class="v-settle">
+                                            <div class="v-grid v-grid--2">
+                                                <x-admin.field name="weight_kg" label="Weight (kg)" required hint="Prefilled from the products' own weights. Weigh the packed parcel and correct it. A pouch's weight is only its upper limit.">
+                                                    <input name="weight_kg" type="number" step="0.01" min="0.01" inputmode="decimal" class="v-control" x-model="spx.weight">
+                                                </x-admin.field>
+                                                <x-admin.field name="method" label="Handover" required>
+                                                    <select name="method" class="v-control" x-model="spx.method">
+                                                        <option value="dropoff">Drop off myself</option>
+                                                        <option value="pickup">SPX picks up</option>
+                                                    </select>
+                                                </x-admin.field>
+                                            </div>
+
                                             <template x-if="parcel === 'custom'">
                                                 <div class="v-grid v-grid--2">
                                                     <x-admin.field name="length_cm" label="Length (cm)">
@@ -1476,19 +1488,20 @@
                                                     <x-admin.field name="height_cm" label="Height (cm)">
                                                         <input name="height_cm" type="number" step="0.1" min="0.1" class="v-control">
                                                     </x-admin.field>
-                                                    <x-admin.field name="weight_kg" label="Weight (kg)">
-                                                        <input name="weight_kg" type="number" step="0.01" min="0.01" class="v-control">
-                                                    </x-admin.field>
                                                 </div>
                                             </template>
 
-                                            <x-admin.field name="pickup_slot" label="Pickup date (optional)" hint="Drop-off is the default. SPX decides which dates are available for pickup.">
-                                                <select name="pickup_slot" class="v-control">
-                                                    <option value="">Drop off myself</option>
-                                                    <template x-for="o in spxPickupSlots" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
-                                                </select>
-                                            </x-admin.field>
-                                            <p x-show="spxPickupSlotsLoading" x-cloak class="v-subnote v-cell-quiet">Loading pickup dates&hellip;</p>
+                                            <template x-if="spx.method === 'pickup'">
+                                                <div>
+                                                    <x-admin.field name="pickup_slot" label="Pickup time" hint="SPX decides which times are offered. Earliest available books the first one SPX offers when you book.">
+                                                        <select name="pickup_slot" class="v-control">
+                                                            <option value="">Earliest available</option>
+                                                            <template x-for="o in spxPickupSlots" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
+                                                        </select>
+                                                    </x-admin.field>
+                                                    <p x-show="spxPickupSlotsLoading" x-cloak class="v-subnote v-cell-quiet">Loading pickup times&hellip;</p>
+                                                </div>
+                                            </template>
 
                                             <div class="v-well v-between">
                                                 <div>
@@ -1697,6 +1710,7 @@
                 // page load — see FulfillmentController::index()'s
                 // courierOptions comment for why) so a queue page visit
                 // never costs an outbound SPX call.
+                spx: { weight: '', method: 'dropoff' },
                 spxPickupSlots: [],
                 spxPickupSlotsLoading: false,
                 spxEstimate: null,
@@ -1936,6 +1950,8 @@
                     // Only the choices that open unanswered gate the button.
                     // shipping_payment carries the courier's own default.
                     if (this.service === '' || this.parcel === '') return false;
+                    // SPX books the parcel's real weight.
+                    if (this.courier === 'spx' && !(Number(this.spx.weight) > 0)) return false;
                     // A courier with fields of its own (LBC) also needs a
                     // weight, a pickup date it collects on, and either no
                     // size or a whole one (required for the store's own box).
@@ -2109,6 +2125,7 @@
                     // admin actually picks SPX — never during the queue's
                     // own page load (see index()'s courierOptions comment).
                     if (key === 'spx') {
+                        this.spx = { weight: (this.active && this.active.weightKg) ? String(this.active.weightKg) : '', method: 'dropoff' };
                         this.loadSpxPickupSlots();
                     }
                     if (opts.booking) {

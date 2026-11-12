@@ -54,6 +54,9 @@ class ErpFulfillmentController extends Controller
             'weight_kg'         => ['sometimes', 'nullable', 'numeric', 'min:0.01'],
             'pickup_slot'       => ['sometimes', 'nullable', 'string'],
             'pickup_address_id' => ['sometimes', 'nullable', 'integer', 'exists:courier_fulfillment_pickup_addresses,id'],
+            // Optional and new: an explicit pickup or drop-off. Without it a
+            // pickup_slot still means pickup and none means drop-off.
+            'method'            => ['sometimes', 'nullable', 'in:pickup,dropoff'],
         ]);
 
         $opts = array_filter($data, fn ($v) => $v !== null && $v !== '');
@@ -241,7 +244,7 @@ class ErpFulfillmentController extends Controller
 
         $opts = collect($request->only([
             'service', 'parcel', 'shipping_payment', 'length_cm', 'width_cm',
-            'height_cm', 'weight_kg', 'pickup_slot', 'pickup_address_id',
+            'height_cm', 'weight_kg', 'pickup_slot', 'pickup_address_id', 'method',
         ]))->filter(fn ($v) => $v !== null)->all();
         $opts['insure'] = $request->boolean('insure');
 
@@ -262,6 +265,9 @@ class ErpFulfillmentController extends Controller
             'label' => $estimate->label ?? ($estimate->currency . ' ' . number_format($estimate->amount, 2)),
             'insurance' => $estimate->insurance ?? null,
             'total' => $estimate->total ?? $estimate->amount,
+            // Added for SPX; null for a courier that does not say.
+            'remote_area_fee' => $estimate->remote_area_fee ?? null,
+            'odz' => $estimate->odz ?? null,
         ]);
     }
 

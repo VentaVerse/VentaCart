@@ -131,7 +131,7 @@ class FulfillmentQueueTest extends TestCase
             'address_1'     => '456 Warehouse Ave',
             'barangay'      => 'Bel-Air',
             'district'      => null,
-            'city'          => 'Makati',
+            'city'          => 'Makati City',
             'state'         => 'Metro Manila',
             'postcode'      => '1200',
             'country_id'    => $country->id,
@@ -159,7 +159,7 @@ class FulfillmentQueueTest extends TestCase
             'shipping_first_name' => 'Jane',
             'shipping_last_name' => 'Doe',
             'shipping_address_1' => '123 Mango St',
-            'shipping_barangay' => 'Lahug',
+            'shipping_barangay' => 'Apas',
             'shipping_city' => 'Cebu City',
             'shipping_state' => 'Cebu',
             'shipping_postcode' => '6000',
@@ -636,6 +636,7 @@ class FulfillmentQueueTest extends TestCase
             'service'          => 'standard',
             'parcel'           => 'medium',
             'shipping_payment' => 'sender_pay',
+            'weight_kg'        => '1.2',
         ]);
 
         $response->assertRedirect();
@@ -1396,6 +1397,7 @@ class FulfillmentQueueTest extends TestCase
             'service'          => 'standard',
             'parcel'           => 'medium',
             'shipping_payment' => 'sender_pay',
+            'weight_kg'        => '1.2',
         ]);
 
         $response->assertOk()
@@ -1474,6 +1476,9 @@ class FulfillmentQueueTest extends TestCase
             'shipping_payment' => 'sender_pay',
             'insure'           => '0',
             'pickup_slot'      => '',
+            // The SPX block always posts the parcel's weight and the handover choice.
+            'weight_kg'        => '1.2',
+            'method'           => 'dropoff',
         ]);
 
         $response->assertSessionDoesntHaveErrors();
@@ -1520,7 +1525,8 @@ class FulfillmentQueueTest extends TestCase
             'length_cm'        => '',
             'width_cm'         => '',
             'height_cm'        => '',
-            'weight_kg'        => '',
+            'weight_kg'        => '1.2',
+            'method'           => 'dropoff',
         ]);
 
         $response->assertSessionDoesntHaveErrors();
@@ -1557,7 +1563,8 @@ class FulfillmentQueueTest extends TestCase
             'length_cm'        => '',
             'width_cm'         => '',
             'height_cm'        => '',
-            'weight_kg'        => '',
+            'weight_kg'        => '1.2',
+            'method'           => 'dropoff',
         ]);
 
         $response->assertOk();

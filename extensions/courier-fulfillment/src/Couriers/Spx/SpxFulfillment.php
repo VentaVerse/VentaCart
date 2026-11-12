@@ -5,68 +5,60 @@ namespace Extensions\CourierFulfillment\Couriers\Spx;
 use App\Models\Order;
 use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
+use Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl;
+use Extensions\CourierFulfillment\Contracts\ReportsShippingCost;
 use Extensions\CourierFulfillment\FulfillmentService;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Extensions\CourierFulfillment\ServiceabilityService;
+use Extensions\CourierFulfillment\Support\CourierRefusal;
+use Extensions\CourierFulfillment\Support\OrderWeight;
 use Extensions\CourierFulfillment\Support\PhPhone;
 use Extensions\CourierFulfillment\Support\ServiceabilityVerdict;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * SPX (Shopee Xpress) courier — Task T2 of the fulfillment-workflow-v2 + SPX
- * plan (`docs/superpowers/plans/2026-08-08-spx-courier.md`). Fills in every
- * method Task T1 left as a deliberate stub: createShipment/cancelShipment/
- * getTracking, the status-vocabulary/phase methods, the option lists, and
- * the v2 estimateFee()/getPickupSlots() methods. Ground truth for every shape
- * is docs/spx/api.md (verbatim endpoint tables) + docs/spx/integration-brief.md
- * — see each method's docblock for which section it implements.
+ * SPX (Shopee Xpress PH) courier. Endpoint numbers in the docblocks (1.4,
+ * 2.1, ...) are SPX's own Open API section numbers.
  *
- * Task T3 additions: printLabel() (1.6 Get AWB V2 — download+store the
- * perishable label PDF, serve it through this app's own authenticated
- * route), parseWebhook() + verifyWebhookSignature() (4.1 Tracking Web Hook —
- * signed fast-ack dispatch, see CourierWebhookController's SPX branch and
- * Extensions\CourierFulfillment\Jobs\ProcessCourierWebhookJob).
- *
- * Load-bearing decisions made in THIS task (documented in the T2 report too):
- *  - Sender address reuses the module-wide pickup origin rather than a new
- *    spx_sender_* settings block, since QuadX already shares that exact
- *    origin — one pickup address serves every courier. That origin is now a
- *    row in courier_fulfillment_pickup_addresses (a store may keep several
- *    and choose one per booking); it used to be the eight flat
- *    `settings(group=shipping, key=pickup_*)` rows, which are retired.
- *  - Deliver address is resolved by DIRECT best-effort field mapping (order's
- *    shipping_state/city/district/barangay/postcode), not by parsing SPX's
- *    5.1 Address API (which only returns an Excel download link — no JSON
- *    tree, and no spreadsheet-parsing dependency exists in this codebase).
- *    refreshAddressTree() still caches that download link settings-style for
- *    admin visibility; parsing it into a real lookup table is flagged as
- *    follow-up work.
- *  - collect_type defaults to 2 (drop-off) because the current booking form
- *    doesn't collect a pickup-slot choice yet; getPickupSlots() is fully
- *    implemented and createShipment() already switches to collect_type=1
- *    the moment a future UI passes back $opts['pickup_slot'].
- *  - Actual post-booking fee (2.2 batch_get_asf) is fetched inside every
- *    getTracking() call, but PERSISTED at exactly one place:
- *    PollCourierStatus's scheduled loop (courier:poll-status, a T2 file),
- *    which writes it into courier_meta.actual_fee alongside links/timeline —
- *    see that command's docblock and getTracking()'s own. The manual
- *    per-order Refresh button (FulfillmentController::track(), NOT a T2
- *    file) still receives fee_info back but doesn't persist it yet — a
- *    documented follow-up, not silently dropped by design.
+ * How a booking is built and sent:
+ *  - Sender and delivery addresses are placed on SPX's own location list
+ *    (SpxLocations). SPX's state/city/district/street are island group,
+ *    province, city and barangay, not PSGC's levels, and an address SPX does
+ *    not list is refused before anything is sent. The list also says where
+ *    SPX delivers, collects COD and picks up; those flags are checked too.
+ *  - The parcel weight is the real one: what the merchant typed, else the
+ *    products' own weights. A pouch preset supplies the size and a weight
+ *    ceiling, never the weight. Typed sizes beat the preset's.
+ *  - Before 1.4 Create Order, 2.1 Check Shipping Fee is asked with the same
+ *    body: it applies the same parcel rules as create and creates nothing,
+ *    so a parcel SPX would refuse is refused before a booking exists.
+ *  - Every booking gets its own SPX order_id (the date plus six random
+ *    characters), stored as the booking's reference_id. It is never the
+ *    store's order id: one order can be booked, cancelled and booked again.
+ *  - Create is asynchronous (1.4 gives a batch number, 1.5 settles it). A
+ *    transport failure or an SPX server error means the outcome is unknown:
+ *    the booking is kept as `creating` with outcome_unknown, never retried
+ *    blindly. A later attempt reuses the same order_id, so SPX answers 13103
+ *    (already used) instead of creating a second parcel, and the existing
+ *    order is looked up.
+ *  - Collection is explicit: `method` pickup or dropoff. A pickup always
+ *    books a window (the chosen one, else the earliest SPX offers) and is
+ *    never turned into a drop-off. A caller that sends no method keeps the
+ *    older rule: a pickup slot means pickup, none means drop-off.
  */
-class SpxFulfillment implements CourierFulfillmentInterface
+class SpxFulfillment implements CourierFulfillmentInterface, ProvidesPublicTrackingUrl, ReportsShippingCost
 {
     /**
-     * Sensible default PH pouch dimensions (T1 placeholder, editable via the
-     * spx_pouch_presets setting — see settingsSchema()). Well inside SPX's
-     * documented PH parcel limits (integration-brief.md §8: weight < 50kg,
-     * each dimension <= 150cm). Small/Medium/Large mirrors the same shopper
-     * mental model QuadX's pouch parcel options already use.
+     * Starting pouch sizes, editable in the spx_pouch_presets setting. They
+     * are this store's own packaging, not SPX limits: SPX's fee check (2.1)
+     * decides what it accepts.
      */
     public const DEFAULT_POUCH_PRESETS = [
         ['label' => 'Small',  'length_cm' => 25, 'width_cm' => 20, 'height_cm' => 10, 'max_weight_kg' => 3],
@@ -75,23 +67,19 @@ class SpxFulfillment implements CourierFulfillmentInterface
     ];
 
     /**
-     * SPX's parcel_item_type enum (api.md §1.4) has no "unspecified" value —
-     * Venta doesn't track a per-order shipment category, so every booking
-     * declares this safe, generic catch-all rather than guessing.
+     * SPX's parcel_item_type list has no "unspecified" value and orders carry
+     * no shipment category, so every booking declares the generic one.
      */
     private const PARCEL_ITEM_TYPE = 'General merchandise';
 
-    /**
-     * SPX's own "Order status code" table (docs/spx/guide.md, lines
-     * 506-519, "## Order status code", Last Updated 15/04/2025). No live
-     * status-vocabulary endpoint exists in the documented API surface (see
-     * refreshStatusLabels()'s docblock), but this table IS the documented,
-     * stable vocabulary SPX support tickets and the tracking timeline both
-     * speak in, so it ships here as a constant rather than staying a
-     * permanent no-op. Keys match mappableStatuses() exactly (order status
-     * codes only, not the unrelated app/param/create-account/cancel
-     * error-code tables elsewhere in guide.md).
-     */
+    /** SPX's published PH limits: weight under 50 kg, each side at most 150 cm, COD in whole pesos up to 50,000. */
+    private const MAX_WEIGHT_KG = 50.0;
+
+    private const MAX_SIDE_CM = 150.0;
+
+    private const MAX_COD = 50000;
+
+    /** SPX's documented order status codes. Keys match mappableStatuses(). */
     public const STATUS_LABELS = [
         '1001' => 'Pending Pickup',
         '2001' => 'In Transit',
@@ -108,98 +96,94 @@ class SpxFulfillment implements CourierFulfillmentInterface
     ];
 
     /**
-     * SPX's failures, classified by GROUP rather than one code at a time
-     * (owner ruling, 2026-08-12), so a code nobody has seen yet still lands
-     * somewhere sensible instead of falling through as a mystery.
+     * SPX's business-rule codes, grouped, so a code nobody has seen yet still
+     * lands somewhere sensible. These four groups are refusals of the
+     * shipment: the booking modal's card goes inert.
      *
-     * These four are REFUSALS of this shipment: the card goes inert and the
-     * modal writes its own sentence for the group, naming the destination.
-     * Codes are the owner's own grouping of docs/spx/guide.md's error tables.
-     *
-     * Two of them are deliberately NOT "does not deliver here":
-     *  - `cod` is an address SPX will happily deliver to, just not collecting
-     *    cash at, which matters because this store sells heavily on COD.
-     *  - `postcode` is a field on the address, and naming it is what lets an
-     *    operator fix it in ten seconds.
+     * `cod` is an address SPX delivers to, just without collecting cash, and
+     * `postcode` is a field the merchant can fix; neither reads as "does not
+     * deliver here".
      */
     private const REFUSAL_GROUPS = [
-        // Destination not covered. 10062 and 10066 are guide.md codes outside
-        // the owner's table, added here because they say the same thing:
-        // "no route code for this address", "basic serviceable area not
-        // configured".
-        ServiceabilityVerdict::KIND_DESTINATION => [10016, 10017, 10019, 10023, 10026, 10033, 10062, 10066],
-        // Origin not covered. 10065 ("pickup and delivery are not supported")
-        // is guide.md's, and lands here because a pickup address SPX will not
-        // collect from blocks every order, not just this one.
-        ServiceabilityVerdict::KIND_ORIGIN      => [10014, 10015, 10018, 10025, 10054, 10065],
-        // COD not supported at this address.
-        ServiceabilityVerdict::KIND_COD         => [10029, 10030, 10031, 10032, 10043],
-        // The postcode itself is the problem.
+        ServiceabilityVerdict::KIND_DESTINATION => [10016, 10019, 10023, 10026, 10033, 10055, 10062, 10066, 10067, 10068, 10069, 10071, 10075],
+        // A pickup address SPX will not collect from blocks every order.
+        ServiceabilityVerdict::KIND_ORIGIN      => [10014, 10015, 10018, 10025, 10054, 10065, 10070, 10074],
+        // 10017 is COD delivery: the address is served, the cash is not.
+        ServiceabilityVerdict::KIND_COD         => [10017, 10029, 10030, 10031, 10032, 10043],
         ServiceabilityVerdict::KIND_POSTCODE    => [10027, 10028],
     ];
 
     /**
-     * Failures that say NOTHING about whether SPX serves this address, so
-     * they resolve to `unknown` and leave the card clickable:
-     *
-     *  - `parcel`: about the parcel or the COD amount, and the parcel is not
-     *    chosen until step 2. The check quotes SPX's smallest preset, so a
-     *    refusal here is a refusal of OUR guess, and the operator can pick a
-     *    real parcel and quote it exactly with Get estimate.
-     *  - `slot`: a pickup slot is our own form's field, not SPX's coverage.
-     *    10024 ("pickup option not supported") is guide.md's, and it is about
-     *    the collect_type WE sent.
-     *  - `their_side`: an outage. Same bucket as a dead DNS record, for the
-     *    same reason: nobody evaluated the address.
+     * Codes that say nothing about whether SPX serves the address, so the
+     * card stays clickable: the parcel (not chosen yet when coverage is
+     * asked), the pickup window (our own form's field) and SPX's own outages.
      */
     private const UNCERTAIN_GROUPS = [
-        ServiceabilityVerdict::KIND_PARCEL     => [10001, 10003, 10004, 10011, 10050, 10064],
-        ServiceabilityVerdict::KIND_SLOT       => [10013, 10024, 10038, 10039, 10040, 10056],
-        ServiceabilityVerdict::KIND_THEIR_SIDE => [10020, 10044, 10045, 10049, 10052],
+        ServiceabilityVerdict::KIND_PARCEL     => [10001, 10003, 10004, 10011, 10012, 10050, 10064, 10082, 10083, 10084, 10085, 10086],
+        ServiceabilityVerdict::KIND_SLOT       => [10013, 10024, 10038, 10039, 10040, 10056, 10080, 10081],
+        ServiceabilityVerdict::KIND_THEIR_SIDE => [10020, 10044, 10045, 10049, 10052, 10057, 10060, 10061, 10076],
     ];
 
     /**
-     * Which group a code belongs to, and whether that group is a refusal.
-     *
-     * @return array{0:?string, 1:bool} [kind, isRefusal]. A null kind is a
-     *   code we do not recognise: never a refusal, and the caller carries
-     *   SPX's own words through instead of inventing a sentence for it.
+     * The stable `code` a verdict carries for API clients, the same names
+     * the location-list check gives. 10021/10022 (too far, too near) and
+     * 10077/10078 (SPX could not place the address on its map) stay unknown:
+     * SPX measures from its own geocoding of our text.
      */
-    private static function classify(int $code): array
-    {
-        foreach (self::REFUSAL_GROUPS as $kind => $codes) {
-            if (in_array($code, $codes, true)) {
-                return [$kind, true];
-            }
-        }
+    private const VERDICT_CODES = [
+        'spx_no_delivery'             => [10016, 10019, 10026, 10033, 10055, 10066, 10067, 10068, 10071, 10075],
+        'spx_no_route'                => [10023, 10062, 10069],
+        'spx_no_pickup'               => [10014, 10018, 10025, 10054, 10065, 10070, 10074],
+        'spx_no_cod'                  => [10017, 10030, 10032],
+        'spx_no_cod_pickup'           => [10015, 10029, 10031],
+        'spx_invalid_pickup_postcode' => [10027],
+        'spx_invalid_postcode'        => [10028],
+        'spx_too_far'                 => [10021],
+        'spx_too_near'                => [10022],
+        'spx_unmapped_pickup'         => [10077],
+        'spx_unmapped_address'        => [10078],
+    ];
 
-        foreach (self::UNCERTAIN_GROUPS as $kind => $codes) {
-            if (in_array($code, $codes, true)) {
-                return [$kind, false];
-            }
-        }
-
-        return [null, false];
-    }
-
-    /** api.md §"Order status codes" (also integration-brief.md §5's table), bucketed for statusPhase()/terminalStatuses()/cancelableStatuses(). */
     private const DELIVERED = ['4001'];
     private const CANCELLED = ['7001'];
-    /** Coming back to the seller — in progress (6001) or completed (6003), mirrors QuadX's 'returned' also living in the 'returning' bucket, not 'delivered'. */
+    /** Coming back to the store: in progress (6001) or completed (6003). */
     private const RETURNING_STATUSES = ['6001', '6003'];
-    /** Exceptions that need the seller's attention. 3001/5001 are pre-pickup (legacy step 1); 5002/5003/6002 only happen once SPX already has the parcel (step 2). */
-    private const FAILED_STATUSES = ['3001', '5001', '5002', '5003', '6002'];
-    private const FAILED_PRE_PICKUP = ['3001', '5001'];
-    /** Courier has the parcel and it's moving. */
-    private const IN_TRANSIT_STATUSES = ['2001', '2006'];
+    /** 5001 Pickup Failed happens before SPX has the parcel; 5002 Damaged, 5003 Lost and 6002 Return Failed after. */
+    private const FAILED_STATUSES = ['5001', '5002', '5003', '6002'];
+    private const FAILED_PRE_PICKUP = ['5001'];
+    /**
+     * Courier has the parcel. 3001 On Hold is held during delivery: SPX
+     * still has it and nothing has failed for good, so it is not a failure
+     * and not pre-pickup; its own label ("On Hold") is what the row shows.
+     */
+    private const IN_TRANSIT_STATUSES = ['2001', '2006', '3001'];
+
+    /** Statuses at which SPX's actual fee (2.2) is final enough to ask for. */
+    private const ACTUAL_FEE_STATUSES = ['4001', '6003'];
+
+    /** How long one parcel waits before 2.2 is asked again. */
+    private const ACTUAL_FEE_RETRY_SECONDS = 86400;
+
+    /** 1.5 task_status values that settle a batch: 4 Done, 5 Failed. */
+    private const CREATE_RESULT_SETTLED = [4, 5];
+
+    /** How long an unconfirmed booking waits for SPX's answer to be found before it is reported as failed. */
+    public const UNKNOWN_OUTCOME_MINUTES = 30;
+
+    /** SPX's status for an order it has created and not yet collected; the only one an order can be edited in. */
+    public const PENDING_PICKUP = '1001';
+
+    private const NO_PICKUP_TIME = 'SPX has no pickup time available right now.';
+
+    private const CANCEL_TOO_LATE_MESSAGE = 'This shipment has already been picked up (or it is too late to cancel). SPX only allows cancelling orders still pending pickup or drop-off.';
 
     public function __construct(
         private ?SpxClient $client = null,
         private ?\Closure $sleeper = null,
+        private ?SpxLocations $locations = null,
     ) {
         $this->client = $client ?? new SpxClient();
-        // Real wall-clock backoff by default; tests inject a no-op (or
-        // recording) closure so bounded-polling logic never actually sleeps.
+        // Real backoff by default; tests inject a no-op so bounded polling never sleeps.
         $this->sleeper = $sleeper ?? static function (int $ms): void {
             usleep($ms * 1000);
         };
@@ -215,20 +199,20 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return 'SPX';
     }
 
-    /** Flag on AND app-level credential completeness (app-id + secret), mirroring QuadX's pattern. */
+    /** Switched on and holding the app-level pair (app id and secret). */
     public function isEnabled(): bool
     {
         $on = Setting::where('group', 'courier')->where('key', 'spx_enabled')->value('value');
+
         return (bool) $on && $this->client->isConfigured();
     }
 
-    /** @see CourierFulfillmentInterface::configurationIssues() */
     public function configurationIssues(): array
     {
         return $this->client->missingCredentialLabels();
     }
 
-    /** SPX only documents one service_type (1: standard service) — see api.md §1.4. */
+    /** SPX documents one service_type (1: standard). */
     public function getServiceTypes(): array
     {
         return [
@@ -236,7 +220,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
         ];
     }
 
-    /** Configured spx_pouch_presets (or DEFAULT_POUCH_PRESETS — T1 carry-forward note) plus a custom-dims escape hatch. */
+    /** The configured pouch presets plus custom dimensions. */
     public function getParcelOptions(): array
     {
         $options = [];
@@ -259,7 +243,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return $options;
     }
 
-    /** SPX's payment_role: 1 sender pay, 2 receiver pay (api.md §1.4). */
+    /** SPX's payment_role: 1 sender pays, 2 receiver pays. */
     public function getShippingPaymentOptions(): array
     {
         return [
@@ -268,75 +252,120 @@ class SpxFulfillment implements CourierFulfillmentInterface
         ];
     }
 
+    // --- Booking ---------------------------------------------------------------
+
     /**
-     * 1.4 Create Order V2 -> 1.5 Get Order Create Result V2 (api.md §1.4/§1.5).
-     * Submits ONE order per call (Venta books orders one at a time), then
-     * polls the async result bounded to ~15s (pollCreateResult()). If it
-     * finishes within the window, returns the real tracking number; if not,
-     * persists courier_status='creating' + batch_no in meta and returns a
-     * "pending" success (see this class's docblock + resolvePendingCreation()
-     * for how that gets completed later by courier:poll-status).
+     * 1.4 Create Order V2, then 1.5 Get Order Create Result V2, polled for up
+     * to about 15 seconds. Settled: the tracking number. Still running: a
+     * `creating` booking that courier:poll-status finishes. Unknown (no
+     * answer, or an SPX server error): a `creating` booking marked
+     * outcome_unknown with a notice, so the order cannot be booked twice.
      */
     public function createShipment(Order $order, array $opts): array
     {
-        // Carry-forward note (b) from T1's review: the booking gate must
-        // consult USER-credential completeness (not just app-id/secret) and
-        // fail with a clear message, never a raw SPX auth error.
         if (!$this->client->hasAccountCredentials()) {
             return ['success' => false, 'error' => 'SPX booking requires the User ID / User Secret to be configured (Settings > SPX) before booking.'];
+        }
+
+        $priorMeta = self::metaOf($order);
+        $opts['reference'] = $this->referenceFor($order, $priorMeta);
+
+        $pickup = self::wantsPickup($opts);
+        $changes = [];
+        $slot = null;
+        if ($pickup) {
+            // A pickup always has a window: the one asked for, else the
+            // earliest SPX offers. A day already over is replaced the same way.
+            $slot = self::decodeSlot($opts['pickup_slot'] ?? null);
+            if ($slot === null || self::slotPassed($slot)) {
+                $next = $this->nextSlot(null);
+                if (!$next['ok']) {
+                    return ['success' => false, 'error' => $next['error']];
+                }
+                $changes[] = self::slotChange($next['slot'], $slot === null ? 'earliest' : 'passed');
+                $slot = $next['slot'];
+            }
+            $opts['pickup_slot'] = self::encodeSlot($slot);
+            $opts['method'] = 'pickup';
+        } else {
+            unset($opts['pickup_slot']);
+            $opts['method'] = 'dropoff';
         }
 
         $built = $this->buildOrderPayload($order, $opts);
         if (!$built['ok']) {
             return ['success' => false, 'error' => $built['error']];
         }
-        $orderPayload = $built['payload'];
-
-        try {
-            $createData = $this->client->createOrders([$orderPayload]);
-        } catch (SpxApiException $e) {
-            return ['success' => false, 'error' => "SPX booking failed: {$e->getMessage()} (ret_code {$e->retCode})"];
-        } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'SPX booking failed: ' . $e->getMessage()];
+        if (($problem = $this->limitProblem($order, $opts)) !== null) {
+            return ['success' => false, 'error' => $problem];
         }
 
-        $batchNo = $createData['batch_no'] ?? null;
-        if (!$batchNo) {
-            return ['success' => false, 'error' => 'SPX did not return a batch number for this booking.'];
+        $context = $this->parcelContext($order, $opts);
+
+        // SPX's own rules, asked without creating anything.
+        $check = $this->checkPayload($built['payload'], $context, ServiceabilityService::TIMEOUT_SECONDS * 2);
+        if ($check['status'] === 'refused') {
+            return ['success' => false, 'error' => $check['refusal']->message(), 'courier_error' => $check['raw']];
         }
 
-        $meta = [
-            'service'          => $opts['service'] ?? 'standard',
-            'parcel'           => $opts['parcel'] ?? null,
-            'shipping_payment' => $opts['shipping_payment'] ?? 'sender_pay',
-            'reference_id'     => $orderPayload['order_id'],
-            'batch_no'         => $batchNo,
-        ];
+        $attempt = $this->submitOrder($built['payload'], $context);
 
-        $resultData = $this->pollCreateResult((int) $batchNo);
-
-        if ($resultData !== null) {
-            $outcome = $this->outcomeFromCreateResult($resultData);
-            if ($outcome['ok']) {
-                $meta['booked_response']         = $outcome['order'];
-                $meta['estimated_shipping_fee']  = $outcome['order']['estimated_shipping_fee'] ?? null;
-
+        if ($pickup && $attempt['kind'] === 'refused' && $attempt['code'] === 10080) {
+            // Past SPX's cutoff: ask for the windows again, once, and book
+            // the one SPX lists after the refused one.
+            $refused = $slot;
+            $next = $this->nextSlot($refused);
+            if (!$next['ok']) {
+                return ['success' => false, 'error' => 'The pickup time ' . self::slotLabel($refused) . " is past SPX's cutoff"
+                    . ($next['error'] === self::NO_PICKUP_TIME ? ', and SPX has no later pickup time.' : '. ' . $next['error'])];
+            }
+            $slot = $next['slot'];
+            $changes[] = self::slotChange($slot, 'cutoff');
+            $opts['pickup_slot'] = self::encodeSlot($slot);
+            $built = $this->buildOrderPayload($order, $opts);
+            if (!$built['ok']) {
+                return ['success' => false, 'error' => $built['error']];
+            }
+            $attempt = $this->submitOrder($built['payload'], $context);
+            if ($attempt['kind'] === 'refused' && $attempt['code'] === 10080) {
                 return [
-                    'success'         => true,
-                    'tracking_number' => $outcome['order']['tracking_no'],
-                    // Not in the create-result response — the next tracking
-                    // poll (courier:poll-status, or a manual Refresh) fills
-                    // this in. Null here is deliberate, not a bug.
-                    'status'          => null,
-                    'meta'            => $meta,
+                    'success' => false,
+                    'error' => 'SPX refused the pickup times ' . self::slotLabel($refused) . ' and ' . self::slotLabel($slot) . ' as past its cutoff. Choose another pickup time.',
+                    'courier_error' => $attempt['raw'] ?? null,
                 ];
             }
-
-            return ['success' => false, 'error' => "SPX booking failed: {$outcome['error']}"];
         }
 
-        // Still pending after the bounded poll window.
+        $meta = $this->bookingMeta($order, $opts, $built['payload']);
+        if ($changes !== []) {
+            $before = is_array($priorMeta['pickup_changes'] ?? null) ? array_values($priorMeta['pickup_changes']) : [];
+            $meta['pickup_changes'] = array_slice([...$before, ...$changes], -20);
+        }
+
+        if ($attempt['kind'] === 'refused' && $attempt['code'] === 13103) {
+            return $this->alreadyCreated($order, $priorMeta, $meta, $attempt['batch_no'] ?? null);
+        }
+        if ($attempt['kind'] === 'unknown') {
+            return $this->unconfirmed($meta, $attempt['error']);
+        }
+        if ($attempt['kind'] === 'refused') {
+            return ['success' => false, 'error' => $attempt['error'], 'courier_error' => $attempt['raw'] ?? null];
+        }
+
+        $meta['batch_no'] = $attempt['batch_no'];
+
+        if ($attempt['kind'] === 'booked') {
+            return [
+                'success'         => true,
+                'tracking_number' => (string) $attempt['order']['tracking_no'],
+                // Not in the create result: the next tracking poll fills it in.
+                'status'          => null,
+                'meta'            => self::bookedMeta($attempt['order']) + $meta,
+            ];
+        }
+
         $meta['pending'] = true;
+
         return [
             'success'         => true,
             'tracking_number' => null,
@@ -346,12 +375,248 @@ class SpxFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * 1.3 Cancel Order (batch_cancel_order). tracking_no_list is sent as a
-     * REAL JSON array (SpxClient::cancelOrders() never comma-joins). 13002
-     * (OrderUnableCancelCode) — surfaced either as the whole call's
-     * ret_code, or per-tracking-number inside data.fail_list[] (api.md
-     * §1.3's own example shows the latter) — gets a friendly message either
-     * way rather than SPX's raw text.
+     * The SPX order_id for this booking: a fresh one, except after an
+     * attempt whose outcome was never known, which is retried under the same
+     * id so SPX can say it already has it (13103) instead of creating twice.
+     */
+    private function referenceFor(Order $order, array $priorMeta): string
+    {
+        $prior = $priorMeta['reference_id'] ?? null;
+        if (($priorMeta['outcome_unknown'] ?? false) === true
+            && (string) $order->courier_provider === $this->getKey()
+            && trim((string) $order->courier_tracking_number) === ''
+            && is_string($prior) && preg_match('/^[A-Za-z0-9]{6,32}$/', $prior) === 1) {
+            return $prior;
+        }
+
+        return self::newReference();
+    }
+
+    /** "20261113K7Q2ZD": the booking date (store time zone) and six random characters. */
+    public static function newReference(): string
+    {
+        return now(config('app.timezone'))->format('Ymd') . strtoupper(Str::random(6));
+    }
+
+    /**
+     * What a booking keeps about itself, whichever way it ends: enough to
+     * look it up again, to print, and to edit it with the values it was
+     * booked with.
+     *
+     * @return array<string, mixed>
+     */
+    private function bookingMeta(Order $order, array $opts, array $payload): array
+    {
+        $parcel = $payload['parcel_info'];
+        $fulfillment = $payload['fulfillment_info'];
+
+        return array_filter([
+            'mode'             => Setting::where('group', 'courier')->where('key', 'spx_mode')->value('value') ?: 'uat',
+            'service'          => $opts['service'] ?? 'standard',
+            'parcel'           => $opts['parcel'] ?? null,
+            'shipping_payment' => $opts['shipping_payment'] ?? 'sender_pay',
+            'reference_id'     => $payload['order_id'],
+            'method'           => $opts['method'] ?? 'dropoff',
+            'pickup_slot'      => ($opts['method'] ?? null) === 'pickup' ? ($opts['pickup_slot'] ?? null) : null,
+            'cod'              => (bool) $fulfillment['cod_collection'],
+            'cod_amount'       => $fulfillment['cod_amount'] ?? null,
+            'insure'           => (float) $parcel['express_insured_value'] > 0,
+            'insured_value'    => $parcel['express_insured_value'],
+            'weight_kg'        => $parcel['parcel_weight'],
+            'length_cm'        => $parcel['parcel_length'],
+            'width_cm'         => $parcel['parcel_width'],
+            'height_cm'        => $parcel['parcel_height'],
+        ], fn ($v) => $v !== null);
+    }
+
+    /**
+     * A booking SPX may or may not have: kept as `creating` so the order
+     * cannot be booked again, with its order_id, and checked by
+     * courier:poll-status (resolvePendingCreation()).
+     */
+    private function unconfirmed(array $meta, string $why): array
+    {
+        $meta['pending'] = true;
+        $meta['outcome_unknown'] = true;
+        $meta['unknown_since'] = now()->toIso8601String();
+        unset($meta['batch_no']);
+
+        Log::warning('SPX booking outcome unknown', ['reference' => $meta['reference_id'] ?? null, 'why' => mb_substr($why, 0, 300)]);
+
+        return [
+            'success'         => true,
+            'tracking_number' => null,
+            'status'          => 'creating',
+            'meta'            => $meta,
+            'notice'          => 'SPX did not confirm this booking (' . ($meta['reference_id'] ?? '') . '). It stays in Booking while SPX is checked; it is not sent again, so SPX cannot create it twice.',
+        ];
+    }
+
+    /**
+     * One 1.4 submit and its bounded 1.5 poll.
+     *
+     * @return array{kind:'booked', order:array, batch_no:int|string}
+     *       | array{kind:'pending', batch_no:int|string}
+     *       | array{kind:'refused', error:string, raw:?string, code:?int, batch_no?:int|string}
+     *       | array{kind:'unknown', error:string}
+     */
+    private function submitOrder(array $payload, array $context): array
+    {
+        try {
+            $createData = $this->client->createOrders([$payload]);
+        } catch (SpxApiException $e) {
+            if ($e->isServerError()) {
+                // A server error: SPX may have taken the order anyway.
+                return ['kind' => 'unknown', 'error' => "SPX answered with a server error (ret_code {$e->retCode})."];
+            }
+
+            return [
+                'kind'  => 'refused',
+                'error' => SpxRefusals::explain($e->retCode, $e->getMessage(), $context)->message(),
+                'raw'   => self::rawText($e->retCode, $e->getMessage(), null),
+                'code'  => $e->retCode,
+            ];
+        } catch (\Throwable $e) {
+            // No answer, a timeout or a non-envelope page: the order may exist at SPX.
+            return ['kind' => 'unknown', 'error' => 'SPX did not answer the booking request.'];
+        }
+
+        $batchNo = $createData['batch_no'] ?? null;
+        if (!$batchNo) {
+            // SPX accepted the request but gave nothing to follow it by.
+            return ['kind' => 'unknown', 'error' => 'SPX did not return a batch number for this booking.'];
+        }
+
+        $resultData = $this->pollCreateResult((int) $batchNo);
+        if ($resultData === null) {
+            return ['kind' => 'pending', 'batch_no' => $batchNo];
+        }
+
+        $outcome = self::outcomeFromCreateResult($resultData, $context);
+
+        return $outcome['ok']
+            ? ['kind' => 'booked', 'order' => $outcome['order'], 'batch_no' => $batchNo]
+            : ['kind' => 'refused', 'error' => $outcome['error'], 'raw' => $outcome['raw'] ?? null, 'code' => $outcome['code'] ?? null, 'batch_no' => $batchNo];
+    }
+
+    /**
+     * SPX answered 13103: it already has an order with this order_id, from an
+     * earlier attempt whose answer never arrived. The order is looked up and,
+     * when found, booked with it. When it cannot be found the booking stays
+     * unconfirmed: a parcel exists at SPX that must not be forgotten.
+     */
+    private function alreadyCreated(Order $order, array $priorMeta, array $meta, int|string|null $refusedBatch): array
+    {
+        $ref = (string) $meta['reference_id'];
+        $found = $this->existingOrder($order, $ref, $priorMeta, $refusedBatch === null ? null : (int) $refusedBatch);
+        if ($found === null) {
+            return $this->unconfirmed($meta, 'SPX already has this order id but it could not be found.');
+        }
+
+        return [
+            'success'         => true,
+            'tracking_number' => (string) $found['order']['tracking_no'],
+            'status'          => $found['status'],
+            'meta'            => self::bookedMeta($found['order']) + ['batch_no' => $found['batch_no'], 'recovered' => 13103] + $meta,
+            'notice'          => "SPX already had order {$ref} from an earlier attempt, so that booking was kept.",
+        ];
+    }
+
+    /**
+     * The SPX order this booking already has: in the earlier batch (1.5) when
+     * one is on file, else by Track (1.2) on the tracking number on file or
+     * the order_id itself. A Track answer counts only when it names this
+     * order_id and does not name another receiver's phone. Best effort.
+     *
+     * @return array{order:array<string, mixed>, batch_no:int|string|null, status:?string}|null
+     */
+    private function existingOrder(Order $order, string $ref, array $priorMeta, ?int $refusedBatch): ?array
+    {
+        $prior = $priorMeta['batch_no'] ?? null;
+        if (is_numeric($prior) && (int) $prior !== $refusedBatch) {
+            try {
+                $result = $this->client->getOrderCreateResult((int) $prior);
+                foreach (($result['orders'] ?? []) as $o) {
+                    if (is_array($o) && (string) ($o['order_id'] ?? '') === $ref && !empty($o['tracking_no'])) {
+                        return ['order' => $o, 'batch_no' => $prior, 'status' => null];
+                    }
+                }
+            } catch (\Throwable) {
+                // falls through to Track
+            }
+        }
+
+        $known = trim((string) $order->courier_tracking_number);
+        foreach (array_values(array_unique(array_filter([$known, $ref]))) as $asked) {
+            try {
+                $data = $this->client->trackOrders([$asked]);
+            } catch (\Throwable) {
+                continue;
+            }
+            foreach (($data['orders'] ?? []) as $o) {
+                $tracking = is_array($o) && is_string($o['tracking_no'] ?? null) ? trim($o['tracking_no']) : '';
+                if ($tracking === '' || !self::sameRecipientPhone($order, $o)) {
+                    continue;
+                }
+                $orderId = (string) ($o['order_id'] ?? '');
+                if ($orderId === $ref || ($orderId === '' && $asked === $known && $tracking === $known)) {
+                    $status = $o['status_code'] ?? null;
+
+                    return [
+                        // Track also answers names, phones and addresses: only what identifies the order is kept.
+                        'order'    => array_intersect_key($o, array_flip(['order_id', 'tracking_no', 'tracking_link', 'status_code'])),
+                        'batch_no' => null,
+                        'status'   => is_scalar($status) && (string) $status !== '' ? (string) $status : null,
+                    ];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** False only when Track names a receiver phone that is not this order's (a missing phone proves nothing). */
+    private static function sameRecipientPhone(Order $order, array $tracked): bool
+    {
+        $said = $tracked['deliver_info']['deliver_phone'] ?? null;
+        $theirs = PhPhone::normalize(is_scalar($said) ? (string) $said : null);
+        $ours = PhPhone::normalize($order->shipping_phone ?: $order->phone);
+        if ($theirs === null || $ours === null) {
+            return true;
+        }
+
+        return substr($theirs, -10) === substr($ours, -10);
+    }
+
+    /** @return array{at:string, slot:string, label:string, reason:string} one pickup-time change, kept with the booking */
+    private static function slotChange(array $slot, string $reason): array
+    {
+        return ['at' => now()->toIso8601String(), 'slot' => self::encodeSlot($slot), 'label' => self::slotLabel($slot), 'reason' => $reason];
+    }
+
+    /** Collected or dropped off: the explicit `method`, else whether a pickup slot came. */
+    private static function wantsPickup(array $opts): bool
+    {
+        return match ($opts['method'] ?? null) {
+            'pickup' => true,
+            'dropoff' => false,
+            default => self::decodeSlot($opts['pickup_slot'] ?? null) !== null,
+        };
+    }
+
+    /** @return array<string, mixed> */
+    private static function metaOf(Order $order): array
+    {
+        $meta = $order->courier_meta ? json_decode((string) $order->courier_meta, true) : null;
+
+        return is_array($meta) ? $meta : [];
+    }
+
+    // --- Cancel and tracking ------------------------------------------------------
+
+    /**
+     * 1.3 Cancel Order. 13002 (too late to cancel) arrives either as the
+     * whole call's ret_code or inside fail_list; both get the same sentence.
      */
     public function cancelShipment(string $trackingNumber): array
     {
@@ -365,13 +630,13 @@ class SpxFulfillment implements CourierFulfillmentInterface
             if ($e->retCode === 13002) {
                 return ['success' => false, 'error' => self::CANCEL_TOO_LATE_MESSAGE];
             }
+
             return ['success' => false, 'error' => "SPX cancel failed: {$e->getMessage()} (ret_code {$e->retCode})"];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'SPX cancel failed: ' . $e->getMessage()];
+            return ['success' => false, 'error' => 'SPX cancel failed: SPX did not answer.'];
         }
 
-        $cancelled = $data['tracking_no_list'] ?? [];
-        if (in_array($trackingNumber, $cancelled, true)) {
+        if (in_array($trackingNumber, $data['tracking_no_list'] ?? [], true)) {
             return ['success' => true];
         }
 
@@ -380,6 +645,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
                 if ((int) ($fail['ret_code'] ?? 0) === 13002) {
                     return ['success' => false, 'error' => self::CANCEL_TOO_LATE_MESSAGE];
                 }
+
                 return ['success' => false, 'error' => $fail['message'] ?? 'SPX cancel failed.'];
             }
         }
@@ -387,20 +653,11 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return ['success' => false, 'error' => 'SPX did not confirm the cancellation.'];
     }
 
-    private const CANCEL_TOO_LATE_MESSAGE = 'This shipment has already been picked up (or it is too late to cancel). SPX only allows cancelling orders still pending pickup/drop-off.';
-
     /**
-     * 1.2 Track Order (batch_search_order). Retries a bounded 2x on 13251
-     * (order not yet propagated — integration-brief.md §5's timing caveat:
-     * "don't call Track immediately (<1-3s) after a successful Create").
-     * api.md §1.2's own note says 13251 can surface EITHER way — the whole
-     * call rejected with that ret_code, OR (ret_code:0 overall) this
-     * tracking number landed in the per-item data.fail_list with that code
-     * — so both surfaces are checked before deciding whether to back off and
-     * retry (mirrors how cancelShipment() checks both surfaces for 13002).
-     * Also fetches 2.2's actual fee on every call (returned as `fee_info`) —
-     * see this method's dedicated comment below, and courier:poll-status's
-     * docblock, for where that value is actually PERSISTED.
+     * 1.2 Track Order. Retries twice on 13251 (not yet propagated, which SPX
+     * answers right after a create), whether it comes as the call's ret_code
+     * or inside fail_list. Once the parcel is delivered or returned, also
+     * asks 2.2 for the actual fee, at most once per parcel per day.
      */
     public function getTracking(string $trackingNumber): array
     {
@@ -421,7 +678,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
                 $lastError = $e;
                 $data = null;
             } catch (\Throwable $e) {
-                return ['success' => false, 'error' => 'SPX tracking failed: ' . $e->getMessage()];
+                return ['success' => false, 'error' => 'SPX tracking failed: SPX did not answer.'];
             }
 
             $notYetPropagated = $lastError !== null && $lastError->retCode === 13251;
@@ -460,42 +717,62 @@ class SpxFulfillment implements CourierFulfillmentInterface
                     return ['success' => false, 'error' => $fail['message'] ?? 'SPX tracking failed.'];
                 }
             }
+
             return ['success' => false, 'error' => 'SPX returned no data for this tracking number.'];
         }
 
-        // 2.2 Get Order Fee (batch_get_asf) — fetched here on every call
-        // since this method is stateless (no access to the Order/
-        // courier_meta to detect "already have it"). PollCourierStatus's
-        // scheduled loop is the ONE place that actually persists the
-        // returned `fee_info` into courier_meta.actual_fee (see that
-        // command's docblock + this task's report) — the manual per-order
-        // Refresh button also receives it back but doesn't persist it yet.
-        // Best-effort — a fee lookup failure (e.g. not yet available
-        // pre-pickup) never breaks tracking itself.
-        $feeInfo = null;
-        try {
-            $feeData = $this->client->getActualFee([$trackingNumber]);
-            foreach (($feeData['orders'] ?? []) as $fo) {
-                if (($fo['tracking_no'] ?? null) === $trackingNumber) {
-                    $feeInfo = $fo['fee_info'] ?? null;
-                    break;
-                }
-            }
-        } catch (\Throwable $e) {
-            // best-effort only — see comment above.
-        }
+        $status = $found['status_code'] ?? $found['status'] ?? null;
+        $status = is_scalar($status) ? (string) $status : null;
+        $feeInfo = $this->actualFeeInfo($trackingNumber, $status);
 
         return [
-            'success'  => true,
-            'status'   => $found['status_code'] ?? $found['status'] ?? null,
-            'raw'      => $found,
-            'links'    => !empty($found['tracking_link']) ? ['delivery' => $found['tracking_link']] : null,
-            'timeline' => self::timelineFromRoutes($found['routes'] ?? null),
-            'fee_info' => $feeInfo,
+            'success'    => true,
+            'status'     => $status,
+            'raw'        => $found,
+            'links'      => self::deliveryLink($found['tracking_link'] ?? null),
+            'timeline'   => self::timelineFromRoutes($found['routes'] ?? null),
+            'fee_info'   => $feeInfo,
+            'actual_fee' => is_array($feeInfo) ? self::amount($feeInfo['actual_shipping_fee'] ?? null) : null,
+            'meta'       => array_filter([
+                'edd'               => self::edd($found['edd_info']['edd_min'] ?? null, $found['edd_info']['edd_max'] ?? null, 'tracking'),
+                'actual_return_fee' => is_array($feeInfo) ? self::positiveAmount($feeInfo['return_shipping_fee'] ?? null) : null,
+            ], fn ($v) => $v !== null),
         ];
     }
 
-    /** Normalize SPX's routes[] history into the same {status,at} timeline shape QuadXFulfillment::timelineFromTat() produces. */
+    /**
+     * 2.2 Get Order Fee for one parcel, or null. Asked only once the parcel
+     * is delivered or returned, and at most once per parcel per day: the
+     * webhook carries the running fee before that, and asking on every poll
+     * spent a call per parcel per run. Best effort.
+     *
+     * @return array<string, mixed>|null SPX's fee_info
+     */
+    private function actualFeeInfo(string $trackingNumber, ?string $status): ?array
+    {
+        if (!in_array($status, self::ACTUAL_FEE_STATUSES, true)) {
+            return null;
+        }
+        if (!Cache::add('courier-fulfillment:spx:actual-fee:' . $trackingNumber, now()->getTimestamp(), self::ACTUAL_FEE_RETRY_SECONDS)) {
+            return null;
+        }
+
+        try {
+            $feeData = $this->client->getActualFee([$trackingNumber]);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        foreach (($feeData['orders'] ?? []) as $fo) {
+            if (is_array($fo) && ($fo['tracking_no'] ?? null) === $trackingNumber) {
+                return is_array($fo['fee_info'] ?? null) ? $fo['fee_info'] : null;
+            }
+        }
+
+        return null;
+    }
+
+    /** SPX's routes[] history as the shared {status, at} timeline. */
     public static function timelineFromRoutes(?array $routes): array
     {
         if (empty($routes)) {
@@ -510,39 +787,32 @@ class SpxFulfillment implements CourierFulfillmentInterface
             $events[] = ['status' => (string) ($r['status_code'] ?? $r['status'] ?? ''), 'at' => $at];
         }
         usort($events, fn ($a, $b) => $a['at'] <=> $b['at']);
+
         return array_values($events);
     }
 
-    /**
-     * Final states — the poll stops re-checking once an order reaches one.
-     * 5001/3001/6002 are NOT terminal (rider/return retries), mirroring how
-     * QuadX's failed_pickup_attempt stays non-terminal.
-     */
+    /** Final states. 5001 and 6002 are not final: SPX retries them. 3001 On Hold is not final either. */
     public function terminalStatuses(): array
     {
         return [...self::DELIVERED, '5002', '5003', '6003', ...self::CANCELLED];
     }
 
-    /** "Only those orders with pending pickup/dropoff status can be cancelled" (guide.md's 13002 recall in api.md §1.3). */
+    /** Only orders still pending pickup or drop-off can be cancelled. */
     public function cancelableStatuses(): array
     {
-        return ['1001'];
+        return [self::PENDING_PICKUP];
     }
 
     /**
-     * Buckets every SPX status code (api.md's order status table) plus the
-     * two internal bridging statuses THIS courier introduces ('creating' —
-     * async create still in flight; 'creation_failed' — async create Done
-     * but permanently failed, see resolvePendingCreation()) onto the common
-     * 8-phase spine.
+     * Every SPX status code plus this courier's two bridging statuses
+     * (`creating`: create in flight or unconfirmed; `creation_failed`) on the
+     * shared spine.
      */
     public function statusPhase(?string $status): array
     {
         $s = (string) $status;
 
         if ($s === 'creating') {
-            // Sanctioned per this task's brief: "the async-create pending
-            // state maps to phase booking".
             return ['phase' => 'booking', 'step' => 1, 'failed' => false];
         }
         if ($s === 'creation_failed') {
@@ -551,12 +821,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
         if (in_array($s, self::DELIVERED, true)) {
             return ['phase' => 'delivered', 'step' => 3, 'failed' => false];
         }
-        // Final-review fix (Finding 1): alongside SPX's own 7001, the
-        // literal 'canceled'/'cancelled' the admin Cancel action stamps
-        // (FulfillmentController::cancel() writes it for EVERY courier)
-        // must bucket to the cancelled phase too — otherwise an
-        // admin-cancelled SPX order read as 'to_handover' until the next
-        // poll/webhook overwrote it with 7001.
+        // The literal canceled/cancelled the admin Cancel action writes buckets with SPX's own 7001.
         if (in_array($s, self::CANCELLED, true) || in_array($s, FulfillmentService::CANCELED_STATUSES, true)) {
             return ['phase' => 'cancelled', 'step' => 1, 'failed' => true];
         }
@@ -565,25 +830,24 @@ class SpxFulfillment implements CourierFulfillmentInterface
         }
         if (in_array($s, self::FAILED_STATUSES, true)) {
             $prePickup = in_array($s, self::FAILED_PRE_PICKUP, true);
+
             return ['phase' => 'failed', 'step' => $prePickup ? 1 : 2, 'failed' => true];
         }
         if (in_array($s, self::IN_TRANSIT_STATUSES, true)) {
             return ['phase' => 'in_transit', 'step' => 2, 'failed' => false];
         }
 
-        // 1001 Pending Pickup, and any unrecognized/unset status: booked,
-        // still awaiting courier collection/drop-off.
+        // 1001 Pending Pickup, and anything unrecognized: booked, awaiting collection or drop-off.
         return ['phase' => 'to_handover', 'step' => 1, 'failed' => false];
     }
 
+    // --- Fees and coverage --------------------------------------------------------
+
     /**
-     * 2.1 Check Shipping Fee (batch_check_order) — estimated fee BEFORE
-     * booking. Reuses buildOrderPayload() (same shape createShipment() would
-     * submit); returns null (the interface's sanctioned "unsupported/
-     * unavailable" default) rather than a partial guess whenever the order's
-     * address or the store's pickup origin isn't complete enough to build a
-     * real payload — an estimate from incomplete data would mislead the
-     * operator committing money from this screen.
+     * 2.1 Check Shipping Fee, the estimate shown before booking. Null when
+     * the order or the pickup address is not complete enough to ask, or SPX
+     * gives no fee. remote_area_fee and odz (out of SPX's normal delivery
+     * zone) are information only: an address with a surcharge is still served.
      */
     public function estimateFee(Order $order, array $options): ?object
     {
@@ -591,6 +855,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return null;
         }
 
+        unset($options['pickup_slot']);
         $built = $this->buildOrderPayload($order, $options);
         if (!$built['ok']) {
             return null;
@@ -598,41 +863,117 @@ class SpxFulfillment implements CourierFulfillmentInterface
 
         try {
             $data = $this->client->checkOrderFee([$built['payload']]);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             return null;
         }
 
         $first = ($data['orders'] ?? [])[0] ?? null;
-        if (!$first || !isset($first['estimated_shipping_fee'])) {
+        if (!is_array($first) || !isset($first['estimated_shipping_fee']) || !is_numeric($first['estimated_shipping_fee'])) {
             return null;
         }
 
         $amount = (float) $first['estimated_shipping_fee'];
+
         return (object) [
-            'amount'   => $amount,
-            'currency' => 'PHP',
-            'label'    => '₱' . number_format($amount, 2),
+            'amount'          => $amount,
+            'currency'        => 'PHP',
+            'label'           => '₱' . number_format($amount, 2),
+            'remote_area_fee' => self::amount($first['remote_area_fee'] ?? null),
+            'odz'             => self::odz($first),
         ];
     }
 
     /**
-     * SPX's serviceability answer, from the same 2.1 batch_check_order call
-     * that quotes the fee, the only pre-booking question SPX will answer at
-     * all (it otherwise refuses at create time, with the codes below).
+     * The booking's final check, also usable from the estimate button: our
+     * own checks first, then 2.1 with the exact booking body. SPX applies the
+     * same parcel rules there as at create, so a parcel SPX would refuse is
+     * refused here, in plain words, before anything is created.
      *
-     * Implemented against docs/spx/api.md §2.1 and guide.md's error tables,
-     * NOT against a live run: SPX's UAT host `test-stable.spx.ph` no longer
-     * resolves in DNS, so every call from this machine dies in the resolver.
-     * That is precisely why the third verdict exists: a dead DNS record is
-     * caught below as `unknown` ("could not check", still clickable), never
-     * as a refusal. If this ever silently reported "not serviceable" for an
-     * SPX outage, the modal would be lying about coverage SPX never
-     * evaluated.
+     * The pickup window is left out: the fee check needs none, and a window
+     * past SPX's cutoff is moved by createShipment() itself.
      *
-     * Every code is classified by GROUP (see REFUSAL_GROUPS /
-     * UNCERTAIN_GROUPS), so an unseen code still lands somewhere sensible.
-     * Only the four refusal groups make the card inert; a parcel complaint, a
-     * pickup-slot complaint and an SPX-side failure all leave it clickable.
+     * @return array{status:'fee', amount:float, remote_area_fee:?float, odz:?bool}
+     *       | array{status:'refused', refusal:CourierRefusal, raw:?string}
+     *       | array{status:'unavailable', raw:?string}
+     */
+    public function quoteFee(Order $order, array $options): array
+    {
+        if (!$this->client->hasAccountCredentials()) {
+            return ['status' => 'unavailable', 'raw' => null];
+        }
+
+        unset($options['pickup_slot']);
+        $built = $this->buildOrderPayload($order, $options);
+        if (!$built['ok']) {
+            return ['status' => 'refused', 'refusal' => new CourierRefusal("SPX can't book this shipment", $built['error']), 'raw' => null];
+        }
+        if (($problem = $this->limitProblem($order, $options)) !== null) {
+            return ['status' => 'refused', 'refusal' => new CourierRefusal("SPX can't book this shipment", $problem), 'raw' => null];
+        }
+
+        return $this->checkPayload($built['payload'], $this->parcelContext($order, $options), ServiceabilityService::TIMEOUT_SECONDS * 2);
+    }
+
+    /** 2.1 with a built body; see quoteFee(). */
+    private function checkPayload(array $payload, array $context, int $timeout): array
+    {
+        try {
+            $data = $this->client->checkOrderFee([$payload], $timeout);
+        } catch (SpxApiException $e) {
+            $raw = self::rawText($e->retCode, $e->getMessage(), null);
+
+            return !$e->isServerError() && SpxRefusals::isRefusal($e->retCode)
+                ? ['status' => 'refused', 'refusal' => SpxRefusals::explain($e->retCode, $e->getMessage(), $context), 'raw' => $raw]
+                : ['status' => 'unavailable', 'raw' => $raw];
+        } catch (\Throwable $e) {
+            Log::warning('SPX fee check could not reach SPX', ['exception' => $e::class]);
+
+            return ['status' => 'unavailable', 'raw' => null];
+        }
+
+        $first = ($data['orders'] ?? [])[0] ?? null;
+        if (is_array($first) && isset($first['estimated_shipping_fee']) && is_numeric($first['estimated_shipping_fee'])) {
+            return [
+                'status'          => 'fee',
+                'amount'          => (float) $first['estimated_shipping_fee'],
+                'remote_area_fee' => self::amount($first['remote_area_fee'] ?? null),
+                'odz'             => self::odz($first),
+            ];
+        }
+
+        // A per-order failure comes back in data.fail_list with its own ret_code.
+        $failed = ($data['fail_list'] ?? [])[0] ?? null;
+        if (is_array($failed)) {
+            $code = is_numeric($failed['ret_code'] ?? null) ? (int) $failed['ret_code'] : null;
+            $failure = self::createFailure($failed, $context);
+            $text = trim(((string) ($failed['message'] ?? '')) . ' ' . ((string) ($failed['debug_msg'] ?? '')));
+
+            return SpxRefusals::isRefusal($code)
+                ? ['status' => 'refused', 'refusal' => SpxRefusals::explain($code, $text, $context), 'raw' => $failure['raw']]
+                : ['status' => 'unavailable', 'raw' => $failure['raw']];
+        }
+
+        return ['status' => 'unavailable', 'raw' => null];
+    }
+
+    /**
+     * Out of SPX's normal delivery zone: remote_area_fee above zero. The field
+     * is not promised in every answer, so its absence is "not known", never
+     * "no surcharge".
+     */
+    private static function odz(array $order): ?bool
+    {
+        $fee = self::amount($order['remote_area_fee'] ?? null);
+
+        return $fee === null ? null : $fee > 0;
+    }
+
+    /**
+     * Will SPX carry this order? Our own location list answers first: an
+     * address SPX does not list, or a barangay where it does not deliver or
+     * collect COD, is a refusal stated without asking SPX. Otherwise 2.1 is
+     * asked with the smallest preset (a from-price). A transport failure or
+     * an SPX outage is `unknown`, never a refusal.
      */
     public function checkServiceability(Order $order): ServiceabilityVerdict
     {
@@ -640,46 +981,35 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
         }
 
-        // No booking options exist yet at this point in the modal (the
-        // courier has not even been chosen), so the payload is built with
-        // defaults: buildOrderPayload() falls back to the first pouch
-        // preset, which is the smallest and therefore the cheapest, making
-        // the quoted fee a genuine from-price.
         $built = $this->buildOrderPayload($order, []);
+        if (!$built['ok'] && isset($built['kind'])) {
+            return ServiceabilityVerdict::notServiceable($built['kind'], $built['error'], $built['code'] ?? null);
+        }
         if (!$built['ok']) {
-            // Our own missing data (an incomplete pickup origin, an address
-            // we cannot map), so nothing was asked and nothing was refused.
-            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
+            // Our own missing data: nothing was asked and nothing was refused.
+            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE, null, $built['code'] ?? null);
         }
 
         try {
             $data = $this->client->checkOrderFee([$built['payload']], ServiceabilityService::TIMEOUT_SECONDS);
         } catch (SpxApiException $e) {
-            // ->retCode, never getCode(): SpxApiException carries SPX's own
-            // code in its own property and leaves the RuntimeException code
-            // at zero.
+            if ($e->isServerError()) {
+                return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_THEIR_SIDE);
+            }
+
             return self::verdictForCode($e->retCode, $e->getMessage());
         } catch (\Throwable $e) {
-            // Transport: DNS, connection, timeout, or a response that was not
-            // an SPX envelope at all. We could not ask, and the message is
-            // curl's rather than SPX's, so it is logged and never shown.
-            Log::warning('SPX serviceability check could not reach SPX', [
-                'order' => $order->id, 'error' => $e->getMessage(),
-            ]);
+            // DNS, connection, timeout or not an SPX envelope: we could not ask.
+            Log::warning('SPX serviceability check could not reach SPX', ['order' => $order->id, 'exception' => $e::class]);
 
             return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
         }
 
         $first = ($data['orders'] ?? [])[0] ?? null;
         if (is_array($first) && isset($first['estimated_shipping_fee'])) {
-            return ServiceabilityVerdict::serviceable(
-                ['estimate' => (float) $first['estimated_shipping_fee']],
-                'PHP'
-            );
+            return ServiceabilityVerdict::serviceable(['estimate' => (float) $first['estimated_shipping_fee']], 'PHP');
         }
 
-        // api.md §2.1: a per-order failure comes back inside data.fail_list
-        // with its own ret_code, rather than failing the whole envelope.
         $failed = ($data['fail_list'] ?? [])[0] ?? null;
         if (is_array($failed)) {
             return self::verdictForCode((int) ($failed['ret_code'] ?? 0), (string) ($failed['message'] ?? ''));
@@ -688,120 +1018,209 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_THEIR_SIDE);
     }
 
-    /** One SPX error code, classified by group, carrying SPX's words only when we do not recognise it. */
+    /** Which group a code belongs to, and whether that group is a refusal. A null kind is a code we do not know. */
+    private static function classify(int $code): array
+    {
+        foreach (self::REFUSAL_GROUPS as $kind => $codes) {
+            if (in_array($code, $codes, true)) {
+                return [$kind, true];
+            }
+        }
+        foreach (self::UNCERTAIN_GROUPS as $kind => $codes) {
+            if (in_array($code, $codes, true)) {
+                return [$kind, false];
+            }
+        }
+
+        return [null, false];
+    }
+
+    private static function verdictCode(int $code): ?string
+    {
+        foreach (self::VERDICT_CODES as $name => $codes) {
+            if (in_array($code, $codes, true)) {
+                return $name;
+            }
+        }
+
+        return null;
+    }
+
+    /** One SPX code as a verdict, carrying SPX's words only when we do not recognise it. */
     private static function verdictForCode(int $code, string $message): ServiceabilityVerdict
     {
         [$kind, $isRefusal] = self::classify($code);
         $said = trim($message) !== '' ? trim($message) : null;
 
         return $isRefusal
-            ? ServiceabilityVerdict::notServiceable($kind, $said)
-            : ServiceabilityVerdict::unknown($kind, $said);
+            ? ServiceabilityVerdict::notServiceable($kind, $said, self::verdictCode($code))
+            : ServiceabilityVerdict::unknown($kind, $said, self::verdictCode($code));
+    }
+
+    // --- Pickup windows -----------------------------------------------------------
+
+    /**
+     * 1.1 Get Pickup Timeslot: every window SPX offers, one option per
+     * window, in SPX's order (within a day, range id 0 "Now" first). A day
+     * already over in the store's time zone, or one with no usable window,
+     * is skipped. Each value carries exactly the three fields create needs.
+     * An empty list means none could be fetched; a pickup booking then asks
+     * SPX again itself.
+     */
+    public function getPickupSlots(Order $order): array
+    {
+        try {
+            $slots = $this->availableSlots();
+        } catch (\Throwable $e) {
+            Log::warning('SPX pickup times could not be fetched', ['exception' => $e::class]);
+
+            return [];
+        }
+
+        return array_map(fn (array $slot) => [
+            'value' => self::encodeSlot($slot),
+            'label' => self::slotLabel($slot),
+        ], $slots);
     }
 
     /**
-     * 1.1 Get Pickup Timeslot (get_pickup_time), collapsed to ONE option per
-     * DATE (owner call: date-only, no time-window picker in the booking
-     * form). Each option's `value` is still the same small JSON blob
-     * carrying exactly the three fields SPX's create/update endpoints need
-     * (pickup_time, pickup_time_range_id, pickup_time_range) — createShipment()
-     * decodes that same shape back out of $opts['pickup_slot'] unchanged
-     * (see fulfillmentInfo()'s docblock) — it's just now populated with that
-     * date's EARLIEST available window rather than a window the admin chose
-     * directly: SPX's own range id 0 ("Now") when offered, else the first
-     * entry in that date's slots[] array (SPX's own ordering, never
-     * re-sorted). Which dates appear at all is entirely SPX's own decision
-     * (its own cutoff, e.g. same-day pickup only offered before some cutoff
-     * time) — this never synthesizes a date SPX didn't return. A day with no
-     * usable slot is skipped, never shown as an empty option.
+     * @return list<array{pickup_time:int, pickup_time_range_id:int, pickup_time_range:string}>
+     * @throws \Throwable when SPX could not be asked
      */
-    public function getPickupSlots(Order $order): array
+    private function availableSlots(): array
     {
         if (!$this->client->hasAccountCredentials()) {
             return [];
         }
 
-        try {
-            $days = $this->client->getPickupTime(1);
-        } catch (\Throwable $e) {
-            return [];
-        }
-
-        if (!is_array($days)) {
-            return [];
-        }
+        $days = $this->client->getPickupTime(1);
+        $today = now(config('app.timezone'))->format('Y-m-d');
 
         $options = [];
-        foreach ($days as $day) {
+        foreach (is_array($days) ? $days : [] as $day) {
             $pickupTime = $day['pickup_time'] ?? null;
-            $slots = $day['slots'] ?? [];
-            if ($pickupTime === null || empty($slots)) {
+            $slots = $day['slots'] ?? null;
+            if (!is_numeric($pickupTime) || !is_array($slots) || $slots === [] || self::slotDate((int) $pickupTime) < $today) {
                 continue;
             }
 
-            $earliest = null;
+            $now = [];
+            $later = [];
             foreach ($slots as $slot) {
-                if (!isset($slot['pickup_time_range_id'])) {
+                if (!is_array($slot) || !is_numeric($slot['pickup_time_range_id'] ?? null)) {
                     continue;
                 }
-                if ((int) $slot['pickup_time_range_id'] === 0) {
-                    $earliest = $slot;
-                    break;
-                }
-                if ($earliest === null) {
-                    $earliest = $slot;
-                }
-            }
-            if ($earliest === null) {
-                continue;
-            }
-
-            $options[] = [
-                'value' => json_encode([
+                $entry = [
                     'pickup_time'          => (int) $pickupTime,
-                    'pickup_time_range_id' => (int) $earliest['pickup_time_range_id'],
-                    'pickup_time_range'    => (string) ($earliest['pickup_time_range'] ?? ''),
-                ]),
-                'label' => \Carbon\Carbon::createFromTimestamp((int) $pickupTime)
-                    ->timezone(config('app.timezone'))
-                    ->format('D, M d'),
-            ];
+                    'pickup_time_range_id' => (int) $slot['pickup_time_range_id'],
+                    'pickup_time_range'    => (string) ($slot['pickup_time_range'] ?? ''),
+                ];
+                if ($entry['pickup_time_range_id'] === 0) {
+                    $now[] = $entry;
+                } else {
+                    $later[] = $entry;
+                }
+            }
+            array_push($options, ...$now, ...$later);
         }
+
         return $options;
     }
 
     /**
-     * 1.6 Get AWB V2 (batch_get_shipping_label) — Task T3. SPX's own label
-     * link is PERISHABLE (api.md §1.6: "valid within half an hour, and can
-     * be opened up to 10 times"), so this never hands that raw link back to
-     * an admin who might revisit the page later and find it dead or
-     * exhausted. Instead:
+     * The window to book: the earliest SPX offers, or after $refused (a window
+     * SPX just turned down) the one listed right after it.
+     */
+    private function nextSlot(?array $refused): array
+    {
+        try {
+            $slots = $this->availableSlots();
+        } catch (\Throwable $e) {
+            Log::warning('SPX pickup times could not be fetched for a booking', ['exception' => $e::class]);
+
+            return ['ok' => false, 'error' => "Couldn't get SPX's pickup times. Try again, or choose drop-off."];
+        }
+
+        if ($refused !== null) {
+            foreach ($slots as $i => $slot) {
+                if ($slot['pickup_time'] === $refused['pickup_time'] && $slot['pickup_time_range_id'] === $refused['pickup_time_range_id']) {
+                    $slots = array_slice($slots, $i + 1);
+                    break;
+                }
+            }
+        }
+
+        return $slots === []
+            ? ['ok' => false, 'error' => self::NO_PICKUP_TIME]
+            : ['ok' => true, 'slot' => $slots[0]];
+    }
+
+    private static function encodeSlot(array $slot): string
+    {
+        return (string) json_encode([
+            'pickup_time'          => (int) $slot['pickup_time'],
+            'pickup_time_range_id' => (int) $slot['pickup_time_range_id'],
+            'pickup_time_range'    => (string) $slot['pickup_time_range'],
+        ]);
+    }
+
+    /** "Tue, Nov 10 · 2:00pm-4:00pm": the day (store time zone) and SPX's own window text. */
+    public static function slotLabel(array $slot): string
+    {
+        $day = \Carbon\Carbon::createFromTimestamp((int) ($slot['pickup_time'] ?? 0))
+            ->timezone(config('app.timezone'))
+            ->format('D, M d');
+        $range = trim((string) ($slot['pickup_time_range'] ?? ''));
+
+        return $range === '' ? $day : "{$day} · {$range}";
+    }
+
+    private static function slotDate(int $pickupTime): string
+    {
+        return \Carbon\Carbon::createFromTimestamp($pickupTime)->timezone(config('app.timezone'))->format('Y-m-d');
+    }
+
+    /** A window whose day is already over. A window later today is SPX's to judge (10080). */
+    private static function slotPassed(array $slot): bool
+    {
+        return self::slotDate((int) $slot['pickup_time']) < now(config('app.timezone'))->format('Y-m-d');
+    }
+
+    /** @return array{pickup_time:int, pickup_time_range_id:int, pickup_time_range:string}|null */
+    private static function decodeSlot(mixed $raw): ?array
+    {
+        if (!is_string($raw) || $raw === '') {
+            return null;
+        }
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded) || !is_numeric($decoded['pickup_time'] ?? null) || !is_numeric($decoded['pickup_time_range_id'] ?? null)
+            || !is_string($decoded['pickup_time_range'] ?? null)) {
+            return null;
+        }
+
+        return [
+            'pickup_time'          => (int) $decoded['pickup_time'],
+            'pickup_time_range_id' => (int) $decoded['pickup_time_range_id'],
+            'pickup_time_range'    => $decoded['pickup_time_range'],
+        ];
+    }
+
+    // --- Labels -------------------------------------------------------------------
+
+    /**
+     * 1.6 Get AWB V2. SPX's label link lasts half an hour and opens at most
+     * ten times, so the PDF is downloaded once, stored on the private disk
+     * and served through this app's own authenticated route.
      *
-     *  1. Look up the order this tracking number belongs to (SPX's
-     *     batch_get_shipping_label needs the batch_no from booking — this
-     *     interface only gives us a tracking number, so the order is the
-     *     only place that batch_no is still available; see
-     *     buildOrderPayload()/createShipment() for where it's first stored
-     *     into courier_meta).
-     *  2. If we already downloaded+stored the PDF for this tracking number
-     *     (Storage::disk('local')->exists()), skip straight to step 4 — no
-     *     SPX call at all on repeat visits.
-     *  3. Otherwise fetch it via pollLabelResult()'s two-phase strategy
-     *     (documented v2 endpoint first, short window; an UNDOCUMENTED v1
-     *     fallback if that doesn't settle — see that method's docblock for
-     *     why, this is a live-UAT gate finding, not documented behavior),
-     *     then download the resulting awb_link PDF bytes and store them at
-     *     `courier-labels/spx/{tracking}.pdf`.
-     *  4. Return the URL of THIS APP'S OWN authenticated serving route
-     *     (admin.fulfillment.label-file) — never SPX's own link — per the
-     *     interface's sanctioned evolution #2 (see its docblock).
-     *
-     * $format is accepted for interface-contract compatibility but ignored:
-     * SPX documents exactly one label shape (a single PDF), unlike QuadX's
-     * zebra/fuji choice.
+     * $format is accepted for the interface and ignored: SPX has one label shape.
      */
     public function printLabel(string $trackingNumber, string $format): array
     {
+        // The number becomes part of a storage path: only a plain token is looked up or stored.
+        if (!self::isPlainTrackingNumber($trackingNumber)) {
+            return ['success' => false, 'error' => 'That is not an SPX tracking number.'];
+        }
+
         $order = Order::where('courier_tracking_number', $trackingNumber)
             ->where('courier_provider', $this->getKey())
             ->first();
@@ -809,19 +1228,13 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return ['success' => false, 'error' => 'No SPX order found for this tracking number.'];
         }
 
-        // Final-review fix (Finding 1): api.md §1.6 — a cancelled order's
-        // AWB cannot be printed. Refused server-side (the queue's button
-        // gating is only UI), and BEFORE the cache check: a PDF cached
-        // while the booking was live must not keep serving after the
-        // shipment is cancelled — that label's AWB is void.
+        // A cancelled order's waybill is void, cached or not.
         if (($this->statusPhase($order->courier_status)['phase'] ?? null) === 'cancelled') {
             return ['success' => false, 'error' => 'This SPX booking is cancelled. Cancelled shipments have no printable waybill. Rebook the order to get a fresh label.'];
         }
 
         $path = self::labelStoragePath($trackingNumber);
-        $disk = Storage::disk('local');
-
-        if (!$disk->exists($path)) {
+        if (!Storage::disk('local')->exists($path)) {
             $stored = $this->fetchAndStoreLabel($order, $path);
             if (!$stored['ok']) {
                 return ['success' => false, 'error' => $stored['error']];
@@ -834,28 +1247,31 @@ class SpxFulfillment implements CourierFulfillmentInterface
         ];
     }
 
-    /** Storage path convention this task's brief specifies verbatim — also read back by FulfillmentController::labelFile(). */
+    /** Where a downloaded waybill is kept on the local (private) disk; FulfillmentController::labelFile() reads it. */
     public static function labelStoragePath(string $trackingNumber): string
     {
         return "courier-labels/spx/{$trackingNumber}.pdf";
     }
 
-    /**
-     * @return array{ok:bool, error?:string}
-     */
+    /** Letters, digits, dash and underscore only: safe as a file name. */
+    public static function isPlainTrackingNumber(string $trackingNumber): bool
+    {
+        return preg_match('/^[A-Za-z0-9_-]{1,64}$/', $trackingNumber) === 1;
+    }
+
+    /** @return array{ok:bool, error?:string} */
     private function fetchAndStoreLabel(Order $order, string $path): array
     {
         if (!$this->client->hasAccountCredentials()) {
             return ['ok' => false, 'error' => 'SPX User ID / User Secret not configured.'];
         }
 
-        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
-        $batchNo = $meta['batch_no'] ?? null;
+        $batchNo = self::metaOf($order)['batch_no'] ?? null;
         if (!$batchNo) {
             return ['ok' => false, 'error' => 'No SPX batch number on file for this order. Cannot fetch a label.'];
         }
 
-        $result = $this->pollLabelResult((int) $batchNo, $order->courier_tracking_number);
+        $result = $this->pollLabelResult((int) $batchNo, (string) $order->courier_tracking_number);
         if ($result instanceof SpxApiException) {
             return ['ok' => false, 'error' => "SPX label fetch failed: {$result->getMessage()} (ret_code {$result->retCode})"];
         }
@@ -863,69 +1279,46 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return ['ok' => false, 'error' => 'SPX label generation is still in progress, try again shortly.'];
         }
 
-        // Live-UAT gate finding (fulfillment-workflow-v2 + SPX plan): UAT's
-        // real batch_get_shipping_label response has NO `task_status` key at
-        // all — it returns `{awb_link, fail_list}` immediately, not the
-        // documented submit-then-poll {task_status: 1..5} shape (see
-        // docs/spx/index.md's quirks list). So "done" is decided by
-        // awb_link's PRESENCE (plus this tracking number not appearing in
-        // fail_list), not by task_status alone. The documented shape is
-        // still honored when task_status IS present: 5 (Failed) always
-        // fails regardless of awb_link; 4 (Done) with no awb_link is the
-        // "all orders failed to create" trap createShipment() already knows
-        // about (SpxFulfillment::outcomeFromCreateResult()'s docblock notes
-        // the same "Done but nothing usable" possibility for 1.5 — 1.6
-        // apparently shares it).
+        // SPX's test system answers {awb_link, fail_list} with no task_status
+        // at all, so "done" is the link's presence; task_status is honored
+        // when present (5 is failed whatever else came).
         $taskStatus = array_key_exists('task_status', $result) ? (int) $result['task_status'] : null;
         $awbLink = $result['awb_link'] ?? null;
 
-        $failEntry = null;
         foreach (($result['fail_list'] ?? []) as $fail) {
             if (($fail['tracking_no'] ?? null) === $order->courier_tracking_number) {
-                $failEntry = $fail;
-                break;
+                return ['ok' => false, 'error' => $fail['message'] ?? 'SPX could not generate a label for this shipment.'];
             }
         }
-
-        if ($failEntry !== null) {
-            return ['ok' => false, 'error' => $failEntry['message'] ?? 'SPX could not generate a label for this shipment.'];
-        }
         if ($taskStatus === 5) {
-            $desc = $result['description'] ?? 'SPX marked this label batch as Failed.';
-            return ['ok' => false, 'error' => "SPX label generation failed: {$desc}"];
+            return ['ok' => false, 'error' => 'SPX label generation failed: ' . ($result['description'] ?? 'the batch failed.')];
         }
-        if (empty($awbLink)) {
-            $desc = $result['description'] ?? 'SPX could not generate a label for this order.';
-            return ['ok' => false, 'error' => "SPX label generation failed: {$desc}"];
+        if (!is_string($awbLink) || $awbLink === '' || self::url($awbLink) === null || !str_starts_with(strtolower($awbLink), 'https://')) {
+            return ['ok' => false, 'error' => 'SPX label generation failed: ' . ($result['description'] ?? 'no label link came back.')];
         }
 
         try {
-            $pdf = Http::timeout(30)->get($awbLink);
-        } catch (\Throwable $e) {
-            return ['ok' => false, 'error' => 'Failed to download the SPX label PDF: ' . $e->getMessage()];
+            $pdf = Http::timeout(30)->withoutRedirecting()->get($awbLink);
+        } catch (\Throwable) {
+            return ['ok' => false, 'error' => 'Failed to download the SPX label PDF.'];
         }
 
         if (!$pdf->successful() || $pdf->body() === '') {
             return ['ok' => false, 'error' => "SPX label download failed (HTTP {$pdf->status()})."];
         }
 
-        // Live-UAT gate finding, round 3: awb_link can respond HTTP 200 with
-        // a JSON error body instead of a PDF (UAT's label RENDERER failing
-        // server-side, downstream of a perfectly valid awb_link — this is
-        // NOT the same failure class as `$pdf->successful()` catches, which
-        // only sees transport-level success). Content-Type isn't trustworthy
-        // enough on its own (SPX's UAT error response has been observed
-        // still under a generic content type), so the actual bytes are
-        // checked for the PDF magic number before ever touching disk — a
-        // corrupt "PDF" must never reach an admin's download.
+        // The link can answer HTTP 200 with a JSON error instead of a PDF, so
+        // the bytes themselves are checked before anything is stored.
         $body = $pdf->body();
         if (!str_starts_with($body, '%PDF')) {
             $decoded = json_decode($body, true);
             if (is_array($decoded) && (isset($decoded['retcode']) || isset($decoded['message']))) {
                 $retcode = $decoded['retcode'] ?? 'unknown';
-                $message = $decoded['message'] ?? 'unknown error';
+                $message = mb_substr((string) ($decoded['message'] ?? 'unknown error'), 0, 200);
+
                 return ['ok' => false, 'error' => "SPX label service error: {$message} (retcode {$retcode})"];
             }
+
             return ['ok' => false, 'error' => 'SPX returned a label that is not a valid PDF.'];
         }
 
@@ -935,45 +1328,11 @@ class SpxFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * Two-phase label fetch — see docs/spx/index.md's quirks list for the
-     * full live-UAT gate history behind this shape (round 1 AND round 2 of
-     * the finding).
-     *
-     * Phase 1 — 1.6 Get AWB V2 (the DOCUMENTED endpoint, SpxClient::
-     * getShippingLabel()): a SHORT window only (2 attempts, one brief
-     * backoff between them) rather than the original ~15s bounded poll.
-     * Round 2's live-probing refined round 1's finding: this endpoint DOES
-     * return the documented shape on UAT (task_status present) — it just
-     * reliably sits at `task_status: 3` ("Running", `progress: "0.00%"`)
-     * INDEFINITELY (probed 8+ minutes, never changes), so the original full
-     * poll window only ever burned ~15s to arrive at the same "still stuck"
-     * outcome a short window reaches just as certainly, faster. A short
-     * window still gives v2 every fair chance to settle immediately, in
-     * case it behaves as documented after all (plausible on production,
-     * unverified — see SpxClient::getShippingLabelV1()'s docblock) — it
-     * just no longer BLOCKS on the assumption that it will.
-     *
-     * Phase 2 — the UNDOCUMENTED v1 fallback (SpxClient::
-     * getShippingLabelV1(), batch_no + tracking_no_list): reached only if
-     * phase 1 never settled (whether by timing out on "Running" for the
-     * whole short window, or by v2 throwing an SpxApiException — a
-     * well-formed error there doesn't rule out the fallback succeeding, so
-     * it's still attempted). Live-probed to return `{awb_link, fail_list}`
-     * SYNCHRONOUSLY. Its response is run through the EXACT SAME
-     * labelResultSettled()/fetchAndStoreLabel() parse logic as v2's — the
-     * shape-handling fix from round 1 already covers it unchanged.
-     *
-     * Error precedence when NEITHER phase settles: an SpxApiException from
-     * v1 (the more recent, more specific attempt) wins; otherwise an
-     * SpxApiException from v2 (if one was seen) is surfaced; otherwise null
-     * ("still in progress" — genuinely nothing usable came back from
-     * either endpoint). A bare network/transport Throwable (either phase)
-     * is treated as transient, never surfaced directly.
-     *
-     * @return array|SpxApiException|null the raw response data (v2 OR v1
-     *   shape — both parsed identically downstream) once settled; the most
-     *   relevant caught SpxApiException if neither settled but SPX returned
-     *   a well-formed error; or null if truly nothing usable came back.
+     * Two-phase label fetch. The documented 1.6 v2 endpoint gets a short
+     * window (two attempts): on SPX's test system it can sit at task_status 3
+     * indefinitely. Then the v1 sibling (batch_no plus tracking_no_list),
+     * which answers synchronously there. An SPX error from v1 wins over one
+     * from v2; a transport failure in either is treated as transient.
      */
     private function pollLabelResult(int $batchNo, string $trackingNumber): array|SpxApiException|null
     {
@@ -985,19 +1344,15 @@ class SpxFulfillment implements CourierFulfillmentInterface
             try {
                 $result = $this->client->getShippingLabel($batchNo);
             } catch (SpxApiException $e) {
-                // A well-formed v2 error settles NOTHING but isn't worth
-                // retrying against the same batch_no either — stop this
-                // phase now and let phase 2 have its shot.
                 $v2Exception = $e;
                 break;
-            } catch (\Throwable $e) {
+            } catch (\Throwable) {
                 $result = null;
             }
 
-            if (isset($result) && is_array($result) && self::labelResultSettled($result)) {
+            if (is_array($result) && self::labelResultSettled($result)) {
                 return $result;
             }
-
             if ($i < $v2Attempts - 1) {
                 ($this->sleeper)($v2BackoffMs[$i]);
             }
@@ -1007,7 +1362,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
             $v1Result = $this->client->getShippingLabelV1($batchNo, [$trackingNumber]);
         } catch (SpxApiException $e) {
             return $e;
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             $v1Result = null;
         }
 
@@ -1018,25 +1373,9 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return $v2Exception;
     }
 
-    /**
-     * "Stop polling" test for 1.6 Get AWB V2's response, covering BOTH the
-     * documented submit-then-poll shape and the real UAT shape (see
-     * pollLabelResult()'s docblock):
-     *  - `awb_link` present -> a label is ready, regardless of whether
-     *    `task_status` exists at all (the UAT shape never sends it).
-     *  - `fail_list` non-empty -> a definitive per-tracking-number failure,
-     *    even with no `awb_link` and no `task_status`.
-     *  - `task_status` present and settled (4 Done / 5 Failed) -> the
-     *    documented shape's own terminal signal, honored even if `awb_link`
-     *    happens to be empty (fetchAndStoreLabel() turns that combination
-     *    into a clear error rather than treating it as still-pending).
-     */
     private static function labelResultSettled(array $result): bool
     {
-        if (!empty($result['awb_link'])) {
-            return true;
-        }
-        if (!empty($result['fail_list'])) {
+        if (!empty($result['awb_link']) || !empty($result['fail_list'])) {
             return true;
         }
 
@@ -1044,38 +1383,82 @@ class SpxFulfillment implements CourierFulfillmentInterface
             && in_array((int) $result['task_status'], self::CREATE_RESULT_SETTLED, true);
     }
 
+    // --- Webhooks -----------------------------------------------------------------
+
     /**
-     * 4.1 Tracking Web Hook (api.md §4.1) — SPX's callback body is ALREADY
-     * one event (unlike QuadX's `{data:[...]}` batch shape), so this always
-     * returns at most one normalized event. `order_id` is what WE sent as
-     * `order_id` at booking time (buildOrderPayload(): `(string) $order->id`)
-     * — SPX's docs call it "customer order id", which is exactly this
-     * interface's `reference_id`. A payload missing `status_code` entirely
-     * (malformed/unexpected) yields no events rather than a guessed one.
+     * 4.1 Tracking webhook: the body is one event. Besides the status an
+     * event carries `actual_fee` (actual_shipping_fee: the latest one counts)
+     * and `meta`: the tracking link, the delivery estimate, the driver, the
+     * proof-of-delivery photos and, on a return, the return fee.
+     *
+     * A body without status_code is 4.2 Evidence Proofs when it carries proof
+     * lists: one event with no status. Anything else yields no events.
+     *
+     * SPX's order_id is the booking's own reference (`courier_reference`),
+     * matched against courier_meta.reference_id. Bookings made before
+     * references existed sent the store's order id, which still matches as
+     * `reference_id`.
      */
     public function parseWebhook(array $payload): array
     {
-        if (!isset($payload['status_code'])) {
-            return [];
+        if (!isset($payload['status_code']) || !is_scalar($payload['status_code'])) {
+            return self::evidenceEvent($payload);
         }
 
         $timestamp = $payload['timestamp'] ?? null;
+        $orderId = isset($payload['order_id']) && is_scalar($payload['order_id']) ? trim((string) $payload['order_id']) : '';
+
+        return [array_filter([
+            'reference_id'      => ctype_digit($orderId) ? $orderId : null,
+            'courier_reference' => $orderId !== '' && !ctype_digit($orderId) ? mb_substr($orderId, 0, 64) : null,
+            'tracking_number'   => isset($payload['tracking_no']) && is_scalar($payload['tracking_no']) ? (string) $payload['tracking_no'] : null,
+            'status'            => (string) $payload['status_code'],
+            'occurred_at'       => is_numeric($timestamp) ? date(DATE_ATOM, (int) $timestamp) : null,
+            'remarks'           => isset($payload['message']) && is_scalar($payload['message']) ? mb_substr((string) $payload['message'], 0, 300) : null,
+            'actual_fee'        => self::amount($payload['actual_shipping_fee'] ?? null),
+            'meta'              => array_filter([
+                'tracking_links'    => self::deliveryLink($payload['tracking_link'] ?? null),
+                'edd'               => self::edd($payload['edd_min'] ?? null, $payload['edd_max'] ?? null, 'webhook'),
+                'driver'            => array_filter([
+                    'name'  => self::shortText($payload['driver_name'] ?? null, 100),
+                    'phone' => self::shortText($payload['driver_phone_number'] ?? null, 32),
+                ]) ?: null,
+                'proofs'            => array_filter(['epod' => self::urls($payload['proof_of_delivery_list'] ?? null)]) ?: null,
+                'actual_return_fee' => self::positiveAmount($payload['actual_return_shipping_fee'] ?? null),
+            ], fn ($v) => $v !== null) ?: null,
+        ], fn ($v, $k) => $v !== null || in_array($k, ['reference_id', 'tracking_number', 'occurred_at', 'remarks'], true), ARRAY_FILTER_USE_BOTH)];
+    }
+
+    /** The 4.2 proof lists, by the key each is stored under in meta.proofs. */
+    private const EVIDENCE_LISTS = ['epod' => 'epod_list', 'epop' => 'epop_list', 'epor' => 'epor_list', 'epooh' => 'epooh_list'];
+
+    /** 4.2 Evidence Proofs: matched by tracking_no, else customer_order_id (our order_id). */
+    private static function evidenceEvent(array $payload): array
+    {
+        $proofs = [];
+        foreach (self::EVIDENCE_LISTS as $key => $field) {
+            if (($urls = self::urls($payload[$field] ?? null)) !== null) {
+                $proofs[$key] = $urls;
+            }
+        }
+        $tracking = isset($payload['tracking_no']) && is_scalar($payload['tracking_no']) ? (string) $payload['tracking_no'] : null;
+        $reference = isset($payload['customer_order_id']) && is_scalar($payload['customer_order_id']) ? trim((string) $payload['customer_order_id']) : '';
+        if ($proofs === [] || ($tracking === null && $reference === '')) {
+            return [];
+        }
 
         return [[
-            'reference_id'    => isset($payload['order_id']) ? (string) $payload['order_id'] : null,
-            'tracking_number' => isset($payload['tracking_no']) ? (string) $payload['tracking_no'] : null,
-            'status'          => (string) $payload['status_code'],
-            'occurred_at'     => is_numeric($timestamp) ? date(DATE_ATOM, (int) $timestamp) : null,
-            'remarks'         => isset($payload['message']) ? (string) $payload['message'] : null,
+            'reference_id'      => ctype_digit($reference) ? $reference : null,
+            'courier_reference' => $reference !== '' && !ctype_digit($reference) ? mb_substr($reference, 0, 64) : null,
+            'tracking_number'   => $tracking,
+            'status'            => null,
+            'occurred_at'       => null,
+            'remarks'           => null,
+            'meta'              => ['proofs' => $proofs],
         ]];
     }
 
-    /**
-     * Task T3: verifies an inbound SPX webhook request's signature —
-     * see SpxClient::verifyWebhookSignature()'s docblock for the algorithm.
-     * Uses $request->getContent() (the raw wire bytes), never
-     * $request->all() (which would re-encode and could byte-mismatch).
-     */
+    /** The signature over the raw bytes SPX sent; see SpxClient::verifyWebhookSignature(). */
     public function verifyWebhookSignature(Request $request): bool
     {
         return $this->client->verifyWebhookSignature(
@@ -1087,40 +1470,54 @@ class SpxFulfillment implements CourierFulfillmentInterface
         );
     }
 
+    // --- Links and cost -----------------------------------------------------------
+
     /**
-     * Preference order: courier_meta.tracking_links.delivery (written by
-     * getTracking()'s 'links' -> the poll command / manual Refresh, mirroring
-     * QuadX's own pattern), else booked_response.tracking_no_link (the link
-     * 1.5 Get Order Create Result returns at booking time, before any
-     * tracking poll has run yet).
+     * SPX's tracking page for this parcel, as SPX gave it: from a webhook or
+     * a tracking poll, else the create result's tracking_link. Never built
+     * from the tracking number alone: SPX documents no public tracker address.
      */
-    public function trackingLinks(Order $order): array
+    public function publicTrackingUrl(string $trackingNumber, array $courierMeta): ?string
     {
-        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
-        if (!is_array($meta)) {
-            return [];
+        foreach ([
+            $courierMeta['tracking_links']['delivery'] ?? null,
+            $courierMeta['booked_response']['tracking_link'] ?? null,
+            $courierMeta['booked_response']['tracking_no_link'] ?? null,
+        ] as $candidate) {
+            if (($url = self::url($candidate)) !== null) {
+                return $url;
+            }
         }
 
-        $metaLinks = $meta['tracking_links'] ?? null;
-        if (is_array($metaLinks) && !empty($metaLinks['delivery']) && is_string($metaLinks['delivery']) && str_starts_with($metaLinks['delivery'], 'http')) {
-            return [['label' => 'Track', 'url' => $metaLinks['delivery']]];
-        }
-
-        $fallback = $meta['booked_response']['tracking_no_link'] ?? null;
-        if (is_string($fallback) && str_starts_with($fallback, 'http')) {
-            return [['label' => 'Track', 'url' => $fallback]];
-        }
-
-        return [];
+        return null;
     }
 
-    /**
-     * The one real capability this task ships: SPX's 3.2 Check Account
-     * Credentials (`POST /open/api/v1/account/verify`) is the cheapest
-     * authenticated call in the whole API surface — no order side-effects —
-     * so it doubles as "test connection". Graceful (never throws) when
-     * either credential pair is missing, and on any SPX-side failure.
-     */
+    public function trackingLinks(Order $order): array
+    {
+        $url = $this->publicTrackingUrl((string) $order->courier_tracking_number, self::metaOf($order));
+
+        return $url === null ? [] : [['label' => 'Track', 'url' => $url]];
+    }
+
+    /** SPX's actual fee once known (2.2, else the webhook's), else the fee quoted at booking. */
+    public function actualShippingCost(array $courierMeta): ?float
+    {
+        foreach ([
+            $courierMeta['actual_fee']['actual_shipping_fee'] ?? null,
+            $courierMeta['webhook_actual_fee'] ?? null,
+            $courierMeta['estimated_shipping_fee'] ?? null,
+        ] as $fee) {
+            if (($amount = self::amount($fee)) !== null && $amount > 0) {
+                return $amount;
+            }
+        }
+
+        return null;
+    }
+
+    // --- Settings ---------------------------------------------------------------
+
+    /** 3.2 Check Account Credentials: no side effects, so it doubles as Test connection. */
     public function testConnection(): array
     {
         if (!$this->client->isConfigured()) {
@@ -1133,9 +1530,9 @@ class SpxFulfillment implements CourierFulfillmentInterface
         try {
             $data = $this->client->verifyAccount();
         } catch (SpxApiException $e) {
-            return ['ok' => false, 'message' => "Failed: {$e->getMessage()} (ret_code {$e->retCode})"];
-        } catch (\Throwable $e) {
-            return ['ok' => false, 'message' => 'Failed: ' . $e->getMessage()];
+            return ['ok' => false, 'message' => Str::limit("Failed: {$e->getMessage()} (ret_code {$e->retCode})", 157)];
+        } catch (\Throwable) {
+            return ['ok' => false, 'message' => 'No answer from SPX.'];
         }
 
         return !empty($data['match_result'])
@@ -1144,44 +1541,10 @@ class SpxFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * Task T4: 3.1 Create Account — self-service creation of the
-     * user_id/user_secret pair every order-related SPX call needs, so an
-     * admin setting up SPX for the first time doesn't have to go dig those
-     * out of an email exchange with SPX staff. Not part of
-     * CourierFulfillmentInterface (no other courier has an equivalent
-     * concept) — the settings page's "Create shipper account" button
-     * (settings-courier.blade.php, only rendered while spx_user_id is
-     * empty) and CourierSettingsController::createShipperAccount() (a
-     * method_exists() dispatch, so a future courier can opt in the same
-     * way) are the only callers.
-     *
-     * phone/email: SPX requires exactly one mandatory phone (PH format) —
-     * this reuses the exact same store pickup-contact number every other
-     * SPX method already treats as ground truth (normalizePhPhone() /
-     * senderInfo()), since there's no dedicated "SPX account contact"
-     * setting and duplicating pickup_contact_number would just be one more
-     * place for the two to drift apart. email is optional per api.md
-     * §3.1; this app's outbound "from" address (config('mail.from.address'))
-     * is the closest existing "the store's own contact email" concept — no
-     * dedicated store-contact-email setting exists either.
-     *
-     * Stores the returned pair using the exact same encrypt-then-upsert
-     * convention CourierSettingsController::persist() uses for every other
-     * SPX credential (user_id plain, user_secret Crypt::encryptString()'d —
-     * matching settingsSchema()'s own 'encrypted' => true declaration for
-     * spx_user_secret) — persist() itself is a private controller method,
-     * so this duplicates its two-line pattern rather than reaching into it.
-     *
-     * Review fix (Important): "only while spx_user_id is empty" was
-     * previously UI-only (the settings page just doesn't render the button
-     * once a User ID is on file) — a direct POST (stale tab, double-submit,
-     * a re-issued request) still reached SPX and REPLACED the stored
-     * user_id/user_secret, silently orphaning whatever account existing
-     * bookings were made under (their tracking/cancel/label calls all send
-     * the NEW user_secret against orders SPX associates with the OLD
-     * account). Guarded here, server-side, first — before even checking
-     * app credentials — so a repeat/direct POST makes NO outbound call and
-     * changes nothing once an account already exists.
+     * 3.1 Create Account: issues the User ID / User Secret pair, using the
+     * default pickup address's mobile number and the store's mail-from
+     * address. Refused before any call while a User ID is on file: replacing
+     * the pair would orphan every booking made under the old one.
      *
      * @return array{ok:bool, message?:string, error?:string}
      */
@@ -1190,12 +1553,11 @@ class SpxFulfillment implements CourierFulfillmentInterface
         if (!empty(Setting::where('group', 'courier')->where('key', 'spx_user_id')->value('value'))) {
             return ['ok' => false, 'error' => 'An SPX shipper account is already on file (User ID set). Remove it first if you really need to replace it, so existing bookings are not silently orphaned.'];
         }
-
         if (!$this->client->isConfigured()) {
             return ['ok' => false, 'error' => 'Set the App ID / App Secret before creating a shipper account.'];
         }
 
-        $phone = $this->normalizePhPhone(PickupAddress::defaultAddress()?->contact_phone);
+        $phone = PhPhone::normalize(PickupAddress::defaultAddress()?->contact_phone);
         if ($phone === null) {
             return ['ok' => false, 'error' => 'Set a valid PH mobile number on the default pickup address (Settings > Modules > Courier Fulfillment > Pickup addresses) before creating a shipper account.'];
         }
@@ -1206,71 +1568,41 @@ class SpxFulfillment implements CourierFulfillmentInterface
             $data = $this->client->createAccount($phone, is_string($email) && $email !== '' ? $email : null);
         } catch (SpxApiException $e) {
             return ['ok' => false, 'error' => "SPX account creation failed: {$e->getMessage()} (ret_code {$e->retCode})"];
-        } catch (\Throwable $e) {
-            return ['ok' => false, 'error' => 'SPX account creation failed: ' . $e->getMessage()];
+        } catch (\Throwable) {
+            return ['ok' => false, 'error' => 'SPX account creation failed: SPX did not answer.'];
         }
 
         $userId = $data['user_id'] ?? null;
         $userSecret = $data['user_secret'] ?? null;
-        if (!$userId || !$userSecret) {
+        if (!$userId || !$userSecret || !is_scalar($userId) || !is_scalar($userSecret)) {
             return ['ok' => false, 'error' => 'SPX did not return a user id/secret.'];
         }
 
-        Setting::updateOrCreate(['group' => 'courier', 'key' => 'spx_user_id'], ['value' => (string) $userId]);
-        Setting::updateOrCreate(['group' => 'courier', 'key' => 'spx_user_secret'], ['value' => Crypt::encryptString((string) $userSecret)]);
+        // Both or neither: a User ID without its secret reads as an account that cannot book.
+        DB::transaction(function () use ($userId, $userSecret) {
+            Setting::updateOrCreate(['group' => 'courier', 'key' => 'spx_user_id'], ['value' => (string) $userId]);
+            Setting::updateOrCreate(['group' => 'courier', 'key' => 'spx_user_secret'], ['value' => Crypt::encryptString((string) $userSecret)]);
+        });
 
         return ['ok' => true, 'message' => "Shipper account created (User ID {$userId})."];
     }
 
-    /**
-     * No LIVE status-vocabulary endpoint exists in the documented API
-     * surface (unchanged fact from T1), but the vocabulary itself is not
-     * actually unknown — SPX documents it as a stable table (STATUS_LABELS,
-     * sourced from docs/spx/guide.md's "Order status code" section). So
-     * unlike a true no-op, this now succeeds immediately (no HTTP call,
-     * nothing to fail) and hands back that documented map — wiring it
-     * through the EXACT SAME "Refresh from SPX" button -> {ok, labels} ->
-     * `spx_status_labels` setting flow QuadX's live refresh already uses
-     * (CourierSettingsController::refreshStatuses()), so no shared code
-     * needed to change for this courier to participate in it. See
-     * statusLabels() below for the second, complementary half of this
-     * task's wiring: the same map made available WITHOUT requiring that
-     * button click first.
-     */
+    /** The documented vocabulary, with no call to make. */
     public function refreshStatusLabels(): array
     {
         return ['ok' => true, 'labels' => self::STATUS_LABELS];
     }
 
-    /**
-     * Owner task (2026-08-08, "SPX status from code to their actual
-     * meaning"): the documented vocabulary made available WITHOUT requiring
-     * the admin to click "Refresh from SPX" first. Not part of
-     * CourierFulfillmentInterface — no other courier has a static,
-     * pre-known vocabulary to expose this way (QuadX's only comes from a
-     * live call) — so callers consult it via method_exists(), the same
-     * dispatch convention this class's own createShipperAccount() already
-     * established for a capability that isn't universal. Consulted by
-     * CourierSettingsController::show() (settings page's status-mapping
-     * table) and index.blade.php's $humanizeStatus (queue row status chip),
-     * both as a fallback BELOW the cached `spx_status_labels` setting (an
-     * admin who clicked Refresh, or a future live endpoint, still wins) and
-     * ABOVE the generic ucwords(raw code) fallback.
-     */
+    /** The same vocabulary without the refresh button; read through method_exists() by the queue and settings. */
     public function statusLabels(): array
     {
         return self::STATUS_LABELS;
     }
 
     /**
-     * 5.1 Get Address file download link (get_address_download_url), cached
-     * settings-style (Setting group=courier, key=spx_address_tree — same
-     * on-demand-refresh pattern as `{courier}_status_labels`). SPX's own
-     * address library is only exposed as an Excel export (no JSON tree), and
-     * this codebase has no spreadsheet-parsing dependency, so this caches
-     * the download link + fetch time for admin visibility/follow-up — it is
-     * NOT consulted by deliverInfo()'s address resolution, which is direct
-     * best-effort field mapping instead (see this class's docblock).
+     * 5.1 Get Address file download link, cached as the spx_address_tree
+     * setting. The file is SPX's location spreadsheet: compile a newer one
+     * with `php artisan courier:spx-locations-compile <file>`.
      *
      * @return array{ok:bool, url?:string, fetched_at?:string, error?:string}
      */
@@ -1282,8 +1614,8 @@ class SpxFulfillment implements CourierFulfillmentInterface
 
         try {
             $data = $this->client->getAddressDownloadUrl();
-        } catch (\Throwable $e) {
-            return ['ok' => false, 'error' => 'Address file fetch failed: ' . $e->getMessage()];
+        } catch (\Throwable) {
+            return ['ok' => false, 'error' => 'Address file fetch failed: SPX did not answer.'];
         }
 
         $url = $data['address_download_url'] ?? null;
@@ -1300,29 +1632,15 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return ['ok' => true, 'url' => $url, 'fetched_at' => $fetchedAt];
     }
 
-    /** Every status code from api.md's order status table, in display order. */
     public function mappableStatuses(): array
     {
-        return ['1001', '2001', '2006', '3001', '4001', '5001', '5002', '5003', '6001', '6002', '6003', '7001'];
+        return array_keys(self::STATUS_LABELS);
     }
 
     /**
-     * spx_enabled, spx_mode, spx_app_id, spx_secret_key, spx_user_id,
-     * spx_user_secret, spx_pouch_presets — exactly the keys specified by
-     * Task T1's brief, in the order they read most naturally on the page.
-     * Unlike QuadX, SPX's app-id/app-secret and user-id/user-secret are NOT
-     * mode_scoped: SPX issues one set of each per integration
-     * (integration-brief.md §2) and `spx_mode` only switches which base URL
-     * SpxClient talks to — there's no separate UAT vs production credential
-     * pair to declare.
-     *
-     * spx_pouch_presets has no first-class JSON/structured field type in
-     * this interface yet (only text|password|select|toggle exist — see
-     * settingsSchema()'s docblock) so it's declared as `type: 'text'`
-     * holding a raw JSON string of `{label,length_cm,width_cm,height_cm,
-     * max_weight_kg}` objects (see DEFAULT_POUCH_PRESETS above for the
-     * shape + the Small/Medium/Large defaults). Task T4 is expected to
-     * replace this with a proper structured editor.
+     * SPX issues one app pair and one user pair per integration; spx_mode
+     * only switches the base URL. spx_pouch_presets holds a JSON list of
+     * {label, length_cm, width_cm, height_cm, max_weight_kg}.
      */
     public function settingsSchema(): array
     {
@@ -1359,7 +1677,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
                 'key'   => 'spx_user_id',
                 'label' => 'User ID',
                 'type'  => 'text',
-                'help'  => 'SPX account id, obtained via 3.1 Create Account.',
+                'help'  => 'SPX account id, obtained via Create Account.',
             ],
             [
                 'key'       => 'spx_user_secret',
@@ -1374,22 +1692,26 @@ class SpxFulfillment implements CourierFulfillmentInterface
                 'type'  => 'text',
                 'help'  => 'JSON array of {label, length_cm, width_cm, height_cm, max_weight_kg}. '
                     . 'Defaults: Small 25×20×10cm/3kg, Medium 35×25×15cm/5kg, Large 45×35×20cm/10kg. '
-                    . 'No structured editor yet (Task T4): edit the raw JSON here.',
+                    . 'The weight is a ceiling for that pouch; the booked weight is the parcel\'s own.',
             ],
         ];
     }
 
-    // --- Task T2: pending-creation resolution ------------------------------
+    // --- Pending creations ------------------------------------------------------
 
     /**
-     * Resolves an in-flight async creation (courier_status='creating') by
-     * re-polling 1.5 Get Order Create Result with the batch_no stashed in
-     * courier_meta at booking time. Called by courier:poll-status's
-     * pending-creation pass — see CourierFulfillmentInterface::
-     * resolvePendingCreation()'s docblock for the full contract, including
-     * why a permanent failure is handled here (flips courier_status to
-     * 'creation_failed') rather than expressible through this method's
-     * return type alone.
+     * Finishes a `creating` booking, from courier:poll-status.
+     *
+     * With a batch number: 1.5 again. Settled with an order: its tracking
+     * number, with the booked data written to the order's courier_meta.
+     * Settled with a failure: `creation_failed`, SPX's raw words kept in
+     * courier_meta.creation_error_courier. 13103 in the batch: the existing
+     * order is looked up.
+     *
+     * Without one (an outcome never known): SPX is asked for the order by
+     * its order_id. Not found within UNKNOWN_OUTCOME_MINUTES, the booking
+     * becomes `creation_failed` with a message saying so; booking again then
+     * reuses the same order_id, so SPX cannot create a second parcel.
      */
     public function resolvePendingCreation(Order $order): ?string
     {
@@ -1397,54 +1719,331 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return null;
         }
 
-        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+        $meta = self::metaOf($order);
+        $ref = is_string($meta['reference_id'] ?? null) ? $meta['reference_id'] : (string) $order->id;
         $batchNo = $meta['batch_no'] ?? null;
+
         if (!$batchNo) {
-            return null;
+            if (($meta['outcome_unknown'] ?? false) !== true) {
+                return null;
+            }
+
+            return $this->resolveUnknown($order, $meta, $ref);
         }
 
         try {
             $resultData = $this->client->getOrderCreateResult((int) $batchNo);
-        } catch (\Throwable $e) {
-            return null; // transient — the next scheduled poll tries again.
+        } catch (\Throwable) {
+            return null; // transient: the next poll tries again.
         }
 
         if (!is_array($resultData) || !in_array((int) ($resultData['task_status'] ?? 0), self::CREATE_RESULT_SETTLED, true)) {
-            return null; // still New/Waiting/Running.
-        }
-
-        $outcome = $this->outcomeFromCreateResult($resultData);
-        if (!$outcome['ok']) {
-            $meta['creation_failed'] = true;
-            $meta['creation_error']  = $outcome['error'];
-            $order->forceFill([
-                'courier_status' => 'creation_failed',
-                'courier_meta'   => json_encode($meta),
-            ])->save();
-            Log::warning('SPX pending shipment creation failed', [
-                'order' => $order->id, 'batch_no' => $batchNo, 'reason' => $outcome['error'],
-            ]);
             return null;
         }
 
-        return $outcome['order']['tracking_no'] ?? null;
+        $outcome = self::outcomeFromCreateResult($resultData);
+        if (!$outcome['ok'] && ($outcome['code'] ?? null) === 13103) {
+            $found = $this->existingOrder($order, $ref, [], (int) $batchNo);
+            if ($found !== null) {
+                return $this->settle($order, $meta, $found['order'], $found['batch_no']);
+            }
+            $meta['outcome_unknown'] = true;
+            $meta['unknown_since'] = now()->toIso8601String();
+            unset($meta['batch_no']);
+            $order->forceFill(['courier_meta' => json_encode($meta)])->save();
+
+            return null;
+        }
+        if (!$outcome['ok']) {
+            $this->markCreationFailed($order, $meta, $outcome['error'], $outcome['raw'] ?? null);
+            Log::warning('SPX pending shipment creation failed', [
+                'order' => $order->id, 'batch_no' => $batchNo, 'code' => $outcome['code'] ?? null,
+            ]);
+
+            return null;
+        }
+
+        return $this->settle($order, $meta, $outcome['order'], $batchNo);
     }
 
-    // --- Payload builders ---------------------------------------------------
+    private function resolveUnknown(Order $order, array $meta, string $ref): ?string
+    {
+        $found = $this->existingOrder($order, $ref, $meta, null);
+        if ($found !== null) {
+            return $this->settle($order, $meta, $found['order'], $found['batch_no']);
+        }
+
+        $since = is_string($meta['unknown_since'] ?? null) ? strtotime($meta['unknown_since']) : false;
+        if ($since !== false && $since > now()->subMinutes(self::UNKNOWN_OUTCOME_MINUTES)->getTimestamp()) {
+            return null;
+        }
+
+        $this->markCreationFailed(
+            $order,
+            $meta,
+            "SPX never confirmed booking {$ref}, and no SPX order with that id could be found. Check the SPX portal. Booking again reuses {$ref}, so SPX cannot create a second parcel.",
+            null,
+        );
+
+        return null;
+    }
+
+    /** Writes a settled booking's data to the order and hands back its tracking number. */
+    private function settle(Order $order, array $meta, array $created, int|string|null $batchNo): ?string
+    {
+        $tracking = trim((string) ($created['tracking_no'] ?? ''));
+        if ($tracking === '') {
+            return null;
+        }
+
+        unset($meta['outcome_unknown'], $meta['unknown_since']);
+        if ($batchNo !== null) {
+            $meta['batch_no'] = $batchNo;
+        }
+        $meta = self::bookedMeta($created) + $meta;
+        $order->forceFill(['courier_meta' => json_encode($meta)])->save();
+
+        return $tracking;
+    }
+
+    private function markCreationFailed(Order $order, array $meta, string $error, ?string $raw): void
+    {
+        $meta['creation_failed'] = true;
+        $meta['creation_error'] = $error;
+        if ($raw !== null) {
+            $meta['creation_error_courier'] = $raw;
+        }
+        $order->forceFill([
+            'courier_status' => 'creation_failed',
+            'courier_meta'   => json_encode($meta),
+        ])->save();
+    }
 
     /**
-     * @return array{ok:bool, payload?:array, error?:string}
+     * What a settled booking keeps: SPX's own 1.5 entry, its estimated and
+     * remote-area fees, its tracking link and its delivery estimate.
+     *
+     * @return array<string, mixed>
+     */
+    private static function bookedMeta(array $created): array
+    {
+        return array_filter([
+            'booked_response'        => $created,
+            'estimated_shipping_fee' => self::amount($created['estimated_shipping_fee'] ?? null),
+            'remote_area_fee'        => self::amount($created['remote_area_fee'] ?? null),
+            'tracking_links'         => self::deliveryLink($created['tracking_link'] ?? $created['tracking_no_link'] ?? null),
+            'edd'                    => self::edd($created['edd_min'] ?? $created['edd_info']['edd_min'] ?? null, $created['edd_max'] ?? $created['edd_info']['edd_max'] ?? null, 'booking'),
+        ], fn ($v) => $v !== null);
+    }
+
+    // --- Booking edits ----------------------------------------------------------
+
+    /**
+     * 1.7 Update Order: the whole order again, built as createShipment()
+     * builds it, plus its tracking number. What cannot change goes back as
+     * booked: the service, collect type, who pays shipping, the COD amount
+     * and the insured value (meta). The caller (SpxBookingEdits) checks the
+     * status and the edit count and stores the result; this writes nothing.
+     *
+     * @param array<string, mixed> $edits parcel, weight_kg, length_cm, width_cm, height_cm, pickup_slot
+     * @return array{ok:true}|array{ok:false, refusal:CourierRefusal, raw:?string}
+     */
+    public function updateBooking(Order $order, array $edits): array
+    {
+        $tracking = trim((string) $order->courier_tracking_number);
+        $meta = self::metaOf($order);
+        $ref = $meta['reference_id'] ?? null;
+        if (!$this->client->hasAccountCredentials() || $tracking === '' || !is_string($ref) || $ref === '') {
+            return ['ok' => false, 'refusal' => new CourierRefusal("SPX couldn't update this booking", 'It has no SPX reference on file.'), 'raw' => null];
+        }
+
+        $opts = array_merge(array_intersect_key($meta, array_flip([
+            'service', 'parcel', 'shipping_payment', 'method', 'pickup_slot', 'weight_kg', 'length_cm', 'width_cm', 'height_cm',
+        ])), array_intersect_key($edits, array_flip(['parcel', 'weight_kg', 'length_cm', 'width_cm', 'height_cm', 'pickup_slot'])));
+        $opts['reference'] = $ref;
+        $opts['booked_cod_amount'] = $meta['cod_amount'] ?? 0;
+        $opts['booked_cod'] = (bool) ($meta['cod'] ?? false);
+        $opts['booked_insured_value'] = $meta['insured_value'] ?? 0;
+        if (isset($meta['pickup_address']['id'])) {
+            $opts['pickup_address_id'] = $meta['pickup_address']['id'];
+        }
+        if (($opts['method'] ?? 'dropoff') !== 'pickup') {
+            unset($opts['pickup_slot']);
+        }
+
+        $built = $this->buildOrderPayload($order, $opts);
+        if (!$built['ok']) {
+            return ['ok' => false, 'refusal' => new CourierRefusal("SPX can't update this booking", $built['error']), 'raw' => null];
+        }
+        if (($problem = $this->limitProblem($order, $opts)) !== null) {
+            return ['ok' => false, 'refusal' => new CourierRefusal("SPX can't update this booking", $problem), 'raw' => null];
+        }
+
+        $context = $this->parcelContext($order, $opts);
+        try {
+            $data = $this->client->updateOrders([['tracking_no' => $tracking] + $built['payload']]);
+        } catch (SpxApiException $e) {
+            $raw = self::rawText($e->retCode, $e->getMessage(), null);
+
+            return ['ok' => false, 'raw' => $raw, 'refusal' => !$e->isServerError() && SpxRefusals::isRefusal($e->retCode)
+                ? self::updateRefusal(SpxRefusals::explain($e->retCode, $e->getMessage(), $context))
+                : new CourierRefusal("SPX couldn't update this booking", 'Try again in a moment.')];
+        } catch (\Throwable $e) {
+            Log::warning('SPX update order could not reach SPX', ['order' => $order->id, 'exception' => $e::class]);
+
+            return ['ok' => false, 'refusal' => new CourierRefusal("SPX couldn't update this booking", 'Try again in a moment.'), 'raw' => null];
+        }
+
+        $failed = ($data['fail_list'] ?? [])[0] ?? null;
+        if (is_array($failed)) {
+            $code = is_numeric($failed['ret_code'] ?? null) ? (int) $failed['ret_code'] : null;
+            $text = trim(((string) ($failed['message'] ?? '')) . ' ' . ((string) ($failed['debug_msg'] ?? '')));
+
+            return ['ok' => false, 'refusal' => self::updateRefusal(SpxRefusals::explain($code, $text, $context)), 'raw' => self::createFailure($failed, $context)['raw']];
+        }
+        if (!is_array(($data['orders'] ?? [])[0] ?? null)) {
+            return ['ok' => false, 'refusal' => new CourierRefusal("SPX couldn't update this booking", 'Try again in a moment.'), 'raw' => null];
+        }
+
+        return ['ok' => true, 'payload' => $built['payload']];
+    }
+
+    /** SPX's generic sentence says "book"; an update says "update". */
+    private static function updateRefusal(CourierRefusal $refusal): CourierRefusal
+    {
+        return $refusal->title === SpxRefusals::GENERIC_TITLE ? new CourierRefusal("SPX couldn't update this booking", $refusal->detail) : $refusal;
+    }
+
+    // --- Payload builders ---------------------------------------------------------
+
+    /**
+     * Why SPX would refuse this parcel, checked before anything is sent: a
+     * known weight under 50 kg, within the chosen pouch's ceiling, sides of
+     * at most 150 cm, and COD in whole pesos up to 50,000. SPX's fee check
+     * then applies its own, possibly stricter, rules.
+     */
+    private function limitProblem(Order $order, array $opts): ?string
+    {
+        $dims = $this->resolveParcelDims($opts);
+        if (!$dims['ok']) {
+            return $dims['error'];
+        }
+
+        $weight = self::typedWeight($order, $opts);
+        if ($weight === null) {
+            return 'Enter the parcel weight. None of the products has a weight recorded.';
+        }
+        if ($weight >= self::MAX_WEIGHT_KG) {
+            return 'SPX weight must be under 50 kg.';
+        }
+        $ceiling = $dims['dims']['max_weight_kg'];
+        if ($ceiling !== null && $weight > $ceiling + 0.0001) {
+            return sprintf(
+                'The parcel weighs %s kg, more than the %s pouch takes (up to %s kg). Choose a bigger parcel or enter its size.',
+                CourierRefusal::number(self::plain($weight)),
+                $dims['dims']['label'] ?? 'chosen',
+                CourierRefusal::number(self::plain($ceiling))
+            );
+        }
+
+        foreach (['length_cm', 'width_cm', 'height_cm'] as $side) {
+            if ($dims['dims'][$side] > self::MAX_SIDE_CM) {
+                return "SPX sides can't exceed 150 cm.";
+            }
+        }
+
+        $collect = $this->codAmount($order, $opts);
+        if ($collect !== null) {
+            if (abs($collect - round($collect)) > 0.001) {
+                return 'SPX collects COD in whole pesos only, and this order totals ₱' . number_format($collect, 2) . '. Adjust the order total, or book with another courier.';
+            }
+            if ($collect > self::MAX_COD) {
+                return 'SPX collects COD up to ₱50,000 only.';
+            }
+            if ($collect <= 0) {
+                return 'A COD order needs an amount to collect above zero.';
+            }
+        }
+
+        return null;
+    }
+
+    /** Whether the rider collects: the caller's buyer_payment when given, else the store's COD mapping. */
+    private static function isCod(Order $order, array $opts): bool
+    {
+        if (array_key_exists('booked_cod', $opts)) {
+            return (bool) $opts['booked_cod'];
+        }
+        $said = $opts['buyer_payment'] ?? null;
+
+        return $said !== null && $said !== '' ? $said === 'cod' : FulfillmentService::isCodOrder($order);
+    }
+
+    /**
+     * What the rider collects, or null when nothing is: the order total,
+     * shipping the buyer paid included (the same amount LBC collects). An
+     * edited booking keeps the amount it was booked with.
+     */
+    private function codAmount(Order $order, array $opts): ?float
+    {
+        if (!self::isCod($order, $opts)) {
+            return null;
+        }
+        if (array_key_exists('booked_cod_amount', $opts)) {
+            return round((float) $opts['booked_cod_amount'], 2);
+        }
+
+        return round((float) $order->total, 2);
+    }
+
+    /**
+     * The value SPX insures: the order total when the merchant ticks Insure,
+     * as QuadX declares it, else 0 (sent explicitly, never left to SPX's
+     * default). An edited booking keeps its booked value.
+     */
+    private static function insuredValue(Order $order, array $opts): float
+    {
+        if (array_key_exists('booked_insured_value', $opts)) {
+            return round((float) $opts['booked_insured_value'], 2);
+        }
+
+        return filter_var($opts['insure'] ?? false, FILTER_VALIDATE_BOOLEAN) ? round((float) $order->total, 2) : 0.0;
+    }
+
+    /** The typed weight, else the products' own weights; null when neither is known. */
+    private static function typedWeight(Order $order, array $opts): ?float
+    {
+        $typed = $opts['weight_kg'] ?? null;
+        if (is_numeric($typed) && (float) $typed > 0) {
+            return round((float) $typed, 3);
+        }
+
+        return OrderWeight::kg($order);
+    }
+
+    /**
+     * `kind` and `code` are set when SPX's location list itself rules the
+     * address out, so checkServiceability() can say so without asking SPX.
+     *
+     * @return array{ok:bool, payload?:array, error?:string, kind?:string, code?:string}
      */
     private function buildOrderPayload(Order $order, array $opts): array
     {
         $sender = $this->senderInfo($opts);
         if (!$sender['ok']) {
-            return ['ok' => false, 'error' => $sender['error']];
+            return ['ok' => false, 'error' => $sender['error']] + array_intersect_key($sender, ['kind' => 1, 'code' => 1]);
         }
 
         $deliver = $this->deliverInfo($order);
         if (!$deliver['ok']) {
-            return ['ok' => false, 'error' => $deliver['error']];
+            return ['ok' => false, 'error' => $deliver['error']] + array_intersect_key($deliver, ['kind' => 1, 'code' => 1]);
+        }
+
+        $fulfillment = $this->fulfillmentInfo($order, $opts);
+        // A pickup is checked as collected even before it has a window (a fee check).
+        $collected = $fulfillment['collect_type'] === 1 || ($opts['method'] ?? null) === 'pickup';
+        if (($refusal = self::supportRefusal($sender['flags'], $deliver['flags'], (bool) $fulfillment['cod_collection'], $collected)) !== null) {
+            return ['ok' => false] + $refusal;
         }
 
         $dims = $this->resolveParcelDims($opts);
@@ -1452,70 +2051,65 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return ['ok' => false, 'error' => $dims['error']];
         }
 
+        // The real weight. A preset's ceiling stands in only where no weight
+        // can be known yet (the coverage from-price before a parcel is
+        // chosen); createShipment() refuses a booking without one.
+        $weight = self::typedWeight($order, $opts) ?? $dims['dims']['max_weight_kg'];
+        if ($weight === null) {
+            return ['ok' => false, 'error' => 'Enter the parcel weight.'];
+        }
+        $dims['dims']['weight_kg'] = (float) $weight;
+
         return ['ok' => true, 'payload' => [
-            'order_id'         => (string) $order->id,
+            'order_id'         => (string) ($opts['reference'] ?? self::newReference()),
             'base_info'        => ['service_type' => 1],
             'sender_info'      => $sender['info'],
-            'fulfillment_info' => $this->fulfillmentInfo($order, $opts),
+            'fulfillment_info' => $fulfillment,
             'deliver_info'     => $deliver['info'],
             'parcel_info'      => $this->parcelInfo($order, $dims['dims'], $opts),
         ]];
     }
 
     /**
-     * Sender = the store's own pickup/warehouse origin, read from the
-     * module-owned pickup address record (courier_fulfillment_pickup_addresses).
-     * That record replaced the eight flat `settings(group=shipping,
-     * key=pickup_*)` rows this method used to read; QuadX reads the same
-     * record, so one origin still serves every courier and there is now
-     * exactly one place to edit it.
+     * Sender = the pickup address chosen for this booking (or the default),
+     * placed on SPX's location list. detail_address is the street text.
      *
-     * Which record: the one chosen in the booking modal
-     * ($opts['pickup_address_id']) when the store keeps more than one,
-     * otherwise the default. PickupAddress::resolveFor() is the single
-     * implementation of that rule, shared with QuadX and FulfillmentService.
-     *
-     * Address hierarchy fix (T2 review, IMPORTANT 5): every worked example in
-     * api.md puts the BARANGAY in `*_street` (e.g. "Barangay 294") and a
-     * city-level administrative district in `*_district` (e.g. "Binondo",
-     * "Intramuros") — the reverse of what this method originally sent.
-     * sender_district now uses the record's own district when it has one (PH
-     * districts exist for Manila only) and falls back to the city otherwise —
-     * the same fallback deliverInfo() uses when an order has no
-     * shipping_district on file, and the exact value the retired settings
-     * block produced, which had no district field at all.
-     * sender_street and sender_detail_address are not the same value
-     * duplicated — street is the barangay, detail_address is the actual
-     * unit/building text.
-     *
-     * @return array{ok:bool, info?:array, error?:string}
+     * @return array{ok:bool, info?:array, flags?:string, error?:string, kind?:string, code?:string}
      */
     private function senderInfo(array $opts = []): array
     {
         $pickup = PickupAddress::resolveFor($opts);
 
-        $state    = (string) ($pickup->state ?? '');
-        $city     = (string) ($pickup->city ?? '');
-        $district = (string) ($pickup->district ?? '');
-        $barangay = (string) ($pickup->barangay ?? '');
-        $address  = (string) ($pickup->address_1 ?? '');
-        $postCode = (string) ($pickup->postcode ?? '');
-        $name     = (string) ($pickup->contact_name ?? '') ?: 'Sender';
-        $phone    = $this->normalizePhPhone($pickup->contact_phone ?? '');
+        $state    = trim((string) ($pickup->state ?? ''));
+        $city     = trim((string) ($pickup->city ?? ''));
+        $district = trim((string) ($pickup->district ?? ''));
+        $barangay = trim((string) ($pickup->barangay ?? ''));
+        $address  = SpxFieldLimits::detailAddress($pickup->address_1 ?? null, $pickup?->getAttribute('address_2'));
+        $postCode = trim((string) ($pickup->postcode ?? ''));
+        $name     = trim((string) ($pickup->contact_name ?? '')) ?: 'Sender';
+        $phone    = PhPhone::normalize($pickup->contact_phone ?? '');
 
         if ($state === '' || $city === '' || $barangay === '' || $address === '' || $postCode === '' || $phone === null) {
-            return ['ok' => false, 'error' => 'Set a complete pickup address (Settings > Modules > Courier Fulfillment > Pickup addresses: province, city, barangay, address, postal code, a valid PH mobile number) before booking with SPX.'];
+            return ['ok' => false, 'code' => 'missing_pickup_address', 'error' => 'Set a complete pickup address (Settings > Modules > Courier Fulfillment > Pickup addresses: province, city, barangay, address, postal code, a valid PH mobile number) before booking with SPX.'];
+        }
+        if (mb_strlen($name) > SpxFieldLimits::NAME_MAX) {
+            return ['ok' => false, 'error' => 'The pickup contact name is longer than SPX takes (' . SpxFieldLimits::NAME_MAX . ' characters). Shorten it on the pickup address.'];
+        }
+        if (mb_strlen($address) > SpxFieldLimits::DETAIL_ADDRESS_MAX) {
+            return ['ok' => false, 'error' => 'The pickup street address is longer than SPX takes (' . SpxFieldLimits::DETAIL_ADDRESS_MAX . ' characters). Shorten it on the pickup address.'];
         }
 
-        if ($district === '') {
-            $district = $city;
+        $spx = $this->locations()->resolve(['state' => $state, 'city' => $city, 'district' => $district, 'barangay' => $barangay]);
+        if (!$spx['ok']) {
+            return ['ok' => false, 'error' => "SPX doesn't list the pickup address's {$spx['missing']} ({$barangay}, {$city}, {$state}). Check its spelling on the pickup address.", 'kind' => ServiceabilityVerdict::KIND_ORIGIN, 'code' => 'spx_unlisted_pickup_' . $spx['missing']];
         }
+        $at = $spx['location'];
 
-        return ['ok' => true, 'info' => [
-            'sender_state'          => $state,
-            'sender_city'           => $city,
-            'sender_district'       => $district,
-            'sender_street'         => $barangay,
+        return ['ok' => true, 'flags' => $spx['flags'], 'info' => [
+            'sender_state'          => $at['state'],
+            'sender_city'           => $at['city'],
+            'sender_district'       => $at['district'],
+            'sender_street'         => $at['street'],
             'sender_post_code'      => $postCode,
             'sender_name'           => $name,
             'sender_phone'          => $phone,
@@ -1524,121 +2118,107 @@ class SpxFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * Deliver = the order's own shipping address, mapped best-effort onto
-     * SPX's state/city/district/street hierarchy (see this class's docblock
-     * for why this is direct mapping rather than a parsed address tree).
+     * Deliver = the order's shipping address, placed on SPX's location list
+     * as senderInfo() places the pickup address. An order with no barangay,
+     * or one SPX does not list, is refused rather than sent with a stand-in.
      *
-     * Address hierarchy fix (T2 review, IMPORTANT 5) — see senderInfo()'s
-     * docblock for the underlying evidence from api.md's worked examples:
-     * deliver_street now maps from the order's barangay (not address_1),
-     * deliver_detail_address maps from address_1 (not duplicated from
-     * street), and deliver_district uses Venta's own optional 'district'
-     * field, falling back to city (not barangay, which street now owns).
-     *
-     * @return array{ok:bool, info?:array, error?:string}
+     * @return array{ok:bool, info?:array, flags?:string, error?:string, kind?:string, code?:string}
      */
     private function deliverInfo(Order $order): array
     {
-        $state = trim((string) $order->shipping_state);
-        $city  = trim((string) $order->shipping_city);
+        $state    = trim((string) $order->shipping_state);
+        $city     = trim((string) $order->shipping_city);
         $district = trim((string) $order->shipping_district);
         $barangay = trim((string) $order->shipping_barangay);
         $postCode = trim((string) $order->shipping_postcode);
-        $address  = trim((string) $order->shipping_address_1);
-        $phone    = $this->normalizePhPhone($order->shipping_phone ?: $order->phone);
+        $address  = SpxFieldLimits::detailAddress($order->shipping_address_1, $order->getAttribute('shipping_address_2'));
+        $phone    = PhPhone::normalize($order->shipping_phone ?: $order->phone);
+        $name     = SpxFieldLimits::fullName($order->shipping_first_name, $order->shipping_last_name) ?: 'Customer';
 
-        if ($state === '' || $city === '' || $postCode === '' || $phone === null) {
-            return ['ok' => false, 'error' => 'This order is missing a shipping province/city/postal code/valid PH mobile number. Cannot book with SPX until the shipping address is complete.'];
+        foreach (['province' => $state, 'city' => $city, 'barangay' => $barangay, 'postal code' => $postCode] as $field => $value) {
+            if ($value === '') {
+                return ['ok' => false, 'code' => 'missing_' . str_replace(' ', '', $field), 'error' => "This order's shipping address has no {$field}. Add it on the order before booking with SPX."];
+            }
         }
-        if ($district === '') {
-            // SPX marks district mandatory for PH; fall back to the city
-            // name rather than failing bookings for orders with no
-            // district on file.
-            $district = $city;
+        if ($phone === null) {
+            return ['ok' => false, 'code' => 'missing_phone', 'error' => "This order's phone number isn't a valid PH mobile number (11 digits starting with 0, or 12 starting with 63). Correct it on the order before booking with SPX."];
         }
-        if ($barangay === '') {
-            // SPX marks street mandatory for PH; fall back to the city name
-            // rather than failing bookings for orders with no barangay on
-            // file (pre-dates the PH barangay rollout).
-            $barangay = $city;
+        if (mb_strlen($name) > SpxFieldLimits::NAME_MAX) {
+            return ['ok' => false, 'error' => "The customer's name is longer than SPX takes (" . SpxFieldLimits::NAME_MAX . ' characters). Shorten it on the order.'];
         }
-        if ($address === '') {
-            // detail_address mandatory; fall back to whatever granular text
-            // we do have rather than sending an empty string.
-            $address = $barangay;
+        if (mb_strlen($address) > SpxFieldLimits::DETAIL_ADDRESS_MAX) {
+            return ['ok' => false, 'error' => "The customer's street address is longer than SPX takes (" . SpxFieldLimits::DETAIL_ADDRESS_MAX . ' characters). Shorten it on the order.'];
         }
+
+        $spx = $this->locations()->resolve(['state' => $state, 'city' => $city, 'district' => $district, 'barangay' => $barangay]);
+        if (!$spx['ok']) {
+            return ['ok' => false, 'error' => "SPX doesn't list the customer's {$spx['missing']} ({$barangay}, {$city}, {$state}).", 'kind' => ServiceabilityVerdict::KIND_DESTINATION, 'code' => 'spx_unlisted_' . $spx['missing']];
+        }
+        $at = $spx['location'];
 
         $info = [
-            'deliver_state'          => $state,
-            'deliver_city'           => $city,
-            'deliver_district'       => $district,
-            'deliver_street'         => $barangay,
+            'deliver_state'          => $at['state'],
+            'deliver_city'           => $at['city'],
+            'deliver_district'       => $at['district'],
+            'deliver_street'         => $at['street'],
             'deliver_post_code'      => $postCode,
-            'deliver_name'           => trim($order->shipping_first_name . ' ' . $order->shipping_last_name) ?: 'Customer',
+            'deliver_name'           => $name,
             'deliver_phone'          => $phone,
-            'deliver_detail_address' => $address,
+            // detail_address is required; the barangay stands in for an empty street line.
+            'deliver_detail_address' => $address !== '' ? $address : $barangay,
         ];
-        // deliver_instruction is optional (api.md §1.4: N, "receiver's
-        // remark, max length 256") — omit entirely rather than sending a
-        // JSON null SPX never asked for. It carries the buyer's message to
-        // the courier when one exists (core's courier_comment column).
+        // Optional receiver remark: the buyer's message to the courier, when there is one.
         $instruction = trim((string) $order->courier_comment);
         if ($instruction !== '') {
-            $info['deliver_instruction'] = mb_substr($instruction, 0, 256);
+            $info['deliver_instruction'] = SpxFieldLimits::cut($instruction, SpxFieldLimits::INSTRUCTION_MAX);
         }
 
-        return ['ok' => true, 'info' => $info];
+        return ['ok' => true, 'info' => $info, 'flags' => $spx['flags']];
     }
 
-    /**
-     * Normalizes a raw phone number to SPX's mandatory PH format (api.md
-     * §1.4: "11 digits starting with 0, or 12 digits starting with 63" for
-     * both sender_phone and deliver_phone). Strips everything but digits
-     * first, so the common raw shapes actually seen in the dev DB all
-     * resolve: `+63 917 123 4567` / `639171234567` (already 12 digits
-     * starting with 63) pass through as-is; a bare 10-digit mobile with no
-     * leading 0 (`9171234567`) gets a `0` prepended to become the 11-digit
-     * form. Returns null when nothing salvageable remains (empty, too
-     * short, garbage) — every caller turns that into a clear pre-flight
-     * failure rather than sending SPX a value it's guaranteed to reject.
-     *
-     * The rule itself moved to Support\PhPhone so the pickup-address form
-     * validates a mobile number by exactly the rule this method will later
-     * build the payload with. Behaviour is unchanged; this stays as the
-     * name every call site in this class already uses.
-     */
-    private function normalizePhPhone(?string $raw): ?string
+    private function locations(): SpxLocations
     {
-        return PhPhone::normalize($raw);
+        return $this->locations ??= new SpxLocations();
     }
 
     /**
-     * @return array{payment_role:int, cod_collection:int, cod_amount?:int, collect_type:int, pickup_time?:int, pickup_time_range_id?:int, pickup_time_range?:string}
+     * The location flags this booking needs: delivery (and COD delivery when
+     * COD) at the customer's barangay, pickup (and COD pickup when COD) at
+     * the sender's when the parcel is collected rather than dropped off.
+     *
+     * @return array{error:string, kind:string, code:string}|null
      */
+    private static function supportRefusal(string $senderFlags, string $deliverFlags, bool $cod, bool $pickup): ?array
+    {
+        $checks = [
+            [$deliverFlags, SpxLocations::DELIVER, true, "SPX doesn't deliver to this barangay.", ServiceabilityVerdict::KIND_DESTINATION, 'spx_no_delivery'],
+            [$deliverFlags, SpxLocations::COD_DELIVER, $cod, "SPX doesn't collect COD in this barangay.", ServiceabilityVerdict::KIND_COD, 'spx_no_cod'],
+            [$senderFlags, SpxLocations::PICKUP, $pickup, "SPX doesn't pick up from the pickup address's barangay. Choose drop-off.", ServiceabilityVerdict::KIND_ORIGIN, 'spx_no_pickup'],
+            [$senderFlags, SpxLocations::COD_PICKUP, $pickup && $cod, "SPX doesn't pick up COD parcels from the pickup address's barangay. Choose drop-off.", ServiceabilityVerdict::KIND_ORIGIN, 'spx_no_cod_pickup'],
+        ];
+        foreach ($checks as [$flags, $flag, $needed, $error, $kind, $code]) {
+            if ($needed && !SpxLocations::supports($flags, $flag)) {
+                return ['error' => $error, 'kind' => $kind, 'code' => $code];
+            }
+        }
+
+        return null;
+    }
+
+    /** payment_role, COD and collect type, with the pickup window when collected. */
     private function fulfillmentInfo(Order $order, array $opts): array
     {
-        // payment_role: 1 sender pay, 2 receiver pay — the who-pays choice
-        // from the booking form's shipping_payment select
-        // (getShippingPaymentOptions()).
-        $paymentRole = ($opts['shipping_payment'] ?? null) === 'receiver_pay' ? 2 : 1;
-
-        $isCod = FulfillmentService::isCodOrder($order);
+        $collect = $this->codAmount($order, $opts);
         $info = [
-            'payment_role'   => $paymentRole,
-            'cod_collection' => $isCod ? 1 : 0,
+            'payment_role'   => ($opts['shipping_payment'] ?? null) === 'receiver_pay' ? 2 : 1,
+            'cod_collection' => $collect !== null ? 1 : 0,
         ];
-        if ($isCod) {
-            $info['cod_amount'] = (int) round((float) $order->total);
+        if ($collect !== null) {
+            // Whole pesos: limitProblem() refuses anything else before a booking is sent.
+            $info['cod_amount'] = (int) round($collect);
         }
 
-        // collect_type: 1 pickup, 2 drop-off. Pickup requires a scheduled
-        // slot (pickup_time/pickup_time_range_id, from getPickupSlots());
-        // the current booking form doesn't collect a slot choice yet, so
-        // this defaults to drop-off — the only collect_type that never needs
-        // one. The moment a future UI passes $opts['pickup_slot'] back (the
-        // exact JSON string getPickupSlots() hands out as each option's
-        // value), this switches to a real scheduled pickup automatically.
-        $slot = $this->decodePickupSlot($opts['pickup_slot'] ?? null);
+        $slot = ($opts['method'] ?? null) === 'dropoff' ? null : self::decodeSlot($opts['pickup_slot'] ?? null);
         if ($slot !== null) {
             $info['collect_type']         = 1;
             $info['pickup_time']          = $slot['pickup_time'];
@@ -1651,22 +2231,6 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return $info;
     }
 
-    private function decodePickupSlot(mixed $raw): ?array
-    {
-        if (!is_string($raw) || $raw === '') {
-            return null;
-        }
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded) || !isset($decoded['pickup_time'], $decoded['pickup_time_range_id'], $decoded['pickup_time_range'])) {
-            return null;
-        }
-        return [
-            'pickup_time'          => (int) $decoded['pickup_time'],
-            'pickup_time_range_id' => (int) $decoded['pickup_time_range_id'],
-            'pickup_time_range'    => (string) $decoded['pickup_time_range'],
-        ];
-    }
-
     private function parcelInfo(Order $order, array $dims, array $opts): array
     {
         $products = $order->products;
@@ -1674,73 +2238,61 @@ class SpxFulfillment implements CourierFulfillmentInterface
         foreach ($products as $p) {
             $qty += (int) $p->quantity;
         }
-        $qty = $qty > 0 ? $qty : 1;
 
         $firstName = $products->first()?->name;
-        $itemName = $firstName ? Str::limit($firstName, 60, '') : ('Order #' . $order->id);
 
         return [
-            'parcel_weight'         => $dims['max_weight_kg'],
+            'parcel_weight'         => $dims['weight_kg'],
             'parcel_length'         => $dims['length_cm'],
             'parcel_width'          => $dims['width_cm'],
             'parcel_height'         => $dims['height_cm'],
-            'parcel_item_name'      => $itemName,
-            'parcel_item_quantity'  => $qty,
-            // SPX insures via express_insured_value — mirrors QuadX's
-            // declared_value insurance hazard (omitting it risks a silent
-            // over/under-insure default): explicit 0 unless the admin
-            // opted in via the same "insure" checkbox QuadX's form uses.
-            'express_insured_value' => (bool) ($opts['insure'] ?? false) ? (float) $order->total : 0,
+            'parcel_item_name'      => $firstName ? Str::limit($firstName, 60, '') : ('Order #' . $order->id),
+            'parcel_item_quantity'  => max(1, $qty),
+            'express_insured_value' => self::insuredValue($order, $opts),
             'parcel_item_type'      => self::PARCEL_ITEM_TYPE,
         ];
     }
 
     /**
-     * Resolves parcel dims from the chosen pouch preset, or explicit custom
-     * dimensions (forward-compatible with the interface's own $opts shape —
-     * weight_kg/length_cm/width_cm/height_cm are already documented there
-     * for every courier). getParcelOptions() advertises presets by a slug
-     * value plus a 'custom' sentinel — this is the single place that slug
-     * resolves back into real dims, so the two stay in lockstep.
+     * The parcel's size: typed dimensions when all three are given (they win
+     * over a preset's), a preset's when chosen, else the first preset. A
+     * preset also gives its weight ceiling; typed sizes have none.
      *
-     * @return array{ok:bool, dims?:array{length_cm:float,width_cm:float,height_cm:float,max_weight_kg:float}, error?:string}
+     * @return array{ok:bool, dims?:array{length_cm:float,width_cm:float,height_cm:float,max_weight_kg:?float,label?:string}, error?:string}
      */
     private function resolveParcelDims(array $opts): array
     {
         $key = $opts['parcel'] ?? null;
 
-        if ($key === 'custom') {
-            $length = $opts['length_cm'] ?? null;
-            $width  = $opts['width_cm'] ?? null;
-            $height = $opts['height_cm'] ?? null;
-            $weight = $opts['weight_kg'] ?? null;
-            if (!is_numeric($length) || !is_numeric($width) || !is_numeric($height) || !is_numeric($weight)
-                || (float) $length <= 0 || (float) $width <= 0 || (float) $height <= 0 || (float) $weight <= 0) {
-                return ['ok' => false, 'error' => 'Custom parcel dimensions (length/width/height/weight) are required and must be greater than zero.'];
-            }
+        $typed = [$opts['length_cm'] ?? null, $opts['width_cm'] ?? null, $opts['height_cm'] ?? null];
+        $allTyped = count(array_filter($typed, fn ($d) => is_numeric($d) && (float) $d > 0)) === 3;
+        if ($allTyped) {
             return ['ok' => true, 'dims' => [
-                'length_cm' => (float) $length, 'width_cm' => (float) $width,
-                'height_cm' => (float) $height, 'max_weight_kg' => (float) $weight,
+                'length_cm' => (float) $typed[0], 'width_cm' => (float) $typed[1],
+                'height_cm' => (float) $typed[2], 'max_weight_kg' => null,
             ]];
         }
-
-        foreach ($this->pouchPresets() as $preset) {
-            if (Str::slug((string) ($preset['label'] ?? '')) === $key) {
-                return ['ok' => true, 'dims' => [
-                    'length_cm' => (float) $preset['length_cm'], 'width_cm' => (float) $preset['width_cm'],
-                    'height_cm' => (float) $preset['height_cm'], 'max_weight_kg' => (float) $preset['max_weight_kg'],
-                ]];
-            }
+        if ($key === 'custom') {
+            return ['ok' => false, 'error' => 'Custom parcel dimensions (length, width and height) are required and must be greater than zero.'];
         }
 
-        // Unknown/omitted parcel value (stale option, or an order switched
-        // onto SPX after another courier's parcel value was selected) —
-        // fall back to the first configured preset rather than failing a
-        // whole booking over a cosmetic mismatch.
-        $fallback = $this->pouchPresets()[0] ?? self::DEFAULT_POUCH_PRESETS[0];
+        $presets = $this->pouchPresets();
+        $chosen = null;
+        foreach ($presets as $preset) {
+            if (Str::slug((string) ($preset['label'] ?? '')) === $key) {
+                $chosen = $preset;
+                break;
+            }
+        }
+        // An unknown or missing value (a stale option, another courier's
+        // parcel) falls back to the first preset.
+        $chosen ??= $presets[0] ?? self::DEFAULT_POUCH_PRESETS[0];
+
         return ['ok' => true, 'dims' => [
-            'length_cm' => (float) $fallback['length_cm'], 'width_cm' => (float) $fallback['width_cm'],
-            'height_cm' => (float) $fallback['height_cm'], 'max_weight_kg' => (float) $fallback['max_weight_kg'],
+            'length_cm' => (float) ($chosen['length_cm'] ?? 0), 'width_cm' => (float) ($chosen['width_cm'] ?? 0),
+            'height_cm' => (float) ($chosen['height_cm'] ?? 0),
+            'max_weight_kg' => is_numeric($chosen['max_weight_kg'] ?? null) ? (float) $chosen['max_weight_kg'] : null,
+            'label' => (string) ($chosen['label'] ?? 'chosen'),
         ]];
     }
 
@@ -1748,25 +2300,36 @@ class SpxFulfillment implements CourierFulfillmentInterface
     {
         $raw = Setting::where('group', 'courier')->where('key', 'spx_pouch_presets')->value('value');
         $decoded = $raw ? json_decode($raw, true) : null;
-        return (is_array($decoded) && $decoded !== []) ? $decoded : self::DEFAULT_POUCH_PRESETS;
+
+        return (is_array($decoded) && $decoded !== []) ? array_values(array_filter($decoded, 'is_array')) : self::DEFAULT_POUCH_PRESETS;
     }
 
-    // --- Async create polling -------------------------------------------
+    /**
+     * The parcel figures, so a refusal can name them ("Length is 35 cm.").
+     *
+     * @return array<string, float>
+     */
+    private function parcelContext(Order $order, array $opts): array
+    {
+        $context = [];
+        $dims = $this->resolveParcelDims($opts);
+        if ($dims['ok']) {
+            foreach (['length_cm', 'width_cm', 'height_cm'] as $side) {
+                $context[$side] = $dims['dims'][$side];
+            }
+        }
+        if (($weight = self::typedWeight($order, $opts)) !== null) {
+            $context['weight_kg'] = $weight;
+        }
 
-    /** data.task_status values (api.md §1.5) that mean "stop polling, the batch is settled" — 4 Done, 5 Failed. Both New(1)/Waiting(2)/Running(3) keep polling. */
-    private const CREATE_RESULT_SETTLED = [4, 5];
+        return $context;
+    }
+
+    // --- Async create polling -----------------------------------------------------
 
     /**
-     * Polls 1.5 Get Order Create Result up to ~15s total (backoff between
-     * attempts: 1s, 2s, 3s, 4s, 5s — 6 attempts, 5 waits), bounded so an
-     * admin clicking "Book" never hangs indefinitely on SPX's async create.
-     * Returns the raw result data once task_status settles (4 Done or 5
-     * Failed — see CREATE_RESULT_SETTLED; a Failed batch is over just as
-     * definitively as a Done one, so there is nothing to gain by continuing
-     * to poll it for the rest of the window), or null if the window elapses
-     * first (still New/Waiting/Running) — createShipment() persists
-     * 'creating' in that case and courier:poll-status finishes the job
-     * later.
+     * Polls 1.5 for up to about 15 seconds (backoff 1, 2, 3, 4, 5 s), so Book
+     * never hangs on SPX's async create. Null when still running.
      */
     private function pollCreateResult(int $batchNo): ?array
     {
@@ -1776,14 +2339,13 @@ class SpxFulfillment implements CourierFulfillmentInterface
         for ($i = 0; $i < $attempts; $i++) {
             try {
                 $result = $this->client->getOrderCreateResult($batchNo);
-            } catch (\Throwable $e) {
+            } catch (\Throwable) {
                 $result = null;
             }
 
             if (is_array($result) && in_array((int) ($result['task_status'] ?? 0), self::CREATE_RESULT_SETTLED, true)) {
                 return $result;
             }
-
             if ($i < $attempts - 1) {
                 ($this->sleeper)($backoffMs[$i]);
             }
@@ -1793,16 +2355,53 @@ class SpxFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * "Be careful: if all orders failed to be created, the task status is
-     * still Done" (api.md §1.5) — success is NEVER inferred from task_status
-     * alone, only from fail_list/fail_count, per this task's brief. An
-     * explicit task_status 5 (Failed) is treated the same way — it's simply
-     * another way this batch can be settled-but-unsuccessful, folded into
-     * the same "no usable order" branch below via $failed.
+     * One fail_list entry: `error` is the merchant's sentence, `raw` is SPX's
+     * code and its own words, kept for support and never shown as the error.
      *
-     * @return array{ok:bool, order?:array, error?:string}
+     * @return array{error:string, raw:?string}
      */
-    private function outcomeFromCreateResult(array $resultData): array
+    private static function createFailure(array $fail, array $context = []): array
+    {
+        $code = is_numeric($fail['ret_code'] ?? null) ? (int) $fail['ret_code'] : null;
+        $message = self::cleanText($fail['message'] ?? null);
+        $debug = self::cleanText($fail['debug_msg'] ?? null);
+
+        return [
+            'error' => SpxRefusals::explain($code, trim(($message ?? '') . ' ' . ($debug ?? '')), $context)->message(),
+            'raw'   => self::rawText($code, $message, $debug),
+        ];
+    }
+
+    /** SPX's own answer on one line for support: "SPX 13101: <message> | <debug_msg>". */
+    private static function rawText(?int $code, ?string $message, ?string $debug): ?string
+    {
+        $words = implode(' | ', array_filter([self::cleanText($message), self::cleanText($debug)]));
+        if ($code === null && $words === '') {
+            return null;
+        }
+
+        return $code === null ? "SPX: {$words}" : ($words === '' ? "SPX {$code}" : "SPX {$code}: {$words}");
+    }
+
+    /** SPX's text on one line, at most 300 characters. */
+    private static function cleanText(mixed $text): ?string
+    {
+        if (!is_string($text)) {
+            return null;
+        }
+        $text = trim((string) preg_replace('/\s+/u', ' ', $text));
+
+        return $text === '' ? null : mb_substr($text, 0, 300);
+    }
+
+    /**
+     * Success is never read from task_status alone: "if all orders failed to
+     * be created, the task status is still Done". fail_list, fail_count and
+     * task_status 5 all mean no usable order.
+     *
+     * @return array{ok:bool, order?:array, error?:string, raw?:?string, code?:?int}
+     */
+    private static function outcomeFromCreateResult(array $resultData, array $context = []): array
     {
         $taskFailed = (int) ($resultData['task_status'] ?? 0) === 5;
         $failCount  = (int) ($resultData['fail_count'] ?? 0);
@@ -1810,18 +2409,113 @@ class SpxFulfillment implements CourierFulfillmentInterface
         $orders     = $resultData['orders'] ?? [];
 
         if ($taskFailed || $failCount > 0 || !empty($failList) || empty($orders)) {
-            $reason = $failList[0]['message']
-                ?? ($taskFailed
-                    ? ('SPX marked this batch as Failed' . (!empty($resultData['description']) ? ": {$resultData['description']}" : '.'))
-                    : 'SPX could not create this shipment.');
-            return ['ok' => false, 'error' => $reason];
+            $first = is_array($failList[0] ?? null) ? $failList[0] : null;
+            if ($first !== null) {
+                $failure = self::createFailure($first, $context);
+
+                return ['ok' => false, 'error' => $failure['error'], 'raw' => $failure['raw'], 'code' => is_numeric($first['ret_code'] ?? null) ? (int) $first['ret_code'] : null];
+            }
+
+            $said = $taskFailed && is_string($resultData['description'] ?? null) && $resultData['description'] !== ''
+                ? 'SPX: batch failed | ' . self::cleanText($resultData['description'])
+                : null;
+
+            return ['ok' => false, 'error' => SpxRefusals::generic()->message(), 'raw' => $said, 'code' => null];
         }
 
         $created = $orders[0];
-        if (empty($created['tracking_no'])) {
-            return ['ok' => false, 'error' => 'SPX reported success but returned no tracking number.'];
+        if (!is_array($created) || empty($created['tracking_no'])) {
+            return ['ok' => false, 'error' => 'SPX reported success but returned no tracking number.', 'code' => null];
         }
 
         return ['ok' => true, 'order' => $created];
+    }
+
+    // --- Small value helpers ------------------------------------------------------
+
+    /** @return array{delivery:string}|null */
+    private static function deliveryLink(mixed $url): ?array
+    {
+        $url = self::url($url);
+
+        return $url !== null ? ['delivery' => $url] : null;
+    }
+
+    /** An http(s) URL of sane length, or null. */
+    private static function url(mixed $url): ?string
+    {
+        if (!is_string($url)) {
+            return null;
+        }
+        $url = trim($url);
+        if ($url === '' || strlen($url) > 2048 || filter_var($url, FILTER_VALIDATE_URL) === false) {
+            return null;
+        }
+
+        return in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true) ? $url : null;
+    }
+
+    /**
+     * SPX's delivery estimate as SPX gives it. Both zero is SPX's "none".
+     *
+     * @return array{min:?int, max:?int, source:string}|null
+     */
+    private static function edd(mixed $min, mixed $max, string $source): ?array
+    {
+        $min = is_numeric($min) ? (int) $min : null;
+        $max = is_numeric($max) ? (int) $max : null;
+        if (($min === null && $max === null) || (($min ?? 0) === 0 && ($max ?? 0) === 0)) {
+            return null;
+        }
+
+        return ['min' => $min, 'max' => $max, 'source' => $source];
+    }
+
+    /** Proof URLs, http(s) only, at most 20, duplicates dropped. */
+    private static function urls(mixed $list): ?array
+    {
+        if (!is_array($list)) {
+            return null;
+        }
+        $urls = [];
+        foreach ($list as $item) {
+            if (($url = self::url($item)) !== null && !in_array($url, $urls, true)) {
+                $urls[] = $url;
+            }
+            if (count($urls) >= 20) {
+                break;
+            }
+        }
+
+        return $urls === [] ? null : $urls;
+    }
+
+    private static function shortText(mixed $value, int $max): ?string
+    {
+        if (!is_string($value) && !is_int($value)) {
+            return null;
+        }
+        $value = trim((string) $value);
+
+        return $value === '' ? null : mb_substr($value, 0, $max);
+    }
+
+    /** A non-negative money amount rounded to centavos, or null. */
+    private static function amount(mixed $value): ?float
+    {
+        return is_numeric($value) && (float) $value >= 0 && is_finite((float) $value) ? round((float) $value, 2) : null;
+    }
+
+    /** An amount above zero, else null: SPX answers 0 for a fee it has not set. */
+    private static function positiveAmount(mixed $value): ?float
+    {
+        $amount = self::amount($value);
+
+        return $amount !== null && $amount > 0 ? $amount : null;
+    }
+
+    private static function plain(float $n): string
+    {
+        return rtrim(rtrim(sprintf('%.3F', $n), '0'), '.') ?: '0';
     }
 }

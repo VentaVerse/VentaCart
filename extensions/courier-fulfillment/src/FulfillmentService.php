@@ -699,6 +699,38 @@ class FulfillmentService
         return $keep;
     }
 
+    /**
+     * Folds what a tracking answer says beyond status, links and timeline
+     * into the booking's meta: the courier's actual fee (`fee_info`, kept as
+     * `actual_fee`) and its `meta` facts (a delivery estimate, a return fee).
+     * A courier that reports neither changes nothing.
+     *
+     * @return bool whether anything changed
+     */
+    public static function mergeTrackingFacts(array &$meta, array $result): bool
+    {
+        $changed = false;
+        $feeInfo = $result['fee_info'] ?? null;
+        if (!empty($feeInfo) && ($meta['actual_fee'] ?? null) !== $feeInfo) {
+            $meta['actual_fee'] = $feeInfo;
+            $changed = true;
+        }
+        foreach ((is_array($result['meta'] ?? null) ? $result['meta'] : []) as $key => $value) {
+            if (is_string($key) && $value !== null && ($meta[$key] ?? null) !== $value) {
+                $meta[$key] = $value;
+                $changed = true;
+            }
+        }
+
+        return $changed;
+    }
+
+    /** What the courier says the booking cost the store, for a courier that says. */
+    public static function courierCost(CourierFulfillmentInterface $courier, array $meta): ?float
+    {
+        return $courier instanceof ReportsShippingCost ? $courier->actualShippingCost($meta) : null;
+    }
+
     public static function refreshTracking(Order $order): array
     {
         $courier = CourierManager::get((string) $order->courier_provider);
@@ -718,8 +750,10 @@ class FulfillmentService
 
         $links = $result['links'] ?? null;
         $timeline = $result['timeline'] ?? null;
-        if (!empty($links) || !empty($timeline)) {
-            $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+        $costBefore = self::courierCost($courier, $meta);
+        $factsChanged = self::mergeTrackingFacts($meta, $result);
+        if (!empty($links) || !empty($timeline) || $factsChanged) {
             if (!empty($links)) {
                 $meta['tracking_links'] = $links;
             }
@@ -727,6 +761,10 @@ class FulfillmentService
                 $meta['timeline'] = $timeline;
             }
             $fill['courier_meta'] = json_encode($meta);
+        }
+        $costAfter = self::courierCost($courier, $meta);
+        if ($costAfter !== null && $costAfter !== $costBefore) {
+            $fill['shipping_cost_actual'] = $costAfter;
         }
 
         // Raw column, NOT the accessor: the accessor live-derives and would
@@ -924,6 +962,19 @@ class FulfillmentService
 
         $result = $courier->createShipment($order, $opts);
         if (!($result['success'] ?? false)) {
+            // The courier's own words for a refusal (SPX's raw rule text)
+            // are not shown to the merchant, who gets the plain sentence,
+            // but are kept on the order for whoever asks the courier why.
+            if (!empty($result['courier_error']) && is_string($result['courier_error'])) {
+                $previousMeta['last_booking_refusal'] = [
+                    'courier'      => $courier->getKey(),
+                    'message'      => mb_substr((string) ($result['error'] ?? ''), 0, 500),
+                    'courier_said' => mb_substr($result['courier_error'], 0, 500),
+                    'at'           => now()->toIso8601String(),
+                ];
+                $order->forceFill(['courier_meta' => json_encode($previousMeta)])->save();
+            }
+
             return ['success' => false, 'code' => 'booking_failed', 'error' => $result['error'] ?? 'Booking failed.'];
         }
 

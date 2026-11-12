@@ -104,7 +104,7 @@ class FulfillmentFinalFixesTest extends TestCase
             'address_1'     => '456 Warehouse Ave',
             'barangay'      => 'Bel-Air',
             'district'      => null,
-            'city'          => 'Makati',
+            'city'          => 'Makati City',
             'state'         => 'Metro Manila',
             'postcode'      => '1200',
             'country_id'    => $country->id,
@@ -136,7 +136,7 @@ class FulfillmentFinalFixesTest extends TestCase
             'first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com',
             'phone' => '09171234567',
             'shipping_first_name' => 'Jane', 'shipping_last_name' => 'Doe',
-            'shipping_address_1' => '123 Mango St', 'shipping_barangay' => 'Lahug',
+            'shipping_address_1' => '123 Mango St', 'shipping_barangay' => 'Apas',
             'shipping_city' => 'Cebu City', 'shipping_state' => 'Cebu', 'shipping_postcode' => '6000',
             'shipping_phone' => '09171234567', 'payment_method' => 'bank_transfer',
             'subtotal' => 1000, 'shipping_cost' => 100, 'total' => 1100,
@@ -293,7 +293,7 @@ class FulfillmentFinalFixesTest extends TestCase
         ]);
 
         $response = $this->post($this->queueUrl() . '/' . $order->id . '/book', [
-            'courier' => 'spx', 'service' => 'standard', 'parcel' => 'medium',
+            'courier' => 'spx', 'service' => 'standard', 'parcel' => 'medium', 'weight_kg' => '1.2',
             'shipping_payment' => 'sender_pay', 'insure' => '0', 'pickup_slot' => '',
         ]);
 
@@ -378,7 +378,7 @@ class FulfillmentFinalFixesTest extends TestCase
         ]);
 
         $response = $this->post($this->queueUrl() . '/' . $order->id . '/book', [
-            'courier' => 'spx', 'service' => 'standard', 'parcel' => 'medium',
+            'courier' => 'spx', 'service' => 'standard', 'parcel' => 'medium', 'weight_kg' => '1.2',
             'shipping_payment' => 'sender_pay', 'insure' => '0', 'pickup_slot' => '',
         ]);
 

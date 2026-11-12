@@ -54,7 +54,7 @@ class CourierPickupAddressPayloadTest extends TestCase
     {
         return PickupAddress::create(array_merge([
             'label'         => 'Store pickup',
-            'contact_name'  => 'Paolo',
+            'contact_name'  => 'Juan Dela Cruz',
             'contact_phone' => '09998889999',
             'address_1'     => 'Street',
             'barangay'      => 'San Bartolome',
@@ -77,7 +77,7 @@ class CourierPickupAddressPayloadTest extends TestCase
             'phone' => '+639171234567',
             'shipping_first_name' => 'Jane', 'shipping_last_name' => 'Doe',
             'shipping_address_1' => '123 Mango St',
-            'shipping_barangay' => 'Lahug',
+            'shipping_barangay' => 'Apas',
             'shipping_city' => 'Cebu City',
             'shipping_state' => 'Cebu',
             'shipping_postcode' => '6000',
@@ -100,14 +100,14 @@ class CourierPickupAddressPayloadTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'spx_user_secret', 'value' => Crypt::encryptString('fake-user-secret-not-real')]);
     }
 
-    /** The exact sender_info the settings version built for this origin. */
+    /** The sender_info for this origin, placed on SPX's location list (island group, province, city, barangay). */
     private const SPX_GOLDEN_SENDER = [
         'sender_state'          => 'Metro Manila',
-        'sender_city'           => 'Quezon City',
+        'sender_city'           => 'Metro Manila',
         'sender_district'       => 'Quezon City',
         'sender_street'         => 'San Bartolome',
         'sender_post_code'      => '1116',
-        'sender_name'           => 'Paolo',
+        'sender_name'           => 'Juan Dela Cruz',
         'sender_phone'          => '09998889999',
         'sender_detail_address' => 'Street',
     ];
@@ -153,7 +153,7 @@ class CourierPickupAddressPayloadTest extends TestCase
             'contact_name'  => 'Depot Team',
             'contact_phone' => '09171112222',
             'address_1'     => '456 Warehouse Ave',
-            'barangay'      => 'Lahug',
+            'barangay'      => 'Apas',
             'city'          => 'Cebu City',
             'state'         => 'Cebu',
             'postcode'      => '6000',
@@ -164,9 +164,10 @@ class CourierPickupAddressPayloadTest extends TestCase
 
         $sender = $this->spxSenderInfo(['pickup_address_id' => $second->id]);
 
-        $this->assertSame('Cebu', $sender['sender_state']);
-        $this->assertSame('Cebu City', $sender['sender_city']);
-        $this->assertSame('Lahug', $sender['sender_street']);
+        $this->assertSame('Visayas', $sender['sender_state']);
+        $this->assertSame('Cebu', $sender['sender_city']);
+        $this->assertSame('Cebu City', $sender['sender_district']);
+        $this->assertSame('Apas', $sender['sender_street']);
         $this->assertSame('6000', $sender['sender_post_code']);
         $this->assertSame('Depot Team', $sender['sender_name']);
         $this->assertSame('09171112222', $sender['sender_phone']);
@@ -199,7 +200,7 @@ class CourierPickupAddressPayloadTest extends TestCase
     public function test_spx_sends_a_real_district_when_the_address_has_one(): void
     {
         $this->configureSpx();
-        $this->storeOrigin(['city' => 'Manila', 'district' => 'Binondo']);
+        $this->storeOrigin(['city' => 'Manila', 'district' => 'Binondo', 'barangay' => 'Barangay 287']);
 
         $this->assertSame('Binondo', $this->spxSenderInfo()['sender_district']);
     }
@@ -218,7 +219,7 @@ class CourierPickupAddressPayloadTest extends TestCase
 
     /** The exact pickup_address block the settings version built for this origin. */
     private const QUADX_GOLDEN_PICKUP = [
-        'name'          => 'Paolo',
+        'name'          => 'Juan Dela Cruz',
         'mobile_number' => '09998889999',
         'line_1'        => 'Street',
         'district'      => 'San Bartolome',

@@ -191,6 +191,22 @@ class SpxClient
         ], $timeout);
     }
 
+    /**
+     * 1.7 Update Order (batch_update_order): the whole order again, with its
+     * tracking_no, while SPX still holds it as 1001 Pending Pickup. The
+     * tracking number stays the same; the waybill must be printed again.
+     *
+     * @param array<int,array> $orders each a 1.4 order body plus tracking_no
+     */
+    public function updateOrders(array $orders): array
+    {
+        return $this->post('/open/api/v1/order/batch_update_order', [
+            'user_id'     => (int) $this->userId(),
+            'user_secret' => (string) $this->userSecret(),
+            'orders'      => $orders,
+        ]);
+    }
+
     /** 2.2 Get Order Fee (batch_get_asf) — ACTUAL fee AFTER order creation. */
     public function getActualFee(array $trackingNumbers): array
     {
@@ -290,7 +306,13 @@ class SpxClient
         if (!$this->isConfigured()) {
             return false;
         }
-        if ($appIdHeader === null || $checkSignHeader === null || $timestampHeader === null || $randomNumHeader === null) {
+        // SPX's tracking webhook documentation never promises an `app-id`
+        // header on a push: without one, the signature is checked with this
+        // store's own app id, which is the one SPX signs with.
+        if ($appIdHeader === null || $appIdHeader === '') {
+            $appIdHeader = (string) $this->appId();
+        }
+        if ($checkSignHeader === null || $timestampHeader === null || $randomNumHeader === null) {
             return false;
         }
         if (!ctype_digit($appIdHeader) || !ctype_digit($timestampHeader) || !ctype_digit(ltrim($randomNumHeader, '-'))) {
@@ -302,7 +324,8 @@ class SpxClient
 
         $expected = self::sign((int) $appIdHeader, (int) $timestampHeader, (int) $randomNumHeader, $rawBody, (string) $this->appSecret());
 
-        return hash_equals($expected, $checkSignHeader);
+        // Hex is case-insensitive: an upper-case check-sign is the same signature.
+        return hash_equals($expected, strtolower(trim($checkSignHeader)));
     }
 
     // --- HTTP core --------------------------------------------------------
@@ -358,14 +381,16 @@ class SpxClient
                 ->timeout($timeout ?? 40)
                 ->post($url);
         } catch (\Throwable $e) {
-            Log::error('SPX request failed', ['path' => $path, 'error' => $e->getMessage()]);
+            Log::error('SPX request failed', ['path' => $path, 'exception' => $e::class]);
             throw new \RuntimeException('SPX request failed: ' . $e->getMessage(), 0, $e);
         }
 
         $json = $response->json();
         if (!is_array($json) || !array_key_exists('ret_code', $json)) {
+            // The body is never logged: SPX echoes names, phones and
+            // addresses back, and an error page is no use in a log anyway.
             Log::warning('SPX API returned a non-envelope response', [
-                'path' => $path, 'status' => $response->status(), 'body' => $response->body(),
+                'path' => $path, 'status' => $response->status(),
             ]);
             throw new \RuntimeException("SPX returned an unexpected response (HTTP {$response->status()}).");
         }
@@ -374,8 +399,11 @@ class SpxClient
         $message = (string) ($json['message'] ?? '');
 
         if ($retCode !== 0) {
-            Log::warning('SPX API error', ['path' => $path, 'ret_code' => $retCode, 'message' => $message]);
-            throw new SpxApiException($message !== '' ? $message : "SPX error {$retCode}", $retCode);
+            Log::warning('SPX API error', [
+                'path' => $path, 'status' => $response->status(), 'ret_code' => $retCode,
+                'message' => mb_substr($message, 0, 300),
+            ]);
+            throw new SpxApiException($message !== '' ? $message : "SPX error {$retCode}", $retCode, $response->status());
         }
 
         $data = $json['data'] ?? [];

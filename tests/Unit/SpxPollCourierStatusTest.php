@@ -117,11 +117,45 @@ class SpxPollCourierStatusTest extends TestCase
         // tracking number and a null status.
         $this->assertSame('1001', $order->courier_status);
 
-        // T2 review, IMPORTANT 4: getTracking() fetches 2.2's actual fee on
-        // every call, but courier:poll-status's main loop is the ONE hook
-        // that actually persists it — proves it's no longer fetched-and-dropped.
+        // The settled booking's own data is kept (the fee quoted at booking,
+        // SPX's tracking link), and the actual fee is not asked while the
+        // parcel is still pending pickup.
         $meta = json_decode($order->courier_meta, true);
-        $this->assertSame(['actual_shipping_fee' => 27.5], $meta['actual_fee']);
+        $this->assertEquals(25, $meta['estimated_shipping_fee']);
+        $this->assertSame('https://uat.spx.ph/track?SPEPH000000000099', $order->tracking_link);
+        $this->assertArrayNotHasKey('actual_fee', $meta);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'batch_get_asf'));
+    }
+
+    public function test_a_delivered_parcel_gets_its_actual_fee_and_cost_once(): void
+    {
+        $this->enableSpx();
+
+        $order = $this->makeOrder();
+        $order->forceFill([
+            'courier_provider' => 'spx',
+            'courier_tracking_number' => 'SPEPH000000000099',
+            'courier_status' => '2006',
+            'courier_meta' => json_encode(['estimated_shipping_fee' => 25.0]),
+        ])->save();
+
+        Http::fake([
+            '*batch_search_order*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => ['orders' => [['tracking_no' => 'SPEPH000000000099', 'status_code' => '4001', 'routes' => []]], 'fail_list' => []],
+            ]),
+            '*batch_get_asf*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => ['orders' => [['tracking_no' => 'SPEPH000000000099', 'fee_info' => ['actual_shipping_fee' => 27.5]]], 'fail_list' => []],
+            ]),
+        ]);
+
+        $this->artisan('courier:poll-status')->assertSuccessful();
+
+        $order->refresh();
+        $this->assertSame('4001', $order->courier_status);
+        $this->assertSame(['actual_shipping_fee' => 27.5], json_decode($order->courier_meta, true)['actual_fee']);
+        $this->assertEquals(27.5, (float) $order->shipping_cost_actual);
     }
 
     public function test_pending_creation_pass_leaves_a_still_running_order_untouched(): void

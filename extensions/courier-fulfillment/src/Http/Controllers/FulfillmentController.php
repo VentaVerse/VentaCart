@@ -662,7 +662,10 @@ class FulfillmentController extends Controller
                 'width_cm'         => 'sometimes|nullable|numeric|min:0.01',
                 'height_cm'        => 'sometimes|nullable|numeric|min:0.01',
                 'weight_kg'        => 'sometimes|nullable|numeric|min:0.01',
-                'pickup_slot'      => 'sometimes|nullable|string',
+                'pickup_slot'      => 'sometimes|nullable|string|max:255',
+                // How the parcel reaches the courier, for a courier that
+                // offers both (SPX). Absent: a pickup slot means pickup.
+                'method'           => 'sometimes|nullable|in:pickup,dropoff',
                 // Which of the store's pickup addresses this parcel leaves from.
                 // Absent (one address on file, so the picker never rendered)
                 // means "the default": PickupAddress::resolveFor() decides that,
@@ -715,6 +718,11 @@ class FulfillmentController extends Controller
         if (empty($res['tracking_number'])) {
             $courierName = CourierManager::get((string) ($res['courier'] ?? ''))?->getName()
                 ?: strtoupper((string) ($res['courier'] ?? '')) ?: 'The courier';
+
+            $notice = trim((string) ($res['notice'] ?? ''));
+            if ($notice !== '') {
+                return back()->with('warning', $notice);
+            }
 
             return back()->with('success', "Booking submitted. {$courierName} is creating the shipment. The tracking number will appear here in a moment (refresh or poll statuses).");
         }
@@ -825,7 +833,8 @@ class FulfillmentController extends Controller
             'width_cm'         => 'sometimes|nullable|numeric|min:0.01',
             'height_cm'        => 'sometimes|nullable|numeric|min:0.01',
             'weight_kg'        => 'sometimes|nullable|numeric|min:0.01',
-            'pickup_slot'      => 'sometimes|nullable|string',
+            'pickup_slot'      => 'sometimes|nullable|string|max:255',
+            'method'           => 'sometimes|nullable|in:pickup,dropoff',
             // The estimate is quoted from the SAME origin the booking would
             // leave from, so a store with several addresses does not get a
             // fee measured from one and a parcel collected from another.
@@ -859,6 +868,16 @@ class FulfillmentController extends Controller
         $opts = collect($data)->except('courier')->filter(fn ($v) => $v !== null)->all();
         $opts['insure'] = $request->boolean('insure');
 
+        // A courier whose quote can also say no (SPX's fee check applies its
+        // booking rules) answers with its plain refusal instead of a bare
+        // "not available".
+        if (method_exists($courier, 'quoteFee')) {
+            $quote = $courier->quoteFee($order, $opts);
+            if (($quote['status'] ?? null) === 'refused') {
+                return response()->json(['ok' => false, 'message' => $quote['refusal']->message()]);
+            }
+        }
+
         $estimate = $courier->estimateFee($order, $opts);
         if (!$estimate) {
             return response()->json(['ok' => false, 'message' => 'An estimate is not available yet. Check the pickup address and this order\'s shipping address are complete.']);
@@ -882,6 +901,10 @@ class FulfillmentController extends Controller
             // booking form's parcel labels can follow a changed pickup
             // address. Null from a courier that prices only what it was asked.
             'fees'      => $estimate->fees ?? null,
+            // A surcharge for an address outside the courier's normal zone
+            // (SPX), information only. Null when the courier does not say.
+            'remote_area_fee' => $estimate->remote_area_fee ?? null,
+            'odz'             => $estimate->odz ?? null,
         ]);
     }
 
