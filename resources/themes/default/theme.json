@@ -6,24 +6,30 @@
     "thumbnail": "preview.png",
     "regions": {
         "header_top": {
-            "label": "Above the header"
+            "label": "Header top",
+            "description": "A full-width band above the header."
         },
         "content_top": {
-            "label": "Above the content"
+            "label": "Content top",
+            "description": "Above the page's own content."
         },
         "column_left": {
-            "label": "Left column",
-            "column": "left"
+            "label": "Column left",
+            "column": "left",
+            "description": "A sidebar to the left of the content."
         },
         "column_right": {
-            "label": "Right column",
-            "column": "right"
+            "label": "Column right",
+            "column": "right",
+            "description": "A sidebar to the right of the content."
         },
         "content_bottom": {
-            "label": "Below the content"
+            "label": "Content bottom",
+            "description": "Below the page's own content."
         },
         "footer_top": {
-            "label": "Above the footer"
+            "label": "Footer top",
+            "description": "A full-width band just above the footer."
         }
     },
     "page_settings": {
@@ -42,7 +48,8 @@
                 "cart",
                 "checkout",
                 "search"
-            ]
+            ],
+            "description": "The trail of links back to Home (Home > Category > Product), above the page title."
         },
         "show_page_title": {
             "label": "Page title",
@@ -59,7 +66,8 @@
                 "cart",
                 "checkout",
                 "search"
-            ]
+            ],
+            "description": "The page's name in large type, at the top of its content."
         },
         "show_reviews": {
             "label": "Reviews",
@@ -68,13 +76,15 @@
             "default": true,
             "pages": [
                 "product"
-            ]
+            ],
+            "description": "The Reviews tab beside the description, with the review form."
         },
         "show_footer": {
             "label": "Footer",
             "type": "toggle",
             "part": "footer",
-            "default": true
+            "default": true,
+            "description": "Links, contact details and payment icons at the bottom of the page."
         }
     }
 }

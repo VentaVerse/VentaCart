@@ -46,7 +46,7 @@ class LayoutPlacementTest extends TestCase
         $regions = Regions::all();
 
         $this->assertArrayHasKey('content_top', $regions);
-        $this->assertSame('Above the content', $regions['content_top']['label']);
+        $this->assertSame('Content top', $regions['content_top']['label']);
     }
 
     /** Core holds no list of region names, so a theme can invent one. */

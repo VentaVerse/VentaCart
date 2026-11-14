@@ -24,7 +24,7 @@ class LayoutIsCoreTest extends TestCase
         $this->actingAs(User::factory()->create())
             ->get(route('admin.layout', ['page' => 'home']))
             ->assertOk()
-            ->assertSee('Above the content', false)
+            ->assertSee('Content top', false)
             ->assertDontSee('href="' . url('/') . '/opensesame/extensions/theme"', false);
     }
 

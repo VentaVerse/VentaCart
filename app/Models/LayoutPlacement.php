@@ -70,7 +70,7 @@ class LayoutPlacement extends Model
     public function pageLabel(): string
     {
         return $this->page_type === self::EVERYWHERE
-            ? 'All pages'
+            ? 'Every page'
             : (StorefrontPageType::label($this->page_type) ?? $this->page_type);
     }
 }

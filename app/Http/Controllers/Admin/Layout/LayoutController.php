@@ -18,21 +18,15 @@ use Illuminate\Http\Request;
 /**
  * The layout editor: what renders where, on which pages.
  *
- * Core, not the theme extension (owner ruling 2026-08-29): the data is store
- * data, placements and rows survive a theme switch, and switching the theme
- * editor off must not hide the merchant's own layouts. Regions are still
- * declared by the active theme; this screen only reads them.
+ * Core, not the theme extension: the data is store data, placements and
+ * rows survive a theme switch, and switching the theme editor off must not
+ * hide the merchant's own layouts. Regions are still declared by the active
+ * theme; this screen only reads them.
  */
 class LayoutController extends Controller
 {
     public function index(Request $request, ThemeService $theme)
     {
-        $pageType = (string) $request->query('page', LayoutPlacement::EVERYWHERE);
-
-        if ($pageType !== LayoutPlacement::EVERYWHERE && ! StorefrontPageType::exists($pageType)) {
-            $pageType = LayoutPlacement::EVERYWHERE;
-        }
-
         $regions = Regions::all();
 
         // Counts per page type, so the rail answers "which pages have I
@@ -54,7 +48,15 @@ class LayoutController extends Controller
             ->pluck('n', 'page_type')
             ->all();
 
+        $pageType = (string) $request->query('page', '');
+        if ($pageType !== LayoutPlacement::EVERYWHERE && ! StorefrontPageType::exists($pageType)) {
+            $pageType = $this->openingPage($counts);
+        }
+
         return view('admin.layout.index', [
+            'liveElsewhere' => $this->liveElsewhere($live, $slug, $installed),
+            'headerFooterUrl' => \Illuminate\Support\Facades\Route::has('admin.header-footer') ? route('admin.header-footer') : null,
+            'pageBody' => StorefrontPageType::body($pageType),
             'theme' => $themeName,
             'themeSlug' => $slug,
             'installedThemes' => $installed,
@@ -67,13 +69,13 @@ class LayoutController extends Controller
             'grid' => LayoutColumns::GRID,
             'minContent' => LayoutColumns::MIN_CONTENT,
             'rows' => $this->units($pageType),
-            // What this page inherits from All pages, in the same shape, so
+            // What this page inherits from Every page, in the same shape, so
             // the editor draws it as rows it cannot touch.
             'inherited' => $pageType === LayoutPlacement::EVERYWHERE
                 ? (object) []
                 : $this->units(LayoutPlacement::EVERYWHERE),
             'layouts' => LayoutRow::LAYOUTS,
-            // The theme's own colours, so a row can be painted in the look's
+            // The theme's own colors, so a row can be painted in the look's
             // vocabulary and keep following it when the look changes.
             'themeColors' => $this->themeColors(),
             'stylePresets' => LayoutStylePreset::where('theme', $theme)->orderBy('name')->get(['id', 'name', 'style'])
@@ -94,9 +96,8 @@ class LayoutController extends Controller
             'schemas' => $this->schemaSet(),
             'pageSettings' => $this->pageSettings($pageType),
             'sampleUrl' => $this->sampleUrl($pageType),
-            // Placements in regions this theme no longer declares. Computed
-            // since the layout system landed and never once rendered, so a
-            // theme update that drops a region hid a merchant's work silently.
+            // Placements in regions this theme no longer declares, listed so a
+            // theme update that drops a region cannot hide a merchant's work.
             'orphans' => Regions::orphans()->map(fn ($o) => [
                 'id' => $o->id,
                 'region' => $o->region,
@@ -106,6 +107,56 @@ class LayoutController extends Controller
                 'page_type' => $o->page_type,
             ])->values(),
         ]);
+    }
+
+    /**
+     * The page the editor opens on when none is asked for: Home, where most
+     * of a store's content sits, or the first page that has widgets when
+     * Home has none. Every page comes last, because it is rarely where a
+     * merchant starts and an empty first screen reads as a broken editor.
+     */
+    private function openingPage(array $counts): string
+    {
+        if (($counts['home'] ?? 0) > 0) {
+            return 'home';
+        }
+
+        foreach (array_keys(StorefrontPageType::TYPES) as $type) {
+            if (($counts[$type] ?? 0) > 0) {
+                return $type;
+            }
+        }
+
+        return 'home';
+    }
+
+    /**
+     * The live theme, when it arranges its pages in an editor of its own and
+     * this screen is therefore editing another theme. The merchant is told
+     * so, with the way to the live theme's editor, rather than left to
+     * wonder why nothing they save here shows on the storefront.
+     *
+     * @return array{name: string, url: ?string, editing: string}|null
+     */
+    private function liveElsewhere(string $live, string $editing, array $riding): ?array
+    {
+        if ($live === $editing || isset($riding[$live])) {
+            return null;
+        }
+
+        $themes = app(ThemeService::class);
+        $meta = $themes->getInstalledThemes()[$live] ?? null;
+        if ($meta === null) {
+            return null;
+        }
+
+        $route = $themes->editorRoute($live);
+
+        return [
+            'name' => (string) ($meta['name'] ?? $live),
+            'url' => $route !== null ? route($route) : null,
+            'editing' => (string) ($riding[$editing] ?? $editing),
+        ];
     }
 
     /**
@@ -159,11 +210,11 @@ class LayoutController extends Controller
             $rows = collect(array_fill(0, $result['rows'], null));
         } catch (RefusedSave $e) {
             return back()->with('error', 'Nothing could be placed on '
-                . ($pageType === LayoutPlacement::EVERYWHERE ? 'all pages' : StorefrontPageType::label($pageType))
+                . ($pageType === LayoutPlacement::EVERYWHERE ? 'Every page' : StorefrontPageType::label($pageType))
                 . '. Nothing was changed.');
         }
 
-        $where = $pageType === LayoutPlacement::EVERYWHERE ? 'all pages' : StorefrontPageType::label($pageType);
+        $where = $pageType === LayoutPlacement::EVERYWHERE ? 'Every page' : StorefrontPageType::label($pageType);
 
         if ($kept === [] && $rows->isEmpty()) {
             // Not empty if something is still standing that this save could
@@ -219,6 +270,8 @@ class LayoutController extends Controller
                 // control on the thing it governs rather than in a box off to
                 // one side whose scope has to be stated in words.
                 'part' => $field['part'] ?? null,
+                // One plain sentence: what the part is and where it shows.
+                'description' => $field['description'] ?? null,
                 'default' => $field['default'] ?? true,
                 'value' => $stored[$key] ?? ($field['default'] ?? true),
                 'pages' => $field['pages'] ?? null,
@@ -232,7 +285,7 @@ class LayoutController extends Controller
     }
 
     /**
-     * The active theme's colours as the row inspector offers them: key, a
+     * The active theme's colors as the row inspector offers them: key, a
      * readable label, and the current value so the chip can show it.
      */
     private function themeColors(): array
