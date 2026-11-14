@@ -73,6 +73,9 @@ class CarryHomepageSectionsToLayout extends Command
 
             if (! $dry) {
                 LayoutPlacement::create([
+                    // Said outright: a row without a theme falls to the
+                    // column default, which may not be the theme in use.
+                    'theme' => LayoutPlacement::scopeTheme(),
                     'page_type' => 'home',
                     'region' => 'content_top',
                     'widget' => $widget,

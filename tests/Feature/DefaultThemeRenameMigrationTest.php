@@ -52,4 +52,15 @@ class DefaultThemeRenameMigrationTest extends TestCase
 
         $this->assertSame('sample', Setting::where('group', 'identity')->where('key', 'active_theme')->value('value'));
     }
+
+    public function test_a_layout_row_written_without_a_theme_lands_on_the_default_theme(): void
+    {
+        $id = DB::table('layout_placements')->insertGetId([
+            'page_type' => 'home', 'region' => 'content_top', 'widget' => 'catalog.brands',
+            'title' => 'Brands', 'sort_order' => 0, 'is_enabled' => true,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $this->assertSame('default', DB::table('layout_placements')->where('id', $id)->value('theme'));
+    }
 }
