@@ -22,7 +22,7 @@ class SystemRegionsTest extends TestCase
     {
         $this->makeSampleTheme();
 
-        $this->assertSame([], Regions::defaults('header', 'venta'));
+        $this->assertSame([], Regions::defaults('header', 'default'));
         $this->assertSame([['widget' => 'system.header', 'title' => null, 'config' => []]], Regions::defaults('header', 'sample'));
         $this->assertSame('*', Regions::page('header', 'sample'));
     }
@@ -41,7 +41,7 @@ class SystemRegionsTest extends TestCase
         $product = \App\Models\Product::create(['store_id' => 1, 'name' => 'Region Fuzz', 'slug' => 'region-fuzz', 'sku' => 'RF1', 'price' => 1200, 'quantity' => 3, 'is_active' => true]);
 
         $this->get(route('product.show', $product->slug))->assertOk()->assertSee('addToCart(', false);
-        $this->assertSame([], Regions::defaults('product_main', 'venta'));
+        $this->assertSame([], Regions::defaults('product_main', 'default'));
     }
 
     public function test_the_product_page_is_offered_as_separate_pieces_on_the_product_page_only(): void

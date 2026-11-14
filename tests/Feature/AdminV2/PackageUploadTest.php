@@ -242,13 +242,13 @@ class PackageUploadTest extends TestCase
 
     public function test_the_default_theme_is_never_overwritten(): void
     {
-        $before = md5_file(resource_path('themes/venta/theme.json'));
+        $before = md5_file(resource_path('themes/default/theme.json'));
 
         $this->upload($this->themeZip('9.0.0', [], ThemeService::THEME));
 
         $this->assertFalse($this->outcome()['ok']);
         $this->assertStringContainsString('default theme', $this->outcome()['message']);
-        $this->assertSame($before, md5_file(resource_path('themes/venta/theme.json')));
+        $this->assertSame($before, md5_file(resource_path('themes/default/theme.json')));
     }
 
     public function test_a_folder_the_store_did_not_get_from_an_upload_is_never_overwritten(): void

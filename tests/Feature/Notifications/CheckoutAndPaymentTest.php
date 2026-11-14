@@ -111,7 +111,7 @@ class CheckoutAndPaymentTest extends TestCase
      * Ruling: notify_customer means "the customer was told", not "the
      * status email was sent". Checkout writes 'Order confirmed.' with
      * notify_customer so the account page's history list shows it
-     * (resources/themes/venta/views/account/order-detail.blade.php:183).
+     * (resources/themes/default/views/account/order-detail.blade.php:183).
      * emailHandledElsewhere() suppresses the status email, so apply() must
      * still stamp notify_customer true here or that comment vanishes from
      * the customer's own order page.

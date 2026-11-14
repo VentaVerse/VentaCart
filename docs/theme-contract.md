@@ -2,7 +2,7 @@
 
 A theme is a package that draws the storefront. Core owns the data (products, layout rows, menus, settings) and the routes; the theme owns every view, its stylesheet, its script and its look. Any package that keeps this contract works with Layout, the widget catalogue and every storefront route. The contract is enforced in code by `App\Support\ThemeContract::check()` at install time; this document is the written form of the same rules.
 
-The default theme, `venta`, ships with core and is the reference implementation. Its look is fixed: a merchant arranges its pages in Layout and edits nothing else about it.
+The default theme, `default`, ships with core and is the reference implementation. Its look is fixed: a merchant arranges its pages in Layout and edits nothing else about it.
 
 ## 1. Package
 
@@ -387,7 +387,7 @@ The main menu is composed in Layout > Menus (`nav_menus`, nested `nav_menu_items
 
 ## 8. Checklist for a new theme
 
-1. Copy `resources/themes/venta` to `resources/themes/{slug}`; change `name`, `version`, `description`, `thumbnail` in `theme.json`.
+1. Copy `resources/themes/default` to `resources/themes/{slug}`; change `name`, `version`, `description`, `thumbnail` in `theme.json`.
 2. Set the theme's colours and fonts in `css/theme.css`.
 3. Keep the four required regions; add system regions if the theme's header or product page should be rows.
 4. Keep every view in section 4 and every widget view in section 5.

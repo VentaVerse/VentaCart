@@ -30,7 +30,7 @@ class ContentBlocksTest extends TestCase
     private function place(string $widget, array $config = [], array $attrs = []): LayoutPlacement
     {
         return LayoutPlacement::create($attrs + [
-            'theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top',
+            'theme' => 'default', 'page_type' => 'home', 'region' => 'content_top',
             'widget' => $widget, 'title' => null, 'config' => $config, 'sort_order' => 0, 'is_enabled' => true,
         ]);
     }
@@ -38,7 +38,7 @@ class ContentBlocksTest extends TestCase
     /** A one-column row the editors would save, for blocks stacked in it. */
     private function row(): int
     {
-        return \App\Models\LayoutRow::create(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top',
+        return \App\Models\LayoutRow::create(['theme' => 'default', 'page_type' => 'home', 'region' => 'content_top',
             'columns' => [8], 'sort_order' => 0, 'is_enabled' => true])->id;
     }
 
@@ -194,7 +194,7 @@ class ContentBlocksTest extends TestCase
 
         // The default theme declares no header region, so it is not asked to
         // draw them; a theme that does is.
-        $this->assertSame([], \App\Support\ThemeContract::check(resource_path('themes/venta')));
+        $this->assertSame([], \App\Support\ThemeContract::check(resource_path('themes/default')));
         $this->makeSampleTheme();
         @unlink(resource_path('themes/sample/views/widgets/system/welcome_text.blade.php'));
         $this->assertContains('View [widgets.system.welcome_text] is missing.', \App\Support\ThemeContract::check(resource_path('themes/sample')));

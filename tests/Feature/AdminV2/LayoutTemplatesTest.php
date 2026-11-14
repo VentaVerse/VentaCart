@@ -42,7 +42,7 @@ class LayoutTemplatesTest extends TestCase
             ->assertOk()->assertJsonPath('name', 'Two brands')->json();
 
         $stored = LayoutTemplate::sole();
-        $this->assertSame('venta', $stored->theme);
+        $this->assertSame('default', $stored->theme);
         $this->assertSame([4, 4], $stored->rows[0]['columns']);
         $this->assertSame('md', $stored->rows[0]['style']['pad']);
         $this->assertArrayNotHasKey('bogus', $stored->rows[0]['style']);
@@ -68,7 +68,7 @@ class LayoutTemplatesTest extends TestCase
 
     public function test_the_editor_ships_this_themes_templates_and_can_drop_one(): void
     {
-        LayoutTemplate::create(['theme' => 'venta', 'name' => 'Mine', 'rows' => LayoutTemplate::cleanRows($this->rows)]);
+        LayoutTemplate::create(['theme' => 'default', 'name' => 'Mine', 'rows' => LayoutTemplate::cleanRows($this->rows)]);
         $foreign = LayoutTemplate::create(['theme' => 'other', 'name' => 'Theirs', 'rows' => []]);
 
         $html = $this->get(route('admin.layout', ['page' => 'home']))->assertOk()->getContent();
@@ -84,8 +84,8 @@ class LayoutTemplatesTest extends TestCase
 
     public function test_copying_a_position_writes_new_rows_after_the_target_pages_own(): void
     {
-        $existing = LayoutRow::create(['theme' => 'venta', 'page_type' => 'cart', 'region' => 'content_top', 'columns' => [8], 'sort_order' => 3]);
-        LayoutPlacement::create(['theme' => 'venta', 'page_type' => 'cart', 'region' => 'content_top', 'row_id' => $existing->id, 'widget' => 'catalog.brands', 'title' => 'Already there', 'sort_order' => 9]);
+        $existing = LayoutRow::create(['theme' => 'default', 'page_type' => 'cart', 'region' => 'content_top', 'columns' => [8], 'sort_order' => 3]);
+        LayoutPlacement::create(['theme' => 'default', 'page_type' => 'cart', 'region' => 'content_top', 'row_id' => $existing->id, 'widget' => 'catalog.brands', 'title' => 'Already there', 'sort_order' => 9]);
 
         $this->postJson(route('admin.layout.copy'), ['region' => 'content_top', 'target_page' => 'cart', 'rows' => $this->rows])
             ->assertOk()->assertJsonPath('message', '1 row with 2 widgets copied to Cart.');

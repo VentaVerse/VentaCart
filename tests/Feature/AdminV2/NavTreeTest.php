@@ -153,7 +153,7 @@ class NavTreeTest extends TestCase
     {
         $footer = NavMenu::create(['key' => 'footer', 'name' => 'Footer menu']);
         NavMenuItem::create(['menu_id' => $footer->id, 'label' => 'Returns policy', 'type' => 'custom', 'url' => '/returns', 'sort_order' => 1, 'is_enabled' => true]);
-        LayoutPlacement::create(['theme' => 'venta', 'page_type' => 'home', 'region' => 'footer_top', 'widget' => 'nav.menu', 'title' => 'Help', 'config' => ['menu' => 'footer', 'direction' => 'vertical'], 'sort_order' => 0, 'is_enabled' => true]);
+        LayoutPlacement::create(['theme' => 'default', 'page_type' => 'home', 'region' => 'footer_top', 'widget' => 'nav.menu', 'title' => 'Help', 'config' => ['menu' => 'footer', 'direction' => 'vertical'], 'sort_order' => 0, 'is_enabled' => true]);
 
         $html = $this->get('/')->assertOk()->getContent();
         $this->assertStringContainsString('wmenu--vertical', $html);

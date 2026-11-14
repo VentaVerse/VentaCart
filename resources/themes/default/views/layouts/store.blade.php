@@ -97,7 +97,7 @@
     </script>
     @stack('head')
 </head>
-<body x-data="mobileNav()" class="venta">
+<body x-data="mobileNav()" class="theme-default">
 
     @if (session('impersonating_customer_id') && Auth::guard('web')->check())
         <div class="impersonation-bar">

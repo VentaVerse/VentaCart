@@ -65,11 +65,11 @@ class ProductAttributesPieceTest extends TestCase
 
     public function test_the_default_theme_has_its_own_view(): void
     {
-        $this->assertFileExists(resource_path('themes/venta/views/widgets/system/product_attributes.blade.php'));
+        $this->assertFileExists(resource_path('themes/default/views/widgets/system/product_attributes.blade.php'));
 
         $this->productWithAttributes();
         \App\Support\PageContext::set(['attributeGroups' => \App\Support\ProductAttributes::groups(Product::first())]);
-        view()->getFinder()->prependLocation(resource_path('themes/venta/views'));
+        view()->getFinder()->prependLocation(resource_path('themes/default/views'));
 
         $html = view(Widgets::view('system.product_attributes'))->render();
 

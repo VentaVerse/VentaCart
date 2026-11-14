@@ -42,12 +42,12 @@ class LayoutThemeScopeTest extends TestCase
 
     public function test_a_layout_built_for_one_theme_does_not_show_under_another(): void
     {
-        $this->place('venta', 'Venta layout');
+        $this->place('default', 'Default layout');
         $this->place('amplifier', 'Amplifier layout');
 
         $titles = LayoutPlacement::forRegion('home', 'content_top')->pluck('title')->all();
 
-        $this->assertSame(['Venta layout'], $titles);
+        $this->assertSame(['Default layout'], $titles);
     }
 
     /** Switch away and back, and your layout is exactly as you left it. */
@@ -61,7 +61,7 @@ class LayoutThemeScopeTest extends TestCase
 
     public function test_columns_are_scoped_too(): void
     {
-        LayoutColumns::create(['theme' => 'venta', 'page_type' => 'cart', 'left_width' => 2, 'right_width' => 0]);
+        LayoutColumns::create(['theme' => 'default', 'page_type' => 'cart', 'left_width' => 2, 'right_width' => 0]);
         LayoutColumns::create(['theme' => 'amplifier', 'page_type' => 'cart', 'left_width' => 0, 'right_width' => 3]);
 
         $this->assertSame(2, LayoutColumns::forPage('cart')['left']);
@@ -85,7 +85,7 @@ class LayoutThemeScopeTest extends TestCase
             'placements' => [['id' => null, 'region' => 'content_top', 'widget' => 'catalog.brands', 'title' => 'Made here', 'enabled' => true]],
         ])])->assertRedirect();
 
-        $this->assertDatabaseHas('layout_placements', ['title' => 'Made here', 'theme' => 'venta']);
+        $this->assertDatabaseHas('layout_placements', ['title' => 'Made here', 'theme' => 'default']);
     }
 
     /* ---------------- the editable layer ---------------- */
@@ -189,7 +189,7 @@ class LayoutThemeScopeTest extends TestCase
     public function test_switching_a_page_part_off_actually_removes_it(): void
     {
         LayoutColumns::create([
-            'theme' => 'venta', 'page_type' => 'product',
+            'theme' => 'default', 'page_type' => 'product',
             'left_width' => 0, 'right_width' => 0,
             'settings' => ['show_breadcrumbs' => false],
         ]);
@@ -234,7 +234,7 @@ class LayoutThemeScopeTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         LayoutPlacement::create([
-            'theme' => 'venta', 'page_type' => 'home', 'region' => 'faceplate',
+            'theme' => 'default', 'page_type' => 'home', 'region' => 'faceplate',
             'widget' => 'catalog.brands', 'title' => 'Stranded strip',
             'sort_order' => 0, 'is_enabled' => true,
         ]);

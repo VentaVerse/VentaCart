@@ -69,7 +69,7 @@ class StoreCurrencyTest extends TestCase
     public function test_the_default_theme_and_core_views_name_no_currency(): void
     {
         $files = array_merge(
-            File::allFiles(resource_path('themes/venta')),
+            File::allFiles(resource_path('themes/default')),
             File::allFiles(resource_path('views')),
         );
 

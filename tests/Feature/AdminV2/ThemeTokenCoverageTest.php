@@ -37,7 +37,7 @@ class ThemeTokenCoverageTest extends TestCase
      */
     private function defaultThemeTokens(): array
     {
-        $css = (string) file_get_contents(resource_path('themes/venta/css/theme.css'));
+        $css = (string) file_get_contents(resource_path('themes/default/css/theme.css'));
         preg_match_all('/^\s*--color-([a-z0-9-]+):/m', $css, $m);
 
         return array_values(array_unique(array_map(fn ($k) => str_replace('-', '_', $k), $m[1])));
@@ -98,7 +98,7 @@ class ThemeTokenCoverageTest extends TestCase
     /** Each core colour sits in its most specific group, not also in Page. */
     public function test_form_and_dropdown_colours_live_in_their_own_groups(): void
     {
-        $groups = ColorGroups::all('venta');
+        $groups = ColorGroups::all('default');
 
         $this->assertSame(['input_bg', 'input_border'], array_keys($groups['Forms']));
         $this->assertSame(['dropdown_bg'], array_keys($groups['Dropdowns']));

@@ -34,8 +34,8 @@ class ThemeDirectoryTest extends TestCase
         $this->get(route('admin.theme.index'))
             ->assertOk()
             ->assertSee('Themes', false)
-            ->assertSee('Venta', false)
-            ->assertSee('resources/themes/venta', false);
+            ->assertSee('Default', false)
+            ->assertSee('resources/themes/default', false);
     }
 
     /** Which theme is running is stated, not implied by button order. */
@@ -46,23 +46,23 @@ class ThemeDirectoryTest extends TestCase
 
     public function test_activating_an_installed_theme_points_the_storefront_at_it(): void
     {
-        $this->post(route('admin.theme.activate'), ['theme' => 'venta'])->assertRedirect();
+        $this->post(route('admin.theme.activate'), ['theme' => 'default'])->assertRedirect();
 
         app(ThemeService::class)->clearCache();
-        $this->assertSame('venta', Setting::where('group', 'identity')->where('key', 'active_theme')->value('value'));
+        $this->assertSame('default', Setting::where('group', 'identity')->where('key', 'active_theme')->value('value'));
     }
 
     /** A slug nobody installed must not become the active theme. */
     public function test_activating_a_theme_that_does_not_exist_is_refused(): void
     {
-        Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_theme'], ['value' => 'venta']);
+        Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_theme'], ['value' => 'default']);
 
         $this->post(route('admin.theme.activate'), ['theme' => 'not-a-theme'])
             ->assertRedirect()
             ->assertSessionHas('error');
 
         app(ThemeService::class)->clearCache();
-        $this->assertSame('venta', app(ThemeService::class)->getActiveTheme());
+        $this->assertSame('default', app(ThemeService::class)->getActiveTheme());
     }
 
     /**
@@ -78,7 +78,7 @@ class ThemeDirectoryTest extends TestCase
             'sort_order' => 0, 'is_enabled' => true,
         ]);
 
-        $this->post(route('admin.theme.activate'), ['theme' => 'venta'])->assertRedirect();
+        $this->post(route('admin.theme.activate'), ['theme' => 'default'])->assertRedirect();
 
         $this->assertDatabaseHas('layout_placements', ['title' => 'Kept']);
     }

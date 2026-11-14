@@ -47,26 +47,26 @@ class LayoutEditThemeTest extends TestCase
         $this->boot('sample');
 
         // Sample brings its own editor, so with Sample live the core editor
-        // opens on the first theme that rides it: Venta.
+        // opens on the first theme that rides it: the default theme.
         $html = $this->get(route('admin.layout'))->assertOk()->getContent();
-        $this->assertStringContainsString('theme=venta', $html);
+        $this->assertStringContainsString('theme=default', $html);
         $this->assertStringContainsString('Venta', $html);
 
-        $this->post(route('admin.layout.update', ['theme' => 'venta']), ['payload' => json_encode($this->payload('VENTA-OWN-ROW'))])
+        $this->post(route('admin.layout.update', ['theme' => 'default']), ['payload' => json_encode($this->payload('DEFAULT-OWN-ROW'))])
             ->assertRedirect()->assertSessionHas('success');
 
-        $this->assertSame(1, LayoutPlacement::where('theme', 'venta')->where('widget', 'content.text')->count());
+        $this->assertSame(1, LayoutPlacement::where('theme', 'default')->where('widget', 'content.text')->count());
         $this->assertSame(0, LayoutPlacement::where('theme', 'sample')->where('widget', 'content.text')->count());
 
         // Sample's storefront does not wear it; Venta's does once it is live.
-        $this->assertStringNotContainsString('VENTA-OWN-ROW', $this->get('/')->assertOk()->getContent());
-        app(ThemeService::class)->activateTheme('venta');
+        $this->assertStringNotContainsString('DEFAULT-OWN-ROW', $this->get('/')->assertOk()->getContent());
+        app(ThemeService::class)->activateTheme('default');
         app(ThemeService::class)->clearCache();
-        $this->assertStringContainsString('VENTA-OWN-ROW', $this->get('/')->assertOk()->getContent());
+        $this->assertStringContainsString('DEFAULT-OWN-ROW', $this->get('/')->assertOk()->getContent());
 
         // With Venta live (a riding theme), no parameter edits Venta itself.
         $this->post(route('admin.layout.update'), ['payload' => json_encode($this->payload('LIVE-ROW'))])->assertRedirect();
-        $this->assertSame(1, LayoutPlacement::where('theme', 'venta')->where('page_type', 'home')->whereJsonContains('config->content', 'LIVE-ROW')->count());
+        $this->assertSame(1, LayoutPlacement::where('theme', 'default')->where('page_type', 'home')->whereJsonContains('config->content', 'LIVE-ROW')->count());
     }
 
     public function test_a_decoupled_or_unknown_theme_parameter_lands_on_a_riding_theme(): void
@@ -78,7 +78,7 @@ class LayoutEditThemeTest extends TestCase
         $this->post(route('admin.layout.update', ['theme' => 'nope']), ['payload' => json_encode($this->payload('ELSEWHERE'))])->assertRedirect();
         // Each save is the whole page, so the second replaced the first;
         // both landed on Venta and neither touched Sample.
-        $this->assertSame(1, LayoutPlacement::where('theme', 'venta')->whereJsonContains('config->content', 'ELSEWHERE')->count());
+        $this->assertSame(1, LayoutPlacement::where('theme', 'default')->whereJsonContains('config->content', 'ELSEWHERE')->count());
         $this->assertSame(0, LayoutPlacement::where('theme', 'sample')->where('widget', 'content.text')->count());
         $this->assertSame(0, LayoutPlacement::where('theme', 'nope')->count());
     }

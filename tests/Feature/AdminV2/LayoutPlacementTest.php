@@ -131,7 +131,7 @@ class LayoutPlacementTest extends TestCase
         // The theme's view folder is prepended per request (RegisterThemeViews),
         // so a lookup outside one sees only what ships in resources/views.
         \Illuminate\Support\Facades\View::getFinder()
-            ->prependLocation(resource_path('themes/venta/views'));
+            ->prependLocation(resource_path('themes/default/views'));
 
         $this->assertSame('widgets.catalog.products', Widgets::view('catalog.products'));
     }
@@ -213,8 +213,8 @@ class LayoutPlacementTest extends TestCase
     public function test_every_storefront_view_calls_its_content_regions(): void
     {
         $views = array_merge(
-            glob(resource_path('themes/venta/views/*.blade.php')),
-            glob(resource_path('themes/venta/views/{account,blog,brand,cart,category,checkout,page,product,search}/*.blade.php'), GLOB_BRACE)
+            glob(resource_path('themes/default/views/*.blade.php')),
+            glob(resource_path('themes/default/views/{account,blog,brand,cart,category,checkout,page,product,search}/*.blade.php'), GLOB_BRACE)
         );
 
         $missing = [];

@@ -69,10 +69,10 @@ class LayoutRowsEditorTest extends TestCase
 
     public function test_a_row_removed_on_screen_is_removed_and_its_cards_with_it(): void
     {
-        $row = LayoutRow::create(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top', 'columns' => [8], 'sort_order' => 0]);
-        LayoutPlacement::create(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top', 'row_id' => $row->id, 'widget' => 'catalog.brands', 'title' => 'Gone', 'sort_order' => 0]);
-        $keep = LayoutRow::create(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top', 'columns' => [8], 'sort_order' => 1]);
-        LayoutPlacement::create(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top', 'row_id' => $keep->id, 'widget' => 'catalog.brands', 'title' => 'Stays', 'sort_order' => 1]);
+        $row = LayoutRow::create(['theme' => 'default', 'page_type' => 'home', 'region' => 'content_top', 'columns' => [8], 'sort_order' => 0]);
+        LayoutPlacement::create(['theme' => 'default', 'page_type' => 'home', 'region' => 'content_top', 'row_id' => $row->id, 'widget' => 'catalog.brands', 'title' => 'Gone', 'sort_order' => 0]);
+        $keep = LayoutRow::create(['theme' => 'default', 'page_type' => 'home', 'region' => 'content_top', 'columns' => [8], 'sort_order' => 1]);
+        LayoutPlacement::create(['theme' => 'default', 'page_type' => 'home', 'region' => 'content_top', 'row_id' => $keep->id, 'widget' => 'catalog.brands', 'title' => 'Stays', 'sort_order' => 1]);
         $stays = LayoutPlacement::where('title', 'Stays')->sole();
 
         $this->save([
@@ -121,7 +121,7 @@ class LayoutRowsEditorTest extends TestCase
 
     public function test_a_row_id_from_another_page_is_not_hijacked(): void
     {
-        $other = LayoutRow::create(['theme' => 'venta', 'page_type' => 'cart', 'region' => 'content_top', 'columns' => [4, 4], 'sort_order' => 0]);
+        $other = LayoutRow::create(['theme' => 'default', 'page_type' => 'cart', 'region' => 'content_top', 'columns' => [4, 4], 'sort_order' => 0]);
 
         $this->save([
             'page_type' => 'home', 'columns' => ['left' => 0, 'right' => 0],

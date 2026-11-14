@@ -111,7 +111,7 @@ class ColumnGridTest extends TestCase
         $this->assertSame(8, LayoutRow::GRID);
         $this->assertSame(8, \App\Models\LayoutColumns::GRID);
         $this->assertSame(ColumnGrid::DEFAULT_SHAPES, LayoutRow::LAYOUTS);
-        $this->assertTrue(ColumnGrid::forTheme('venta')->isDefault());
+        $this->assertTrue(ColumnGrid::forTheme('default')->isDefault());
     }
 
     public function test_core_rows_round_trip_and_draw_as_before(): void

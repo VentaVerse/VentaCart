@@ -180,7 +180,7 @@ class StorefrontAreaTest extends TestCase
     {
         $cards = collect(app(\App\Http\Controllers\Admin\ExtensionsController::class)->index()->getData()['modules'])->keyBy('name');
 
-        foreach (['theme', 'theme-venta'] as $name) {
+        foreach (['theme', 'theme-default'] as $name) {
             $this->assertSame('Storefront > Themes', $cards[$name]['home'], $name);
             $this->assertSame(route('admin.theme.index'), $cards[$name]['configure'], $name);
         }

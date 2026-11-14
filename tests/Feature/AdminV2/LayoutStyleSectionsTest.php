@@ -25,7 +25,7 @@ class LayoutStyleSectionsTest extends TestCase
     private function row(array $attrs = []): LayoutRow
     {
         return LayoutRow::create($attrs + [
-            'theme' => 'venta', 'page_type' => 'home', 'region' => 'content_bottom',
+            'theme' => 'default', 'page_type' => 'home', 'region' => 'content_bottom',
             'sort_order' => 0, 'columns' => [8], 'is_enabled' => true,
         ]);
     }
@@ -33,7 +33,7 @@ class LayoutStyleSectionsTest extends TestCase
     private function place(LayoutRow $row, string $title = 'Brands', array $attrs = []): LayoutPlacement
     {
         return LayoutPlacement::create($attrs + [
-            'theme' => 'venta', 'page_type' => 'home', 'region' => 'content_bottom', 'row_id' => $row->id,
+            'theme' => 'default', 'page_type' => 'home', 'region' => 'content_bottom', 'row_id' => $row->id,
             'widget' => 'catalog.brands', 'title' => $title, 'sort_order' => 0, 'is_enabled' => true,
         ]);
     }

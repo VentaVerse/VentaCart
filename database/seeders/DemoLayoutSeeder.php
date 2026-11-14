@@ -31,7 +31,7 @@ class DemoLayoutSeeder extends Seeder
     public function run(): void
     {
         $theme = (string) (DB::table('settings')
-            ->where('group', 'identity')->where('key', 'active_theme')->value('value') ?: 'venta');
+            ->where('group', 'identity')->where('key', 'active_theme')->value('value') ?: \App\Services\ThemeService::THEME);
 
         // Core's layout tables hold the layout of themes that keep it in core.
         // A theme with storage of its own arranges its pages in its own tables.

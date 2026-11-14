@@ -31,7 +31,7 @@ class ThemePackagesTest extends TestCase
 
     public function test_the_shipped_themes_keep_the_contract(): void
     {
-        $this->assertSame([], ThemeContract::check(resource_path('themes/venta')));
+        $this->assertSame([], ThemeContract::check(resource_path('themes/default')));
     }
 
     public function test_the_contract_names_what_a_broken_package_lacks(): void
@@ -56,13 +56,13 @@ class ThemePackagesTest extends TestCase
     {
         $this->makeSampleTheme();
         $discovered = app(ExtensionManager::class)->discovered();
-        $this->assertSame('theme', $discovered->get('theme-venta')['type']);
+        $this->assertSame('theme', $discovered->get('theme-default')['type']);
         $this->assertSame('theme', $discovered->get('theme-sample')['type']);
-        $this->assertTrue($discovered->get('theme-venta')['default_enabled']);
+        $this->assertTrue($discovered->get('theme-default')['default_enabled']);
         $this->assertFalse($discovered->get('theme-sample')['default_enabled']);
 
         $themes = app(ThemeService::class)->getAvailableThemes();
-        $this->assertTrue($themes['venta']['installed']);
+        $this->assertTrue($themes['default']['installed']);
         $this->assertFalse($themes['sample']['installed']);
         $this->assertArrayNotHasKey('sample', app(ThemeService::class)->getInstalledThemes());
     }
@@ -124,7 +124,7 @@ class ThemePackagesTest extends TestCase
         $this->admin();
         $this->get('/')->assertOk();
 
-        $this->post(route('admin.theme.package.uninstall'), ['theme' => 'venta'])->assertRedirect()->assertSessionHas('warning');
+        $this->post(route('admin.theme.package.uninstall'), ['theme' => 'default'])->assertRedirect()->assertSessionHas('warning');
 
         $this->get('/')->assertStatus(503)->assertSee('No theme installed');
         $this->get(route('admin.theme.index'))->assertOk()->assertSee('Install');
@@ -132,15 +132,15 @@ class ThemePackagesTest extends TestCase
         // A callback has nothing to do with how pages look: posts pass the gate.
         $this->post('/cart/add', [])->assertStatus(302);
 
-        $this->post(route('admin.theme.package.install'), ['theme' => 'venta'])->assertRedirect()->assertSessionHas('success');
+        $this->post(route('admin.theme.package.install'), ['theme' => 'default'])->assertRedirect()->assertSessionHas('success');
         $this->get('/')->assertOk();
     }
 
     public function test_the_registry_row_carries_the_package_version(): void
     {
-        $row = Extension::where('name', 'theme-venta')->first();
-        $meta = json_decode(File::get(resource_path('themes/venta/theme.json')), true);
+        $row = Extension::where('name', 'theme-default')->first();
+        $meta = json_decode(File::get(resource_path('themes/default/theme.json')), true);
         $this->assertSame((string) $meta['version'], $row->version);
-        $this->assertSame('enabled', app(ExtensionManager::class)->state('theme-venta'));
+        $this->assertSame('enabled', app(ExtensionManager::class)->state('theme-default'));
     }
 }

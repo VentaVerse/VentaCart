@@ -39,7 +39,7 @@ class FreshInstallExtensionDefaultsTest extends TestCase
     /** Installed AND enabled on a fresh install. */
     private const ENABLED = [
         'theme',
-        'theme-venta',
+        'theme-default',
         'blog',
         'coupons',
         'reviews',

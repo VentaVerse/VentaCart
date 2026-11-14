@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Cache;
 class ThemeService
 {
     /** The only theme. Folder under resources/themes. */
-    public const THEME = 'venta';
+    public const THEME = 'default';
 
     protected array $settings = [];
     protected const CACHE_KEY = 'theme_settings';

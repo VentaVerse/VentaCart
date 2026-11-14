@@ -22,7 +22,7 @@ class LayoutRowStyleTest extends TestCase
     private function row(array $attrs = []): LayoutRow
     {
         return LayoutRow::create($attrs + [
-            'theme' => 'venta', 'page_type' => 'home', 'region' => 'content_bottom',
+            'theme' => 'default', 'page_type' => 'home', 'region' => 'content_bottom',
             'sort_order' => 0, 'columns' => [8], 'is_enabled' => true,
         ]);
     }
@@ -30,7 +30,7 @@ class LayoutRowStyleTest extends TestCase
     private function place(LayoutRow $row, string $title = 'Brands'): LayoutPlacement
     {
         return LayoutPlacement::create([
-            'theme' => 'venta', 'page_type' => 'home', 'region' => 'content_bottom', 'row_id' => $row->id,
+            'theme' => 'default', 'page_type' => 'home', 'region' => 'content_bottom', 'row_id' => $row->id,
             'widget' => 'catalog.brands', 'title' => $title, 'sort_order' => 0, 'is_enabled' => true,
         ]);
     }
@@ -102,7 +102,7 @@ class LayoutRowStyleTest extends TestCase
     public function test_the_editor_saves_a_rows_style_and_ships_the_palette_and_presets(): void
     {
         $this->actingAs(User::factory()->create());
-        LayoutStylePreset::create(['theme' => 'venta', 'name' => 'Dark band', 'style' => ['bg' => 'color', 'bg_color' => '#111111', 'text' => '#FFFFFF']]);
+        LayoutStylePreset::create(['theme' => 'default', 'name' => 'Dark band', 'style' => ['bg' => 'color', 'bg_color' => '#111111', 'text' => '#FFFFFF']]);
         LayoutStylePreset::create(['theme' => 'other', 'name' => 'Not mine', 'style' => []]);
 
         $this->post(route('admin.layout.update'), ['payload' => json_encode([
@@ -135,7 +135,7 @@ class LayoutRowStyleTest extends TestCase
             ->assertOk()->assertJsonPath('name', 'Soft card')->assertJsonPath('style.radius', 'md')->json();
 
         $this->assertArrayNotHasKey('junk', $created['style']);
-        $this->assertDatabaseHas('layout_style_presets', ['id' => $created['id'], 'theme' => 'venta']);
+        $this->assertDatabaseHas('layout_style_presets', ['id' => $created['id'], 'theme' => 'default']);
 
         $this->postJson(route('admin.layout.style-presets.store'), ['name' => '', 'style' => []])->assertStatus(422);
 

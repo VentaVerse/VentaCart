@@ -21,7 +21,7 @@ class LayoutSaverOwnershipTest extends TestCase
     private function placement(array $attributes): LayoutPlacement
     {
         return LayoutPlacement::create($attributes + [
-            'theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top',
+            'theme' => 'default', 'page_type' => 'home', 'region' => 'content_top',
             'widget' => 'content.text', 'title' => 'Original', 'config' => [], 'sort_order' => 0, 'is_enabled' => true,
         ]);
     }
@@ -72,7 +72,7 @@ class LayoutSaverOwnershipTest extends TestCase
         $this->assertSame('sample', $foreign->theme);
         $this->assertSame('Original', $foreign->title);
         $this->assertNotContains($foreign->id, $result['kept']);
-        $this->assertSame('venta', LayoutPlacement::find($result['kept'][0])->theme);
+        $this->assertSame('default', LayoutPlacement::find($result['kept'][0])->theme);
     }
 
     public function test_an_id_sent_twice_is_reused_once(): void
@@ -85,6 +85,6 @@ class LayoutSaverOwnershipTest extends TestCase
         $this->assertSame($own->id, $result['kept'][0]);
         $this->assertSame('First', $own->fresh()->title);
         $this->assertSame('Second', LayoutPlacement::find($result['kept'][1])->title);
-        $this->assertSame(2, LayoutPlacement::where('theme', 'venta')->where('page_type', 'home')->count());
+        $this->assertSame(2, LayoutPlacement::where('theme', 'default')->where('page_type', 'home')->count());
     }
 }

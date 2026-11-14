@@ -41,7 +41,7 @@ class WidgetCatalogueTest extends TestCase
     private function place(string $widget, array $config = [], array $attrs = []): LayoutPlacement
     {
         return LayoutPlacement::create($attrs + [
-            'theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top',
+            'theme' => 'default', 'page_type' => 'home', 'region' => 'content_top',
             'widget' => $widget, 'title' => 'Widget Title', 'config' => $config, 'sort_order' => 0, 'is_enabled' => true,
         ]);
     }

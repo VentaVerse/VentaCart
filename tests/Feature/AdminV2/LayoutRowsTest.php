@@ -19,7 +19,7 @@ class LayoutRowsTest extends TestCase
     private function row(array $attrs = []): LayoutRow
     {
         return LayoutRow::create($attrs + [
-            'theme' => 'venta', 'page_type' => 'home', 'region' => 'content_bottom',
+            'theme' => 'default', 'page_type' => 'home', 'region' => 'content_bottom',
             'sort_order' => 0, 'columns' => [4, 4], 'is_enabled' => true,
         ]);
     }
@@ -27,7 +27,7 @@ class LayoutRowsTest extends TestCase
     private function place(array $attrs = []): LayoutPlacement
     {
         return LayoutPlacement::create($attrs + [
-            'theme' => 'venta', 'page_type' => 'home', 'region' => 'content_bottom',
+            'theme' => 'default', 'page_type' => 'home', 'region' => 'content_bottom',
             'widget' => 'catalog.brands', 'title' => 'Brands', 'sort_order' => 0, 'is_enabled' => true,
         ]);
     }
@@ -99,7 +99,7 @@ class LayoutRowsTest extends TestCase
         $row = $this->row(['columns' => [4, 4]]);
         $this->place(['row_id' => $row->id, 'column_index' => 7, 'title' => 'Overflow Brands']);
 
-        $units = LayoutRow::forRegion('home', 'content_bottom', 'venta');
+        $units = LayoutRow::forRegion('home', 'content_bottom', 'default');
 
         $this->assertCount(1, $units);
         $this->assertSame('Overflow Brands', $units[0]['columns'][1][0]->title);
