@@ -1,15 +1,15 @@
 /**
- * The layout editor: the page drawn as a page.
+ * The layout editor: a page's positions drawn where they sit on the
+ * storefront, each one a list of widget lines.
  *
- * The left column is on the left and the right column is on the right, because
- * a merchant reasoning about where a widget goes is reasoning spatially. A
- * vertical list of positions makes them translate, and the translation is where
- * the mistakes come from.
+ * Column left is on the left and Column right on the right, because a
+ * merchant deciding where a widget goes is thinking about the page, and a
+ * vertical list of positions makes them translate.
  */
 
 .v-lay {
     display: grid;
-    grid-template-columns: 176px minmax(0, 1fr);
+    grid-template-columns: 184px minmax(0, 1fr);
     gap: 16px;
     align-items: start;
     position: relative;
@@ -17,11 +17,8 @@
 
 /* ---------- the page rail ---------- */
 
-/* Placed, never auto-placed. The stage used to land wherever the grid's
-   auto-flow put it, so one full-width sibling appearing was enough to push
-   it into the rail's 176px column and collapse the whole editor. Saying
-   which column each one lives in costs two lines and removes the class of
-   bug entirely. */
+/* Placed, never auto-placed: a full-width sibling appearing must not push
+   the stage into the rail's column. */
 .v-lay__rail {
     grid-column: 1;
     background: var(--v-surface);
@@ -34,23 +31,22 @@
 }
 
 .v-lay__raillbl {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: .09em;
-    text-transform: uppercase;
     color: var(--v-ink-3);
     padding: 0 8px;
-    margin: 12px 0 6px;
+    margin: 14px 0 6px;
 }
 
-.v-lay__raillbl:first-child { margin-top: 0; }
+.v-lay__raillbl:first-child { margin-top: 2px; }
 
 .v-lay__rail a {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 6px;
-    padding: 7px 8px;
+    min-height: 34px;
+    padding: 6px 8px;
     border-radius: var(--v-r-sm);
     color: var(--v-ink-2);
     font-size: 13px;
@@ -59,471 +55,34 @@
 }
 
 .v-lay__rail a:hover { background: var(--v-hover); color: var(--v-ink); }
+.v-lay__rail a:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 1px; }
 .v-lay__rail a.is-on { background: var(--v-act-fill); color: var(--v-act-ink); font-weight: 600; }
-.v-lay__rail a .n { font-family: var(--v-font-mono); font-size: 11px; opacity: .75; }
+.v-lay__rail .n { font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; }
+.v-lay__rail .n.is-zero { font-weight: 400; opacity: .7; }
 
-/* ---------- the page ---------- */
+/* ---------- the stage ---------- */
 
 .v-lay__stage { grid-column: 2; min-width: 0; }
 
-.v-lay__orphans {
+.v-lay__intro { margin: 0 0 12px; color: var(--v-ink-2); font-size: 13.5px; max-width: 75ch; }
+
+.v-lay__notice {
     display: flex;
-    gap: 9px;
+    gap: 10px;
     align-items: flex-start;
     margin: 0 0 12px;
-    padding: 10px 12px;
-    border-radius: var(--v-r-sm);
-    background: var(--v-warn-wash);
-    color: var(--v-warn);
-    font-size: 13px;
-}
-
-.v-lay__orphans svg { width: 17px; height: 17px; flex: none; }
-
-.v-lay__page {
-    background: var(--v-surface);
-    border: 1px solid var(--v-line-2);
-    border-radius: var(--v-r-md);
-    box-shadow: var(--v-lift);
-    overflow: hidden;
-}
-
-.v-lay__strip { padding: 10px; }
-
-/* The theme's own chrome, drawn so the positions have something to sit against. */
-.v-lay__chrome {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    background: var(--v-sunken);
-    border-top: 1px solid var(--v-line);
-    border-bottom: 1px solid var(--v-line);
-    color: var(--v-ink-3);
-    font-size: 11px;
-}
-
-.v-lay__logo { width: 64px; height: 12px; border-radius: 2px; background: var(--v-ink-3); opacity: .3; }
-.v-lay__line { flex: 1; height: 7px; border-radius: 2px; background: var(--v-ink-3); opacity: .16; }
-
-.v-lay__middle { display: flex; align-items: stretch; }
-
-.v-lay__col { padding: 10px; min-width: 0; }
-.v-lay__col--center { flex: 1; min-width: 0; }
-.v-lay__col--side { flex: none; background: var(--v-act-wash); }
-
-.v-lay__handle {
-    flex: none;
-    width: 10px;
-    cursor: col-resize;
-    background: var(--v-act-fill);
-    opacity: .5;
-    position: relative;
-    touch-action: none;
-}
-
-.v-lay__handle:hover, .v-lay__handle:focus-visible { opacity: 1; }
-
-.v-lay__handle::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    margin: auto;
-    width: 2px;
-    height: 28px;
-    border-radius: 2px;
-    background: var(--v-surface);
-    opacity: .9;
-}
-
-/* Off is a state you can see and click, not an absence you have to know about. */
-.v-lay__stub {
-    flex: none;
-    width: 30px;
-    border: 0;
-    border-left: 1px dashed var(--v-line-2);
-    background: var(--v-sunken);
-    color: var(--v-ink-3);
-    font-size: 17px;
-    cursor: pointer;
-}
-
-.v-lay__stub:hover { background: var(--v-act-wash); color: var(--v-act); }
-
-.v-lay__pagebody {
-    border: 1px dashed var(--v-line-2);
-    border-radius: var(--v-r-sm);
-    padding: 18px 12px;
-    text-align: center;
-    margin: 8px 0;
-    color: var(--v-ink-3);
-    font-size: 12px;
-}
-
-.v-lay__pagebody b { display: block; color: var(--v-ink-2); font-size: 13px; margin-bottom: 2px; }
-
-.v-lay__ruler {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 9px 14px;
-    border-top: 1px solid var(--v-line);
-    background: var(--v-sunken);
-    font-size: 12px;
-    color: var(--v-ink-3);
-}
-
-.v-lay__ruler .mono { font-family: var(--v-font-mono); color: var(--v-act); font-weight: 600; }
-.v-lay__sp { flex: 1; }
-.v-lay__drop { color: var(--v-act); cursor: pointer; font-weight: 600; }
-.v-lay__drop:hover { text-decoration: underline; }
-
-/* ---------- a slot ---------- */
-
-.v-slot {
-    border: 1.5px dashed var(--v-line-2);
-    border-radius: var(--v-r-sm);
-    padding: 9px;
-    min-height: 62px;
-}
-
-.v-slot--side { border-color: var(--v-act-edge); }
-.v-slot.is-target { border-color: var(--v-act-fill); background: var(--v-act-wash); }
-
-.v-slot__lbl {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: .07em;
-    text-transform: uppercase;
-    color: var(--v-ink-3);
-    margin-bottom: 8px;
-}
-
-.v-slot__lbl .mono {
-    font-family: var(--v-font-mono);
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0;
-    text-transform: none;
-    opacity: .75;
-}
-
-.v-slot--side .v-slot__lbl { color: var(--v-act); }
-
-.v-slot__add {
-    margin-left: auto;
-    border: 0;
-    background: none;
-    color: var(--v-act);
-    font-size: 16px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0 4px;
-}
-
-.v-slot__empty { margin: 0; color: var(--v-ink-3); font-size: 12px; text-align: center; padding: 4px; }
-
-.v-card {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    border: 1px solid var(--v-line-2);
-    border-radius: var(--v-r-sm);
-    background: var(--v-surface);
-    margin-bottom: 6px;
-    cursor: grab;
-}
-
-.v-card:last-child { margin-bottom: 0; }
-.v-card__grip { color: var(--v-ink-3); font-family: var(--v-font-mono); font-size: 12px; letter-spacing: -2px; }
-.v-card__nm { font-size: 12.5px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.v-card.is-off { opacity: .55; }
-.v-card.is-gone { border-style: dashed; }
-.v-card--inherit { background: var(--v-sunken); border-style: dashed; cursor: default; }
-
-.v-card__acts { margin-left: auto; display: flex; gap: 2px; }
-
-.v-card__acts button {
-    border: 0;
-    background: none;
-    color: var(--v-ink-3);
-    cursor: pointer;
-    font-size: 13px;
-    line-height: 1;
-    padding: 3px 5px;
-    border-radius: 4px;
-}
-
-.v-card__acts button:hover { background: var(--v-hover); color: var(--v-ink); }
-
-.v-tag {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 100px;
-    background: var(--v-act-wash);
-    color: var(--v-act);
+    padding: 12px 14px;
     border: 1px solid var(--v-act-edge);
-    white-space: nowrap;
-}
-
-.v-tag--off { background: var(--v-sunken); color: var(--v-ink-3); border-color: var(--v-line-2); }
-
-/* ---------- the picker ---------- */
-
-.v-lay__pick {
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
-    width: 280px;
-    max-height: 60vh;
-    overflow-y: auto;
-    background: var(--v-surface);
-    border: 1px solid var(--v-line-2);
     border-radius: var(--v-r-md);
-    box-shadow: var(--v-lift-2);
-    padding: 10px;
-    z-index: 40;
-}
-
-.v-lay__pickhead { display: flex; align-items: center; margin-bottom: 8px; font-size: 13px; }
-.v-lay__pickhead button { margin-left: auto; border: 0; background: none; color: var(--v-ink-3); font-size: 18px; cursor: pointer; }
-
-.v-lay__pickrow {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    text-align: left;
-    padding: 8px 9px;
-    border: 0;
-    border-radius: var(--v-r-sm);
-    background: none;
-    color: var(--v-ink-2);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
-}
-
-.v-lay__pickrow:hover { background: var(--v-hover); color: var(--v-ink); }
-.v-lay__pickrow .mono { margin-left: auto; font-family: var(--v-font-mono); font-size: 10.5px; color: var(--v-ink-3); }
-.v-lay__pickempty { color: var(--v-ink-3); font-size: 12.5px; padding: 8px; margin: 0; }
-
-@media (max-width: 900px) {
-    /* One column, so nothing may ask for column 2: a grid item pinned to a
-       track that no longer exists makes the browser invent one. */
-    .v-lay { grid-template-columns: minmax(0, 1fr); }
-    .v-lay__rail,
-    .v-lay__stage,
-    .v-lay__page-settings { grid-column: 1; }
-    .v-lay__rail { position: static; }
-    .v-lay__middle { flex-direction: column; }
-    .v-lay__col--side { width: auto !important; }
-    .v-lay__handle, .v-lay__stub { display: none; }
-    .v-lay__pick { left: 16px; right: 16px; width: auto; }
-}
-
-/* ---------- widget settings and page controls ---------- */
-
-
-.v-lay__field { display: block; margin-bottom: 12px; }
-.v-lay__field > span { display: block; font-size: 12px; color: var(--v-ink-3); margin-bottom: 5px; }
-
-.v-lay__field input[type="text"],
-.v-lay__field input[type="number"],
-.v-lay__field select {
-    width: 100%;
-    height: 36px;
-    padding: 0 9px;
-    border: 1px solid var(--v-line-2);
-    border-radius: var(--v-r-sm);
-    background: var(--v-surface);
+    background: var(--v-act-wash);
     color: var(--v-ink);
-    font: inherit;
-    font-size: 13px;
-}
-
-.v-lay__withnew { display: flex; gap: 8px; align-items: center; }
-.v-lay__withnew select { flex: 1; min-width: 0; }
-
-.v-lay__new {
-    flex: none;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--v-act);
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.v-lay__new:hover { text-decoration: underline; }
-
-/* The page's own parts. Not a reduction layer: the page is not taken apart,
-   its parts simply have controls, and hiding is one of them. */
-
-/* The Pages panel inside the theme editor: one door per page type. */
-.v-pagelinks { display: flex; flex-wrap: wrap; gap: 8px; }
-.v-note { margin: 0 0 12px; color: var(--v-ink-3); font-size: 13px; }
-
-/* ---------- moving without a mouse ---------- */
-
-/* Cards are reachable now, so they need a focus state of their own. */
-.v-card:focus-visible {
-    outline: 2px solid var(--v-focus);
-    outline-offset: 2px;
-}
-
-.v-card__kind {
-    font-family: var(--v-font-mono);
-    font-size: 10px;
-    color: var(--v-ink-3);
-    white-space: nowrap;
-}
-
-/* 28px, up from 22x19. The system's control height is 36 and these sit inside
-   a 36px row, so 28 is the largest that fits without changing the row. Coarse
-   pointers get the full 44 below. */
-.v-card__acts button {
-    min-width: 28px;
-    min-height: 28px;
-}
-
-.v-card__acts button[disabled] { opacity: .35; cursor: default; }
-
-.v-card__moves {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 8px;
-    margin-bottom: 6px;
-    border: 1px solid var(--v-act-edge);
-    border-radius: var(--v-r-sm);
-    background: var(--v-act-wash);
-}
-
-.v-card__moves button {
-    border: 1px solid var(--v-line-2);
-    background: var(--v-surface);
-    color: var(--v-ink-2);
-    border-radius: var(--v-r-sm);
-    font: inherit;
-    font-size: 12px;
-    padding: 5px 9px;
-    cursor: pointer;
-}
-
-.v-card__moves button:hover { background: var(--v-hover); color: var(--v-ink); }
-
-/* The + on a slot was 19x16. */
-.v-slot__add {
-    min-width: 28px;
-    min-height: 28px;
-    border-radius: var(--v-r-sm);
-}
-
-.v-slot__add:hover { background: var(--v-act-wash); }
-
-/* Removing a column is an action, so it is a button and it is reachable. */
-.v-lay__drop {
-    border: 0;
-    background: none;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--v-act);
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: var(--v-r-sm);
-    min-height: 28px;
-}
-
-.v-lay__drop:hover { background: var(--v-act-wash); }
-
-/* What just happened, for anyone who cannot see the card move. */
-.v-lay__said {
-    margin: 0 0 10px;
-    padding: 8px 12px;
-    border-radius: var(--v-r-sm);
-    background: var(--v-act-wash);
-    color: var(--v-act);
-    font-size: 13px;
-    font-weight: 600;
-}
-
-/* The identifier no longer competes with the name it labels. */
-.v-slot__lbl .mono { opacity: 1; color: var(--v-ink-3); }
-
-@media (pointer: coarse) {
-    .v-card__acts button,
-    .v-slot__add,
-    .v-lay__drop { min-width: 44px; min-height: 44px; }
-}
-
-/* ---------- the inspector ---------- */
-
-/*
- * A column of the grid, not a panel over the page.
- *
- * It was position:fixed at the bottom right: 300px from the card it edited,
- * with no connector, physically covering the slots underneath it. Playwright
- * refused a click on "Above the footer" because the panel intercepted it.
- */
-.v-lay.is-inspecting {
-    grid-template-columns: 176px minmax(0, 1fr) 320px;
-}
-
-.v-lay__inspector {
-    background: var(--v-surface);
-    border: 1px solid var(--v-line);
-    border-radius: var(--v-r-md);
-    box-shadow: var(--v-lift);
-    padding: 14px;
-    position: sticky;
-    top: 72px;
-    max-height: calc(100vh - 184px);
-    overflow-y: auto;
-}
-
-.v-lay__inspector .v-lay__pickhead {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
     font-size: 13.5px;
 }
 
-.v-lay__inspector .v-lay__pickhead button {
-    margin-left: auto;
-    border: 0;
-    background: none;
-    color: var(--v-ink-3);
-    font-size: 18px;
-    cursor: pointer;
-    min-width: 28px;
-    min-height: 28px;
-    border-radius: var(--v-r-sm);
-}
-
-.v-lay__inspector .v-lay__pickhead button:hover { background: var(--v-hover); color: var(--v-ink); }
-
-/* The card being edited says so, rather than the panel being the only clue. */
-.v-card.is-editing {
-    border-color: var(--v-act-fill);
-    box-shadow: inset 0 0 0 1px var(--v-act-edge);
-}
-
-@media (max-width: 1100px) {
-    .v-lay.is-inspecting { grid-template-columns: minmax(0, 1fr); }
-    .v-lay.is-inspecting .v-lay__rail,
-    .v-lay.is-inspecting .v-lay__stage,
-    .v-lay.is-inspecting .v-lay__page-settings { grid-column: 1; }
-    .v-lay__inspector { position: static; max-height: none; }
-}
-
-/* ---------- orphans ---------- */
+.v-lay__notice svg { width: 18px; height: 18px; flex: none; margin-top: 1px; color: var(--v-act); }
+.v-lay__notice p { margin: 0; }
+.v-lay__notice b { display: block; margin-bottom: 2px; }
+.v-lay__notice a { color: var(--v-act); font-weight: 600; text-underline-offset: 2px; }
 
 .v-lay__orphans {
     margin-bottom: 12px;
@@ -538,117 +97,637 @@
 
 .v-lay__orphan {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: 6px 10px;
     padding: 7px 10px;
     margin-top: 6px;
     border-radius: var(--v-r-sm);
     background: var(--v-surface);
     color: var(--v-ink-2);
+    font-size: 13px;
+}
+
+.v-lay__orphan .v-btn { margin-left: auto; }
+
+/* The page is not clipped: a position's menu must be free to open past
+   its edges. Corners are rounded on the first and last bands instead. */
+.v-lay__page {
+    background: var(--v-surface);
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-md);
+    box-shadow: var(--v-lift);
+}
+
+.v-lay__strip { padding: 10px; }
+
+/* The theme's own header and footer, said in words with the way to edit them. */
+.v-lay__chrome {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+    padding: 10px 14px;
+    background: var(--v-sunken);
+    border-top: 1px solid var(--v-line);
+    border-bottom: 1px solid var(--v-line);
+    color: var(--v-ink-2);
+    font-size: 13px;
+}
+
+.v-lay__chrome--foot { border-bottom: 0; border-radius: 0 0 var(--v-r-md) var(--v-r-md); }
+.v-lay__chrometext { margin: 0; flex: 1 1 260px; min-width: 0; }
+.v-lay__chrometext b { color: var(--v-ink); margin-right: 6px; }
+.v-lay__chrometext a { color: var(--v-act); font-weight: 600; margin-left: 6px; white-space: nowrap; text-underline-offset: 2px; }
+.v-lay__chrome.is-off .v-lay__chrometext { opacity: .6; }
+
+.v-lay__middle { display: flex; align-items: stretch; }
+
+.v-lay__col { padding: 10px; min-width: 0; }
+.v-lay__col--center { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.v-lay__col--side { flex: none; background: var(--v-act-wash); }
+
+/* A side column that is off still shows, narrow, so it can be filled. */
+.v-lay__col--side.is-off { width: 168px; background: var(--v-sunken); }
+
+.v-lay__handle {
+    flex: none;
+    width: 10px;
+    cursor: col-resize;
+    background: var(--v-act-fill);
+    opacity: .5;
+    position: relative;
+    touch-action: none;
+}
+
+.v-lay__handle:hover, .v-lay__handle:focus-visible { opacity: 1; }
+.v-lay__handle:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 1px; }
+
+.v-lay__handle::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 2px;
+    height: 28px;
+    border-radius: 2px;
+    background: var(--v-surface);
+    opacity: .9;
+}
+
+.v-lay__ruler {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--v-line);
+    background: var(--v-sunken);
+    font-size: 12.5px;
+    color: var(--v-ink-2);
+}
+
+.v-lay__sp { flex: 1; }
+
+/* ---------- what the page draws itself ---------- */
+
+.v-lay__builtin {
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-sm);
+    background: var(--v-sunken);
+    padding: 12px 14px;
+}
+
+.v-lay__builtintitle { margin: 0 0 2px; font-size: 13.5px; font-weight: 700; color: var(--v-ink); }
+.v-lay__builtinbody { margin: 0; font-size: 13px; color: var(--v-ink-2); max-width: 75ch; }
+
+.v-lay__parts { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
+
+.v-lay__part {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 14px;
+    padding: 6px 0;
+    border-top: 1px solid var(--v-line);
+}
+
+.v-lay__partsw { font-size: 13px; font-weight: 600; min-height: 32px; flex: none; min-width: 150px; }
+.v-lay__partdesc { font-size: 12.5px; color: var(--v-ink-3); flex: 1 1 220px; }
+.v-lay__part.is-off .v-lay__partsw > span:last-child { color: var(--v-ink-3); }
+
+/* ---------- a position ---------- */
+
+.v-slot {
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.v-slot--side { border-color: var(--v-act-edge); }
+
+/* Lines lay out by the width of their position, not the screen: a side
+   column, or the content beside an open settings panel, is narrow at any
+   screen size. */
+.v-slot { container-type: inline-size; }
+
+/* A side column is narrow: its heading and Templates stack. */
+.v-slot--side .v-slot__head { flex-direction: column; align-items: stretch; gap: 4px; }
+.v-slot--side .v-slot__menuwrap { align-self: flex-start; }
+.v-slot--side .v-slot__menubtn { padding-left: 0; }
+.v-slot.is-target { border-color: var(--v-act-fill); background: var(--v-act-wash); }
+
+.v-slot__head { display: flex; align-items: flex-start; gap: 8px; }
+.v-slot__titles { flex: 1; min-width: 0; }
+.v-slot__name { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--v-ink); }
+.v-slot__hint { margin: 1px 0 0; font-size: 12px; color: var(--v-ink-3); }
+
+.v-slot__menuwrap { position: relative; flex: none; }
+.v-slot__menubtn svg { width: 14px; height: 14px; }
+.v-slot__menubtn[aria-expanded="true"] { background: var(--v-hover); color: var(--v-ink); }
+
+/* Opens under its button, left-aligned when that fits on screen, else
+   right-aligned (the editor decides). Never wider than the screen. */
+.v-slot__menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 30;
+    width: max-content;
+    min-width: 220px;
+    max-width: min(300px, calc(100vw - 32px));
+    padding: 4px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-md);
+    box-shadow: var(--v-lift-2);
+}
+
+.v-slot__menu.is-left { right: auto; left: 0; }
+
+.v-slot__item {
+    display: block;
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: var(--v-r-sm);
+    background: none;
+    color: var(--v-ink);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.v-slot__item:hover, .v-slot__item:focus-visible { background: var(--v-hover); outline: none; }
+.v-slot__item:focus-visible { box-shadow: inset 0 0 0 2px var(--v-focus); }
+.v-slot__item[aria-disabled="true"] { color: var(--v-ink-3); cursor: default; }
+.v-slot__item[aria-disabled="true"]:hover { background: none; }
+.v-slot__sep { height: 1px; margin: 4px 6px; background: var(--v-line); }
+
+.v-slot__file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.v-slot__tpl {
+    padding: 10px 12px;
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-sm);
+    background: var(--v-sunken);
+}
+
+.v-slot__tplhead { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.v-slot__tplrow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+.v-slot__tplfield { display: grid; gap: 4px; flex: 1 1 200px; min-width: 0; font-size: 12px; color: var(--v-ink-3); }
+
+.v-slot__said {
+    margin: 0;
+    padding: 6px 10px;
+    border-radius: var(--v-r-sm);
+    background: var(--v-act-wash);
+    color: var(--v-ink);
     font-size: 12.5px;
 }
 
-.v-lay__orphan .mono { font-family: var(--v-font-mono); font-size: 11px; color: var(--v-ink-3); }
+.v-slot__empty { margin: 0; color: var(--v-ink-3); font-size: 12.5px; padding: 2px 0; }
 
-.v-lay__orphan button {
-    margin-left: auto;
-    border: 1px solid var(--v-line-2);
+.v-slot__add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px dashed var(--v-act-edge);
+    border-radius: var(--v-r-sm);
     background: var(--v-surface);
     color: var(--v-act);
-    border-radius: var(--v-r-sm);
     font: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    padding: 5px 10px;
-    min-height: 28px;
     cursor: pointer;
 }
 
-.v-lay__orphan button:hover { background: var(--v-act-wash); }
+.v-slot__add svg { width: 15px; height: 15px; flex: none; }
+.v-slot__add:hover, .v-slot__add[aria-expanded="true"] { background: var(--v-act-wash); border-style: solid; }
+.v-slot__add:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
 
-/* ---------- the page picker ---------- */
+/* ---------- rows and widget lines ---------- */
 
-/* Desktop keeps the rail; the phone gets this instead, never both. */
-.v-lay__pagepick { display: none; }
+/* A one-column row has no chrome: its widgets are plain lines. Several
+   widgets sharing one such row get a faint bracket so they read as moving
+   together. */
+.v-lrow { display: flex; flex-direction: column; }
+.v-lrow.is-group { border-left: 1px solid var(--v-line-2); padding-left: 6px; }
 
-@media (max-width: 900px) {
-    .v-lay__rail { display: none; }
-
-    .v-lay__pagepick {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 12px;
-        padding: 10px 12px;
-        background: var(--v-surface);
-        border: 1px solid var(--v-line);
-        border-radius: var(--v-r-md);
-    }
-
-    .v-lay__pagepick > span {
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-        color: var(--v-ink-3);
-    }
-
-    .v-lay__pagepick select {
-        flex: 1;
-        min-width: 0;
-        height: 44px;
-        padding: 0 10px;
-        border: 1px solid var(--v-line-2);
-        border-radius: var(--v-r-sm);
-        background: var(--v-surface);
-        color: var(--v-ink);
-        font: inherit;
-        font-size: 14px;
-    }
+.v-lrow.is-split {
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-sm);
+    background: var(--v-sunken);
 }
 
-/* ============================================================
-   The subject panel
-   ============================================================
-   A widget's own record, edited without leaving the layout.
-   Level one is ours (which record sits here); below it is the
-   module's own page in a frame. The two never share a Save.
-   ============================================================ */
+.v-lrow__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    padding: 4px 6px 4px 10px;
+    border-bottom: 1px solid var(--v-line);
+    font-size: 12.5px;
+    color: var(--v-ink-2);
+}
 
-/* Scoped through .v-card__acts: the reset on `.v-card__acts button` is
-   one element more specific than a bare class and was flattening this
-   into plain text. */
-.v-card__acts .v-card__open {
-    border: 1px solid var(--v-act-edge);
+.v-lrow__what { font-weight: 600; }
+.v-lrow__tools { margin-left: auto; }
+.v-lrow__panel { padding: 10px; border-bottom: 1px solid var(--v-line); background: var(--v-surface); }
+
+.v-lrow__cols { display: flex; flex-direction: column; gap: 6px; }
+.v-lrow.is-split .v-lrow__cols { flex-direction: row; padding: 8px; gap: 8px; }
+.v-lrowcol { flex-basis: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.v-lrow.is-split .v-lrowcol { padding: 6px; border: 1px dashed var(--v-line-2); border-radius: var(--v-r-sm); background: var(--v-surface); }
+.v-lrowcol.is-target { outline: 1px dashed var(--v-act-fill); outline-offset: 2px; }
+.v-lrowcol__lbl { margin: 0; font-size: 11.5px; font-weight: 600; color: var(--v-ink-3); }
+.v-lrowcol__add { align-self: flex-start; }
+.v-lrowcol__add svg { width: 13px; height: 13px; }
+
+.v-line {
+    display: flex;
+    align-items: center;
+    gap: 6px 8px;
+    min-height: 44px;
+    padding: 4px 6px 4px 4px;
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+}
+
+.v-line.is-editing { border-color: var(--v-act-fill); box-shadow: inset 0 0 0 1px var(--v-act-edge); }
+.v-line.is-off .v-line__text { opacity: .55; }
+.v-line.is-gone { border-style: dashed; }
+
+.v-line--inherit { background: var(--v-sunken); border-style: dashed; padding-left: 10px; }
+.v-line--inherit .v-line__nm { color: var(--v-ink-2); font-weight: 500; }
+
+.v-line__grip { flex: none; display: inline-flex; color: var(--v-ink-3); cursor: grab; }
+.v-line__grip svg { width: 15px; height: 15px; }
+
+.v-line__text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.v-line__nm { font-size: 13px; font-weight: 600; color: var(--v-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-line__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 12px; color: var(--v-ink-3); }
+.v-line__meta > span:empty { display: none; }
+
+.v-line__acts { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 2px; }
+
+/* In a narrow position the name takes its own line and every action stays
+   on the line, below it. Hiding Move up behind a press would be worse than
+   one more row. */
+@container (max-width: 470px) {
+    .v-line { flex-wrap: wrap; }
+    .v-line__text { flex: 1 1 calc(100% - 30px); }
+    .v-line__nm { white-space: normal; }
+    .v-line__acts { flex: 1 1 100%; justify-content: flex-start; }
+}
+
+/* A text button: the action named in words, quiet until hovered. */
+.v-textbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 30px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--v-r-sm);
+    background: none;
+    color: var(--v-act);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.v-textbtn:hover { background: var(--v-act-wash); }
+.v-textbtn:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 1px; }
+.v-textbtn--danger { color: var(--v-bad); }
+.v-textbtn--danger:hover { background: var(--v-bad-wash); }
+
+/* An icon button carries an accessible name and a tooltip. */
+.v-iconbtn {
+    display: inline-grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: var(--v-r-sm);
+    background: none;
+    color: var(--v-ink-2);
+    cursor: pointer;
+}
+
+.v-iconbtn svg { width: 15px; height: 15px; }
+.v-iconbtn:hover:not(:disabled) { background: var(--v-hover); color: var(--v-ink); }
+.v-iconbtn:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 1px; }
+.v-iconbtn:disabled { opacity: .3; cursor: default; }
+
+.v-tag {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    padding: 0 7px;
+    border-radius: 100px;
     background: var(--v-act-wash);
     color: var(--v-act);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 0 9px;
-    height: 26px;
-    border-radius: 5px;
+    border: 1px solid var(--v-act-edge);
+    white-space: nowrap;
+}
+
+.v-tag--off { background: var(--v-sunken); color: var(--v-ink-2); border-color: var(--v-line-2); }
+
+/* ---------- a row's columns and style ---------- */
+
+.v-rowtools { display: grid; gap: 10px; }
+.v-rowtools__lbl { margin: 0 0 6px; font-size: 12px; color: var(--v-ink-2); }
+.v-rowtools__acts { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.v-lrow__shapes { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.v-lshape {
+    display: inline-flex;
+    gap: 2px;
+    width: 44px;
+    height: 30px;
+    padding: 5px;
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
     cursor: pointer;
-    white-space: nowrap;
 }
 
-.v-card__acts .v-card__open:hover { background: rgba(192, 135, 58, .2); color: var(--v-act); }
+.v-lshape i { display: block; flex-basis: 0; background: var(--v-ink-3); border-radius: 2px; opacity: .5; }
+.v-lshape:hover { border-color: var(--v-ink-3); }
+.v-lshape.is-on { border-color: var(--v-act-fill); box-shadow: inset 0 0 0 1px var(--v-act-fill); }
+.v-lshape.is-on i { background: var(--v-act-fill); opacity: 1; }
+.v-lshape:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
 
-.v-card__subj {
-    font-size: 11px;
-    color: var(--v-ink-3);
-    border-left: 1px solid var(--v-line-2);
-    padding-left: 8px;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.v-lay__rowlook { border-top: 1px solid var(--v-line); padding-top: 10px; margin-top: 4px; display: grid; gap: 10px; }
+.v-lay__rowlook > .v-textbtn { justify-self: start; padding-left: 0; }
+
+/* ---------- the widget picker ---------- */
+
+.v-pick {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--v-act-edge);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    box-shadow: var(--v-lift);
 }
+
+.v-pick__intro { margin: 0; font-size: 12.5px; color: var(--v-ink-2); max-width: 75ch; }
+.v-pick__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; }
+.v-pick__cancel { justify-self: start; }
+
+.v-pickcard {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    padding: 9px;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--v-ink);
+    text-align: left;
+}
+
+.v-pickcard:hover { border-color: var(--v-act-fill); background: var(--v-act-wash); }
+.v-pickcard:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
+.v-pickcard__nm { font-size: 12.5px; font-weight: 600; }
+
+/* The widget, drawn. A merchant choosing between Category tabs and Brand
+   strip is choosing between two shapes, and the name is the worst
+   available description of a shape. Each widget declares one word and
+   the editor draws the wireframe, so nothing ships an asset. */
+.v-wire {
+    display: grid;
+    gap: 3px;
+    height: 42px;
+    padding: 5px;
+    border-radius: 4px;
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line);
+}
+
+/* Every bar hidden by default, then each shape shows exactly the ones it
+   uses. Both rules carry the same weight and the shape comes second, which
+   is the whole reason this is written as :nth-child on both sides: a plain
+   `.v-wire--grid i` loses to `.v-wire i:nth-child(n + 3)` and every shape
+   silently collapsed to two bars. */
+.v-wire i { background: var(--v-line-2); border-radius: 2px; }
+.v-wire i:nth-child(n) { display: none; }
+
+.v-wire--banner { grid-template-columns: 1fr; }
+.v-wire--banner i:nth-child(-n + 1) { display: block; }
+
+.v-wire--grid { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
+.v-wire--grid i:nth-child(-n + 6) { display: block; }
+
+.v-wire--strip { grid-template-columns: repeat(4, 1fr); align-content: center; }
+.v-wire--strip i:nth-child(-n + 4) { display: block; height: 12px; border-radius: 999px; }
+
+.v-wire--tabs { grid-template-columns: repeat(3, 1fr); grid-template-rows: 7px 1fr; }
+.v-wire--tabs i:nth-child(-n + 4) { display: block; }
+.v-wire--tabs i:nth-child(-n + 3) { background: var(--v-act-edge); }
+.v-wire--tabs i:nth-child(4) { grid-column: 1 / -1; }
+
+.v-wire--cards { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 4px; }
+.v-wire--cards i:nth-child(-n + 6) { display: block; }
+.v-wire--cards i:nth-child(n + 4) { background: var(--v-line); }
+
+.v-wire--text { grid-template-rows: repeat(3, 4px); align-content: center; }
+.v-wire--text i:nth-child(-n + 3) { display: block; }
+.v-wire--text i:nth-child(3) { width: 60%; }
+
+.v-wire--block { grid-template-columns: 1fr; }
+.v-wire--block i:nth-child(-n + 1) { display: block; }
+
+
+/* ---------- the inspector ---------- */
+
+/* A column of the grid beside the page, so it never covers the position it
+   edits. Below 1100px it becomes a sheet over the bottom of the screen. */
+.v-lay.is-inspecting { grid-template-columns: 184px minmax(0, 1fr) 340px; }
+
+/* While a widget is open, side columns that are off step aside for room. */
+.v-lay.is-inspecting .v-lay__col--side.is-off { display: none; }
+
+.v-lay__inspector {
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    box-shadow: var(--v-lift);
+    padding: 14px;
+    position: sticky;
+    top: 72px;
+    max-height: calc(100vh - 160px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.v-lay__pickhead {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-size: 14px;
+}
+
+.v-lay__pickhead > div { flex: 1; min-width: 0; }
+.v-lay__pickhead b { display: block; overflow-wrap: anywhere; }
+.v-lay__picksub { display: block; font-size: 12px; color: var(--v-ink-3); }
+.v-lay__pickempty { color: var(--v-ink-3); font-size: 12.5px; margin: 0 0 12px; }
+
+.v-lay__field { display: block; margin-bottom: 12px; }
+.v-lay__field > span,
+.v-lay__fieldin > span:first-child { display: block; font-size: 12px; font-weight: 600; color: var(--v-ink-2); margin-bottom: 5px; }
+.v-lay__fieldin { display: block; }
+
+/* The row style fields predate .v-control; they take its look here. */
+.v-lay__inspector--row .v-lay__field input[type="text"],
+.v-lay__inspector--row .v-lay__field input[type="number"],
+.v-lay__inspector--row .v-lay__field select {
+    width: 100%;
+    min-height: var(--v-control-h);
+    padding: 0 10px;
+    border: 1px solid var(--v-edge);
+    border-radius: var(--v-r-md);
+    background: var(--v-surface);
+    color: var(--v-ink);
+    font: inherit;
+    font-size: 13px;
+}
+
+.v-lay__withnew { display: flex; gap: 8px; align-items: center; }
+.v-lay__withnew select { flex: 1; min-width: 0; }
+
+.v-lay__new {
+    flex: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--v-act);
+    text-decoration: none;
+    white-space: nowrap;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+.v-lay__new:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+.v-lay__field textarea { width: 100%; }
+.v-lay__field textarea.v-lay__code { font-family: var(--v-font-mono); font-size: 12px; }
+
+.v-lay__media { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.v-lay__mediaitem { position: relative; width: 56px; height: 56px; border-radius: var(--v-r-sm); overflow: hidden; border: 1px solid var(--v-line); }
+.v-lay__mediaitem img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.v-lay__mediaitem button {
+    position: absolute; top: 2px; right: 2px; width: 22px; height: 22px;
+    display: grid; place-items: center; border: 0; border-radius: 50%;
+    background: rgb(15 23 42 / .7); color: #fff; cursor: pointer;
+}
+.v-lay__mediaitem button svg { width: 12px; height: 12px; }
+.v-lay__mediapicker { display: block; }
+
+.v-lay__rows { display: grid; gap: 8px; }
+.v-lay__rowsitem { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--v-line); border-radius: var(--v-r-sm); background: var(--v-sunken); }
+.v-lay__subfield { display: grid; gap: 3px; font-size: 12px; }
+.v-lay__subfield > span { color: var(--v-ink-2); }
+.v-lay__rowsacts { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
+
+/* ---------- row style ---------- */
+
+.v-lay__chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; width: 100%; }
+
+.v-chip {
+    width: 26px; height: 26px; flex: 0 0 26px; margin: 0; border-radius: 50%;
+    border: 2px solid var(--v-line); padding: 0; cursor: pointer; position: relative;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / .06);
+}
+.v-chip.is-on { border-color: var(--v-ink); box-shadow: 0 0 0 2px var(--v-surface), 0 0 0 4px var(--v-act-fill); }
+.v-chip:focus-visible, .v-chip--custom:focus-within { outline: 2px solid var(--v-focus); outline-offset: 2px; }
+.v-chip--none { background: linear-gradient(135deg, transparent 45%, var(--v-warn) 45%, var(--v-warn) 55%, transparent 55%); }
+.v-chip--custom { display: inline-grid; place-items: center; overflow: hidden; }
+.v-chip--custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.v-chip--custom i { display: block; width: 16px; height: 16px; border-radius: 50%; pointer-events: none; }
+
+.v-lay__presetsave { display: flex; gap: 6px; align-items: end; }
+.v-lay__presetsave input { flex: 1; min-width: 0; }
+.v-lay__presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.v-lay__presetrow { display: inline-flex; align-items: center; border: 1px solid var(--v-line); border-radius: 999px; overflow: hidden; font-size: 12px; }
+.v-lay__presetrow button { border: 0; background: transparent; min-height: 28px; padding: 0 9px; cursor: pointer; color: var(--v-ink); font: inherit; }
+.v-lay__presetrow .v-lay__presetx { color: var(--v-ink-3); border-left: 1px solid var(--v-line); }
+.v-lay__presetrow button:hover { background: var(--v-hover); }
+
+.v-lay__imgpath { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 12px; overflow-wrap: anywhere; }
+.v-lay__hide { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
+.v-lay__hide label { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
+
+/* ---------- the save bar ---------- */
+
+/* Always in reach at the bottom of the screen, whatever position is being
+   worked on: the count of what is unsaved, Discard and Save. */
+.v-lay__savebar {
+    grid-column: 1 / -1;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 -2px;
+    padding: 10px 14px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-md) var(--v-r-md) 0 0;
+    box-shadow: 0 -6px 18px -12px rgb(15 23 42 / .35);
+}
+
+.v-lay__said { margin: 0 auto 0 0; min-width: 0; font-size: 13px; color: var(--v-ink-2); }
+
+/* ---------- the subject panel ---------- */
 
 .v-lay__panel {
     position: fixed;
     inset: 0;
     z-index: 60;
-    background: rgba(10, 17, 25, .5);
+    background: rgb(10 17 25 / .5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -698,6 +777,8 @@
 }
 
 .v-lay__pclose { margin-left: auto; border-color: transparent; background: none; font-size: 17px; }
+.v-lay__pback, .v-lay__pclose { display: inline-grid; place-items: center; }
+.v-lay__pback svg, .v-lay__pclose svg { width: 16px; height: 16px; }
 .v-lay__pback:hover, .v-lay__pclose:hover { background: var(--v-hover); color: var(--v-ink); }
 
 .v-lay__ptrail { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12px; flex-wrap: wrap; }
@@ -823,316 +904,83 @@
 
 .v-lay__pnew:hover { color: var(--v-act); border-color: var(--v-act-edge); }
 
+
 @media (max-width: 700px) {
     .v-lay__panel { padding: 0; }
     .v-lay__sheet { border-radius: 0; }
-    .v-card__subj { display: none; }
 }
 
-/* ---------- the page's own parts ----------
-   Each switch stands on the thing it governs, so "on this page" is
-   answered by being on the page rather than stated in a heading, and
-   switching one off dims the part instead of changing nothing. */
 
-.v-lay__part {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 5px 0;
+/* ---------- narrower screens ---------- */
+
+/* Desktop keeps the rail; smaller screens get one page select instead. */
+.v-lay__pagepick { display: none; }
+
+@media (max-width: 1100px) {
+    .v-lay.is-inspecting { grid-template-columns: 184px minmax(0, 1fr); }
+
+    /* The settings rise over the bottom of the screen rather than landing
+       below a long page, out of sight of the line that opened them. */
+    .v-lay__inspector {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        z-index: 50;
+        max-height: 82vh;
+        border-radius: var(--v-r-lg) var(--v-r-lg) 0 0;
+        box-shadow: var(--v-lift-2);
+        padding: 16px;
+    }
 }
 
-.v-lay__partbar {
-    width: 46px;
-    height: 5px;
-    border-radius: 3px;
-    background: var(--v-line-2);
-    flex: none;
-}
+@media (max-width: 900px) {
+    /* One column, so nothing may ask for column 2: a grid item pinned to a
+       track that no longer exists makes the browser invent one. */
+    .v-lay, .v-lay.is-inspecting { grid-template-columns: minmax(0, 1fr); }
+    .v-lay__rail { display: none; }
+    .v-lay__stage { grid-column: 1; }
 
-.v-lay__partsw { font-size: 12px; gap: 8px; }
-.v-lay__partsw .v-toggle__track { width: 30px; height: 17px; }
-.v-lay__partsw .v-toggle__track::after { width: 12px; height: 12px; top: 2.5px; left: 2.5px; }
-.v-lay__partsw input:checked ~ .v-toggle__track::after { transform: translateX(13px); }
-
-/* Off reads as absent, not as broken: the label greys and the bar that
-   stands for the part loses its weight. */
-.v-lay__part.is-off .v-lay__partbar { background: var(--v-line); }
-.v-lay__part.is-off .v-lay__partsw > span { color: var(--v-ink-3); text-decoration: line-through; }
-
-.v-lay__chrome.is-off { opacity: .5; }
-.v-lay__chrome .v-lay__partsw { margin-left: auto; }
-
-.v-lay__page-settings {
-    grid-column: 2;
-    margin: 12px 0 0;
-    padding: 12px 14px;
-    background: var(--v-surface);
-    border: 1px solid var(--v-line);
-    border-radius: var(--v-r-md);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 18px;
-}
-
-.v-lay__page-settings legend {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--v-ink-3);
-    padding: 0 6px;
-}
-
-/* ---------- choosing a widget, in the position it is for ----------
-   The panel used to be fixed to the viewport's bottom-right, so every
-   plus opened it in the same corner, on top of the slot being filled,
-   49 tab stops from the button that opened it. It opens here instead,
-   pushing the slot open rather than covering it. */
-
-.v-slot__pick {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
-    gap: 8px;
-    padding: 4px 0 2px;
-}
-
-.v-pickcard {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    border: 1px solid var(--v-line-2);
-    border-radius: var(--v-r-sm);
-    background: var(--v-surface);
-    padding: 9px;
-    cursor: pointer;
-    font-family: inherit;
-    color: var(--v-ink);
-    text-align: left;
-}
-
-.v-pickcard:hover { border-color: var(--v-act-fill); background: var(--v-act-wash); }
-.v-pickcard__nm { font-size: 12px; font-weight: 600; }
-
-/* The widget, drawn. A merchant choosing between Category tabs and Brand
-   strip is choosing between two shapes, and the name is the worst
-   available description of a shape. Each widget declares one word and
-   the editor draws the wireframe, so nothing ships an asset. */
-.v-wire {
-    display: grid;
-    gap: 3px;
-    height: 42px;
-    padding: 5px;
-    border-radius: 4px;
-    background: var(--v-sunken);
-    border: 1px solid var(--v-line);
-}
-
-/* Every bar hidden by default, then each shape shows exactly the ones it
-   uses. Both rules carry the same weight and the shape comes second, which
-   is the whole reason this is written as :nth-child on both sides: a plain
-   `.v-wire--grid i` loses to `.v-wire i:nth-child(n + 3)` and every shape
-   silently collapsed to two bars. */
-.v-wire i { background: var(--v-line-2); border-radius: 2px; }
-.v-wire i:nth-child(n) { display: none; }
-
-.v-wire--banner { grid-template-columns: 1fr; }
-.v-wire--banner i:nth-child(-n + 1) { display: block; }
-
-.v-wire--grid { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
-.v-wire--grid i:nth-child(-n + 6) { display: block; }
-
-.v-wire--strip { grid-template-columns: repeat(4, 1fr); align-content: center; }
-.v-wire--strip i:nth-child(-n + 4) { display: block; height: 12px; border-radius: 999px; }
-
-.v-wire--tabs { grid-template-columns: repeat(3, 1fr); grid-template-rows: 7px 1fr; }
-.v-wire--tabs i:nth-child(-n + 4) { display: block; }
-.v-wire--tabs i:nth-child(-n + 3) { background: var(--v-act-edge); }
-.v-wire--tabs i:nth-child(4) { grid-column: 1 / -1; }
-
-.v-wire--cards { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 4px; }
-.v-wire--cards i:nth-child(-n + 6) { display: block; }
-.v-wire--cards i:nth-child(n + 4) { background: var(--v-line); }
-
-.v-wire--text { grid-template-rows: repeat(3, 4px); align-content: center; }
-.v-wire--text i:nth-child(-n + 3) { display: block; }
-.v-wire--text i:nth-child(3) { width: 60%; }
-
-.v-wire--block { grid-template-columns: 1fr; }
-.v-wire--block i:nth-child(-n + 1) { display: block; }
-
-.v-slot__pickx {
-    grid-column: 1 / -1;
-    justify-self: start;
-    border: 0;
-    background: none;
-    color: var(--v-ink-3);
-    font-family: inherit;
-    font-size: 12px;
-    padding: 4px 0;
-    cursor: pointer;
-}
-
-.v-slot__pickx:hover { color: var(--v-ink); text-decoration: underline; }
-
-/* ---------- the card on a phone ----------
-   At 390px the six-glyph action cluster won the width fight and the
-   merchant's own title lost it completely: .v-card__nm measured 0px
-   wide against 64px of content, so three Product grid cards read
-   identically, and Remove sat 19px past the viewport edge inside an
-   overflow-x: hidden parent, unreachable at any scroll.
-
-   The name takes its own line and every action stays on the card. No
-   overflow menu, because hiding Move up behind a press is a worse
-   answer than one more row. */
-
-@media (max-width: 700px) {
-    .v-card { flex-wrap: wrap; row-gap: 6px; }
-
-    .v-card__nm {
-        flex: 1 1 100%;
-        order: 1;
-        white-space: normal;
-        overflow: visible;
+    .v-lay__pagepick {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: var(--v-surface);
+        border: 1px solid var(--v-line);
+        border-radius: var(--v-r-md);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--v-ink-2);
     }
 
-    .v-card__grip { order: 0; }
+    .v-lay__pagepick select { flex: 1; min-width: 0; min-height: 44px; font-size: 14px; }
 
-    /* The machine label and the subject chip are the two things a
-       merchant never navigates by. They go first. */
-    .v-card__kind,
-    .v-card__subj { display: none; }
-
-    .v-card__acts {
-        order: 2;
-        flex: 1 1 100%;
-        margin-left: 0;
-        justify-content: flex-end;
-        gap: 4px;
-    }
-
-    .v-card .v-tag { order: 1; }
+    .v-lay__middle { flex-direction: column; }
+    .v-lay__col--side, .v-lay__col--side.is-off { width: auto !important; }
+    .v-lay__handle { display: none; }
+    .v-lay__ruler span:first-child { display: none; }
 }
 
+@media (max-width: 640px) {
+    .v-lay__strip, .v-lay__col { padding: 8px; }
+    .v-slot { padding: 8px; }
 
-.v-lay__strip--system { border-color: var(--v-act-edge); }
-.v-lay__pagebody--region { display: block; padding: 0; background: transparent; border: 0; }
-.v-lrow.is-shipped { border-style: dashed; }
-
-/* ---- rows inside a position ------------------------------------------- */
-
-.v-lrow { border: 1px solid var(--v-line); border-radius: 8px; background: var(--v-sheet); margin-bottom: 8px; }
-.v-lrow:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
-.v-lrow.is-off { opacity: 0.55; }
-.v-lrow--inherit { border-style: dashed; background: transparent; }
-
-.v-lrow__head { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-bottom: 1px solid var(--v-line); font-size: 12px; color: var(--v-ink-3); }
-.v-lrow__grip { cursor: grab; color: var(--v-ink-3); }
-.v-lrow__shapes { display: inline-flex; gap: 4px; }
-
-.v-lshape { display: inline-flex; gap: 2px; width: 34px; height: 18px; padding: 2px; border: 1px solid var(--v-line); border-radius: 4px; background: var(--v-sheet); cursor: pointer; }
-.v-lshape i { display: block; flex-basis: 0; background: var(--v-ink-3); border-radius: 2px; opacity: 0.55; }
-.v-lshape.is-on { border-color: var(--v-act-fill); }
-.v-lshape.is-on i { background: var(--v-act-fill); opacity: 1; }
-.v-lshape:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
-
-.v-lrow__acts { margin-left: auto; display: inline-flex; gap: 2px; }
-.v-lrow__acts button { min-width: 24px; height: 24px; border: 0; background: transparent; color: var(--v-ink-3); border-radius: 4px; cursor: pointer; }
-.v-lrow__acts button:hover:not(:disabled) { background: var(--v-paper); color: var(--v-ink); }
-.v-lrow__acts button:disabled { opacity: 0.35; cursor: default; }
-
-.v-lrow__cols { display: flex; gap: 8px; padding: 8px; align-items: stretch; }
-.v-lrowcol { flex-basis: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 6px; border: 1px dashed transparent; border-radius: 6px; }
-.v-lrow.is-split .v-lrowcol { border-color: var(--v-line); }
-/* A card in a narrow column wraps its controls under its name instead of
-   spilling them past the column's edge. */
-.v-lrow.is-split .v-card { flex-wrap: wrap; row-gap: 6px; }
-.v-lrow.is-split .v-card__acts { flex-basis: 100%; }
-.v-lrowcol.is-target { border-color: var(--v-act-fill); background: color-mix(in srgb, var(--v-act-fill) 6%, transparent); }
-
-.v-lrowcol__add { align-self: flex-start; border: 1px dashed var(--v-line); background: transparent; color: var(--v-ink-3); font-size: 12px; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
-.v-lrowcol__add:hover { color: var(--v-ink); border-color: var(--v-ink-3); }
-.v-lrowcol__add:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
-
-@media (max-width: 720px) {
-    .v-lrow__cols { flex-direction: column; }
-    .v-lrow__shapes { display: none; }
+    .v-lrow.is-split .v-lrow__cols { flex-direction: column; }
+    .v-lay__savebar { padding: 8px 12px; }
+    .v-lay__said { font-size: 12.5px; }
 }
 
-
-/* ---- row style ---------------------------------------------------------- */
-
-.v-lrow__paint { font-size: 14px; }
-.v-lrow__paint.is-on { color: var(--v-act-fill); }
-.v-lrow__paint.is-editing { background: var(--v-act-wash); color: var(--v-act-fill); }
-
-.v-lay__chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-
-.v-chip {
-    width: 22px; height: 22px; border-radius: 50%;
-    border: 2px solid var(--v-line); padding: 0; cursor: pointer; position: relative;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+/* Fingers, not cursors: every control reaches 44px. */
+@media (pointer: coarse) {
+    .v-textbtn, .v-iconbtn, .v-slot__add, .v-slot__item, .v-lshape,
+    .v-lay__rail a, .v-lay__savebar .v-btn, .v-slot__menubtn,
+    .v-lay__rowsacts .v-iconbtn, .v-lay__presetrow button,
+    .v-lay__pback, .v-lay__pclose, .v-lay__choicego { min-height: 44px; min-width: 44px; }
+    .v-lay__chrometext a, .v-lay__notice a { display: inline-flex; align-items: center; min-height: 44px; }
+    .v-iconbtn { width: 44px; height: 44px; }
+    .v-lshape { width: 52px; }
+    .v-chip { width: 32px; height: 32px; flex-basis: 32px; }
+    .v-lay__partsw { min-height: 44px; }
 }
-.v-chip.is-on { border-color: var(--v-ink); box-shadow: 0 0 0 2px var(--v-sheet), 0 0 0 4px var(--v-act-fill); }
-.v-chip:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
-.v-chip--none { background: linear-gradient(135deg, transparent 45%, var(--v-warn) 45%, var(--v-warn) 55%, transparent 55%); }
-.v-chip--custom { display: inline-grid; place-items: center; overflow: hidden; }
-.v-chip--custom input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-.v-chip--custom i { display: block; width: 14px; height: 14px; border-radius: 50%; pointer-events: none; }
-
-.v-lay__presetsave { display: flex; gap: 6px; align-items: end; }
-.v-lay__presetsave input { flex: 1; min-width: 0; }
-.v-lay__presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-.v-lay__presetrow { display: inline-flex; align-items: center; border: 1px solid var(--v-line); border-radius: 999px; overflow: hidden; font-size: 12px; }
-.v-lay__presetrow button { border: 0; background: transparent; padding: 3px 8px; cursor: pointer; color: var(--v-ink); }
-.v-lay__presetrow .v-lay__presetx { padding: 3px 7px; color: var(--v-ink-3); border-left: 1px solid var(--v-line); }
-.v-lay__presetrow button:hover { background: var(--v-paper); }
-
-.v-lay__imgpath { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 12px; }
-.v-lay__hide { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
-.v-lay__hide label { display: inline-flex; align-items: center; gap: 6px; }
-
-
-/* ---- a position's templates menu ------------------------------------- */
-
-.v-slot__menu {
-    width: 24px; height: 24px; border: 0; border-radius: 4px; background: transparent;
-    color: var(--v-ink-3); cursor: pointer; font-size: 16px; line-height: 1; margin-left: auto;
-}
-.v-slot__menu:hover, .v-slot__menu[aria-expanded="true"] { background: var(--v-paper); color: var(--v-ink); }
-.v-slot__menu:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
-.v-slot__lbl .v-slot__add { margin-left: 4px; }
-
-.v-slot__tools {
-    display: grid; gap: 8px; padding: 10px; margin-bottom: 10px;
-    border: 1px solid var(--v-line); border-radius: 6px; background: var(--v-sheet); font-size: 12px;
-}
-.v-slot__toolrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.v-slot__toolrow input[type="text"], .v-slot__toolrow select { flex: 1 1 140px; min-width: 0; height: 30px; }
-.v-slot__import { position: relative; overflow: hidden; cursor: pointer; }
-.v-slot__import input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-
-/* The chips sit in a field whose children are stretched full width; a chip
-   is a chip. */
-.v-lay__field .v-lay__chips { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
-.v-lay__chips .v-chip { width: 22px; height: 22px; flex: 0 0 22px; margin: 0; }
-
-
-/* ---- media and repeating fields in the widget inspector --------------- */
-
-.v-lay__media { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.v-lay__mediaitem { position: relative; width: 48px; height: 48px; border-radius: 4px; overflow: hidden; border: 1px solid var(--v-line); }
-.v-lay__mediaitem img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.v-lay__mediaitem button { position: absolute; top: 0; right: 0; width: 18px; height: 18px; border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; line-height: 1; cursor: pointer; }
-.v-lay__mediapicker { display: block; }
-
-.v-lay__rows { display: grid; gap: 8px; }
-.v-lay__rowsitem { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--v-line); border-radius: 6px; background: var(--v-paper); }
-.v-lay__subfield { display: grid; gap: 3px; font-size: 12px; }
-.v-lay__subfield > span { color: var(--v-ink-3); }
-.v-lay__subfield input, .v-lay__subfield select, .v-lay__subfield textarea { width: 100%; }
-.v-lay__rowsacts { display: flex; gap: 4px; justify-content: flex-end; }
-.v-lay__rowsacts button { min-width: 24px; height: 24px; border: 1px solid var(--v-line); background: var(--v-sheet); border-radius: 4px; cursor: pointer; color: var(--v-ink-3); }
-.v-lay__rowsacts button:disabled { opacity: .35; cursor: default; }
-.v-lay__field textarea { width: 100%; }
-.v-lay__field textarea.v-lay__code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }

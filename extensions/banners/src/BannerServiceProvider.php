@@ -36,6 +36,9 @@ class BannerServiceProvider extends ServiceProvider
                 'banner_group' => [
                     'type' => 'select',
                     'label' => 'Which banner',
+                    // Shows nothing until one is chosen, so the layout editor
+                    // opens this field as soon as the widget is added.
+                    'required' => true,
                     // Resolved when the editor asks, not at boot: a merchant
                     // creating a banner must see it in the list immediately.
                     'options' => fn () => \Extensions\Banners\Models\BannerGroup::where('is_active', true)

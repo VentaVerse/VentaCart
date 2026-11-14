@@ -10,16 +10,10 @@ use Tests\TestCase;
 /**
  * The stage keeps its column when the editor speaks.
  *
- * The live region was a direct child of the .v-lay grid carrying
- * grid-column: 1 / -1. The moment it appeared it claimed a whole row and the
- * auto-placed stage below it fell into the rail's 176px track, so the entire
- * editor collapsed to a narrow strip. It was invisible while the region only
- * spoke for moves and rescues, and fired on every add once the commonest
- * actions started announcing.
- *
- * A stylesheet cannot be asserted here, but the nesting that makes the
- * stylesheet unnecessary can be: the announcement lives inside the stage, so
- * it is not a grid item at all.
+ * A live region that appears as a grid item of its own claims a whole grid
+ * row, and the auto-placed stage below it falls into the rail's narrow track.
+ * The announcement therefore lives in the save bar, which is always present
+ * and closes the grid, so nothing appears in front of the stage.
  */
 class LayoutStageHoldsItsColumnTest extends TestCase
 {
@@ -33,16 +27,18 @@ class LayoutStageHoldsItsColumnTest extends TestCase
         $this->actingAs(User::factory()->create());
     }
 
-    public function test_the_live_region_is_inside_the_stage_not_beside_it(): void
+    public function test_the_live_region_sits_in_the_save_bar_after_the_stage(): void
     {
         $html = $this->get(route('admin.layout', ['page' => 'home']))->assertOk()->getContent();
 
         $stage = strpos($html, 'class="v-lay__stage"');
+        $bar = strpos($html, 'class="v-lay__savebar"');
         $said = strpos($html, 'class="v-lay__said"');
 
         $this->assertNotFalse($stage);
-        $this->assertNotFalse($said);
-        $this->assertGreaterThan($stage, $said, 'the announcement must render inside the stage, not as a sibling of it');
+        $this->assertNotFalse($bar);
+        $this->assertGreaterThan($stage, $bar, 'the save bar closes the grid, after the stage');
+        $this->assertGreaterThan($bar, $said, 'the announcement is inside the save bar');
     }
 
     public function test_the_announcement_is_still_a_live_region(): void

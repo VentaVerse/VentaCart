@@ -1,15 +1,17 @@
-{{-- One page part, on or off.
-
-     The switch, because the doctrine has exactly one boolean-state control
-     and this is boolean state. It was a bare checkbox, which is the admin's
-     multi-selection control, so four of them in a box read as "pick the parts
-     you want" rather than "each of these is currently on". The old rule also
-     restyled the checkbox under a private class name, which is why it was the
-     one control on this screen painting itself Chromium blue in a brass
-     admin. Nothing is restyled here: this is ui.css. --}}
+@props(['text' => null])
+{{-- One page part, on or off, as the admin's switch: a part is either shown
+     or not, and a checkbox would read as "pick the parts you want". The
+     visible text is the part's own label unless the caller gives one (the
+     footer bar says "Show on this page" beside its heading); the switch's
+     accessible name always names the part. --}}
 <label class="v-toggle v-lay__partsw">
     <input type="checkbox" :checked="f.value"
+           :aria-label="'Show ' + f.label.toLowerCase() + ' on this page'"
            @change="setPart(f, $event.target.checked)">
     <span class="v-toggle__track" aria-hidden="true"></span>
-    <span x-text="f.label"></span>
+    @if ($text)
+        <span>{{ $text }}</span>
+    @else
+        <span x-text="f.label"></span>
+    @endif
 </label>

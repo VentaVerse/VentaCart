@@ -137,6 +137,6 @@ class LayoutRowsEditorTest extends TestCase
     public function test_the_editor_ships_the_shapes_it_offers(): void
     {
         $this->get(route('admin.layout', ['page' => 'home']))->assertOk()
-            ->assertSee('layouts:', false)->assertSee('[2,4,2]', false)->assertSee('Add a row to', false);
+            ->assertSee('layouts:', false)->assertSee('[2,4,2]', false)->assertSee('Add widget to', false);
     }
 }

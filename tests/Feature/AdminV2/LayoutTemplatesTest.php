@@ -73,7 +73,7 @@ class LayoutTemplatesTest extends TestCase
         $html = $this->get(route('admin.layout', ['page' => 'home']))->assertOk()->getContent();
         $this->assertStringContainsString('Mine', $html);
         $this->assertStringNotContainsString('Theirs', $html);
-        $this->assertStringContainsString('Save as template', $html);
+        $this->assertStringContainsString('Save this position as a template', $html);
 
         $this->deleteJson(route('admin.layout.templates.destroy', $foreign))->assertNotFound();
         $mine = LayoutTemplate::where('name', 'Mine')->sole();
