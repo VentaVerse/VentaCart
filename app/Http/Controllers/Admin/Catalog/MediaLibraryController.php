@@ -91,12 +91,25 @@ class MediaLibraryController extends Controller
 
     public function upload(Request $request): JsonResponse
     {
+        // Each refusal names the file and what is allowed, one message per
+        // file, so the merchant knows which photo to replace and with what.
+        $names = [];
+        foreach ((array) $request->file('files', []) as $i => $file) {
+            $names["files.{$i}"] = $file instanceof \Illuminate\Http\UploadedFile ? $file->getClientOriginalName() : 'That file';
+        }
         $validated = $request->validate([
             'files' => ['required', 'array', 'max:20'],
-            'files.*' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'files.*' => ['bail', 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'path' => ['nullable', 'string'],
             'root' => ['nullable', 'string'],
-        ]);
+        ], [
+            'files.required' => 'Choose a photo to upload.',
+            'files.max' => 'Upload at most 20 photos at a time.',
+            'files.*.image' => ':attribute is not a photo. Use a JPG, PNG or WebP file.',
+            'files.*.mimes' => ':attribute is not a JPG, PNG or WebP file.',
+            'files.*.max' => ':attribute is larger than 5 MB. Make it smaller and upload it again.',
+            'files.*.uploaded' => ':attribute did not finish uploading. It may be larger than the server allows.',
+        ], $names);
 
         // Same rule as browse: nothing given means the folder this picker is
         // aimed at, anything given is honoured as written.

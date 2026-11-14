@@ -379,11 +379,16 @@ document.addEventListener('alpine:init', () => {
     window.Alpine.store('toasts', {
         items: [],
         counter: 0,
-        push(message, tone = 'success') {
+        // A topic names the action a message is about. A new message on the
+        // same topic replaces the old one, so a retry that works clears the
+        // error the first try left: a refused photo, then the right photo,
+        // ends with "Uploaded", not with the stale refusal still up.
+        push(message, tone = 'success', topic = null) {
             // The migrated v pages speak good/bad; one store, one map.
             tone = { good: 'success', bad: 'danger' }[tone] ?? tone;
+            if (topic) this.items = this.items.filter((t) => t.topic !== topic);
             const id = ++this.counter;
-            this.items.push({ id, message, tone });
+            this.items.push({ id, message, tone, topic });
             // A success may fade: the page already shows the result, and the
             // toast only confirms it. A failure may not. Everything after a
             // failed action is unchanged, so a message that removes itself

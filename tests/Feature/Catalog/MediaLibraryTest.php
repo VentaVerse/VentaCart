@@ -190,6 +190,21 @@ class MediaLibraryTest extends TestCase
         Storage::disk('public')->assertExists('media/products/hipshot-bridge-black.jpg');
     }
 
+    public function test_a_refused_upload_names_the_file_and_what_is_allowed(): void
+    {
+        $res = $this->postJson(route('admin.media.upload'), [
+            'files' => [UploadedFile::fake()->create('notes.txt', 1, 'text/plain')],
+            'path' => 'media/products',
+        ])->assertStatus(422);
+
+        $this->assertSame('notes.txt is not a photo. Use a JPG, PNG or WebP file.', $res->json('message'), 'One plain message, naming the file.');
+
+        $this->postJson(route('admin.media.upload'), [
+            'files' => [UploadedFile::fake()->image('demo-big.jpg')->size(6000)],
+            'path' => 'media/products',
+        ])->assertStatus(422)->assertJsonPath('message', 'demo-big.jpg is larger than 5 MB. Make it smaller and upload it again.');
+    }
+
     public function test_two_uploads_of_one_name_do_not_overwrite_each_other(): void
     {
         foreach (range(1, 2) as $i) {

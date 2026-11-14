@@ -119,31 +119,32 @@ export function registerMediaPicker(Alpine) {
          * A session expiry returns the login page as HTML, res.json() throws,
          * and the four copies with no catch left the spinner up forever.
          */
-        async ask(url, options = {}) {
+        async ask(url, options = {}, topic = null) {
             try {
                 const res = await fetch(url, options);
 
                 if (res.status === 401 || res.status === 419) {
-                    this.toast('Your session expired. Sign in again in another tab, then retry.', 'danger');
+                    this.toast('Your session expired. Sign in again in another tab, then retry.', 'danger', topic);
                     return null;
                 }
 
                 const body = await res.json().catch(() => null);
 
                 if (!res.ok || !body || body.ok === false) {
-                    this.toast(body?.message || 'That did not work. Nothing was changed.', 'danger');
+                    this.toast(body?.message || 'That did not work. Nothing was changed.', 'danger', topic);
                     return null;
                 }
 
                 return body;
             } catch (e) {
-                this.toast('Could not reach the server. Check the connection and retry.', 'danger');
+                this.toast('Could not reach the server. Check the connection and retry.', 'danger', topic);
                 return null;
             }
         },
 
-        toast(message, tone = 'success') {
-            window.Alpine?.store('toasts')?.push(message, tone);
+        /** A topic ties a message to its action, so the action working replaces its error. */
+        toast(message, tone = 'success', topic = null) {
+            window.Alpine?.store('toasts')?.push(message, tone, topic);
         },
 
         async browse(path, page = 1) {
@@ -236,12 +237,12 @@ export function registerMediaPicker(Alpine) {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': this.endpoints.token, Accept: 'application/json' },
                 body,
-            });
+            }, 'media-upload');
 
             this.busy = '';
 
             if (data) {
-                this.toast(data.files.length === 1 ? 'Uploaded ' + data.files[0].name : 'Uploaded ' + data.files.length + ' files');
+                this.toast(data.files.length === 1 ? 'Uploaded ' + data.files[0].name : 'Uploaded ' + data.files.length + ' files', 'success', 'media-upload');
                 data.files.forEach((f) => this.emit('uploaded', { path: f.path, url: f.url }));
                 await this.browse(this.path, 1);
             }
@@ -255,12 +256,12 @@ export function registerMediaPicker(Alpine) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.endpoints.token, Accept: 'application/json' },
                 body: JSON.stringify({ url, path: this.path, root: this.root }),
-            });
+            }, 'media-upload');
 
             this.busy = '';
 
             if (data) {
-                this.toast('Fetched ' + data.files[0].name);
+                this.toast('Fetched ' + data.files[0].name, 'success', 'media-upload');
                 this.emit('uploaded', { path: data.files[0].path, url: data.files[0].url });
                 await this.browse(this.path, 1);
             }
