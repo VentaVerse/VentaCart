@@ -86,4 +86,28 @@ class StockAlertsExtensionTest extends TestCase
 
         $this->assertSame(1, StockNotification::waiting()->count());
     }
+
+    public function test_a_store_that_never_ran_the_seeder_still_emails_its_waitlist(): void
+    {
+        $this->installAndBoot();
+        \Illuminate\Support\Facades\Mail::fake();
+        $this->assertSame(0, \Extensions\StockAlerts\Models\StockNotificationTemplate::count(), 'Installed from the admin: no template yet.');
+
+        $product = \App\Models\Product::create([
+            'store_id' => 1, 'name' => 'Demo Mug', 'slug' => 'demo-mug', 'price' => 100,
+            'track_stock' => true, 'quantity' => 3, 'is_active' => true,
+        ]);
+        $waiting = StockNotification::create([
+            'store_id' => 1, 'product_id' => $product->id,
+            'name' => 'Juan Dela Cruz', 'email' => 'juan@example.com', 'status' => 'waiting',
+        ]);
+
+        // The extension adds its commands at boot; this test turns it on after.
+        $this->app->make(\Illuminate\Contracts\Console\Kernel::class)->registerCommand($this->app->make(\Extensions\StockAlerts\Console\NotifyStockSubscribers::class));
+        $this->artisan('stock:notify')->assertSuccessful();
+
+        \Illuminate\Support\Facades\Mail::assertSent(\Extensions\StockAlerts\Mail\StockNotificationMail::class);
+        $this->assertSame('notified', $waiting->fresh()->status);
+        $this->assertSame(1, \Extensions\StockAlerts\Models\StockNotificationTemplate::count(), 'The default template was made on first use.');
+    }
 }

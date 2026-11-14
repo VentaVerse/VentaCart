@@ -1513,6 +1513,15 @@
  filter: none;
  }
 
+ /* Sold out: the quantity is locked beside the disabled button. */
+ .cart-item-qty.is-disabled {
+ @apply opacity-50;
+ }
+
+ .cart-item-qty.is-disabled :disabled {
+ @apply cursor-not-allowed;
+ }
+
  /* Notify Me Button */
  .product-notify-btn {
  font-family: var(--font-heading);

@@ -48,7 +48,7 @@ class StockAlertsController extends Controller
         $notified = $notifiedQuery->paginate(20, ['*'], 'notified_page')->withQueryString();
 
         // Template
-        $template = StockNotificationTemplate::where('store_id', 1)->first();
+        $template = StockNotificationTemplate::forStore(1);
 
         // Analytics: most requested products
         $p = config('database.connections.mysql.prefix', '');
@@ -109,13 +109,7 @@ class StockAlertsController extends Controller
 
     public function sendTest(Request $request)
     {
-        $template = StockNotificationTemplate::where('store_id', 1)->first();
-        if (!$template) {
-            if ($request->wantsJson()) {
-                return response()->json(['ok' => false, 'message' => 'No email template found. Save one first.']);
-            }
-            return back()->with('error', 'No email template found. Save one first.');
-        }
+        $template = StockNotificationTemplate::forStore(1);
 
         // Create a fake notification for testing
         $notification = new StockNotification([

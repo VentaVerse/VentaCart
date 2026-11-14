@@ -349,8 +349,11 @@ Alpine.data('addToCart', (config = {}) => ({
     get isOutOfStock() {
         if (!config.trackStock) return false;
         if (this.hasVariants) {
-            if (!this.activeVariant) return false;
-            return parseInt(this.activeVariant.quantity) <= 0;
+            if (this.activeVariant) return parseInt(this.activeVariant.quantity) <= 0;
+            // Nothing picked yet: sold out when every variant on sale is, as
+            // a product without variants is at 0. Otherwise one may be picked.
+            const all = Object.values(this.variantMatrix || {});
+            return all.length > 0 && all.every((v) => parseInt(v.quantity) <= 0);
         }
         return parseInt(config.productQuantity) <= 0;
     },
@@ -418,6 +421,7 @@ Alpine.data('addToCart', (config = {}) => ({
     },
 
     async submit() {
+        if (this.isOutOfStock) return;
         if (this.hasVariants && Object.keys(this.variantMatrix || {}).length === 0) {
             this.message = 'This product is currently unavailable.';
             this.messageType = 'error';

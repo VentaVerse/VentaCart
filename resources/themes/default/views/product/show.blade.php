@@ -408,17 +408,23 @@
                     </div>
                 @endif
 
-                {{-- Add to Cart / Notify Me --}}
-                <template x-if="!isOutOfStock">
-                    <div>
-                        <div class="flex items-center gap-3 mb-6">
-                            <div class="cart-item-qty">
-                                <button type="button" class="qty-btn" @click="if(quantity > 1) quantity--">-</button>
-                                <input type="number" x-model.number="quantity" min="1" class="qty-input">
-                                <button type="button" class="qty-btn" @click="quantity++">+</button>
+                {{-- Add to Cart / Notify Me. Sold out: with back in stock alerts
+                     on, the button gives way to the alert request below; without
+                     them it stays where it is, disabled and saying Sold out, so
+                     the shopper sees why they cannot buy. --}}
+                @php $vNotify = \Illuminate\Support\Facades\Route::has('notify-stock.store'); @endphp
+                    <div @if ($vNotify) x-show="!isOutOfStock" @endif>
+                        <div class="flex items-center gap-3" :class="isOutOfStock ? 'mb-3' : 'mb-6'">
+                            <div class="cart-item-qty" :class="{ 'is-disabled': isOutOfStock }">
+                                <button type="button" class="qty-btn" @click="if(quantity > 1) quantity--" :disabled="isOutOfStock" aria-label="Decrease quantity">-</button>
+                                <input type="number" x-model.number="quantity" min="1" class="qty-input" :disabled="isOutOfStock" aria-label="Quantity">
+                                <button type="button" class="qty-btn" @click="quantity++" :disabled="isOutOfStock" aria-label="Increase quantity">+</button>
                             </div>
-                            <button class="product-add-btn" @click="submit()" :disabled="loading">
-                                <template x-if="!loading">
+                            <button type="button" class="product-add-btn" @click="submit()" :disabled="loading || isOutOfStock" :aria-disabled="isOutOfStock ? 'true' : null">
+                                <template x-if="isOutOfStock">
+                                    <span class="flex items-center gap-2">SOLD OUT</span>
+                                </template>
+                                <template x-if="!loading && !isOutOfStock">
                                     <span class="flex items-center gap-2">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
                                         ADD TO CART
@@ -433,7 +439,6 @@
                             </button>
                         </div>
                     </div>
-                </template>
 
                 {{-- Back in stock alerts belong to the stock-alerts extension, and
                      submitNotify() posts to its /notify-stock route. Without that

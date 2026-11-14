@@ -25,11 +25,7 @@ class NotifyStockSubscribers extends Command
             return 0;
         }
 
-        $template = StockNotificationTemplate::where('store_id', 1)->first();
-        if (!$template) {
-            $this->error('No email template found.');
-            return 1;
-        }
+        $template = StockNotificationTemplate::forStore(1);
 
         $notified = 0;
         $failed = 0;
