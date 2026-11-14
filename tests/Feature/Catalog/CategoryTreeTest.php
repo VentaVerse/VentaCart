@@ -163,4 +163,22 @@ class CategoryTreeTest extends TestCase
         CategoryTree::options();
         $this->get(route('admin.categories.index'))->assertOk();
     }
+
+    /** The list reads like products and brands: filters, a Sort column, the tree's order with depth. */
+    public function test_the_list_filters_by_name_and_status_and_keeps_tree_order(): void
+    {
+        [$guitars, $electric, $strings] = $this->guitars();
+        $strings->update(['is_active' => false]);
+
+        $page = $this->get(route('admin.categories.index'))->assertOk()->assertSee('<th class="v-cell-num">Sort</th>', false);
+        $this->assertSame([$guitars->id, $electric->id, $strings->id], array_slice(array_map(fn ($r) => $r['category']->id, $page->viewData('rows')), 0, 3));
+        $this->assertSame([0, 1, 2], array_slice(array_column($page->viewData('rows'), 'depth'), 0, 3));
+
+        $byName = $this->get(route('admin.categories.index', ['search' => 'Strings']))->assertOk();
+        $this->assertSame([$strings->id], array_map(fn ($r) => $r['category']->id, $byName->viewData('rows')));
+        $byName->assertSee('Guitars &gt; Electric Guitars &gt; Strings', false);
+
+        $inactive = $this->get(route('admin.categories.index', ['status' => 'inactive']))->assertOk();
+        $this->assertSame([$strings->id], array_map(fn ($r) => $r['category']->id, $inactive->viewData('rows')));
+    }
 }

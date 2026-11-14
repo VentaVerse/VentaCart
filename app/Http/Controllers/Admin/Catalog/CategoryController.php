@@ -14,28 +14,26 @@ class CategoryController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Category::with(['parent'])->withCount('products');
+        $filtered = $request->filled('search') || $request->filled('status');
 
-        if ($request->filled('store_id')) {
-            $query->where('store_id', $request->input('store_id'));
-        }
+        $categories = Category::withCount('products')
+            ->when($request->filled('search'), fn ($q) => $q->where('name', 'like', '%' . $request->input('search') . '%'))
+            ->when($request->input('status') === 'active', fn ($q) => $q->where('is_active', true))
+            ->when($request->input('status') === 'inactive', fn ($q) => $q->where('is_active', false))
+            ->get()
+            ->keyBy('id');
 
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where('name', 'like', "%{$search}%");
-        }
-
-        if ($request->filled('parent')) {
-            if ($request->input('parent') === 'top') {
-                $query->whereNull('parent_id');
-            } else {
-                $query->where('parent_id', $request->input('parent'));
+        // Tree order: each category after its parent, at its depth. A
+        // filtered list keeps the order and shows each match's full path,
+        // since its parents may not be among the matches.
+        $rows = [];
+        foreach (CategoryTree::options() as $option) {
+            if ($category = $categories->get($option['id'])) {
+                $rows[] = ['category' => $category, 'depth' => $filtered ? 0 : $option['depth'], 'path' => $option['name']];
             }
         }
 
-        $categories = $query->orderBy('sort_order')->orderBy('name')->get();
-
-        return view('admin.catalog.categories.index', compact('categories'));
+        return view('admin.catalog.categories.index', compact('rows', 'filtered'));
     }
 
     public function create(Request $request)
@@ -156,21 +154,6 @@ class CategoryController extends Controller
             Category::whereIn('id', $ids)->get()->each->delete();
         });
         CategoryTree::forget();
-    }
-
-    public function reorder(Request $request)
-    {
-        $request->validate([
-            'order' => 'required|array',
-            'order.*.id' => 'required|exists:categories,id',
-            'order.*.sort_order' => 'required|integer',
-        ]);
-
-        foreach ($request->input('order') as $item) {
-            Category::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
-        }
-
-        return response()->json(['success' => true]);
     }
 
     protected function validateCategory(Request $request, ?int $categoryId = null): array

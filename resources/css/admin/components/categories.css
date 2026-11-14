@@ -1,14 +1,7 @@
-/* --- Categories: the tree, with the same head and bulk bar as the lists ---- */
+/* --- Categories: the list in tree order, each name indented by its level ---- */
 
-/* The head reads like a list table's: the select-all box over the row boxes. */
-.v-cathead {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 26px;
-    font-size: 12px;
-    font-weight: 560;
-    color: var(--v-ink-3);
-    border-bottom: 1px solid var(--v-line-2);
+.v-catname { padding-left: calc(var(--depth, 0) * 22px); }
+
+@media (max-width: 640px) {
+    .v-catname { padding-left: calc(var(--depth, 0) * 12px); }
 }
-.v-cattree { padding: 14px 12px; }

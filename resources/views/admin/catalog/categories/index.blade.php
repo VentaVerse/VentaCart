@@ -1,10 +1,7 @@
 <x-admin.shell title="Categories" active="catalog">
     <div class="v-head">
         <div class="v-head__body">
-            <h1 class="v-head__title">
-                Categories
-                <x-admin.help text="Drag rows to reorder. Subcategories are sorted within their parent." />
-            </h1>
+            <h1 class="v-head__title">Categories</h1>
         </div>
         <div class="v-head__actions">
             <a href="{{ route('admin.categories.create') }}" class="v-btn v-btn--primary">Add category</a>
@@ -12,20 +9,28 @@
     </div>
 
     @php
-        // Any depth: each category is drawn under its parent. One whose
-        // parent is missing is drawn at the top rather than lost.
-        $known = $categories->pluck('id')->flip();
-        $byParent = $categories->sortBy([['sort_order', 'asc'], ['name', 'asc']])
-            ->groupBy(fn ($c) => $c->parent_id && $known->has($c->parent_id) ? (int) $c->parent_id : 0);
-        $hasChildren = $categories->pluck('parent_id')->filter()->flip();
-        $vAllIds = [];
-        foreach ($categories as $vCat) {
-            $vAllIds[] = (int) $vCat->id;
+        $vIds = [];
+        foreach ($rows as $vRow) {
+            $vIds[] = (int) $vRow['category']->id;
         }
     @endphp
 
     <div class="v-settle">
-        <x-admin.panel flush x-data="{ selected: [], ids: {{ Js::from($vAllIds) }} }">
+        <form method="GET" action="{{ route('admin.categories.index') }}" class="v-filterbar">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Category name…"
+                   aria-label="Search categories" class="v-control v-filterbar__grow">
+            <select name="status" aria-label="Filter by status" class="v-control v-w-name">
+                <option value="">All statuses</option>
+                <option value="active" @selected(request('status') === 'active')>Active</option>
+                <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
+            </select>
+            <button type="submit" class="v-btn v-btn--secondary">Filter</button>
+            @if ($filtered)
+                <a href="{{ route('admin.categories.index') }}" class="v-link">Clear</a>
+            @endif
+        </form>
+
+        <x-admin.panel flush x-data="{ selected: [], ids: {{ Js::from($vIds) }} }">
             {{-- Ticked rows, and what to do with all of them at once. --}}
             <div class="v-bulkbar" x-show="selected.length > 0" x-cloak role="region" aria-label="Actions for the selected categories">
                 <span><strong x-text="selected.length"></strong> selected</span>
@@ -43,27 +48,78 @@
                 </span>
             </div>
 
-            @if (($byParent[0] ?? collect())->isNotEmpty())
-                <div class="v-cathead">
-                    <label class="v-check">
-                        <input type="checkbox" aria-label="Select every category"
-                               :checked="ids.length > 0 && selected.length === ids.length"
-                               :indeterminate="selected.length > 0 && selected.length < ids.length"
-                               @change="selected = $event.target.checked ? [...ids] : []">
-                    </label>
-                    <span>Category</span>
-                </div>
-            @endif
-
-            <div class="v-cattree" x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
-                @if (($byParent[0] ?? collect())->isNotEmpty())
-                    @include('admin.catalog.categories.partials.branch', ['nodes' => $byParent[0]])
-                @else
-                    <div class="v-empty">
-                        <p class="v-empty__title">No categories found</p>
-                        <a href="{{ route('admin.categories.create') }}" class="v-btn v-btn--primary v-btn--sm">Create your first category</a>
-                    </div>
-                @endif
+            <div class="v-tablewrap">
+                <table class="v-table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="v-cell-open">
+                                <label class="v-check">
+                                    <input type="checkbox" aria-label="Select every category on this page"
+                                           :checked="ids.length > 0 && selected.length === ids.length"
+                                           :indeterminate="selected.length > 0 && selected.length < ids.length"
+                                           @change="selected = $event.target.checked ? [...ids] : []">
+                                </label>
+                            </th>
+                            <th>Category</th>
+                            <th class="v-cell-num">Products</th>
+                            <th class="v-cell-num">Sort</th>
+                            <th>Status</th>
+                            <th class="v-cell-act"><span class="v-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($rows as $vRow)
+                            @php
+                                $category = $vRow['category'];
+                            @endphp
+                            <tr>
+                                <td class="v-cell-open">
+                                    <label class="v-check">
+                                        <input type="checkbox" value="{{ $category->id }}" x-model.number="selected"
+                                               aria-label="Select {{ Str::limit($category->name, 60) }}">
+                                    </label>
+                                </td>
+                                <td>
+                                    {{-- Indented by its level in the tree; a filtered list shows the full path instead. --}}
+                                    <span class="v-actrow v-catname" style="--depth: {{ $vRow['depth'] }}">
+                                        @if ($category->image)
+                                            <img class="v-thumb" src="{{ storage_url($category->image) }}" alt="">
+                                        @endif
+                                        <span>
+                                            <a href="{{ route('admin.categories.edit', $category) }}" class="v-rowlink">{{ $category->name }}</a>
+                                            <span class="v-cell-quiet v-block v-mono">{{ $filtered && $vRow['path'] !== $category->name ? $vRow['path'] : $category->slug }}</span>
+                                        </span>
+                                    </span>
+                                </td>
+                                <td class="v-cell-num v-mono">{{ $category->products_count }}</td>
+                                <td class="v-cell-num v-mono">{{ $category->sort_order }}</td>
+                                <td>
+                                    <span class="v-badge v-badge--{{ $category->is_active ? 'good' : 'quiet' }}">
+                                        {{ $category->is_active ? 'Active' : 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td class="v-cell-act">
+                                    <a href="{{ route('admin.categories.edit', $category) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
+                                    <button type="button" class="v-btn v-btn--danger v-btn--sm"
+                                            @click="$dispatch('v-confirm', 'delete-category-{{ $category->id }}')">Delete</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6">
+                                    <div class="v-empty">
+                                        <p class="v-empty__title">No categories found</p>
+                                        @if ($filtered)
+                                            <p class="v-empty__line">Try adjusting the filters.</p>
+                                        @else
+                                            <a href="{{ route('admin.categories.create') }}" class="v-btn v-btn--primary v-btn--sm">Create your first category</a>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
 
             <x-admin.confirm name="bulk-delete-categories" title="Delete the selected categories?"
@@ -73,69 +129,10 @@
             </x-admin.confirm>
         </x-admin.panel>
 
-        @foreach ($categories as $category)
-            <x-admin.confirm name="delete-category-{{ $category->id }}" title="Delete {{ $category->name }}?"
-                :message="$hasChildren->has($category->id) ? 'Its subcategories move up a level. This cannot be undone.' : 'This cannot be undone.'"
-                confirm="Delete" :action="route('admin.categories.destroy', $category)" method="DELETE" />
+        @foreach ($rows as $vRow)
+            <x-admin.confirm name="delete-category-{{ $vRow['category']->id }}" title="Delete {{ $vRow['category']->name }}?"
+                message="Its subcategories move up a level. This cannot be undone."
+                confirm="Delete" :action="route('admin.categories.destroy', $vRow['category'])" method="DELETE" />
         @endforeach
     </div>
-
-    @push('scripts')
-    <script>
-        function initSortable(container, reorderUrl) {
-            let dragEl = null;
-
-            container.addEventListener('dragstart', function(e) {
-                const item = e.target.closest('[data-id]');
-                if (!item || item.parentElement !== container) return;
-                dragEl = item;
-                item.classList.add('is-dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', item.dataset.id);
-            });
-
-            container.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                if (!dragEl) return;
-                const target = e.target.closest('[data-id]');
-                if (!target || target === dragEl || target.parentElement !== container) return;
-                const rect = target.getBoundingClientRect();
-                const midY = rect.top + rect.height / 2;
-                if (e.clientY < midY) {
-                    target.before(dragEl);
-                } else {
-                    target.after(dragEl);
-                }
-            });
-
-            container.addEventListener('drop', function(e) {
-                e.preventDefault();
-                if (!dragEl) return;
-                const items = [...container.querySelectorAll(':scope > [data-id]')];
-                const order = items.map(function(el, idx) {
-                    return { id: parseInt(el.dataset.id), sort_order: idx };
-                });
-
-                fetch(reorderUrl, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ order: order })
-                }).then(function (r) {
-                    Alpine.store('toasts').push(r.ok ? 'Order saved.' : 'Reorder failed.', r.ok ? 'success' : 'danger');
-                }).catch(function () {
-                    Alpine.store('toasts').push('Reorder failed.', 'danger');
-                });
-            });
-
-            container.addEventListener('dragend', function() {
-                if (dragEl) dragEl.classList.remove('is-dragging');
-                dragEl = null;
-            });
-        }
-    </script>
-    @endpush
 </x-admin.shell>

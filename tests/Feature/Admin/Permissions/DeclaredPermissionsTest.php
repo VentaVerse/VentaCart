@@ -164,7 +164,8 @@ class DeclaredPermissionsTest extends TestCase
         $this->assertSame('products.create', $permissions->requirementFor('admin.products.store', 'POST'));
         $this->assertSame('products.edit', $permissions->requirementFor('admin.products.update', 'PUT'));
         $this->assertSame('products.delete', $permissions->requirementFor('admin.products.destroy', 'DELETE'));
-        $this->assertSame('categories.edit', $permissions->requirementFor('admin.categories.reorder', 'POST'));
+        $this->assertSame('categories.edit', $permissions->requirementFor('admin.categories.bulk-status', 'POST'));
+        $this->assertSame('categories.delete', $permissions->requirementFor('admin.categories.bulk-delete', 'POST'));
         // Settings has no create or delete: any write is an edit.
         $this->assertSame('settings.edit', $permissions->requirementFor('admin.settings.identity.destroy', 'DELETE'));
         $this->assertSame(AdminPermissions::SUPER_ADMIN, $permissions->requirementFor('admin.users.update', 'PUT'));
