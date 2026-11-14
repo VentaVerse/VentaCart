@@ -282,7 +282,7 @@ Core's and the extensions' widgets are shared: every theme can place them. A the
 |---|---|
 | `catalog.products` | `widgets/catalog/products` |
 | `catalog.brands` | `widgets/catalog/brands` |
-| `catalog.category_tabs` | `widgets/catalog/category_tabs` |
+| `catalog.categories` | `widgets/catalog/categories` |
 | `catalog.recently_viewed` | `widgets/catalog/recently_viewed` |
 | `catalog.product_tabs` | `widgets/catalog/product_tabs` |
 | `catalog.also_bought` | `widgets/catalog/also_bought` (product pages only) |

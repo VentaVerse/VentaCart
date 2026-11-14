@@ -134,17 +134,6 @@ Alpine.data('brandCarousel', (config = {}) => ({
 }));
 
 /* ============================================
-   Category Tabs
-   ============================================ */
-Alpine.data('categoryTabs', () => ({
-    activeTab: 0,
-
-    setTab(index) {
-        this.activeTab = index;
-    }
-}));
-
-/* ============================================
    Currency Selector
    ============================================ */
 Alpine.data('currencySelector', (config = {}) => ({

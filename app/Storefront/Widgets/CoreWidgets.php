@@ -109,9 +109,9 @@ class CoreWidgets
                 ->orderBy('sort_order')->orderBy('name')->get()],
         ]);
 
-        // Departments as pictures you can click, which every shop front has
-        // and this one had no way to draw: category_tabs below renders a
-        // placeholder, and a gallery is images without links.
+        // Departments as tiles you can click. A category without a picture
+        // still shows, drawn as its first letter: leaving it out made the
+        // block come up empty with no reason given.
         Widgets::register('catalog.categories', [
             'title' => 'Category grid',
             'shape' => 'grid',
@@ -126,10 +126,7 @@ class CoreWidgets
             ],
             'resolve' => function (array $config) {
                 $query = Category::query()
-                    ->where('is_active', true)
-                    // A department with no picture is a grey box in a grid of
-                    // photographs, so it waits until it has one.
-                    ->whereNotNull('image')->where('image', '!=', '');
+                    ->where('is_active', true);
 
                 if (($config['show'] ?? 'top') !== 'all') {
                     $query->whereNull('parent_id');
@@ -143,15 +140,6 @@ class CoreWidgets
             },
         ]);
 
-        Widgets::register('catalog.category_tabs', [
-            'title' => 'Category tabs',
-            'shape' => 'tabs',
-            'module' => 'catalog',
-            'view' => 'widgets.catalog.category_tabs',
-            // Full width only. A carousel with side arrows in a 1/8 rail is
-            // not a smaller carousel, it is a broken one.
-            'regions' => ['header_top', 'content_top', 'content_bottom', 'footer_top'],
-        ]);
 
         Widgets::register('catalog.recently_viewed', [
             'title' => 'Recently viewed',

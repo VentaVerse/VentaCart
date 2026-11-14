@@ -53,12 +53,33 @@ class WidgetCatalogueTest extends TestCase
 
     public function test_every_core_widget_has_a_view_the_theme_renders(): void
     {
-        foreach (['catalog.products', 'catalog.product_tabs', 'catalog.also_bought', 'catalog.brands', 'catalog.category_tabs', 'catalog.recently_viewed',
+        foreach (['catalog.products', 'catalog.product_tabs', 'catalog.also_bought', 'catalog.brands', 'catalog.categories', 'catalog.recently_viewed',
             'content.text', 'content.cta', 'content.icon_list', 'content.separator', 'content.gallery', 'content.accordion',
             'social.facebook', 'social.twitter', 'blog.posts'] as $key) {
             $this->assertTrue(Widgets::has($key), "$key is not registered");
             $this->assertNotNull(Widgets::view($key), "$key has no view");
         }
+    }
+
+    /** A category without a picture still shows, as its first letter, instead of the block coming up empty. */
+    public function test_the_category_grid_shows_categories_with_and_without_a_picture(): void
+    {
+        \App\Models\Category::create(['store_id' => 1, 'name' => 'Pictured', 'slug' => 'pictured', 'image' => 'catalog/pictured.jpg', 'is_active' => true, 'sort_order' => 0]);
+        \App\Models\Category::create(['store_id' => 1, 'name' => 'Woodwinds', 'slug' => 'woodwinds', 'is_active' => true, 'sort_order' => 1]);
+        \App\Models\Category::create(['store_id' => 1, 'name' => 'Switched Off', 'slug' => 'switched-off', 'is_active' => false, 'sort_order' => 2]);
+
+        $this->place('catalog.categories');
+
+        $html = $this->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('catalog/pictured.jpg', $html);
+        $this->assertStringContainsString('Woodwinds', $html);
+        $this->assertMatchesRegularExpression('/wcats__shot--blank">\s*<span class="wcats__mono" aria-hidden="true">W<\/span>/', $html);
+        $this->assertStringNotContainsString('Switched Off', $html);
+    }
+
+    public function test_category_tabs_is_no_longer_offered(): void
+    {
+        $this->assertFalse(Widgets::has('catalog.category_tabs'));
     }
 
     public function test_the_product_grid_can_pick_most_viewed_and_random_and_lay_out_as_a_slider(): void

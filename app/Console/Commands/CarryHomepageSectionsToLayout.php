@@ -29,7 +29,8 @@ class CarryHomepageSectionsToLayout extends Command
         'banner' => 'banners.group',
         'products' => 'catalog.products',
         'brands' => 'catalog.brands',
-        'category_tabs' => 'catalog.category_tabs',
+        // The old section never drew anything; the category grid is what it promised.
+        'category_tabs' => 'catalog.categories',
         'recently_viewed' => 'catalog.recently_viewed',
         'text_block' => 'content.text',
         'blog_posts' => 'blog.posts',

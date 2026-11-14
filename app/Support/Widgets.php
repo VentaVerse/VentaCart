@@ -63,7 +63,7 @@ class Widgets
             // so a theme that declares the region need not draw it.
             'optional' => false,
             // How this widget lays out, so the picker can DRAW it instead of
-            // naming it. A merchant choosing between "Category tabs" and
+            // naming it. A merchant choosing between "Product tabs" and
             // "Brand strip" is choosing between two shapes, and the words are
             // the worst available description of a shape. Not an image: a
             // wireframe the editor draws, so a third-party widget gets one by

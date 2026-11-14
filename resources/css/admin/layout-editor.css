@@ -530,7 +530,7 @@
 .v-pickcard:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
 .v-pickcard__nm { font-size: 12.5px; font-weight: 600; }
 
-/* The widget, drawn. A merchant choosing between Category tabs and Brand
+/* The widget, drawn. A merchant choosing between Product tabs and Brand
    strip is choosing between two shapes, and the name is the worst
    available description of a shape. Each widget declares one word and
    the editor draws the wireframe, so nothing ships an asset. */
