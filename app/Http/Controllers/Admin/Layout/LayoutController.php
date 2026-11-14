@@ -12,12 +12,8 @@ use App\Support\RowStyle;
 use App\Services\ThemeService;
 use App\Support\Regions;
 use App\Support\StorefrontPageType;
-use App\Support\AdminPermissions;
-use App\Support\WidgetConfig;
 use App\Support\Widgets;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 
 /**
  * The layout editor: what renders where, on which pages.
@@ -92,7 +88,6 @@ class LayoutController extends Controller
             'templatesUrl' => $withTheme(route('admin.layout.templates.store')),
             'exportUrl' => $withTheme(route('admin.layout.templates.export')),
             'importUrl' => $withTheme(route('admin.layout.templates.import')),
-            'copyUrl' => $withTheme(route('admin.layout.copy')),
             'widgets' => $this->catalogue($regions),
             // Every widget's settings form, resolved. Without this a merchant
             // can place a banner and never say WHICH banner.
@@ -376,77 +371,6 @@ class LayoutController extends Controller
         }
 
         return response()->json(['region' => $data['region'] ?? null, 'rows' => $units]);
-    }
-
-    /**
-     * The rows of one region, written onto another page type as new rows
-     * after that page's own. A write on its own control: the merchant is
-     * copying somewhere they are not looking, and Save only covers here.
-     */
-    public function copyRegion(Request $request)
-    {
-        $data = $request->validate([
-            'region' => ['required', 'string', 'max:64'],
-            'target_page' => ['required', 'string', 'max:32'],
-            'target_region' => ['nullable', 'string', 'max:64'],
-            'rows' => ['required', 'array'],
-        ]);
-
-        $target = $data['target_page'];
-        if ($target !== LayoutPlacement::EVERYWHERE && ! StorefrontPageType::exists($target)) {
-            return response()->json(['message' => 'Unknown page type.'], 422);
-        }
-        $targetRegion = ($data['target_region'] ?? null) ?: $data['region'];
-        if (! Regions::exists($targetRegion)) {
-            return response()->json(['message' => 'This theme has no such position.'], 422);
-        }
-
-        $rows = LayoutTemplate::cleanRows($data['rows']);
-        if ($rows === []) {
-            return response()->json(['message' => 'Nothing here could be copied.'], 422);
-        }
-
-        // A copy writes new placements without passing through Save, so the
-        // rule Save applies to code fields (the HTML block) is applied here:
-        // only someone who may write storefront code may place one.
-        if (Gate::denies(AdminPermissions::STOREFRONT_CODE)) {
-            foreach ($rows as $row) {
-                foreach ($row['placements'] as $p) {
-                    foreach (WidgetConfig::codeFields($p['widget']) as $field) {
-                        if (trim((string) ($p['config'][$field] ?? '')) !== '') {
-                            return response()->json(['message' => 'Only a super admin can copy an HTML block.'], 403);
-                        }
-                    }
-                }
-            }
-        }
-
-        $theme = LayoutPlacement::scopeTheme();
-        $count = 0;
-
-        DB::transaction(function () use ($rows, $theme, $target, $targetRegion, &$count) {
-            $after = (int) LayoutRow::where('theme', $theme)->where('page_type', $target)->max('sort_order');
-            $order = (int) LayoutPlacement::where('theme', $theme)->where('page_type', $target)->max('sort_order');
-
-            foreach ($rows as $i => $row) {
-                $layoutRow = LayoutRow::create([
-                    'theme' => $theme, 'page_type' => $target, 'region' => $targetRegion,
-                    'columns' => $row['columns'], 'style' => $row['style'], 'responsive' => $row['responsive'], 'sort_order' => $after + 1 + $i, 'is_enabled' => $row['enabled'],
-                ]);
-                foreach ($row['placements'] as $p) {
-                    LayoutPlacement::create([
-                        'theme' => $theme, 'page_type' => $target, 'region' => $targetRegion, 'row_id' => $layoutRow->id,
-                        'column_index' => $p['column'], 'widget' => $p['widget'], 'title' => $p['title'], 'config' => $p['config'], 'style' => $p['style'],
-                        'sort_order' => ++$order, 'is_enabled' => $p['enabled'],
-                    ]);
-                    $count++;
-                }
-            }
-        });
-
-        $where = $target === LayoutPlacement::EVERYWHERE ? 'all pages' : StorefrontPageType::label($target);
-
-        return response()->json(['ok' => true, 'message' => count($rows) . ' ' . (count($rows) === 1 ? 'row' : 'rows') . ' with ' . $count . ' ' . ($count === 1 ? 'widget' : 'widgets') . ' copied to ' . $where . '.']);
     }
 
     /** The widget settings forms, refetched when the merchant comes back. */

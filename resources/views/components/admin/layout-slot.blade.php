@@ -14,7 +14,7 @@
     <div class="v-slot__lbl">
         <span>{{ $label }}</span>
         <span class="mono">{{ $region }}</span>
-        {{-- The position's own menu: keep, load, copy, carry. Every act here
+        {{-- The position's own menu: keep, load, carry. Every act here
              either changes editor state (and arms Save) or is a record on its
              own control; none writes this page behind the Save. --}}
         <button type="button" class="v-slot__menu" @click="tools = (tools === '{{ $region }}' ? null : '{{ $region }}')"
@@ -39,17 +39,6 @@
             <button type="button" class="v-btn v-btn--sm" @click="loadTemplate('{{ $region }}', $refs.tpl_{{ $region }}.value, 'append')">Add</button>
             <button type="button" class="v-btn v-btn--sm" @click="loadTemplate('{{ $region }}', $refs.tpl_{{ $region }}.value, 'replace')">Replace</button>
             <button type="button" class="v-lay__new" @click="deleteTemplate($refs.tpl_{{ $region }}.value)">Delete</button>
-        </div>
-        <div class="v-slot__toolrow">
-            <select x-ref="copy_{{ $region }}" aria-label="Copy to page">
-                <option value="">Copy to&hellip;</option>
-                <option value="*">All pages</option>
-                @foreach (\App\Support\StorefrontPageType::TYPES as $vKey => $vLabel)
-                    <option value="{{ $vKey }}">{{ $vLabel }}</option>
-                @endforeach
-            </select>
-            <button type="button" class="v-btn v-btn--sm" @click="copyRegion('{{ $region }}', $refs.copy_{{ $region }}.value)"
-                    :disabled="rowsIn('{{ $region }}').length === 0">Copy</button>
         </div>
         <div class="v-slot__toolrow">
             <button type="button" class="v-lay__new" @click="exportRegion('{{ $region }}')" :disabled="rowsIn('{{ $region }}').length === 0">Export</button>

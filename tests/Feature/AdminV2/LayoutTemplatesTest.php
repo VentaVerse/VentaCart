@@ -11,10 +11,9 @@ use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 /**
- * Area templates: a position's rows kept under a
- * name, loaded back as editor rows, copied to another page, carried out as
- * a file and brought back in. Only the copy writes a page, on its own
- * control; everything else is editor state until Save.
+ * Area templates: a position's rows kept under a name, loaded back as
+ * editor rows, carried out as a file and brought back in. None of it writes
+ * a page: everything is editor state until Save.
  */
 class LayoutTemplatesTest extends TestCase
 {
@@ -82,30 +81,13 @@ class LayoutTemplatesTest extends TestCase
         $this->assertDatabaseMissing('layout_templates', ['id' => $mine->id]);
     }
 
-    public function test_copying_a_position_writes_new_rows_after_the_target_pages_own(): void
+    public function test_there_is_no_copy_to_another_page_endpoint(): void
     {
-        $existing = LayoutRow::create(['theme' => 'default', 'page_type' => 'cart', 'region' => 'content_top', 'columns' => [8], 'sort_order' => 3]);
-        LayoutPlacement::create(['theme' => 'default', 'page_type' => 'cart', 'region' => 'content_top', 'row_id' => $existing->id, 'widget' => 'catalog.brands', 'title' => 'Already there', 'sort_order' => 9]);
-
-        $this->postJson(route('admin.layout.copy'), ['region' => 'content_top', 'target_page' => 'cart', 'rows' => $this->rows])
-            ->assertOk()->assertJsonPath('message', '1 row with 2 widgets copied to Cart.');
-
-        $rows = LayoutRow::where('page_type', 'cart')->orderBy('sort_order')->get();
-        $this->assertCount(2, $rows);
-        $this->assertSame([4, 4], $rows[1]->columns);
-        $this->assertGreaterThan(3, $rows[1]->sort_order);
-        $this->assertDatabaseHas('layout_placements', ['page_type' => 'cart', 'title' => 'Left brands', 'row_id' => $rows[1]->id, 'column_index' => 0]);
-        $this->assertDatabaseHas('layout_placements', ['page_type' => 'cart', 'title' => 'Clamped', 'column_index' => 1, 'is_enabled' => false]);
-        $this->assertSame(0, LayoutRow::where('page_type', 'home')->count(), 'The page being edited is not written by a copy.');
-
-        $html = $this->get('/cart')->assertOk()->getContent();
-        $this->assertLessThan(strpos($html, 'Left brands'), strpos($html, 'Already there'));
-    }
-
-    public function test_copying_refuses_an_unknown_page_or_position(): void
-    {
-        $this->postJson(route('admin.layout.copy'), ['region' => 'content_top', 'target_page' => 'nowhere', 'rows' => $this->rows])->assertStatus(422);
-        $this->postJson(route('admin.layout.copy'), ['region' => 'content_top', 'target_page' => 'cart', 'target_region' => 'faceplate', 'rows' => $this->rows])->assertStatus(422);
+        // Templates carry a position to another page: save it as a template
+        // there and insert it on the other page, where Save decides.
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.layout.copy'));
+        $this->postJson(route('admin.layout') . '/copy', ['region' => 'content_top', 'target_page' => 'cart', 'rows' => $this->rows])
+            ->assertStatus(405);
         $this->assertSame(0, LayoutRow::count());
     }
 
@@ -134,6 +116,5 @@ class LayoutTemplatesTest extends TestCase
     {
         auth()->logout();
         $this->postJson(route('admin.layout.templates.store'), ['name' => 'x', 'rows' => $this->rows])->assertUnauthorized();
-        $this->postJson(route('admin.layout.copy'), ['region' => 'content_top', 'target_page' => 'cart', 'rows' => $this->rows])->assertUnauthorized();
     }
 }

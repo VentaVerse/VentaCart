@@ -657,7 +657,6 @@
                 templatesUrl: @js($templatesUrl),
                 exportUrl: @js($exportUrl),
                 importUrl: @js($importUrl),
-                copyUrl: @js($copyUrl),
                 csrf: @js(csrf_token()),
                 widgets: @js($widgets),
                 schemas: @js($schemas),
@@ -733,7 +732,6 @@
                     templatesUrl: seed.templatesUrl,
                     exportUrl: seed.exportUrl,
                     importUrl: seed.importUrl,
-                    copyUrl: seed.copyUrl,
                     csrf: seed.csrf,
                     // The plus that opened the picker, so Escape can hand
                     // focus back to it rather than dropping it on the body.
@@ -841,19 +839,6 @@
                             this.say('Template ' + t.name + ' deleted.');
                         } catch (e) {
                             this.say('The template could not be deleted.');
-                        }
-                    },
-
-                    async copyRegion(region, target) {
-                        if (!target) return;
-                        try {
-                            const res = await fetch(this.copyUrl, { method: 'POST', headers: this.headers(),
-                                body: JSON.stringify({ region, target_page: target, rows: this.regionRows(region) }) });
-                            const body = await res.json();
-                            if (!res.ok) throw new Error(body.message || 'refused');
-                            this.say(body.message);
-                        } catch (e) {
-                            this.say(e.message || 'Nothing was copied.');
                         }
                     },
 

@@ -5,20 +5,16 @@ namespace Tests\Feature\AdminV2;
 use App\Models\Brand;
 use App\Models\LayoutPlacement;
 use App\Models\LayoutTemplate;
-use App\Models\Permission;
-use App\Models\Role;
-use App\Models\User;
 use App\Services\LayoutSaver;
 use App\Support\WidgetConfig;
 use App\Support\Widgets;
-use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
  * A placement's settings keep only what its widget declares, in the shape
  * each field type allows, whether they arrive from the layout editor, a
- * template, a copy or a theme's own files. Settings print into attributes
+ * template or a theme's own files. Settings print into attributes
  * and Alpine expressions, so a number that is really script must never
  * reach a view.
  */
@@ -39,16 +35,6 @@ class WidgetConfigCleaningTest extends TestCase
         return [['id' => null, 'region' => 'content_top', 'columns' => [8], 'enabled' => true, 'placements' => [
             ['id' => null, 'widget' => $widget, 'column' => 0, 'title' => 'Our brands', 'enabled' => true, 'config' => $config],
         ]]];
-    }
-
-    private function layoutEditor(): User
-    {
-        $this->seed(RolePermissionSeeder::class);
-        $user = User::factory()->role('designer')->create();
-        $ids = collect(['layout.view', 'layout.edit'])->map(fn ($slug) => Permission::firstOrCreate(['slug' => $slug], ['name' => $slug, 'group' => 'layout'])->id);
-        Role::where('slug', 'designer')->firstOrFail()->permissions()->syncWithoutDetaching($ids->all());
-
-        return $user->fresh();
     }
 
     public function test_a_script_in_a_number_setting_never_reaches_the_page(): void
@@ -151,21 +137,5 @@ class WidgetConfigCleaningTest extends TestCase
         $this->assertSame('<b>As written</b>', $clean['html']);
 
         $this->assertSame([], WidgetConfig::clean('nothing.registers.this', ['x' => 1]));
-    }
-
-    public function test_copying_an_html_block_needs_storefront_code(): void
-    {
-        $rows = $this->rows('content.html', ['html' => '<script>alert(1)</script>']);
-
-        $this->actingAs($this->layoutEditor());
-        $this->postJson(route('admin.layout.copy'), ['region' => 'content_top', 'target_page' => 'cart', 'rows' => $rows])->assertForbidden();
-        $this->assertSame(0, LayoutPlacement::where('widget', 'content.html')->count());
-
-        // Other blocks copy as before.
-        $this->postJson(route('admin.layout.copy'), ['region' => 'content_top', 'target_page' => 'cart', 'rows' => $this->rows('content.cta', ['text' => 'Hi'])])->assertOk();
-
-        $this->actingAs(User::factory()->create());
-        $this->postJson(route('admin.layout.copy'), ['region' => 'content_top', 'target_page' => 'cart', 'rows' => $rows])->assertOk();
-        $this->assertSame(1, LayoutPlacement::where('widget', 'content.html')->count());
     }
 }

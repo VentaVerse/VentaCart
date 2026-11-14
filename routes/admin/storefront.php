@@ -23,7 +23,6 @@ Route::prefix('storefront/layout')->middleware(\App\Http\Middleware\EditTheme::c
     Route::delete('/templates/{template}', [LayoutController::class, 'destroyTemplate'])->name('layout.templates.destroy');
     Route::post('/templates/export', [LayoutController::class, 'exportTemplate'])->name('layout.templates.export');
     Route::post('/templates/import', [LayoutController::class, 'importTemplate'])->name('layout.templates.import');
-    Route::post('/copy', [LayoutController::class, 'copyRegion'])->name('layout.copy');
 });
 
 // Header & footer: the announcement bar, the top bar links, the main menu
