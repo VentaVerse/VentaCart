@@ -181,4 +181,80 @@ class CategoryTreeTest extends TestCase
         $inactive = $this->get(route('admin.categories.index', ['status' => 'inactive']))->assertOk();
         $this->assertSame([$strings->id], array_map(fn ($r) => $r['category']->id, $inactive->viewData('rows')));
     }
+
+    /** @param list<array{Category, int}> $rows */
+    private function arrange(array $rows)
+    {
+        return $this->post(route('admin.categories.arrange'), [
+            'order' => json_encode(array_map(fn ($r) => [$r[0]->id, $r[1]], $rows)),
+        ]);
+    }
+
+    /** Dragged anywhere: out of its parent, into another, up or down among siblings, subcategories along. */
+    public function test_arranging_moves_a_branch_anywhere_in_the_tree(): void
+    {
+        [$guitars, $electric, $strings, $bronze] = $this->guitars();
+        $bass = $this->make('Bass Guitars');
+
+        // Strings (with Phosphor Bronze) moves out to the top level, first;
+        // Electric Guitars goes under Bass Guitars.
+        $this->arrange([[$strings, 0], [$bronze, 1], [$guitars, 0], [$bass, 0], [$electric, 1]])
+            ->assertRedirect(route('admin.categories.index'))->assertSessionHas('success');
+
+        $this->assertNull($strings->fresh()->parent_id);
+        $this->assertSame(0, (int) $strings->fresh()->sort_order);
+        $this->assertSame($strings->id, $bronze->fresh()->parent_id);
+        $this->assertSame([1, 2], [(int) $guitars->fresh()->sort_order, (int) $bass->fresh()->sort_order]);
+        $this->assertSame($bass->id, $electric->fresh()->parent_id);
+
+        $this->assertContains($bronze->id, $strings->fresh()->selfAndDescendantIds());
+        $this->assertNotContains($bronze->id, $guitars->fresh()->selfAndDescendantIds());
+
+        // The list draws it in the new order.
+        $rows = $this->get(route('admin.categories.index'))->viewData('rows');
+        $this->assertSame(
+            [[$strings->id, 0], [$bronze->id, 1], [$guitars->id, 0], [$bass->id, 0], [$electric->id, 1]],
+            array_map(fn ($r) => [$r['category']->id, $r['depth']], $rows),
+        );
+    }
+
+    public function test_arranging_refuses_a_partial_skipped_or_doubled_list(): void
+    {
+        [$guitars, $electric, $strings, $bronze] = $this->guitars();
+        $before = Category::orderBy('id')->get(['id', 'parent_id', 'sort_order'])->toArray();
+
+        $this->arrange([[$guitars, 0], [$electric, 1], [$strings, 2]])->assertSessionHas('error');
+        $this->arrange([[$guitars, 0], [$electric, 2], [$strings, 2], [$bronze, 3]])->assertSessionHas('error');
+        $this->arrange([[$guitars, 0], [$electric, 1], [$electric, 1], [$bronze, 2]])->assertSessionHas('error');
+        $this->arrange([[$electric, 1], [$guitars, 0], [$strings, 1], [$bronze, 2]])->assertSessionHas('error');
+        $this->post(route('admin.categories.arrange'), ['order' => 'not json'])->assertSessionHas('error');
+        $this->post(route('admin.categories.arrange'), ['order' => '[["1",0]]'])->assertSessionHas('error');
+
+        $this->assertSame($before, Category::orderBy('id')->get(['id', 'parent_id', 'sort_order'])->toArray());
+    }
+
+    public function test_arranging_needs_the_right_to_edit(): void
+    {
+        [$guitars, $electric] = $this->guitars();
+        $role = Role::create(['name' => 'Catalog viewer', 'slug' => 'catalog-viewer']);
+        $role->permissions()->sync(Permission::whereIn('slug', ['categories.view'])->pluck('id'));
+        $this->actingAs(User::factory()->role('catalog-viewer')->create());
+
+        $this->post(route('admin.categories.arrange'), ['order' => json_encode([[$electric->id, 0], [$guitars->id, 0]])])
+            ->assertForbidden();
+        $this->assertSame($guitars->id, $electric->fresh()->parent_id);
+    }
+
+    public function test_the_handles_show_only_on_the_whole_list(): void
+    {
+        $this->guitars();
+
+        $this->get(route('admin.categories.index'))->assertOk()
+            ->assertSee('data-handle', false)
+            ->assertSee(route('admin.categories.arrange'), false);
+
+        $this->get(route('admin.categories.index', ['search' => 'Strings']))->assertOk()
+            ->assertDontSee('data-handle', false)
+            ->assertDontSee(route('admin.categories.arrange'), false);
+    }
 }

@@ -10,9 +10,13 @@
 
     @php
         $vIds = [];
+        $vOrder = [];
         foreach ($rows as $vRow) {
             $vIds[] = (int) $vRow['category']->id;
+            $vOrder[] = [(int) $vRow['category']->id, (int) $vRow['depth']];
         }
+        // The tree is arranged by hand only when every category is on the page.
+        $vArrange = ! $filtered && count($rows) > 1;
     @endphp
 
     <div class="v-settle">
@@ -30,7 +34,7 @@
             @endif
         </form>
 
-        <x-admin.panel flush x-data="{ selected: [], ids: {{ Js::from($vIds) }} }">
+        <x-admin.panel flush x-data="vCategoryList({ ids: {{ Js::from($vIds) }} })">
             {{-- Ticked rows, and what to do with all of them at once. --}}
             <div class="v-bulkbar" x-show="selected.length > 0" x-cloak role="region" aria-label="Actions for the selected categories">
                 <span><strong x-text="selected.length"></strong> selected</span>
@@ -48,7 +52,8 @@
                 </span>
             </div>
 
-            <div class="v-tablewrap">
+            <div class="v-tablewrap v-catwrap" x-ref="wrap">
+                <div class="v-catdrop" x-ref="drop" hidden></div>
                 <table class="v-table">
                     <thead>
                         <tr>
@@ -67,12 +72,13 @@
                             <th class="v-cell-act"><span class="v-sr">Actions</span></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody x-ref="body">
                         @forelse ($rows as $vRow)
                             @php
                                 $category = $vRow['category'];
                             @endphp
-                            <tr>
+                            <tr data-id="{{ $category->id }}" data-depth="{{ $vRow['depth'] }}"
+                                data-name="{{ Str::limit($category->name, 60) }}" style="--depth: {{ $vRow['depth'] }}">
                                 <td class="v-cell-open">
                                     <label class="v-check">
                                         <input type="checkbox" value="{{ $category->id }}" x-model.number="selected"
@@ -81,7 +87,19 @@
                                 </td>
                                 <td>
                                     {{-- Indented by its level in the tree; a filtered list shows the full path instead. --}}
-                                    <span class="v-actrow v-catname" style="--depth: {{ $vRow['depth'] }}">
+                                    <span class="v-actrow v-catname">
+                                        @if ($vArrange)
+                                            <button type="button" class="v-cathandle" data-handle
+                                                    aria-label="Move {{ Str::limit($category->name, 60) }}: drag, or use the arrow keys"
+                                                    title="Drag to move. Left and right change the level."
+                                                    @pointerdown="start($event, $el.closest('tr'))"
+                                                    @pointermove="move($event)"
+                                                    @pointerup="end()"
+                                                    @pointercancel="end()"
+                                                    @keydown="key($event, $el.closest('tr'))">
+                                                <svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="2.5" cy="3" r="1.5"/><circle cx="7.5" cy="3" r="1.5"/><circle cx="2.5" cy="8" r="1.5"/><circle cx="7.5" cy="8" r="1.5"/><circle cx="2.5" cy="13" r="1.5"/><circle cx="7.5" cy="13" r="1.5"/></svg>
+                                            </button>
+                                        @endif
                                         @if ($category->image)
                                             <img class="v-thumb" src="{{ storage_url($category->image) }}" alt="">
                                         @endif
@@ -92,7 +110,7 @@
                                     </span>
                                 </td>
                                 <td class="v-cell-num v-mono">{{ $category->products_count }}</td>
-                                <td class="v-cell-num v-mono">{{ $category->sort_order }}</td>
+                                <td class="v-cell-num v-mono" data-sort>{{ $category->sort_order }}</td>
                                 <td>
                                     <span class="v-badge v-badge--{{ $category->is_active ? 'good' : 'quiet' }}">
                                         {{ $category->is_active ? 'Active' : 'Inactive' }}
@@ -121,6 +139,14 @@
                     </tbody>
                 </table>
             </div>
+
+            @if ($vArrange)
+                {{-- The arranged order, saved from the page header like any edit. --}}
+                <x-admin.form :action="route('admin.categories.arrange')" :save-only-when-dirty="true">
+                    <input type="hidden" name="order" data-order value="{{ json_encode($vOrder) }}">
+                </x-admin.form>
+                <p class="v-sr" role="status" aria-live="polite" x-text="announcement"></p>
+            @endif
 
             <x-admin.confirm name="bulk-delete-categories" title="Delete the selected categories?"
                 message="Their subcategories move up a level. This cannot be undone."

@@ -26,6 +26,7 @@ Route::prefix('catalog')->group(function () {
 
     // Categories
     Route::resource('categories', CategoryController::class)->except(['show']);
+    Route::post('categories/arrange', [CategoryController::class, 'arrange'])->name('categories.arrange');
     Route::post('categories/bulk-status', [CategoryController::class, 'bulkStatus'])->name('categories.bulk-status');
     Route::post('categories/bulk-delete', [CategoryController::class, 'bulkDelete'])->name('categories.bulk-delete');
 

@@ -1,7 +1,62 @@
 /* --- Categories: the list in tree order, each name indented by its level ---- */
 
-.v-catname { padding-left: calc(var(--depth, 0) * 22px); }
+.v-tablewrap { --cat-indent: 22px; }
+.v-catname { padding-left: calc(var(--depth, 0) * var(--cat-indent)); }
 
 @media (max-width: 640px) {
-    .v-catname { padding-left: calc(var(--depth, 0) * 12px); }
+    .v-tablewrap { --cat-indent: 12px; }
+}
+
+/* --- Arranging the tree: a handle per row, the dragged branch dimmed, a line where it lands */
+
+.v-catwrap { position: relative; }
+
+.v-cathandle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 1.5rem;
+    height: 2rem;
+    margin-right: 0.25rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--bl-r-ctrl);
+    background: transparent;
+    color: var(--bl-ink-3);
+    cursor: grab;
+    touch-action: none;
+    opacity: 0.55;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+.v-cathandle svg { width: 10px; height: 16px; fill: currentColor; }
+.v-cathandle:hover,
+.v-cathandle:focus-visible { opacity: 1; }
+.v-cathandle:focus-visible { outline: 2px solid var(--bl-focus); outline-offset: 1px; }
+.v-cathandle:active { cursor: grabbing; }
+
+.v-table tr.is-dragging { opacity: 0.45; }
+.v-table tr.is-dragging .v-cathandle { cursor: grabbing; }
+
+.v-catdrop {
+    position: absolute;
+    z-index: 2;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--bl-brand);
+    pointer-events: none;
+}
+.v-catdrop::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: inherit;
+}
+
+@media (max-width: 640px) {
+    .v-cathandle { width: 2rem; height: 2.5rem; }
 }

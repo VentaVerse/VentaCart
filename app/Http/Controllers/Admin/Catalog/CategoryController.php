@@ -104,6 +104,77 @@ class CategoryController extends Controller
             ->with('success', 'Category deleted. Child categories were moved up.');
     }
 
+    /**
+     * Save the tree as arranged on the list: every category in display
+     * order with its level. A row's parent is the nearest row above it one
+     * level up; its sort order is its place among its siblings.
+     */
+    public function arrange(Request $request)
+    {
+        $request->validate(['order' => ['required', 'string', 'max:200000']]);
+        $rows = json_decode((string) $request->input('order'), true);
+
+        $refuse = fn (string $message) => redirect()->route('admin.categories.index')->with('error', $message);
+
+        if (! is_array($rows) || $rows === []) {
+            return $refuse('The new order could not be read. Reload the page and arrange again.');
+        }
+
+        $ids = [];
+        $depths = [];
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! isset($row[0], $row[1]) || ! is_int($row[0]) || ! is_int($row[1]) || $row[1] < 0) {
+                return $refuse('The new order could not be read. Reload the page and arrange again.');
+            }
+            $ids[] = $row[0];
+            $depths[] = $row[1];
+        }
+
+        // The whole list, each category once: anything else means the list
+        // changed since the page was opened.
+        $known = Category::pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $sent = $ids;
+        sort($sent);
+        if ($sent !== $known || count(array_unique($ids)) !== count($ids)) {
+            return $refuse('The categories changed since this page was opened. Reload it and arrange again.');
+        }
+
+        // Each row at most one level deeper than the row above it.
+        $updates = [];
+        $stack = [];
+        $count = [];
+        foreach ($ids as $i => $id) {
+            $depth = $depths[$i];
+            if ($depth > count($stack)) {
+                return $refuse('That arrangement skips a level. Reload the page and arrange again.');
+            }
+            $stack = array_slice($stack, 0, $depth);
+            $parent = $depth === 0 ? null : $stack[$depth - 1];
+            $key = $parent ?? 0;
+            $count[$key] = ($count[$key] ?? -1) + 1;
+            $updates[$id] = ['parent_id' => $parent, 'sort_order' => $count[$key]];
+            $stack[] = $id;
+        }
+
+        // Only what moved is written.
+        $current = Category::get(['id', 'parent_id', 'sort_order'])->keyBy('id');
+        $updates = array_filter($updates, function (array $values, int $id) use ($current) {
+            $now = $current[$id];
+            $parent = $now->parent_id === null ? null : (int) $now->parent_id;
+
+            return $parent !== $values['parent_id'] || (int) $now->sort_order !== $values['sort_order'];
+        }, ARRAY_FILTER_USE_BOTH);
+
+        DB::transaction(function () use ($updates) {
+            foreach ($updates as $id => $values) {
+                Category::whereKey($id)->update($values);
+            }
+        });
+        CategoryTree::forget();
+
+        return redirect()->route('admin.categories.index')->with('success', 'Category order saved.');
+    }
+
     /** Enable or disable the ticked categories. */
     public function bulkStatus(BulkSelectionRequest $request)
     {
