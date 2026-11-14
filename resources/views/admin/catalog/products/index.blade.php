@@ -33,7 +33,24 @@
             @endif
         </form>
 
-        <x-admin.panel flush>
+        <x-admin.panel flush x-data="{ selected: [], ids: {{ Js::from($products->pluck('id')) }} }">
+            {{-- Ticked rows, and what to do with all of them at once. --}}
+            <div class="v-bulkbar" x-show="selected.length > 0" x-cloak role="region" aria-label="Actions for the selected products">
+                <span><strong x-text="selected.length"></strong> selected</span>
+                <span class="v-bulkbar__acts">
+                    @foreach ([0 => 'Disable', 1 => 'Enable'] as $vActive => $vLabel)
+                        <form method="POST" action="{{ route('admin.products.bulk-status') }}">
+                            @csrf
+                            <input type="hidden" name="active" value="{{ $vActive }}">
+                            <template x-for="id in selected" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
+                            <button type="submit" class="v-btn v-btn--secondary v-btn--sm">{{ $vLabel }}</button>
+                        </form>
+                    @endforeach
+                    <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="$dispatch('v-confirm', 'bulk-delete-products')">Delete</button>
+                    <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="selected = []">Clear</button>
+                </span>
+            </div>
+
             <div class="v-tablewrap">
                 <table class="v-table">
                     <thead>
@@ -52,7 +69,15 @@
                         @endphp
                         <tr>
                             @php $vName = $vSort('name', 'Product'); @endphp
-                            <th scope="col" colspan="2" aria-sort="{{ $vName['aria'] }}">
+                            <th scope="col" class="v-cell-open">
+                                <label class="v-check">
+                                    <input type="checkbox" aria-label="Select every product on this page"
+                                           :checked="ids.length > 0 && selected.length === ids.length"
+                                           :indeterminate="selected.length > 0 && selected.length < ids.length"
+                                           @change="selected = $event.target.checked ? [...ids] : []">
+                                </label>
+                            </th>
+                            <th scope="col" aria-sort="{{ $vName['aria'] }}">
                                 <a href="{{ $vName['href'] }}" class="v-sorth {{ $vName['on'] ? 'is-on' : '' }}">
                                     Product <span class="v-sorth__i" aria-hidden="true">{{ $vName['on'] ? ($dir === 'asc' ? '↑' : '↓') : '↕' }}</span>
                                 </a>
@@ -81,11 +106,15 @@
                         @forelse ($products as $product)
                             @php $vCount = $product->variants->count(); @endphp
                             <tr @class(['is-parent' => $vCount > 0])>
-                                {{-- The indent gutter the child rows align under.
-                                     It used to hold a disclosure chevron; variants
-                                     are always shown now, so there is nothing left
-                                     to disclose. --}}
-                                <td class="v-cell-open" id="p{{ $product->id }}"></td>
+                                {{-- The gutter the child rows align under holds the
+                                     product's tick box. Variants have none: a bulk
+                                     action works on whole products. --}}
+                                <td class="v-cell-open" id="p{{ $product->id }}">
+                                    <label class="v-check">
+                                        <input type="checkbox" value="{{ $product->id }}" x-model.number="selected"
+                                               aria-label="Select {{ Str::limit($product->name, 60) }}">
+                                    </label>
+                                </td>
                                 <td>
                                     <span class="v-actrow">
                                         @if ($product->image)
@@ -212,6 +241,12 @@
                     </tbody>
                 </table>
             </div>
+
+            <x-admin.confirm name="bulk-delete-products" title="Delete the selected products?"
+                message="This permanently removes each product with its images, variants and pricing. Order history keeps its own copy. This cannot be undone."
+                confirm="Delete" :action="route('admin.products.bulk-delete')" method="POST">
+                <template x-for="id in selected" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
+            </x-admin.confirm>
         </x-admin.panel>
 
         <div class="v-pagerow">

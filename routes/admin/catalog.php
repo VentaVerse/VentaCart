@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('catalog')->group(function () {
     // Products
     Route::post('products/quick-create', [ProductController::class, 'quickCreate'])->name('products.quick-create');
+    Route::post('products/bulk-status', [ProductController::class, 'bulkStatus'])->name('products.bulk-status');
+    Route::post('products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
     Route::resource('products', ProductController::class)->except(['show']);
 
     // Product Image Manager
@@ -29,6 +31,8 @@ Route::prefix('catalog')->group(function () {
     // Brands
     Route::get('/brands/search', [BrandController::class, 'search'])->name('brands.search');
     Route::post('/brands/quick-create', [BrandController::class, 'quickCreate'])->name('brands.quick-create');
+    Route::post('/brands/bulk-status', [BrandController::class, 'bulkStatus'])->name('brands.bulk-status');
+    Route::post('/brands/bulk-delete', [BrandController::class, 'bulkDelete'])->name('brands.bulk-delete');
     Route::resource('brands', BrandController::class)->except(['show']);
 
     // Media Manager

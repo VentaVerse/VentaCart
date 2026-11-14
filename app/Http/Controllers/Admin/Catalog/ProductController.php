@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Catalog;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\BulkSelectionRequest;
 use App\Models\Category;
 use App\Models\CustomerGroup;
 use App\Models\Brand;
@@ -335,6 +336,45 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Product deleted successfully.');
+    }
+
+    /**
+     * Turn the ticked products on or off for sale. Each is saved on its own,
+     * not in one UPDATE, so the model events that clear the storefront's
+     * badge cache still run.
+     */
+    public function bulkStatus(BulkSelectionRequest $request)
+    {
+        $active = $request->boolean('active');
+
+        $count = DB::transaction(function () use ($request, $active) {
+            $products = Product::whereIn('id', $request->ids())->get();
+            $products->each(fn (Product $product) => $product->update(['is_active' => $active]));
+
+            return $products->count();
+        });
+
+        return redirect()->back()->with('success', sprintf(
+            '%d %s %s.', $count, Str::plural('product', $count), $active ? 'enabled' : 'disabled'
+        ));
+    }
+
+    /**
+     * Delete the ticked products, the same hard delete as one at a time
+     * (see destroy()). All or none: one failure rolls the batch back.
+     */
+    public function bulkDelete(BulkSelectionRequest $request)
+    {
+        $count = DB::transaction(function () use ($request) {
+            $products = Product::whereIn('id', $request->ids())->get();
+            $products->each(fn (Product $product) => $product->delete());
+
+            return $products->count();
+        });
+
+        return redirect()->back()->with('success', sprintf(
+            '%d %s deleted.', $count, Str::plural('product', $count)
+        ));
     }
 
     /**

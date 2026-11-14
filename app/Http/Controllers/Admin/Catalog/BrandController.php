@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin\Catalog;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\BulkSelectionRequest;
 use App\Models\Brand;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class BrandController extends Controller
@@ -129,6 +131,41 @@ class BrandController extends Controller
 
         return redirect()->route('admin.brands.index')
             ->with('success', 'Brand deleted successfully.');
+    }
+
+    /** Show or hide the ticked brands on the storefront. */
+    public function bulkStatus(BulkSelectionRequest $request)
+    {
+        $active = $request->boolean('active');
+
+        $count = DB::transaction(function () use ($request, $active) {
+            $brands = Brand::whereIn('id', $request->ids())->get();
+            $brands->each(fn (Brand $brand) => $brand->update(['is_active' => $active]));
+
+            return $brands->count();
+        });
+
+        return redirect()->back()->with('success', sprintf(
+            '%d %s %s.', $count, Str::plural('brand', $count), $active ? 'enabled' : 'disabled'
+        ));
+    }
+
+    /**
+     * Delete the ticked brands. Their products stay and lose the brand link,
+     * as with a single delete (the foreign key sets it to null).
+     */
+    public function bulkDelete(BulkSelectionRequest $request)
+    {
+        $count = DB::transaction(function () use ($request) {
+            $brands = Brand::whereIn('id', $request->ids())->get();
+            $brands->each(fn (Brand $brand) => $brand->delete());
+
+            return $brands->count();
+        });
+
+        return redirect()->back()->with('success', sprintf(
+            '%d %s deleted.', $count, Str::plural('brand', $count)
+        ));
     }
 
     public function search(Request $request)

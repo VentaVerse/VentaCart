@@ -18,11 +18,36 @@
             @endif
         </form>
 
-        <x-admin.panel flush>
+        <x-admin.panel flush x-data="{ selected: [], ids: {{ Js::from($brands->pluck('id')) }} }">
+            {{-- Ticked rows, and what to do with all of them at once. --}}
+            <div class="v-bulkbar" x-show="selected.length > 0" x-cloak role="region" aria-label="Actions for the selected brands">
+                <span><strong x-text="selected.length"></strong> selected</span>
+                <span class="v-bulkbar__acts">
+                    @foreach ([0 => 'Disable', 1 => 'Enable'] as $vActive => $vLabel)
+                        <form method="POST" action="{{ route('admin.brands.bulk-status') }}">
+                            @csrf
+                            <input type="hidden" name="active" value="{{ $vActive }}">
+                            <template x-for="id in selected" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
+                            <button type="submit" class="v-btn v-btn--secondary v-btn--sm">{{ $vLabel }}</button>
+                        </form>
+                    @endforeach
+                    <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="$dispatch('v-confirm', 'bulk-delete-brands')">Delete</button>
+                    <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="selected = []">Clear</button>
+                </span>
+            </div>
+
             <div class="v-tablewrap">
                 <table class="v-table">
                     <thead>
                         <tr>
+                            <th scope="col" class="v-cell-open">
+                                <label class="v-check">
+                                    <input type="checkbox" aria-label="Select every brand on this page"
+                                           :checked="ids.length > 0 && selected.length === ids.length"
+                                           :indeterminate="selected.length > 0 && selected.length < ids.length"
+                                           @change="selected = $event.target.checked ? [...ids] : []">
+                                </label>
+                            </th>
                             <th>Brand</th>
                             <th class="v-cell-num">Products</th>
                             <th class="v-cell-num">Sort</th>
@@ -33,6 +58,12 @@
                     <tbody>
                         @forelse ($brands as $brand)
                             <tr>
+                                <td class="v-cell-open">
+                                    <label class="v-check">
+                                        <input type="checkbox" value="{{ $brand->id }}" x-model.number="selected"
+                                               aria-label="Select {{ Str::limit($brand->name, 60) }}">
+                                    </label>
+                                </td>
                                 <td>
                                     <span class="v-actrow">
                                         @if ($brand->image)
@@ -59,7 +90,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5">
+                                <td colspan="6">
                                     <div class="v-empty">
                                         <p class="v-empty__title">No brands found</p>
                                         <p class="v-empty__line">{{ request('search') ? 'Try adjusting the search.' : 'Brands group the catalog by maker.' }}</p>
@@ -73,6 +104,12 @@
                     </tbody>
                 </table>
             </div>
+
+            <x-admin.confirm name="bulk-delete-brands" title="Delete the selected brands?"
+                message="Their products stay and lose the brand link. This cannot be undone."
+                confirm="Delete" :action="route('admin.brands.bulk-delete')" method="POST">
+                <template x-for="id in selected" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
+            </x-admin.confirm>
         </x-admin.panel>
 
         <x-admin.pager :paginator="$brands" />
