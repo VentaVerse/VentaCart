@@ -47,24 +47,23 @@ class Category extends Model
     }
 
     /**
-     * This category and its active children and grandchildren: what a
-     * shopper means by "everything in Phones" is the whole branch.
+     * This category and every active category below it, at any depth: what a
+     * shopper means by "everything in Guitars" is the whole branch.
      *
      * @return list<int>
      */
     public function selfAndDescendantIds(): array
     {
-        return \Illuminate\Support\Facades\Cache::remember("cat_descendants_{$this->id}", 3600, function () {
-            $ids = [$this->id];
-            foreach (self::where('parent_id', $this->id)->where('is_active', true)->pluck('id') as $childId) {
-                $ids[] = $childId;
-                foreach (self::where('parent_id', $childId)->where('is_active', true)->pluck('id') as $grandchildId) {
-                    $ids[] = $grandchildId;
-                }
-            }
+        return \Illuminate\Support\Facades\Cache::remember("cat_descendants_{$this->id}", 3600,
+            fn () => \App\Support\CategoryTree::branch((int) $this->id, activeOnly: true));
+    }
 
-            return $ids;
-        });
+    protected static function booted(): void
+    {
+        // A branch, the menu's subcategories and the paths all change with
+        // any category, so every cached copy is forgotten together.
+        static::saved(fn () => \App\Support\CategoryTree::forget());
+        static::deleted(fn () => \App\Support\CategoryTree::forget());
     }
 
     public function seoSuggestions(): MorphMany

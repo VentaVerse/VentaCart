@@ -12,69 +12,70 @@
     </div>
 
     @php
-        $parents = $categories->whereNull('parent_id')->sortBy('sort_order');
-        $children = $categories->whereNotNull('parent_id')->groupBy('parent_id');
+        // Any depth: each category is drawn under its parent. One whose
+        // parent is missing is drawn at the top rather than lost.
+        $known = $categories->pluck('id')->flip();
+        $byParent = $categories->sortBy([['sort_order', 'asc'], ['name', 'asc']])
+            ->groupBy(fn ($c) => $c->parent_id && $known->has($c->parent_id) ? (int) $c->parent_id : 0);
+        $hasChildren = $categories->pluck('parent_id')->filter()->flip();
+        $vAllIds = [];
+        foreach ($categories as $vCat) {
+            $vAllIds[] = (int) $vCat->id;
+        }
     @endphp
 
     <div class="v-settle">
-        <x-admin.panel>
-            <div x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
-                @forelse ($parents as $parent)
-                    <div data-id="{{ $parent->id }}" draggable="true">
-                        <div class="v-dragrow">
-                            <span class="v-dragrow__grip drag-handle" aria-hidden="true"><x-admin.icon name="menu" /></span>
-                            @if ($parent->image)
-                                <img class="v-thumb" src="{{ storage_url($parent->image) }}" alt="">
-                            @endif
-                            <span>
-                                <a href="{{ route('admin.categories.edit', $parent) }}" class="v-rowlink">{{ $parent->name }}</a>
-                                <span class="v-cell-quiet v-block v-mono">/{{ $parent->slug }}</span>
-                            </span>
-                            <span class="v-dragrow__end">
-                                <span class="v-cell-quiet v-mono">{{ $parent->products_count }} products</span>
-                                <span class="v-badge v-badge--{{ $parent->is_active ? 'good' : 'quiet' }}">{{ $parent->is_active ? 'Active' : 'Inactive' }}</span>
-                                <a href="{{ route('admin.categories.edit', $parent) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
-                                <button type="button" class="v-btn v-btn--danger v-btn--sm"
-                                        @click="$dispatch('v-confirm', 'delete-category-{{ $parent->id }}')">Delete</button>
-                            </span>
-                        </div>
+        <x-admin.panel flush x-data="{ selected: [], ids: {{ Js::from($vAllIds) }} }">
+            {{-- Ticked rows, and what to do with all of them at once. --}}
+            <div class="v-bulkbar" x-show="selected.length > 0" x-cloak role="region" aria-label="Actions for the selected categories">
+                <span><strong x-text="selected.length"></strong> selected</span>
+                <span class="v-bulkbar__acts">
+                    @foreach ([0 => 'Disable', 1 => 'Enable'] as $vActive => $vLabel)
+                        <form method="POST" action="{{ route('admin.categories.bulk-status') }}">
+                            @csrf
+                            <input type="hidden" name="active" value="{{ $vActive }}">
+                            <template x-for="id in selected" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
+                            <button type="submit" class="v-btn v-btn--secondary v-btn--sm">{{ $vLabel }}</button>
+                        </form>
+                    @endforeach
+                    <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="$dispatch('v-confirm', 'bulk-delete-categories')">Delete</button>
+                    <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="selected = []">Clear</button>
+                </span>
+            </div>
 
-                        @if (isset($children[$parent->id]) && $children[$parent->id]->isNotEmpty())
-                            <div class="v-dragnest" x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
-                                @foreach ($children[$parent->id]->sortBy('sort_order') as $child)
-                                    <div data-id="{{ $child->id }}" draggable="true" class="v-dragrow">
-                                        <span class="v-dragrow__grip drag-handle" aria-hidden="true"><x-admin.icon name="menu" /></span>
-                                        @if ($child->image)
-                                            <img class="v-thumb" src="{{ storage_url($child->image) }}" alt="">
-                                        @endif
-                                        <span>
-                                            <a href="{{ route('admin.categories.edit', $child) }}" class="v-rowlink">{{ $child->name }}</a>
-                                            <span class="v-cell-quiet v-block v-mono">/{{ $child->slug }}</span>
-                                        </span>
-                                        <span class="v-dragrow__end">
-                                            <span class="v-cell-quiet v-mono">{{ $child->products_count }}</span>
-                                            <span class="v-badge v-badge--{{ $child->is_active ? 'good' : 'quiet' }}">{{ $child->is_active ? 'Active' : 'Inactive' }}</span>
-                                            <a href="{{ route('admin.categories.edit', $child) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
-                                            <button type="button" class="v-btn v-btn--danger v-btn--sm"
-                                                    @click="$dispatch('v-confirm', 'delete-category-{{ $child->id }}')">Delete</button>
-                                        </span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                @empty
+            @if (($byParent[0] ?? collect())->isNotEmpty())
+                <div class="v-cathead">
+                    <label class="v-check">
+                        <input type="checkbox" aria-label="Select every category"
+                               :checked="ids.length > 0 && selected.length === ids.length"
+                               :indeterminate="selected.length > 0 && selected.length < ids.length"
+                               @change="selected = $event.target.checked ? [...ids] : []">
+                    </label>
+                    <span>Category</span>
+                </div>
+            @endif
+
+            <div class="v-cattree" x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
+                @if (($byParent[0] ?? collect())->isNotEmpty())
+                    @include('admin.catalog.categories.partials.branch', ['nodes' => $byParent[0]])
+                @else
                     <div class="v-empty">
                         <p class="v-empty__title">No categories found</p>
                         <a href="{{ route('admin.categories.create') }}" class="v-btn v-btn--primary v-btn--sm">Create your first category</a>
                     </div>
-                @endforelse
+                @endif
             </div>
+
+            <x-admin.confirm name="bulk-delete-categories" title="Delete the selected categories?"
+                message="Their subcategories move up a level. This cannot be undone."
+                confirm="Delete" :action="route('admin.categories.bulk-delete')" method="POST">
+                <template x-for="id in selected" :key="id"><input type="hidden" name="ids[]" :value="id"></template>
+            </x-admin.confirm>
         </x-admin.panel>
 
         @foreach ($categories as $category)
             <x-admin.confirm name="delete-category-{{ $category->id }}" title="Delete {{ $category->name }}?"
-                :message="isset($children[$category->id]) && $children[$category->id]->isNotEmpty() ? 'Subcategories will move up to top-level. This cannot be undone.' : 'This cannot be undone.'"
+                :message="$hasChildren->has($category->id) ? 'Its subcategories move up a level. This cannot be undone.' : 'This cannot be undone.'"
                 confirm="Delete" :action="route('admin.categories.destroy', $category)" method="DELETE" />
         @endforeach
     </div>

@@ -2,6 +2,7 @@
 // One chrome for the whole admin (owner ruling 2026-08-17): the classic
 // bundle (admin/admin.js) is the one host, registering these on the one
 // Alpine that app.js boots. No page loads a second Alpine.
+import { registerCombobox } from './combobox.js';
 import { registerMediaPicker } from './media-picker.js';
 import { registerMenuTree } from './menu-tree.js';
 import { registerSecret } from './secret.js';
@@ -9,6 +10,9 @@ import { registerSecret } from './secret.js';
 export function registerV(Alpine) {
     // The one image browser, replacing five hand-rolled copies.
     registerMediaPicker(Alpine);
+
+    // One value picked from a long list by typing (x-admin.combobox).
+    registerCombobox(Alpine);
 
     // Storefront > Header & footer, Main menu: the arrangeable tree and the item fields.
     registerMenuTree(Alpine);

@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin\Catalog;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\BulkSelectionRequest;
 use App\Models\Category;
+use App\Support\CategoryTree;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CategoryController extends Controller
@@ -37,11 +40,9 @@ class CategoryController extends Controller
 
     public function create(Request $request)
     {
-        $parentCategories = Category::whereNull('parent_id')->orderBy('name')->get();
-
         return view('admin.catalog.categories.form', [
             'category' => null,
-            'parentCategories' => $parentCategories,
+            'parentOptions' => CategoryTree::parentOptions(),
             'pimToken' => (string) Str::uuid(),
         ]);
     }
@@ -65,13 +66,11 @@ class CategoryController extends Controller
 
     public function edit(Category $category)
     {
-        $parentCategories = Category::whereNull('parent_id')
-            ->where('id', '!=', $category->id)
-            ->orderBy('name')->get();
-
-        $pimToken = (string) Str::uuid();
-
-        return view('admin.catalog.categories.form', compact('category', 'parentCategories', 'pimToken'));
+        return view('admin.catalog.categories.form', [
+            'category' => $category,
+            'parentOptions' => CategoryTree::parentOptions($category->id),
+            'pimToken' => (string) Str::uuid(),
+        ]);
     }
 
     public function update(Request $request, Category $category)
@@ -107,6 +106,58 @@ class CategoryController extends Controller
             ->with('success', 'Category deleted. Child categories were moved up.');
     }
 
+    /** Enable or disable the ticked categories. */
+    public function bulkStatus(BulkSelectionRequest $request)
+    {
+        $active = $request->boolean('active');
+        $count = Category::whereIn('id', $request->ids())->update(['is_active' => $active]);
+        CategoryTree::forget();
+
+        return redirect()->route('admin.categories.index')->with('success', sprintf(
+            '%d %s %s.', $count, Str::plural('category', $count), $active ? 'enabled' : 'disabled'
+        ));
+    }
+
+    /** Delete the ticked categories; their subcategories move up. */
+    public function bulkDelete(BulkSelectionRequest $request)
+    {
+        $ids = Category::whereIn('id', $request->ids())->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $this->deleteMany($ids);
+
+        return redirect()->route('admin.categories.index')->with('success', sprintf(
+            '%d %s deleted. Their subcategories moved up.', count($ids), Str::plural('category', count($ids))
+        ));
+    }
+
+    /**
+     * Delete several categories. A subcategory that stays moves up to its
+     * nearest ancestor that stays, or to the top level when there is none.
+     *
+     * @param  list<int>  $ids
+     */
+    private function deleteMany(array $ids): void
+    {
+        DB::transaction(function () use ($ids) {
+            $going = array_flip($ids);
+            $parentOf = Category::pluck('parent_id', 'id')->map(fn ($p) => $p ? (int) $p : null)->all();
+
+            foreach ($parentOf as $id => $parentId) {
+                if (isset($going[$id]) || $parentId === null || ! isset($going[$parentId])) {
+                    continue;
+                }
+                $up = $parentId;
+                $steps = 0;
+                while ($up !== null && isset($going[$up]) && $steps++ < count($parentOf)) {
+                    $up = $parentOf[$up] ?? null;
+                }
+                Category::whereKey($id)->update(['parent_id' => isset($going[$up]) ? null : $up]);
+            }
+
+            Category::whereIn('id', $ids)->get()->each->delete();
+        });
+        CategoryTree::forget();
+    }
+
     public function reorder(Request $request)
     {
         $request->validate([
@@ -126,7 +177,12 @@ class CategoryController extends Controller
     {
         return $request->validate([
             'store_id' => ['required', 'exists:stores,id'],
-            'parent_id' => ['nullable', 'exists:categories,id'],
+            'parent_id' => ['nullable', 'integer', 'exists:categories,id', function (string $attribute, mixed $value, \Closure $fail) use ($categoryId) {
+                // Under itself or one of its own subcategories would be a loop.
+                if ($categoryId && $value && in_array((int) $value, CategoryTree::branch($categoryId), true)) {
+                    $fail('A category cannot sit under itself or one of its own subcategories.');
+                }
+            }],
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]*$/'],
             'description' => ['nullable', 'string'],

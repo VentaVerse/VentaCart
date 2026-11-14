@@ -14,12 +14,10 @@
 
     @php
         $brandItems = $brands->map(fn ($b) => ['id' => $b->id, 'name' => $b->name])->values()->all();
+        // Every category at any depth, by its full path.
         $categoryItems = [];
-        foreach ($categories as $cat) {
-            $categoryItems[] = ['id' => $cat->id, 'name' => $cat->name];
-            foreach ($cat->children as $child) {
-                $categoryItems[] = ['id' => $child->id, 'name' => '- ' . $child->name];
-            }
+        foreach (\App\Support\CategoryTree::options() as $cat) {
+            $categoryItems[] = ['id' => $cat['id'], 'name' => $cat['name']];
         }
         $groupItems = $customerGroups->map(fn ($g) => ['id' => $g->id, 'name' => $g->name])->values()->all();
         $zoneItems = $shippingZones->map(fn ($z) => ['id' => $z->id, 'name' => $z->name])->values()->all();

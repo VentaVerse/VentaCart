@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Models\Brand;
-use App\Models\Category;
 use App\Models\Currency;
 use App\Models\CustomerGroup;
 use App\Models\GeoZone;
@@ -20,7 +19,6 @@ class PaymentRestrictionFormData
      *
      * @return array{
      *     brands: \Illuminate\Database\Eloquent\Collection,
-     *     categories: \Illuminate\Database\Eloquent\Collection,
      *     customerGroups: \Illuminate\Database\Eloquent\Collection,
      *     geoZones: \Illuminate\Database\Eloquent\Collection,
      *     shippingMethods: array<int, array{key: string, name: string}>,
@@ -31,7 +29,6 @@ class PaymentRestrictionFormData
     {
         return [
             'brands' => Brand::orderBy('name')->get(),
-            'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
             'customerGroups' => CustomerGroup::orderBy('name')->get(),
             'geoZones' => GeoZone::where('is_active', true)->orderBy('sort_order')->get(),
             'shippingMethods' => [

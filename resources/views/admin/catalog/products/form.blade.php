@@ -263,10 +263,8 @@
                 {{-- ===================== LINKS ===================== --}}
                 <div x-show="tab === 'links'" class="v-settle" role="tabpanel" id="panel-links" aria-labelledby="tab-links" tabindex="0">
                     @php
-                        $allCategories = $categories->map(function($c) use ($categories) {
-                            $parent = $c->parent_id ? $categories->firstWhere('id', $c->parent_id) : null;
-                            return ['id' => $c->id, 'name' => $parent ? $parent->name . ' > ' . $c->name : $c->name];
-                        })->sortBy('name')->values()->toArray();
+                        // Full paths at any depth: "Guitars > Electric Guitars > Strings".
+                        $allCategories = array_map(function ($o) { return ['id' => $o['id'], 'name' => $o['name']]; }, \App\Support\CategoryTree::options());
                         $selectedCategoryIds = old('category_ids', $product?->categories->pluck('id')->toArray() ?? []);
                         $allTags = ($tags ?? collect())->map(function($t) { return ['id' => $t->id, 'name' => $t->name]; })->values()->toArray();
                         $selectedTagIds = old('tag_ids', $product?->tags->pluck('id')->toArray() ?? []);

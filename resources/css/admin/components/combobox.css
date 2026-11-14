@@ -1,0 +1,37 @@
+/* --- Combobox: one value picked from a long list by typing ------ */
+
+.v-combo__box { position: relative; }
+.v-combo__input { width: 100%; }
+.v-combo__list {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 280px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-md);
+    box-shadow: var(--v-lift-2);
+}
+.v-combo__opt {
+    min-height: 34px;
+    padding: 8px 9px;
+    border-radius: var(--v-r-sm);
+    font-size: 13px;
+    color: var(--v-ink);
+    cursor: pointer;
+    overflow-wrap: anywhere;
+}
+.v-combo__opt.is-empty { color: var(--v-ink-2); }
+.v-combo__opt[data-active="true"] { background: var(--v-hover); }
+.v-combo__opt[aria-selected="true"] { background: var(--v-act-wash); font-weight: 600; }
+.v-combo__none { padding: 10px; font-size: 13px; color: var(--v-ink-3); }
+
+@media (max-width: 640px) {
+    .v-combo__opt { min-height: 44px; display: flex; align-items: center; }
+}

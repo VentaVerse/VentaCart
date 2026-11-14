@@ -83,14 +83,14 @@ class ProductBlockFiltersTest extends TestCase
         $this->assertCount(2, $tabs[1]['products']);
     }
 
-    public function test_the_category_choices_name_categories_by_slug_with_depth(): void
+    public function test_the_category_choices_name_categories_by_slug_with_their_full_path(): void
     {
         $phones = $this->category('Phones');
         $this->category('Phone Cases', $phones->id);
 
         $field = collect(Widgets::schema('catalog.products'))->firstWhere('name', 'category');
 
-        $this->assertSame(['' => 'Any category', 'phones' => 'Phones', 'phone-cases' => '- Phone Cases'], $field['options']);
+        $this->assertSame(['' => 'Any category', 'phones' => 'Phones', 'phone-cases' => 'Phones > Phone Cases'], $field['options']);
 
         // A tab's category is a field inside a repeating row, and it reaches
         // the editor as a plain list as well.

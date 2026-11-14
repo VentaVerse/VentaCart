@@ -14,8 +14,8 @@
                    aria-label="Search products" class="v-control v-filterbar__grow">
             <select name="category_id" aria-label="Filter by category" class="v-control v-w-name">
                 <option value="">All categories</option>
-                @foreach ($categories as $category)
-                    <option value="{{ $category->id }}" @selected((string) request('category_id') === (string) $category->id)>{{ $category->name }}</option>
+                @foreach (\App\Support\CategoryTree::options() as $vCategory)
+                    <option value="{{ $vCategory['id'] }}" @selected((string) request('category_id') === (string) $vCategory['id'])>{{ $vCategory['name'] }}</option>
                 @endforeach
             </select>
             <select name="status" aria-label="Filter by status" class="v-control v-w-name">

@@ -610,23 +610,15 @@ class CoreWidgets
             ->sortBy(fn ($p) => $ids->search($p->id))->values();
     }
 
-    /** Active categories by slug, indented by depth, for a block's select. @return array<string, string> */
+    /** Active categories by slug, as full paths at any depth, for a block's select. @return array<string, string> */
     private static function categoryChoices(): array
     {
-        $all = Category::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'parent_id', 'name', 'slug']);
-        $byParent = $all->groupBy(fn ($c) => (int) $c->parent_id);
         $out = ['' => 'Any category'];
-        $walk = function (int $parentId, int $depth) use (&$walk, $byParent, &$out) {
-            foreach ($byParent->get($parentId, collect()) as $c) {
-                if ($c->slug) {
-                    $out[$c->slug] = str_repeat('- ', $depth) . $c->name;
-                }
-                if ($depth < 2) {
-                    $walk((int) $c->id, $depth + 1);
-                }
+        foreach (\App\Support\CategoryTree::options(activeOnly: true) as $o) {
+            if ($o['slug']) {
+                $out[$o['slug']] = $o['name'];
             }
-        };
-        $walk(0, 0);
+        }
 
         return $out;
     }

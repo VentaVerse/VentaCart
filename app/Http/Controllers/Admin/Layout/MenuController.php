@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin\Layout;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
-use App\Models\Category;
 use App\Models\NavMenu;
 use App\Models\NavMenuItem;
 use App\Models\Page;
@@ -94,18 +93,7 @@ class MenuController extends Controller
     /** Every active category with its depth, for one select. */
     private function categoryChoices(): array
     {
-        $all = Category::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'parent_id']);
-        $byParent = $all->groupBy(fn ($c) => $c->parent_id ? (string) $c->parent_id : '');
-        $out = [];
-        $walk = function (?int $parentId, int $depth) use (&$walk, $byParent, &$out) {
-            foreach ($byParent->get($parentId ? (string) $parentId : '', collect()) as $c) {
-                $out[] = ['id' => $c->id, 'label' => str_repeat('- ', $depth) . $c->name];
-                $walk((int) $c->id, $depth + 1);
-            }
-        };
-        $walk(null, 0);
-
-        return $out;
+        return array_map(fn (array $o) => ['id' => $o['id'], 'label' => $o['name']], \App\Support\CategoryTree::options(activeOnly: true));
     }
 
 

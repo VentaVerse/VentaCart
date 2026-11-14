@@ -4,7 +4,6 @@ namespace Extensions\ShippingFree\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
-use App\Models\Category;
 use App\Models\CustomerGroup;
 use Extensions\ShippingFree\Models\FreeShippingRule;
 use App\Models\GeoZone;
@@ -31,7 +30,6 @@ class FreeShippingRuleController extends Controller
         return view('shipping-free::rule-form', [
             'rule' => null,
             'brands' => Brand::orderBy('name')->get(),
-            'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
             'customerGroups' => CustomerGroup::orderBy('name')->get(),
             'shippingZones' => GeoZone::where('is_active', true)->orderBy('sort_order')->get(),
         ]);
@@ -80,7 +78,6 @@ class FreeShippingRuleController extends Controller
         return view('shipping-free::rule-form', [
             'rule' => $freeShippingRule,
             'brands' => Brand::orderBy('name')->get(),
-            'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
             'customerGroups' => CustomerGroup::orderBy('name')->get(),
             'shippingZones' => GeoZone::where('is_active', true)->orderBy('sort_order')->get(),
         ]);

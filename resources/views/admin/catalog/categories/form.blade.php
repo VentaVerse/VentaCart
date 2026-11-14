@@ -16,14 +16,9 @@
 
         <x-admin.panel title="Category">
             <div class="v-grid v-grid--2">
-                <x-admin.field name="parent_id" label="Parent category">
-                    <select name="parent_id" class="v-control">
-                        <option value="">None (top-level)</option>
-                        @foreach ($parentCategories as $parent)
-                            <option value="{{ $parent->id }}" @selected(old('parent_id', $category?->parent_id) == $parent->id)>{{ $parent->name }}</option>
-                        @endforeach
-                    </select>
-                </x-admin.field>
+                <x-admin.combobox name="parent_id" label="Parent category" :options="$parentOptions"
+                    :value="old('parent_id', $category?->parent_id)" empty-label="None (top level)"
+                    placeholder="Search categories" />
                 <x-admin.field name="sort_order" label="Sort order">
                     <input type="number" name="sort_order" min="0" class="v-control v-mono v-w-sort" value="{{ old('sort_order', $category?->sort_order ?? 0) }}">
                 </x-admin.field>
