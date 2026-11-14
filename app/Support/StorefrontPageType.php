@@ -63,6 +63,57 @@ class StorefrontPageType
         'password.'        => 'auth',
     ];
 
+    /**
+     * Page types an extension added, by type: its label and route name
+     * prefixes. Registered from a service provider at boot, like widgets, so
+     * a type whose extension is switched off is simply absent: the
+     * dropdowns drop it and its saved rows stay in place, unused.
+     *
+     * @var array<string, array{label: string, routes: list<string>}>
+     */
+    private static array $registered = [];
+
+    /**
+     * Let an extension add a kind of storefront page, so Layout can arrange
+     * it and page settings can target it. Core's own types and their routes
+     * cannot be taken over: a core type's name is refused, and core's route
+     * prefixes are matched before any registered one.
+     *
+     * @param  string  $type  lower case letters, digits and underscores, e.g. 'shop'
+     * @param  list<string>  $routes  route name prefixes, e.g. ['marketplace.shop.']
+     */
+    public static function register(string $type, string $label, array $routes): void
+    {
+        if (preg_match('/^[a-z][a-z0-9_]{0,39}$/', $type) !== 1) {
+            throw new \InvalidArgumentException("A page type is lower case letters, digits and underscores: [{$type}].");
+        }
+        if (array_key_exists($type, self::TYPES) || in_array($type, [LayoutPage::QUICKVIEW, 'global'], true)) {
+            throw new \InvalidArgumentException("[{$type}] is one of core's page types.");
+        }
+        $routes = array_values(array_filter($routes, fn ($r) => is_string($r) && $r !== ''));
+        if ($routes === []) {
+            throw new \InvalidArgumentException("The page type [{$type}] needs at least one route name prefix.");
+        }
+
+        self::$registered[$type] = ['label' => trim($label) !== '' ? trim($label) : ucfirst($type), 'routes' => $routes];
+    }
+
+    public static function forget(string $type): void
+    {
+        unset(self::$registered[$type]);
+    }
+
+    /**
+     * Every page type, core's first in their order, then the ones extensions
+     * added.
+     *
+     * @return array<string, string> type => label
+     */
+    public static function all(): array
+    {
+        return self::TYPES + array_map(fn ($t) => $t['label'], self::$registered);
+    }
+
     public static function current(): ?string
     {
         return self::forRoute(Route::currentRouteName());
@@ -79,17 +130,24 @@ class StorefrontPageType
                 return $type;
             }
         }
+        foreach (self::$registered as $type => $spec) {
+            foreach ($spec['routes'] as $prefix) {
+                if ($name === $prefix || str_starts_with($name, $prefix)) {
+                    return $type;
+                }
+            }
+        }
 
         return null;
     }
 
     public static function label(?string $type): ?string
     {
-        return self::TYPES[$type] ?? null;
+        return self::all()[$type] ?? null;
     }
 
     public static function exists(?string $type): bool
     {
-        return $type !== null && array_key_exists($type, self::TYPES);
+        return $type !== null && array_key_exists($type, self::all());
     }
 }

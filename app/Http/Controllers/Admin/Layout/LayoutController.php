@@ -61,7 +61,7 @@ class LayoutController extends Controller
             'installedThemes' => $installed,
             'themeQuery' => $themeQuery,
             'pageType' => $pageType,
-            'pageTypes' => StorefrontPageType::TYPES,
+            'pageTypes' => StorefrontPageType::all(),
             'counts' => $counts,
             'regions' => $regions,
             'columns' => LayoutColumns::forPage($pageType),
@@ -120,7 +120,7 @@ class LayoutController extends Controller
             return 'home';
         }
 
-        foreach (array_keys(StorefrontPageType::TYPES) as $type) {
+        foreach (array_keys(StorefrontPageType::all()) as $type) {
             if (($counts[$type] ?? 0) > 0) {
                 return $type;
             }

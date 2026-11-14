@@ -173,7 +173,7 @@ class LayoutPage
             $keys[] = "category:level{$i}";
         }
         $keys[] = 'product';
-        foreach (array_keys(StorefrontPageType::TYPES) as $type) {
+        foreach (array_keys(StorefrontPageType::all()) as $type) {
             if (! in_array($type, $keys, true)) {
                 $keys[] = $type;
             }

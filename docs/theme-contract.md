@@ -230,6 +230,14 @@ A layout may also be arranged for a page more specific than a type. The keys are
 
 A region shows every page's rows plus the rows of the most specific key in the chain that has any there: a category's own rows replace its level's, which replace all categories'. Columns follow the same chain. The core Layout editor offers the page types; a theme's own editor may offer the rest.
 
+An extension with storefront pages of its own adds a page type for them from its service provider's `boot()`:
+
+```php
+\App\Support\StorefrontPageType::register('shop', 'Shop pages', ['marketplace.shop.']);
+```
+
+The first argument is the type (lower case letters, digits and underscores; core's own types are refused), the second its label, the third the route name prefixes it covers. Core's prefixes are matched first, so an extension never takes over a core page. The type then appears in every Layout page list (`StorefrontPageType::all()`, `LayoutPage::fixed()`), `LayoutPage::currentKey()` returns it on those routes, and page settings can target it. The extension's views draw the layout regions like any other page. A type whose extension is switched off is not registered: it leaves the lists, and the rows saved for it stay in place, unused, until it returns.
+
 ### 3.5 The intro area
 
 A theme that declares an `intro` region draws the page's trail and title as arranged. Core registers `system.breadcrumbs` and `system.page_title` for it; a page view says what it is with `\App\Support\PageIntro::set($title, [['label' => …, 'url' => …], …])` and the theme's two widget views draw it. A theme with a `quickview` region (page `quickview`, default `system.quick_view`) lets the merchant arrange the quick view like any page.
