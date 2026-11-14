@@ -34,7 +34,6 @@
     @endpush
 
     {{-- Breadcrumbs --}}
-    @if (\App\Support\PageSetting::on('show_breadcrumbs'))
     <div class="product-page-breadcrumbs">
         <div class="container-store py-3">
             <nav>
@@ -48,7 +47,6 @@
             </nav>
         </div>
     </div>
-    @endif
 
     @php
         $images = $product->images->sortBy('sort_order')->values();
@@ -516,7 +514,7 @@
                             SPECIFICATIONS
                         </button>
                     @endif
-                    @if (\App\Support\Reviews::enabled() && \App\Support\PageSetting::on('show_reviews'))
+                    @if (\App\Support\Reviews::enabled())
                         <button @click="tab = 'reviews'" :class="tab === 'reviews' ? 'active' : ''" class="product-tab-btn">
                             REVIEWS ({{ $reviewCount }})
                         </button>
@@ -531,7 +529,7 @@
                             @include('product.partials.attributes')
                         </div>
                     @endif
-                    @if (\App\Support\Reviews::enabled() && \App\Support\PageSetting::on('show_reviews'))
+                    @if (\App\Support\Reviews::enabled())
                         <div x-show="tab === 'reviews'" x-cloak x-data="{ reviewPage: 1, perPage: 20 }">
                             @include('product.partials.reviews')
                         </div>

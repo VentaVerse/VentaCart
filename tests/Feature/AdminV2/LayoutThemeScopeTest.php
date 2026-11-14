@@ -97,8 +97,7 @@ class LayoutThemeScopeTest extends TestCase
 
         $this->get(route('admin.layout', ['page' => 'product']))
             ->assertOk()
-            ->assertSee('show_reviews', false)
-            ->assertSee('Breadcrumbs', false);
+            ->assertSee('show_footer', false);
     }
 
     /** A setting the theme scopes to one page type is not offered elsewhere. */

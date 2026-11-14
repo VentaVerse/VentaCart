@@ -33,52 +33,6 @@
         }
     },
     "page_settings": {
-        "show_breadcrumbs": {
-            "label": "Breadcrumbs",
-            "type": "toggle",
-            "part": "body",
-            "default": true,
-            "pages": [
-                "category",
-                "product",
-                "blog",
-                "page",
-                "brand",
-                "account",
-                "cart",
-                "checkout",
-                "search"
-            ],
-            "description": "The trail of links back to Home (Home > Category > Product), above the page title."
-        },
-        "show_page_title": {
-            "label": "Page title",
-            "type": "toggle",
-            "part": "body",
-            "default": true,
-            "pages": [
-                "category",
-                "product",
-                "blog",
-                "page",
-                "brand",
-                "account",
-                "cart",
-                "checkout",
-                "search"
-            ],
-            "description": "The page's name in large type, at the top of its content."
-        },
-        "show_reviews": {
-            "label": "Reviews",
-            "type": "toggle",
-            "part": "body",
-            "default": true,
-            "pages": [
-                "product"
-            ],
-            "description": "The Reviews tab beside the description, with the review form."
-        },
         "show_footer": {
             "label": "Footer",
             "type": "toggle",

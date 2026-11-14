@@ -176,22 +176,16 @@
                         @endphp
                         @if ($vOwnRegion)
                             <div class="v-lay__pagebody--region">
-                                <x-admin.layout-slot :region="$vOwnRegion" :label="$regions[$vOwnRegion]['label'] ?? 'Built into this page'" :description="$regions[$vOwnRegion]['description'] ?? null" />
+                                <x-admin.layout-slot :region="$vOwnRegion" :label="$regions[$vOwnRegion]['label'] ?? 'Page content'" :description="$regions[$vOwnRegion]['description'] ?? null" />
                             </div>
-                        @else
-                            {{-- What the page draws by itself, between the
-                                 positions, with a switch for each part the
-                                 theme lets a merchant hide. --}}
+                        @elseif (collect($pageSettings)->contains(fn ($f) => ($f['part'] ?? null) === 'body'))
+                            {{-- Only a theme that lets a merchant hide parts of
+                                 the page's own content gets switches here; the
+                                 page's content itself is not drawn, as the
+                                 positions around it are what Layout arranges. --}}
                             <section class="v-lay__builtin" aria-labelledby="v-builtin-title">
-                                <h2 class="v-lay__builtintitle" id="v-builtin-title">Built into this page</h2>
-                                <p class="v-lay__builtinbody">
-                                    @if ($pageType === '*')
-                                        Each page's own content sits here. Open a page to switch its parts on or off.
-                                    @else
-                                        {{ $pageBody }}
-                                    @endif
-                                </p>
-                                <ul class="v-lay__parts" x-show="bodyParts().length" x-cloak>
+                                <h2 class="v-lay__builtintitle" id="v-builtin-title">Page options</h2>
+                                <ul class="v-lay__parts">
                                     <template x-for="f in bodyParts()" :key="f.name">
                                         <li class="v-lay__part" :class="{ 'is-off': !f.value }">
                                             <x-admin.part-switch />

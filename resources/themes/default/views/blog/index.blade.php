@@ -3,7 +3,6 @@
     <x-storefront.region name="content_top" />
 
     {{-- Breadcrumbs --}}
-    @if (\App\Support\PageSetting::on('show_breadcrumbs'))
     <div class="page-breadcrumbs">
         <div class="container-store py-3">
             <nav>
@@ -13,7 +12,6 @@
             </nav>
         </div>
     </div>
-    @endif
 
     <div class="container-store py-6">
         <div class="flex flex-col lg:flex-row gap-8">

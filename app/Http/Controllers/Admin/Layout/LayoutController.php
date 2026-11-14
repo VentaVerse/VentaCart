@@ -56,7 +56,6 @@ class LayoutController extends Controller
         return view('admin.layout.index', [
             'liveElsewhere' => $this->liveElsewhere($live, $slug, $installed),
             'headerFooterUrl' => \Illuminate\Support\Facades\Route::has('admin.header-footer') ? route('admin.header-footer') : null,
-            'pageBody' => StorefrontPageType::body($pageType),
             'theme' => $themeName,
             'themeSlug' => $slug,
             'installedThemes' => $installed,

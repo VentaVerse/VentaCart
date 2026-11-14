@@ -83,30 +83,6 @@ class StorefrontPageType
         return null;
     }
 
-    /**
-     * What each kind of page draws by itself, between the layout positions,
-     * in one plain sentence. Shown in the layout editor so a merchant can tell
-     * the page's own content from the widgets they placed around it.
-     */
-    private const BODY = [
-        'home'     => 'Nothing of its own: everything on the home page comes from the widgets placed in its positions.',
-        'category' => 'The category: its name, description, filters and the products in it.',
-        'product'  => 'The product: images, name, price, variants, Add to cart, then the description and reviews.',
-        'search'   => 'The search results for what the shopper typed.',
-        'brand'    => 'The brand: its name, logo and its products.',
-        'blog'     => 'The blog list or the post being read.',
-        'page'     => 'The content page you wrote in Content > Pages.',
-        'cart'     => 'The cart: its items, totals and the button to check out.',
-        'checkout' => 'The checkout form: address, shipping, payment and order summary.',
-        'account'  => 'The customer\'s account: orders, addresses and details.',
-        'auth'     => 'The sign in and register forms.',
-    ];
-
-    public static function body(?string $type): ?string
-    {
-        return $type === null ? null : (self::BODY[$type] ?? null);
-    }
-
     public static function label(?string $type): ?string
     {
         return self::TYPES[$type] ?? null;

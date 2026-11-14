@@ -125,14 +125,15 @@ class LayoutEditorOpeningTest extends TestCase
         $this->assertSame(LayoutRow::where('page_type', 'home')->value('id'), $placement->row_id);
     }
 
-    public function test_the_page_parts_are_described_where_they_sit(): void
+    public function test_the_page_content_is_left_out_and_header_and_footer_link_out(): void
     {
         $this->boot();
 
         $this->get(route('admin.layout', ['page' => 'product']))->assertOk()
-            ->assertSee('Built into this page')
-            ->assertSee('The product: images, name, price')
-            ->assertSee('The trail of links back to Home', false)
+            // The page's own content is not drawn or described, and the
+            // default theme offers no switches for it.
+            ->assertDontSee('Built into this page')
+            ->assertDontSee('Page options')
             ->assertSee('Edit in Header &amp; footer', false);
     }
 
