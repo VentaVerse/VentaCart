@@ -12,12 +12,12 @@ use RuntimeException;
 
 /**
  * A customer cancels their own order from their account, while it still
- * sits on a status the merchant marked "customer may cancel" (the unpaid
- * ones, in practice). Owner request, 2026-08-30.
+ * sits on a status the merchant marked "customer may cancel".
  *
- * The rule is data, not code: OrderStatus::customer_can_cancel per status,
- * and setting checkout.customer_cancel_status_id for where it lands. No
- * landing status chosen, no cancellation offered. Because the move goes
+ * The rule is data, not code: each status says whether its orders may be
+ * cancelled by the customer (customer_can_cancel) and where a cancellation
+ * sends them (customer_cancel_status_id). No destination chosen, no
+ * cancellation offered. Because the move goes
  * through OrderStatusChanger, stock returns, history is written, the
  * fulfillment tab and the ERP follow, exactly as an admin cancellation
  * would.
@@ -28,9 +28,6 @@ use RuntimeException;
  */
 class CustomerOrderCancellation
 {
-    public const SETTING_GROUP = 'checkout';
-    public const SETTING_KEY = 'customer_cancel_status_id';
-
     /** Can this customer cancel this order right now? Read-only; the page uses it to show the button. */
     public static function allowed(Order $order, ?Customer $customer): bool
     {
@@ -38,12 +35,12 @@ class CustomerOrderCancellation
             return false;
         }
 
-        return (bool) $order->status?->customer_can_cancel && self::target($order) !== null;
+        return self::target($order) !== null;
     }
 
     /**
-     * The same answer for a page of orders, with the landing status looked
-     * up once instead of once per row.
+     * The same answer for a page of orders, with each status's destination
+     * looked up once instead of once per row.
      *
      * @param  iterable<Order>  $orders
      * @return array<int, bool>  keyed by order id
@@ -51,31 +48,37 @@ class CustomerOrderCancellation
     public static function allowedMany(iterable $orders, ?Customer $customer): array
     {
         $out = [];
-        $target = null;
+        $targets = [];
 
         foreach ($orders as $order) {
-            $target ??= self::target($order) ?? false;
+            $statusId = (int) $order->order_status_id;
+            $targets[$statusId] ??= self::target($order) !== null;
             $out[$order->id] = $customer
                 && (int) $order->customer_id === (int) $customer->id
-                && (bool) $order->status?->customer_can_cancel
-                && $target !== false;
+                && $targets[$statusId];
         }
 
         return $out;
     }
 
     /**
-     * The status a customer cancellation lands on. Null when the merchant
-     * has not chosen one, and then nothing is offered: no guessing by a
-     * status NAME (owner ruling, 2026-08-30: a name can be renamed or
-     * deleted, and a guess that silently stops working is worse than a
-     * button that never appears until the setting is made).
+     * The status a customer cancellation moves this order to: the one its
+     * current status names, when that status allows cancelling. Null when it
+     * does not, or names nothing, or names a status of another store, and
+     * then nothing is offered. Never a guess by status name: a name can be
+     * renamed or deleted, and a guess that silently stops working is worse
+     * than a button that never appears until the store picks one.
      */
     public static function target(Order $order): ?OrderStatus
     {
-        $id = Setting::where('group', self::SETTING_GROUP)->where('key', self::SETTING_KEY)->value('value');
+        $status = $order->status;
+        if (! $status?->customer_can_cancel || ! $status->customer_cancel_status_id) {
+            return null;
+        }
 
-        return $id ? OrderStatus::where('store_id', $order->store_id)->find((int) $id) : null;
+        return OrderStatus::where('store_id', $order->store_id)
+            ->whereKeyNot($status->id)
+            ->find($status->customer_cancel_status_id);
     }
 
     /**

@@ -18,10 +18,9 @@ use Tests\TestCase;
 
 /**
  * A customer may cancel their own order from their account while it sits on
- * a status the merchant marked "customer may cancel" (owner request,
- * 2026-08-30: the unpaid ones, including a COD-to-confirm status). The move
- * goes through OrderStatusChanger, so stock returns, history is written,
- * and the store is told.
+ * a status the merchant marked "customer may cancel", and the order changes to
+ * the status that row names. The move goes through OrderStatusChanger, so
+ * stock returns, history is written, and the store is told.
  */
 class CustomerCancelsOrderTest extends TestCase
 {
@@ -42,7 +41,7 @@ class CustomerCancelsOrderTest extends TestCase
         $this->pending = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'is_default' => true, 'sort_order' => 1, 'deducts_stock' => true, 'customer_can_cancel' => true]);
         $this->processing = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 2, 'deducts_stock' => true]);
         $this->canceled = OrderStatus::create(['store_id' => 1, 'name' => 'Canceled', 'sort_order' => 7, 'deducts_stock' => false]);
-        Setting::create(['group' => 'checkout', 'key' => 'customer_cancel_status_id', 'value' => (string) $this->canceled->id]);
+        $this->pending->update(['customer_cancel_status_id' => $this->canceled->id]);
     }
 
     private function customer(string $email = 'jane@example.com'): Customer
@@ -111,16 +110,19 @@ class CustomerCancelsOrderTest extends TestCase
         Mail::assertSent(TemplateMail::class, fn (TemplateMail $m) => str_contains($m->renderedSubject, 'cancelled by Jane Doe'));
     }
 
-    public function test_it_lands_on_the_configured_status(): void
+    public function test_each_status_sends_its_cancellations_where_that_row_says(): void
     {
         $customer = $this->customer();
-        $order = $this->order($customer, $this->pending);
-        $byCustomer = OrderStatus::create(['store_id' => 1, 'name' => 'Cancelled by customer', 'sort_order' => 8]);
-        Setting::where('group', 'checkout')->where('key', 'customer_cancel_status_id')->update(['value' => (string) $byCustomer->id]);
+        $returned = OrderStatus::create(['store_id' => 1, 'name' => 'Returned', 'sort_order' => 8]);
+        $shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 3, 'customer_can_cancel' => true, 'customer_cancel_status_id' => $returned->id]);
+        $unpaid = $this->order($customer, $this->pending);
+        $sent = $this->order($customer, $shipped);
 
-        $this->actingAs($customer, 'customer')->post(route('account.orders.cancel', $order))->assertRedirect();
+        $this->actingAs($customer, 'customer')->post(route('account.orders.cancel', $unpaid))->assertRedirect();
+        $this->actingAs($customer, 'customer')->post(route('account.orders.cancel', $sent))->assertRedirect();
 
-        $this->assertSame($byCustomer->id, $order->fresh()->order_status_id);
+        $this->assertSame($this->canceled->id, $unpaid->fresh()->order_status_id);
+        $this->assertSame($returned->id, $sent->fresh()->order_status_id);
     }
 
     public function test_an_order_past_the_allowed_status_is_refused_and_unchanged(): void
@@ -155,11 +157,12 @@ class CustomerCancelsOrderTest extends TestCase
         $this->assertSame($this->pending->id, $order->fresh()->order_status_id);
     }
 
-    public function test_without_a_landing_status_nothing_is_offered_and_nothing_happens(): void
+    public function test_without_a_destination_nothing_is_offered_and_nothing_happens(): void
     {
-        // No guess by a status name: the setting is the only source. Unset it,
-        // and even a ticked status offers no button and refuses a direct POST.
-        Setting::where('group', 'checkout')->where('key', 'customer_cancel_status_id')->delete();
+        // No guess by a status name: the row's own choice is the only source.
+        // Without one, even a switched-on status offers no button and refuses
+        // a direct POST.
+        $this->pending->update(['customer_cancel_status_id' => null]);
         $customer = $this->customer();
         $order = $this->order($customer, $this->pending);
 
@@ -170,27 +173,99 @@ class CustomerCancelsOrderTest extends TestCase
         $this->assertSame($this->pending->id, $order->fresh()->order_status_id);
     }
 
-    public function test_the_admin_can_flip_the_switch_per_status(): void
+    private function saveRows(array $pending, array $processing): \Illuminate\Testing\TestResponse
     {
-        $this->actingAs(User::factory()->create())
+        return $this->actingAs(User::factory()->create())
+            ->from(route('admin.order-statuses.index'))
             ->put(route('admin.order-statuses.update-all'), [
                 'default_id' => $this->pending->id,
                 'rows' => [
-                    $this->pending->id    => ['name' => 'Pending', 'deducts_stock' => '1', 'customer_can_cancel' => '0', 'sort_order' => 1],
-                    $this->processing->id => ['name' => 'Processing', 'deducts_stock' => '1', 'customer_can_cancel' => '1', 'sort_order' => 2],
+                    $this->pending->id    => ['name' => 'Pending', 'deducts_stock' => '1', 'sort_order' => 1] + $pending,
+                    $this->processing->id => ['name' => 'Processing', 'deducts_stock' => '1', 'sort_order' => 2] + $processing,
                     $this->canceled->id   => ['name' => 'Canceled', 'deducts_stock' => '0', 'customer_can_cancel' => '0', 'sort_order' => 7],
                 ],
-            ])->assertRedirect();
-
-        $this->assertFalse($this->pending->fresh()->customer_can_cancel);
-        $this->assertTrue($this->processing->fresh()->customer_can_cancel);
+            ]);
     }
 
-    public function test_a_deleted_landing_status_offers_nothing_rather_than_guessing(): void
+    public function test_the_admin_sets_the_switch_and_its_destination_per_status(): void
+    {
+        $this->saveRows(
+            ['customer_can_cancel' => '0', 'customer_cancel_status_id' => (string) $this->canceled->id],
+            ['customer_can_cancel' => '1', 'customer_cancel_status_id' => (string) $this->canceled->id],
+        )->assertRedirect(route('admin.order-statuses.index'))->assertSessionHasNoErrors();
+
+        $this->assertFalse($this->pending->fresh()->customer_can_cancel);
+        $this->assertNull($this->pending->fresh()->customer_cancel_status_id, 'Switching it off clears where it went.');
+        $this->assertTrue($this->processing->fresh()->customer_can_cancel);
+        $this->assertSame($this->canceled->id, $this->processing->fresh()->customer_cancel_status_id);
+    }
+
+    public function test_switching_cancel_on_without_a_destination_is_refused_by_name(): void
+    {
+        $this->saveRows(
+            ['customer_can_cancel' => '1', 'customer_cancel_status_id' => (string) $this->canceled->id],
+            ['customer_can_cancel' => '1', 'customer_cancel_status_id' => ''],
+        )->assertSessionHasErrors([
+            "rows.{$this->processing->id}.customer_cancel_status_id" => 'Choose the status Processing changes to when the customer cancels.',
+        ]);
+
+        $this->assertFalse($this->processing->fresh()->customer_can_cancel, 'Nothing is saved while a row is incomplete.');
+    }
+
+    public function test_a_status_cannot_cancel_into_itself_or_another_stores_status(): void
+    {
+        $otherStore = Store::create(['code' => 'other', 'name' => 'Other Store']);
+        $foreign = OrderStatus::create(['store_id' => $otherStore->id, 'name' => 'Canceled', 'sort_order' => 1]);
+
+        $this->saveRows(
+            ['customer_can_cancel' => '1', 'customer_cancel_status_id' => (string) $this->pending->id],
+            ['customer_can_cancel' => '1', 'customer_cancel_status_id' => (string) $foreign->id],
+        )->assertSessionHasErrors([
+            "rows.{$this->pending->id}.customer_cancel_status_id",
+            "rows.{$this->processing->id}.customer_cancel_status_id",
+        ]);
+    }
+
+    public function test_the_order_statuses_page_shows_the_destination_beside_the_switch(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.order-statuses.index'))
+            ->assertOk()
+            ->assertSee('Change to')
+            ->assertSee('name="rows[' . $this->pending->id . '][customer_cancel_status_id]"', false);
+    }
+
+    public function test_the_checkout_settings_no_longer_ask_where_cancellations_land(): void
+    {
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.settings.section', 'checkout'))
+            ->assertOk()
+            ->assertDontSee('Cancelled by customer lands on');
+    }
+
+    public function test_updating_a_store_copies_the_old_store_wide_choice_onto_each_cancellable_status(): void
+    {
+        $migration = require database_path('migrations/2026_11_16_100000_move_customer_cancel_target_onto_each_status.php');
+        $this->pending->update(['customer_cancel_status_id' => null]);
+        $this->processing->update(['customer_can_cancel' => false]);
+        Setting::create(['group' => 'checkout', 'key' => 'customer_cancel_status_id', 'value' => (string) $this->canceled->id]);
+
+        $migration->up();
+        $migration->up(); // safe to run twice
+
+        $this->assertSame($this->canceled->id, $this->pending->fresh()->customer_cancel_status_id);
+        $this->assertNull($this->processing->fresh()->customer_cancel_status_id, 'A status that never allowed cancelling stays empty.');
+        $this->assertNull($this->canceled->fresh()->customer_cancel_status_id);
+        $this->assertDatabaseMissing('settings', ['group' => 'checkout', 'key' => 'customer_cancel_status_id']);
+    }
+
+    public function test_a_deleted_destination_offers_nothing_rather_than_guessing(): void
     {
         $customer = $this->customer();
         $order = $this->order($customer, $this->pending);
         $this->canceled->delete();
+
+        $this->assertNull($this->pending->fresh()->customer_cancel_status_id, 'Statuses that cancelled into it are cleared.');
 
         $this->assertFalse(CustomerOrderCancellation::allowed($order->fresh('status'), $customer));
         $this->actingAs($customer, 'customer')->post(route('account.orders.cancel', $order))->assertSessionHas('error');

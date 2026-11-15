@@ -20,7 +20,7 @@
                                 <th>Status</th>
                                 <th><span class="v-namerow">Deducts stock <x-admin.help text="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned." /></span></th>
                                 <th><span class="v-namerow">Counts as revenue <x-admin.help text="Orders with no status never count, whatever this is set to." /></span></th>
-                                <th><span class="v-namerow">Customer may cancel <x-admin.help text="A customer can cancel their own order from their account while it sits on this status. Tick the statuses that mean not paid yet." /></span></th>
+                                <th><span class="v-namerow">Customer may cancel <x-admin.help text="A customer can cancel their own order from their account while it sits on this status. Turn it on, then choose the status the order changes to." /></span></th>
                                 <th><span class="v-namerow">Tone <x-admin.help text="The colour of this status in the customer's account: Attention for not paid yet, In progress while it moves, Done when it is over, Stopped when it went wrong." /></span></th>
                                 <th>Sort</th>
                                 <th>Default</th>
@@ -50,13 +50,37 @@
                                             <span class="v-toggle__track" aria-hidden="true"></span>
                                         </label>
                                     </td>
-                                    <td>
-                                        <label class="v-toggle">
-                                            <input type="hidden" name="rows[{{ $status->id }}][customer_can_cancel]" value="0">
-                                            <input type="checkbox" name="rows[{{ $status->id }}][customer_can_cancel]" value="1" @checked(old('rows.'.$status->id.'.customer_can_cancel', $status->customer_can_cancel))
-                                                   aria-label="{{ $status->name }} customer may cancel">
-                                            <span class="v-toggle__track" aria-hidden="true"></span>
-                                        </label>
+                                    @php
+                                        $vCancelOn = (bool) old('rows.'.$status->id.'.customer_can_cancel', $status->customer_can_cancel);
+                                        $vCancelTo = (string) old('rows.'.$status->id.'.customer_cancel_status_id', $status->customer_cancel_status_id);
+                                        $vCancelErr = 'rows.'.$status->id.'.customer_cancel_status_id';
+                                    @endphp
+                                    {{-- The switch and where a cancellation goes sit together:
+                                         turning the switch on asks for the destination. --}}
+                                    <td class="v-cell-cancel" x-data="{ on: @js($vCancelOn) }">
+                                        <div class="v-cancelto">
+                                            <label class="v-toggle">
+                                                <input type="hidden" name="rows[{{ $status->id }}][customer_can_cancel]" value="0">
+                                                <input type="checkbox" name="rows[{{ $status->id }}][customer_can_cancel]" value="1" x-model="on" @checked($vCancelOn)
+                                                       aria-label="{{ $status->name }} customer may cancel">
+                                                <span class="v-toggle__track" aria-hidden="true"></span>
+                                            </label>
+                                            <label class="v-cancelto__to" x-show="on" @unless ($vCancelOn) x-cloak @endunless>
+                                                <span class="v-cancelto__label">Change to</span>
+                                                <select name="rows[{{ $status->id }}][customer_cancel_status_id]" :disabled="!on"
+                                                        aria-label="{{ $status->name }}: status a customer cancellation changes to"
+                                                        class="v-control v-select v-w-cancelto @error($vCancelErr) is-invalid @enderror">
+                                                    <option value="">Choose a status</option>
+                                                    @foreach ($statuses as $other)
+                                                        @continue($other->id === $status->id)
+                                                        <option value="{{ $other->id }}" @selected($vCancelTo === (string) $other->id)>{{ $other->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </label>
+                                        </div>
+                                        @error($vCancelErr)
+                                            <span class="v-field__error" x-show="on">{{ $message }}</span>
+                                        @enderror
                                     </td>
                                     <td>
                                         <select name="rows[{{ $status->id }}][tone]" aria-label="{{ $status->name }} tone" class="v-control v-select v-w-tone">

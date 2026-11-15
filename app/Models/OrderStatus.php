@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderStatus extends Model
 {
-    protected $fillable = ['store_id', 'name', 'is_default', 'deducts_stock', 'counts_as_revenue', 'customer_can_cancel', 'tone', 'sort_order'];
+    protected $fillable = ['store_id', 'name', 'is_default', 'deducts_stock', 'counts_as_revenue', 'customer_can_cancel', 'customer_cancel_status_id', 'tone', 'sort_order'];
 
     protected $attributes = ['tone' => \App\Support\StatusTone::NEUTRAL];
 
@@ -27,6 +27,10 @@ class OrderStatus extends Model
             // stock and earned nothing. Read ONLY through App\Support\Revenue.
             'counts_as_revenue' => 'boolean',
             'customer_can_cancel' => 'boolean',
+            // Where a customer cancellation sends an order on this status.
+            // Chosen per status, so an unpaid order and a shipped one can
+            // land in different places. Null offers no Cancel button.
+            'customer_cancel_status_id' => 'integer',
             // Whether reaching this status sends the customer an email. Off
             // by default: a fresh status is silent until the store says
             // otherwise. SMS is a separate list kept by the UniSMS extension.
@@ -44,11 +48,23 @@ class OrderStatus extends Model
     protected static function booted(): void
     {
         static::saved(fn () => Revenue::flush());
-        static::deleted(fn () => Revenue::flush());
+        static::deleted(function (OrderStatus $status) {
+            Revenue::flush();
+            // A status that other statuses cancel into is gone: they offer no
+            // Cancel button until the store picks a new destination, rather
+            // than pointing at nothing.
+            static::where('customer_cancel_status_id', $status->id)->update(['customer_cancel_status_id' => null]);
+        });
     }
 
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    /** The status a customer cancellation moves an order on this status to. */
+    public function customerCancelStatus(): BelongsTo
+    {
+        return $this->belongsTo(OrderStatus::class, 'customer_cancel_status_id');
     }
 }

@@ -128,6 +128,7 @@ class OrderStatusController extends Controller
             'rows.*.deducts_stock' => ['boolean'],
             'rows.*.counts_as_revenue' => ['boolean'],
             'rows.*.customer_can_cancel' => ['boolean'],
+            'rows.*.customer_cancel_status_id' => ['nullable', 'integer'],
             'rows.*.tone' => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\StatusTone::ALL)],
             'rows.*.sort_order' => ['nullable', 'integer', 'min:0'],
             'default_id' => ['required', 'integer'],
@@ -140,17 +141,37 @@ class OrderStatusController extends Controller
 
         abort_unless($statuses->has((int) $validated['default_id']), 422);
 
+        // A status that lets the customer cancel must say where the order
+        // goes, and it must be another status of this store.
+        $storeIds = OrderStatus::where('store_id', $this->storeId)->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $errors = [];
+        foreach ($validated['rows'] as $id => $row) {
+            if (! $statuses->has((int) $id) || ! filter_var($row['customer_can_cancel'] ?? false, FILTER_VALIDATE_BOOL)) {
+                continue;
+            }
+            $to = (int) ($row['customer_cancel_status_id'] ?? 0);
+            if ($to === 0 || $to === (int) $id || ! in_array($to, $storeIds, true)) {
+                $errors["rows.{$id}.customer_cancel_status_id"] = 'Choose the status ' . $row['name'] . ' changes to when the customer cancels.';
+            }
+        }
+        if ($errors !== []) {
+            throw \Illuminate\Validation\ValidationException::withMessages($errors);
+        }
+
         \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $statuses) {
             foreach ($validated['rows'] as $id => $row) {
                 $status = $statuses->get((int) $id);
                 if (! $status) {
                     continue;
                 }
+                $canCancel = filter_var($row['customer_can_cancel'] ?? false, FILTER_VALIDATE_BOOL);
                 $status->update([
                     'name' => $row['name'],
                     'deducts_stock' => filter_var($row['deducts_stock'] ?? false, FILTER_VALIDATE_BOOL),
                     'counts_as_revenue' => filter_var($row['counts_as_revenue'] ?? false, FILTER_VALIDATE_BOOL),
-                    'customer_can_cancel' => filter_var($row['customer_can_cancel'] ?? false, FILTER_VALIDATE_BOOL),
+                    'customer_can_cancel' => $canCancel,
+                    // Switched off, the destination is cleared with it.
+                    'customer_cancel_status_id' => $canCancel ? (int) $row['customer_cancel_status_id'] : null,
                     'tone' => $row['tone'] ?? $status->tone,
                     'sort_order' => $row['sort_order'] ?? 0,
                     'is_default' => (int) $id === (int) $validated['default_id'],
