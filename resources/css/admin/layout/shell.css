@@ -115,6 +115,14 @@
     color: var(--bl-slab-ink);
 }
 
+.v-slab__version {
+    margin: 0;
+    padding: 12px 14px 14px;
+    font-size: 11px;
+    color: var(--bl-slab-ink);
+    font-variant-numeric: tabular-nums;
+}
+
 .v-slab__avatar {
     display: grid;
     place-items: center;

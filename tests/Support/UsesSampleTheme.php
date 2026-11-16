@@ -33,6 +33,9 @@ trait UsesSampleTheme
 
         $manifest = json_decode((string) file_get_contents($default.'/theme.json'), true);
         $manifest['name'] = 'Sample';
+        // A theme installed beside core declares its own version; only the
+        // default theme, which ships inside core, goes without one.
+        $manifest['version'] = '1.0.0';
         $manifest['editor'] = 'admin.dashboard';
         $manifest['regions']['header'] = ['label' => 'Header', 'system' => true, 'page' => '*', 'defaults' => ['system.header']];
         // The product page ships the way a two-column theme does: the images

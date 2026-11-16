@@ -212,6 +212,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                         } catch (e) {}
                     })();
                 </script>
+                <p class="v-slab__version">VentaCart v{{ config('app.version') }}</p>
             </div>
 
             <a href="{{ route('home') }}" target="_blank" rel="noopener" class="v-slab__foot">

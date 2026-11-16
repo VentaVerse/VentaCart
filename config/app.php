@@ -15,6 +15,19 @@ return [
 
     'name' => env('APP_NAME', 'VentaCart'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | VentaCart Version
+    |--------------------------------------------------------------------------
+    |
+    | The release this code is. Shown under the admin navigation, and the
+    | number an update compares against. It belongs to the code, not to an
+    | install, so it is not read from the environment.
+    |
+    */
+
+    'version' => '1.0.0-rc.2',
+
     'store_id' => (int) env('STORE_ID', 1),
 
     /*

@@ -49,7 +49,10 @@ class ExtensionCard
             'title' => $manifest['title'] ?? $name,
             'description' => $manifest['description'] ?? '',
             'icon' => $manifest['icon'] ?? 'categories',
-            'version' => $registryRow->version ?? ($manifest['version'] ?? null),
+            // The default theme ships inside core and shows no version of its own.
+            'version' => ($manifest['theme'] ?? null) === \App\Services\ThemeService::THEME
+                ? null
+                : ($registryRow->version ?? ($manifest['version'] ?? null)),
             // The version on disk, when it is newer than the installed one.
             'update_to' => $state === 'needs_migration' ? ($manifest['version'] ?? null) : null,
             'state' => $state,

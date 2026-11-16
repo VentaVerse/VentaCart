@@ -138,9 +138,9 @@ class ThemePackagesTest extends TestCase
 
     public function test_the_registry_row_carries_the_package_version(): void
     {
+        // The default theme ships inside core, so it is recorded at core's version.
         $row = Extension::where('name', 'theme-default')->first();
-        $meta = json_decode(File::get(resource_path('themes/default/theme.json')), true);
-        $this->assertSame((string) $meta['version'], $row->version);
+        $this->assertSame((string) config('app.version'), $row->version);
         $this->assertSame('enabled', app(ExtensionManager::class)->state('theme-default'));
     }
 }
