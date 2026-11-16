@@ -14,9 +14,11 @@ use App\Services\ActivityLogger;
 use App\Services\PaymentRestrictionService;
 use App\Mail\OrderConfirmationMail;
 use App\Support\NotifyChoice;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class CheckoutService
 {
@@ -65,6 +67,58 @@ class CheckoutService
         return $methods;
     }
 
+    /**
+     * The shipping quotes for a saved address and the cart's items. The
+     * checkout page, its rates refresh and order placement all ask here, so
+     * the quote a customer picks is computed from the same input as the
+     * quote the order is charged.
+     */
+    public function shippingQuotesFor(CustomerAddress $address, Collection $items, float $subtotal): array
+    {
+        return app(\App\Services\Shipping\ShippingQuoteService::class)->getQuotes([
+            'province' => $address->state,
+            'city' => $address->city,
+            'barangay' => $address->barangay,
+            'country_id' => $address->country_id ?? null,
+            'postcode' => $address->postcode ?? '',
+        ], $items, $subtotal);
+    }
+
+    /**
+     * The live quote the customer's chosen key names, or a validation
+     * error. There is no fallback to a cost or name sent by the browser:
+     * anything the form carries can be edited, so a method that cannot be
+     * quoted now (rates changed, the address no longer qualifies, or a rate
+     * provider is unreachable) is refused and the customer chooses again.
+     *
+     * @return array{key: string, name: string, cost: float|int}
+     */
+    private function resolveShippingQuote(CustomerAddress $address, Collection $items, float $subtotal, string $key): array
+    {
+        $quotes = $this->shippingQuotesFor($address, $items, $subtotal);
+
+        if ($quotes === []) {
+            throw ValidationException::withMessages([
+                'shipping_method' => 'We could not get delivery options for this address right now. Please try again in a few minutes.',
+            ]);
+        }
+
+        $matched = collect($quotes)->first(
+            fn ($quote) => isset($quote['key'], $quote['name'], $quote['cost'])
+                && (string) $quote['key'] === $key
+                && is_numeric($quote['cost'])
+                && (float) $quote['cost'] >= 0
+        );
+
+        if ($matched === null) {
+            throw ValidationException::withMessages([
+                'shipping_method' => 'That delivery option is no longer available. Choose one again.',
+            ]);
+        }
+
+        return $matched;
+    }
+
     public function getPaymentMethod(string $key): ?PaymentMethodInterface
     {
         $method = \App\Services\PaymentManager::get($key);
@@ -79,9 +133,7 @@ class CheckoutService
         string $shippingMethodKey,
         Cart $cart,
         ?string $comment = null,
-        ?string $courierComment = null,
-        ?string $shippingMethodName = null,
-        ?float $shippingCostOverride = null
+        ?string $courierComment = null
     ): array {
         // A line switched off since it was added (its product or its
         // variant) is not for sale, whatever stock it shows. Asked first:
@@ -152,6 +204,14 @@ class CheckoutService
             return $item->price * $item->quantity;
         });
 
+        // The server alone decides shipping: the method, its name and its
+        // cost come from a quote computed here for this cart and address,
+        // never from the form. Resolved before the payment check so that
+        // payment rules keyed on the shipping method see a real method.
+        $shippingMethod = $this->resolveShippingQuote($shippingAddress, $items, (float) $subtotal, $shippingMethodKey);
+        $shippingMethodKey = (string) $shippingMethod['key'];
+        $shippingCost = (float) $shippingMethod['cost'];
+
         // Verify payment restrictions
         $addressData = [
             'state' => $shippingAddress->state,
@@ -175,28 +235,6 @@ class CheckoutService
             throw new \InvalidArgumentException('Selected payment method is not available for this order.');
         }
 
-        // Verify shipping cost by re-fetching from providers
-        $quoteService = app(\App\Services\Shipping\ShippingQuoteService::class);
-        $liveQuotes = $quoteService->getQuotes([
-            'province' => $shippingAddress->state,
-            'city' => $shippingAddress->city,
-            'barangay' => $shippingAddress->barangay,
-            'country_id' => $shippingAddress->country_id ?? null,
-        ], $items, $subtotal);
-
-        $matchedQuote = collect($liveQuotes)->firstWhere('key', $shippingMethodKey);
-
-        if ($matchedQuote) {
-            // Use the verified cost from the provider
-            $shippingCost = (float) $matchedQuote['cost'];
-            $shippingMethod = $matchedQuote;
-        } elseif ($shippingCostOverride !== null) {
-            // Fallback: trust the override if no live quote matches (provider may be down)
-            $shippingCost = $shippingCostOverride;
-            $shippingMethod = ['key' => $shippingMethodKey, 'name' => $shippingMethodName ?? 'Shipping', 'cost' => $shippingCostOverride];
-        } else {
-            throw new \InvalidArgumentException('Selected shipping method is no longer available. Please go back and select a shipping option.');
-        }
         // Order totals pipeline: every registered total extension
         // (coupon, store credit, ...) contributes its lines against this
         // context; a provider may also adjust the shipping cost (a
@@ -216,12 +254,10 @@ class CheckoutService
 
         // Build shipping meta from the matched provider
         $shippingMeta = null;
-        if ($matchedQuote) {
-            foreach ($quoteService->getProviders() as $provider) {
-                if (str_starts_with($shippingMethodKey, $provider->getKey() . '_') || $shippingMethodKey === $provider->getKey()) {
-                    $shippingMeta = $provider->buildShippingMeta($shippingMethodKey, $matchedQuote);
-                    break;
-                }
+        foreach (app(\App\Services\Shipping\ShippingQuoteService::class)->getProviders() as $provider) {
+            if (str_starts_with($shippingMethodKey, $provider->getKey() . '_') || $shippingMethodKey === $provider->getKey()) {
+                $shippingMeta = $provider->buildShippingMeta($shippingMethodKey, $shippingMethod);
+                break;
             }
         }
 
@@ -235,7 +271,7 @@ class CheckoutService
 
         $order = DB::transaction(function () use (
             $customer, $shippingAddress, $billingAddress, $paymentMethodKey, $paymentMethod,
-            $shippingMethod, $shippingMethodKey, $shippingMethodName, $shippingMeta, $items, $subtotal, $shippingCost, $total,
+            $shippingMethod, $shippingMethodKey, $shippingMeta, $items, $subtotal, $shippingCost, $total,
             $comment, $cart, $totalsCtx, $couponLine, $courierComment
         ) {
             $orderData = [
@@ -258,7 +294,7 @@ class CheckoutService
                 'shipping_phone' => $shippingAddress->phone,
                 'payment_method' => $paymentMethodKey,
                 'payment_method_title' => $paymentMethod?->getName(),
-                'shipping_method' => $shippingMethodName ?? $shippingMethod['name'],
+                'shipping_method' => $shippingMethod['name'],
                 'shipping_meta' => $shippingMeta,
                 'shipping_country_name' => \App\Models\Country::find($shippingAddress->country_id ?? null)?->name,
                 'subtotal' => $subtotal,

@@ -35,18 +35,9 @@ class CheckoutController extends Controller
 
         $subtotal = $this->cartService->getSubtotal();
 
-        $quoteService = app(\App\Services\Shipping\ShippingQuoteService::class);
-        if ($defaultAddress) {
-            $shippingMethods = $quoteService->getQuotes([
-                'province' => $defaultAddress->state,
-                'city' => $defaultAddress->city,
-                'barangay' => $defaultAddress->barangay,
-                'country_id' => $defaultAddress->country_id ?? null,
-                'postcode' => $defaultAddress->postcode ?? '',
-            ], $items, $subtotal);
-        } else {
-            $shippingMethods = [];
-        }
+        $shippingMethods = $defaultAddress
+            ? $this->checkoutService->shippingQuotesFor($defaultAddress, $items, $subtotal)
+            : [];
 
         $addressData = $defaultAddress ? [
             'state' => $defaultAddress->state,
@@ -142,7 +133,9 @@ class CheckoutController extends Controller
         $validated = $request->validate([
             'shipping_address_id' => ['required', 'exists:customer_addresses,id'],
             'payment_method' => ['required', 'string'],
-            'shipping_method' => ['required', 'string'],
+            // Only the key: the method's name and cost are looked up on the
+            // server from a live quote, never read from the form.
+            'shipping_method' => ['required', 'string', 'max:255'],
             'different_billing' => ['nullable'],
             'billing_first_name' => ['required_if:different_billing,1', 'nullable', 'string', 'max:255'],
             'billing_last_name' => ['required_if:different_billing,1', 'nullable', 'string', 'max:255'],
@@ -155,8 +148,6 @@ class CheckoutController extends Controller
             'billing_country_id' => ['required_if:different_billing,1', 'nullable', 'integer', 'exists:countries,id'],
             'comment' => ['nullable', 'string', 'max:2000'],
             'courier_comment' => ['nullable', 'string', 'max:2000'],
-            'shipping_method_name' => ['nullable', 'string', 'max:255'],
-            'shipping_cost' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $shippingAddress = CustomerAddress::where('id', $validated['shipping_address_id'])
@@ -188,8 +179,6 @@ class CheckoutController extends Controller
                 cart: $cart,
                 comment: $validated['comment'] ?? null,
                 courierComment: $validated['courier_comment'] ?? null,
-                shippingMethodName: $validated['shipping_method_name'] ?? null,
-                shippingCostOverride: isset($validated['shipping_cost']) ? (float) $validated['shipping_cost'] : null,
             );
 
             $order = $result['order'];
@@ -221,14 +210,7 @@ class CheckoutController extends Controller
         $items = $this->cartService->getItems();
         $subtotal = $this->cartService->getSubtotal();
 
-        $quoteService = app(\App\Services\Shipping\ShippingQuoteService::class);
-        $quotes = $quoteService->getQuotes([
-            'province' => $address->state,
-            'city' => $address->city,
-            'barangay' => $address->barangay,
-            'country_id' => $address->country_id ?? null,
-            'postcode' => $address->postcode ?? '',
-        ], $items, $subtotal);
+        $quotes = $this->checkoutService->shippingQuotesFor($address, $items, $subtotal);
 
         return response()->json(['methods' => $quotes]);
     }
