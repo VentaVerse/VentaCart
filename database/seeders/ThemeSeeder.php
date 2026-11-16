@@ -53,7 +53,7 @@ class ThemeSeeder extends Seeder
             ],
             'category_page' => [
                 'products_per_page' => '12',
-                'default_sort' => 'default',
+                'default_sort' => 'date_added',
             ],
             'blog' => [
                 'posts_per_page' => '12',

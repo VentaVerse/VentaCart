@@ -20,8 +20,7 @@ class CategoryController extends Controller
         }
 
         $settings = $theme->getGroup('category_page');
-        // The page's own count wins; the theme's listing setting is the store-wide default.
-        $perPage = max(4, min(96, (int) ($settings['products_per_page'] ?? \App\Support\ThemeOptions::get('listing_per_page', 12))));
+        $perPage = \App\Support\ProductListing::perPage();
 
         // Collect this category + all descendant category IDs
         $categoryIds = $category->selfAndDescendantIds();
@@ -63,30 +62,9 @@ class CategoryController extends Controller
 
         \App\Support\ProductAttributes::applyFilters($query, $request);
 
-        // Sorting
-        $sort = $request->input('sort', 'date_added');
-        switch ($sort) {
-            case 'date_added':
-                $query->latest('date_available');
-                break;
-            case 'price_asc':
-                $query->orderBy('price', 'asc');
-                break;
-            case 'price_desc':
-                $query->orderBy('price', 'desc');
-                break;
-            case 'name_asc':
-                $query->orderBy('name', 'asc');
-                break;
-            case 'name_desc':
-                $query->orderBy('name', 'desc');
-                break;
-            case 'newest':
-                $query->latest();
-                break;
-            default:
-                $query->latest('date_available');
-        }
+        // A sort in the URL wins; otherwise the store's default sort.
+        $sort = \App\Support\ProductListing::sort($request->input('sort'));
+        \App\Support\ProductListing::applySort($query, $sort);
 
         $products = $query->paginate($perPage)->withQueryString();
 

@@ -14,7 +14,10 @@ class StorefrontBlogController extends Controller
     public function index(BlogIndexRequest $request, ThemeService $theme)
     {
         $settings = $theme->getGroup('blog');
-        $perPage = $settings['posts_per_page'] ?? 12;
+        // Within the settings form's range, so a stored value the form would
+        // reject (blank, zero, text) cannot break or flood the page.
+        $stored = $settings['posts_per_page'] ?? null;
+        $perPage = is_numeric($stored) ? max(4, min(48, (int) $stored)) : 12;
 
         $query = BlogPost::query()->published()->with('category', 'tags');
 

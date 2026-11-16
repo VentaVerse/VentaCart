@@ -27,12 +27,9 @@
                     <input type="hidden" name="q" value="{{ $query }}">
                     <select name="sort" onchange="this.form.submit()" class="search-sort-select">
                         <option value="relevance" {{ $sort === 'relevance' ? 'selected' : '' }}>Relevance</option>
-                        <option value="date_added" {{ $sort === 'date_added' ? 'selected' : '' }}>Date Added</option>
-                        <option value="newest" {{ $sort === 'newest' ? 'selected' : '' }}>Newest</option>
-                        <option value="price_asc" {{ $sort === 'price_asc' ? 'selected' : '' }}>Price: Low to High</option>
-                        <option value="price_desc" {{ $sort === 'price_desc' ? 'selected' : '' }}>Price: High to Low</option>
-                        <option value="name_asc" {{ $sort === 'name_asc' ? 'selected' : '' }}>Name: A-Z</option>
-                        <option value="name_desc" {{ $sort === 'name_desc' ? 'selected' : '' }}>Name: Z-A</option>
+                        @foreach (\App\Support\ProductListing::sorts() as $value => $label)
+                            <option value="{{ $value }}" @selected($sort === $value)>{{ $label }}</option>
+                        @endforeach
                     </select>
                 </form>
             </div>

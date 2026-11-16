@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Support\ProductListing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,7 @@ class SearchController extends Controller
     public function results(Request $request)
     {
         $query = trim($request->input('q', ''));
-        $sort = $request->input('sort', 'relevance');
+        $sort = ProductListing::searchSort($request->input('sort'));
 
         $products = Product::where('is_active', true);
 
@@ -24,28 +25,7 @@ class SearchController extends Controller
             });
         }
 
-        switch ($sort) {
-            case 'date_added':
-                $products->latest('date_available');
-                break;
-            case 'price_asc':
-                $products->orderBy('price', 'asc');
-                break;
-            case 'price_desc':
-                $products->orderBy('price', 'desc');
-                break;
-            case 'name_asc':
-                $products->orderBy('name', 'asc');
-                break;
-            case 'name_desc':
-                $products->orderBy('name', 'desc');
-                break;
-            case 'newest':
-                $products->latest();
-                break;
-            default:
-                $products->latest();
-        }
+        ProductListing::applySort($products, $sort);
 
         $products = $products->with(['images', 'specials', 'brand', \App\Support\ProductAttributes::CARD_RELATION])
             ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
@@ -53,7 +33,7 @@ class SearchController extends Controller
                 ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
 
                 ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')]))
-            ->paginate(12)->withQueryString();
+            ->paginate(ProductListing::perPage())->withQueryString();
 
         return view('search.results', compact('products', 'query', 'sort'));
     }

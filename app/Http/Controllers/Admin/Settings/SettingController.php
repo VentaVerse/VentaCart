@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Services\ThemeService;
+use App\Support\ProductListing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
@@ -52,6 +53,13 @@ class SettingController extends Controller
             }
             if (in_array($prefix, self::RESERVED_PREFIXES)) {
                 return back()->with('error', 'That path is reserved and cannot be used as the admin URL.')->with('tab', 'security');
+            }
+        }
+
+        if ($group === 'category_page' && is_array($data)) {
+            $errors = $this->listingErrors($data, 'settings.');
+            if ($errors !== []) {
+                return back()->withErrors($errors)->withInput();
             }
         }
 
@@ -124,6 +132,13 @@ class SettingController extends Controller
             }
         }
 
+        if (is_array($groups['category_page'] ?? null)) {
+            $errors = $this->listingErrors($groups['category_page'], 'groups.category_page.');
+            if ($errors !== []) {
+                return back()->withErrors($errors)->withInput();
+            }
+        }
+
         foreach ($groups as $group => $data) {
             if (!is_array($data)) {
                 continue;
@@ -170,6 +185,42 @@ class SettingController extends Controller
         }
 
         return redirect()->route('admin.settings.index')->with('success', 'Settings saved.');
+    }
+
+    /**
+     * The storefront listing settings must be values the storefront can use:
+     * a sort key it knows and a page size within the field's range. The
+     * storefront falls back on anything else, but saving it would leave the
+     * admin showing a choice the store does not follow.
+     *
+     * @return array<string, string> field => message
+     */
+    private function listingErrors(array $data, string $prefix): array
+    {
+        $errors = [];
+
+        if (array_key_exists('default_sort', $data) && ! ProductListing::isSort($data['default_sort'])) {
+            $errors[$prefix . 'default_sort'] = 'Choose one of the listed sort orders.';
+        }
+
+        if (array_key_exists('products_per_page', $data)) {
+            $perPage = $data['products_per_page'];
+            $valid = is_string($perPage) || is_int($perPage)
+                ? filter_var($perPage, FILTER_VALIDATE_INT, ['options' => [
+                    'min_range' => ProductListing::PER_PAGE_MIN,
+                    'max_range' => ProductListing::PER_PAGE_MAX,
+                ]]) !== false
+                : false;
+            if (! $valid) {
+                $errors[$prefix . 'products_per_page'] = sprintf(
+                    'Products per page must be a whole number from %d to %d.',
+                    ProductListing::PER_PAGE_MIN,
+                    ProductListing::PER_PAGE_MAX,
+                );
+            }
+        }
+
+        return $errors;
     }
 
     public function testMail(Request $request)

@@ -35,7 +35,7 @@ class BrandController extends Controller
         }
 
         $settings = $theme->getGroup('category_page');
-        $perPage = $settings['products_per_page'] ?? 12;
+        $perPage = \App\Support\ProductListing::perPage();
 
         $query = Product::where('is_active', true)
             ->where('brand_id', $brand->id)
@@ -68,30 +68,9 @@ class BrandController extends Controller
             $query->whereHas('tags', fn ($q) => $q->whereIn('tags.id', $tags));
         }
 
-        // Sorting
-        $sort = $request->input('sort', 'date_added');
-        switch ($sort) {
-            case 'date_added':
-                $query->latest('date_available');
-                break;
-            case 'price_asc':
-                $query->orderBy('price', 'asc');
-                break;
-            case 'price_desc':
-                $query->orderBy('price', 'desc');
-                break;
-            case 'name_asc':
-                $query->orderBy('name', 'asc');
-                break;
-            case 'name_desc':
-                $query->orderBy('name', 'desc');
-                break;
-            case 'newest':
-                $query->latest();
-                break;
-            default:
-                $query->latest('date_available');
-        }
+        // A sort in the URL wins; otherwise the store's default sort.
+        $sort = \App\Support\ProductListing::sort($request->input('sort'));
+        \App\Support\ProductListing::applySort($query, $sort);
 
         $products = $query->paginate($perPage)->withQueryString();
 

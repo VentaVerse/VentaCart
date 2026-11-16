@@ -12,13 +12,13 @@
         <x-admin.panel title="Product listings">
             <div class="v-narrow">
                 <x-admin.field name="groups.category_page.products_per_page" label="Products per page">
-                    <input type="number" name="groups[category_page][products_per_page]" min="4" max="60" class="v-control v-mono v-w-rate" value="{{ $settings['category_page']['products_per_page'] ?? '12' }}">
+                    <input type="number" name="groups[category_page][products_per_page]" min="{{ \App\Support\ProductListing::PER_PAGE_MIN }}" max="{{ \App\Support\ProductListing::PER_PAGE_MAX }}" class="v-control v-mono v-w-rate" value="{{ old('groups.category_page.products_per_page', $settings['category_page']['products_per_page'] ?? \App\Support\ProductListing::PER_PAGE_DEFAULT) }}">
                 </x-admin.field>
                 <div class="v-gap">
                     <x-admin.field name="groups.category_page.default_sort" label="Default sort">
                         <select name="groups[category_page][default_sort]" class="v-control">
-                            @foreach (['default' => 'Default', 'name_asc' => 'Name A-Z', 'name_desc' => 'Name Z-A', 'price_asc' => 'Price low to high', 'price_desc' => 'Price high to low', 'newest' => 'Newest'] as $value => $label)
-                                <option value="{{ $value }}" @selected(($settings['category_page']['default_sort'] ?? '') === $value)>{{ $label }}</option>
+                            @foreach (\App\Support\ProductListing::sorts() as $value => $label)
+                                <option value="{{ $value }}" @selected(old('groups.category_page.default_sort', $settings['category_page']['default_sort'] ?? \App\Support\ProductListing::DEFAULT_SORT) === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
                     </x-admin.field>

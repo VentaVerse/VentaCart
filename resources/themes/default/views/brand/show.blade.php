@@ -34,12 +34,9 @@
             <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-end mb-4">
                     <select onchange="window.location.href = updateParam('sort', this.value)" class="search-sort-select">
-                        <option value="date_added" {{ $sort === 'date_added' ? 'selected' : '' }}>Date Added</option>
-                        <option value="newest" {{ $sort === 'newest' ? 'selected' : '' }}>Newest</option>
-                        <option value="name_asc" {{ $sort === 'name_asc' ? 'selected' : '' }}>Name A-Z</option>
-                        <option value="name_desc" {{ $sort === 'name_desc' ? 'selected' : '' }}>Name Z-A</option>
-                        <option value="price_asc" {{ $sort === 'price_asc' ? 'selected' : '' }}>Price: Low to High</option>
-                        <option value="price_desc" {{ $sort === 'price_desc' ? 'selected' : '' }}>Price: High to Low</option>
+                        @foreach (\App\Support\ProductListing::sorts() as $value => $label)
+                            <option value="{{ $value }}" @selected($sort === $value)>{{ $label }}</option>
+                        @endforeach
                     </select>
                 </div>
 

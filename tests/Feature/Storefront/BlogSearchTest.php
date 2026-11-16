@@ -226,4 +226,15 @@ class BlogSearchTest extends TestCase
             ->assertOk()
             ->assertDontSee('<meta name="robots" content="noindex, follow">', false);
     }
+
+    public function test_the_stored_posts_per_page_is_kept_within_the_form_range(): void
+    {
+        $this->blogPost('Choosing a keyboard');
+
+        foreach (['6' => 6, '0' => 4, '500' => 48, 'abc' => 12] as $stored => $expected) {
+            app(\App\Services\ThemeService::class)->set('blog', 'posts_per_page', (string) $stored);
+
+            $this->assertSame($expected, $this->get(route('blog.index'))->assertOk()->viewData('posts')->perPage(), "stored '{$stored}'");
+        }
+    }
 }

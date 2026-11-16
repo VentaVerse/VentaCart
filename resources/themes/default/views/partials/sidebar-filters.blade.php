@@ -3,9 +3,9 @@
 @endphp
 
 <form method="GET" action="{{ url()->current() }}">
-    {{-- Preserve sort --}}
-    @if (request('sort'))
-        <input type="hidden" name="sort" value="{{ request('sort') }}">
+    {{-- Preserve the sort the shopper chose, as the controller resolved it --}}
+    @if (request()->filled('sort') && isset($sort))
+        <input type="hidden" name="sort" value="{{ $sort }}">
     @endif
 
     {{-- Price Range --}}
@@ -93,7 +93,7 @@
     </button>
 
     @if (request()->hasAny(['min_price', 'max_price', 'brand', 'in_stock', 'on_sale', 'tag', 'attr']))
-        <a href="{{ url()->current() }}{{ request('sort') ? '?sort=' . request('sort') : '' }}" class="block text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] mt-2">
+        <a href="{{ url()->current() }}{{ request()->filled('sort') && isset($sort) ? '?' . http_build_query(['sort' => $sort]) : '' }}" class="block text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] mt-2">
             Clear Filters
         </a>
     @endif
