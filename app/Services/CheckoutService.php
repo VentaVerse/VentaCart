@@ -422,7 +422,8 @@ class CheckoutService
 
     public static function sendAdminOrderNotification(Order $order): void
     {
-        $adminEmail = \App\Models\Setting::where('group', 'mail')->where('key', 'from_address')->value('value');
+        // New-order alerts go to the store's own email (Settings > General).
+        $adminEmail = \App\Support\StoreIdentity::email();
         if (!$adminEmail) return;
 
         $order->loadMissing('products.product');

@@ -5,8 +5,8 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderStatus;
-use App\Models\Setting;
 use App\Support\NotifyChoice;
+use App\Support\StoreIdentity;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -118,7 +118,7 @@ class CustomerOrderCancellation
 
     private static function notifyStore(Order $order, ?string $oldName, string $newName, string $comment): void
     {
-        $adminEmail = Setting::where('group', 'mail')->where('key', 'from_address')->value('value');
+        $adminEmail = StoreIdentity::email();
         if (! $adminEmail) {
             return;
         }

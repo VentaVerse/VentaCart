@@ -8,7 +8,8 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Validator;
 
 /**
- * The store's name and marks, as submitted by the Identity card.
+ * The store's name, marks and contact details, as submitted by the General
+ * page.
  *
  * Size and presence are handled by rules; what the file IS is settled by
  * reading its bytes, because the browser's filename and Content-Type are
@@ -17,6 +18,9 @@ use Illuminate\Validation\Validator;
  */
 class StoreIdentityRequest extends FormRequest
 {
+    /** The store record's contact columns this form edits. */
+    public const CONTACT_FIELDS = ['email', 'phone', 'address'];
+
     /** Extensions decided by inspection, keyed by field: 'logo' => 'png'. */
     private array $extensions = [];
 
@@ -32,7 +36,50 @@ class StoreIdentityRequest extends FormRequest
             'site_name' => ['required', 'string', 'max:120'],
             'logo' => ['nullable', 'file', 'max:'.IdentityAsset::LOGO_MAX_KB],
             'favicon' => ['nullable', 'file', 'max:'.IdentityAsset::FAVICON_MAX_KB],
+            // The store email becomes every outgoing email's From address,
+            // so it must also pass the check the mailer applies at boot.
+            'email' => ['nullable', 'string', 'email:rfc,filter_unicode', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:40'],
+            'address' => ['nullable', 'string', 'max:500'],
         ];
+    }
+
+    /** Trim the contact fields, so whitespace alone never counts as a value. */
+    protected function prepareForValidation(): void
+    {
+        $trimmed = [];
+
+        foreach (self::CONTACT_FIELDS as $field) {
+            if ($this->exists($field) && is_string($this->input($field))) {
+                $value = trim($this->input($field));
+                $trimmed[$field] = $value === '' ? null : $value;
+            }
+        }
+
+        if ($trimmed !== []) {
+            $this->merge($trimmed);
+        }
+    }
+
+    /**
+     * The contact values submitted with this save, keyed by store column.
+     * Only fields present in the request are returned, so a save that does
+     * not carry them leaves the stored values alone.
+     *
+     * @return array<string, ?string>
+     */
+    public function contact(): array
+    {
+        $values = [];
+
+        foreach (self::CONTACT_FIELDS as $field) {
+            if ($this->exists($field)) {
+                $value = $this->validated($field);
+                $values[$field] = is_string($value) && $value !== '' ? $value : null;
+            }
+        }
+
+        return $values;
     }
 
     public function messages(): array

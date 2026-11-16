@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreIdentityRequest;
 use App\Models\Setting;
+use App\Models\Store;
 use App\Services\ThemeService;
 use App\Support\StoreIdentity;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +16,8 @@ use Illuminate\Support\Str;
 
 /**
  * The store's name, logo and favicon: the identity every surface wears.
+ * The same save carries the store's contact details (email, phone and
+ * address), which live on the store record rather than in settings.
  *
  * Uploads land under one stable directory on the public disk and the
  * settings row holds the path. Replacing a mark deletes the one it
@@ -31,6 +34,20 @@ class StoreIdentityController extends Controller
 
     public function update(StoreIdentityRequest $request): RedirectResponse
     {
+        $contact = $request->contact();
+        $store = null;
+
+        if ($contact !== []) {
+            $store = Store::query()->find((int) config('app.store_id', 1));
+
+            // Checked before any write, so a failed save changes nothing.
+            if ($store === null) {
+                return back()->withInput()->with('error', 'The store record is missing, so its contact details cannot be saved.');
+            }
+        }
+
+        $store?->update($contact);
+
         Setting::updateOrCreate(
             ['group' => 'identity', 'key' => 'site_name'],
             ['value' => trim((string) $request->input('site_name'))]

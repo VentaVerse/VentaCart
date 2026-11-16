@@ -57,6 +57,24 @@
             </div>
         </x-admin.panel>
 
+        <x-admin.panel title="Store contact">
+            <div class="v-grid v-grid--2">
+                <x-admin.field name="email" label="Email" hint="Shoppers see it, and store emails are sent from it.">
+                    <input type="email" name="email" class="v-control" autocomplete="email" maxlength="255"
+                           value="{{ old('email', \App\Support\StoreIdentity::email()) }}">
+                </x-admin.field>
+                <x-admin.field name="phone" label="Phone" hint="Shown to shoppers where your theme displays contact details.">
+                    <input type="tel" name="phone" class="v-control" autocomplete="tel" maxlength="40"
+                           value="{{ old('phone', \App\Support\StoreIdentity::phone()) }}">
+                </x-admin.field>
+            </div>
+            <div class="v-gap">
+                <x-admin.field name="address" label="Address" hint="Shown to shoppers where your theme displays contact details.">
+                    <textarea name="address" rows="3" class="v-control" autocomplete="street-address" maxlength="500">{{ old('address', \App\Support\StoreIdentity::address()) }}</textarea>
+                </x-admin.field>
+            </div>
+        </x-admin.panel>
+
         <x-admin.panel title="Defaults">
             @php $currentTz = $settings['general']['timezone'] ?? config('app.timezone', 'Asia/Manila'); @endphp
             <x-admin.field name="groups.general.timezone" label="Timezone">

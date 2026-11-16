@@ -2,7 +2,7 @@
     <div class="v-head">
         <div class="v-head__body">
             <h1 class="v-head__title">Notifications</h1>
-            <p class="v-head__standing">The mail server and sender every order confirmation and alert leaves through.</p>
+            <p class="v-head__standing">The mail server every order confirmation and alert leaves through. Emails are sent from the store email in <a class="v-link" href="{{ route('admin.settings.section', 'general') }}">General</a>, under the site name.</p>
         </div>
     </div>
 
@@ -47,20 +47,7 @@
             </div>
         </x-admin.panel>
 
-        <x-admin.panel title="Sender">
-            <div class="v-grid v-grid--2">
-                <x-admin.field name="groups.mail.from_address" label="From address">
-                    <input type="email" name="groups[mail][from_address]" class="v-control" autocomplete="off"
-                           value="{{ $settings['mail']['from_address'] ?? '' }}">
-                </x-admin.field>
-                <x-admin.field name="groups.mail.from_name" label="From name">
-                    <input type="text" name="groups[mail][from_name]" class="v-control"
-                           value="{{ $settings['mail']['from_name'] ?? '' }}">
-                </x-admin.field>
-            </div>
-        </x-admin.panel>
-
-        <x-admin.panel title="Send a test" note="Tests the values as typed above, saved or not.">
+        <x-admin.panel title="Send a test" note="Tests the server values as typed above, saved or not. The email is sent from the store email and site name as saved in General.">
             <div class="v-inline" x-data="{ to: @js(auth()->user()->email), sending: false }">
                 <x-admin.field name="test_to" label="Send to">
                     {{-- Enter runs the test, never the page save: the panel
@@ -81,8 +68,6 @@
                                     username: f.get('groups[mail][username]'),
                                     password: f.get('groups[mail][password]') || '',
                                     encryption: f.get('groups[mail][encryption]'),
-                                    from_address: f.get('groups[mail][from_address]'),
-                                    from_name: f.get('groups[mail][from_name]'),
                                 },
                             }).finally(() => sending = false);
                         ">

@@ -9,7 +9,7 @@ return [
     [
         'label' => 'Store',
         'items' => [
-            ['key' => 'general', 'line' => 'Store identity, timezone, and default meta.', 'label' => 'General', 'icon' => 'store', 'route' => 'admin.settings.section', 'section' => 'general'],
+            ['key' => 'general', 'line' => 'Store identity, contact, timezone, and default meta.', 'label' => 'General', 'icon' => 'store', 'route' => 'admin.settings.section', 'section' => 'general'],
             ['key' => 'currencies', 'line' => 'Currency list and exchange rates.', 'label' => 'Currencies', 'icon' => 'currency', 'route' => 'admin.settings.section', 'section' => 'currencies'],
             ['key' => 'localization', 'line' => 'Countries, provinces, and geo zones.', 'label' => 'Localization', 'icon' => 'globe', 'route' => 'admin.localization.index', 'section' => null],
         ],
@@ -25,7 +25,7 @@ return [
     [
         'label' => 'Communication',
         'items' => [
-            ['key' => 'mail', 'line' => 'Mail server, sender, and test sends.', 'label' => 'Notifications', 'icon' => 'mail', 'route' => 'admin.settings.section', 'section' => 'mail'],
+            ['key' => 'mail', 'line' => 'Mail server and test sends.', 'label' => 'Notifications', 'icon' => 'mail', 'route' => 'admin.settings.section', 'section' => 'mail'],
             ['key' => 'email-templates', 'line' => 'Transactional email content.', 'label' => 'Email Templates', 'icon' => 'content', 'route' => 'admin.email-templates.index', 'section' => null],
         ],
     ],

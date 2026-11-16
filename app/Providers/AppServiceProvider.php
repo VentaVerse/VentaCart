@@ -67,6 +67,11 @@ class AppServiceProvider extends ServiceProvider
 
         $this->configureAppNameFromDatabase();
         $this->configureMailFromDatabase();
+        // The sender is the store: its email and site name, from General.
+        // Forget any identity resolved before this boot so a long-lived
+        // process never mails from a store email that has since changed.
+        \App\Support\StoreIdentity::flush();
+        \App\Support\MailSender::apply();
         $this->configureTimezoneFromDatabase();
         $this->configureAdminPrefixFromDatabase();
 
@@ -193,13 +198,6 @@ class AppServiceProvider extends ServiceProvider
         } elseif ($driver === 'mail') {
             config([
                 'mail.default' => 'sendmail',
-            ]);
-        }
-
-        if ($mail->get('from_address')) {
-            config([
-                'mail.from.address' => $mail->get('from_address'),
-                'mail.from.name' => $mail->get('from_name', config('app.name')),
             ]);
         }
     }

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Store;
 use App\Services\ThemeService;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,11 +23,18 @@ use Illuminate\Support\Facades\Storage;
  * leaves a path pointing at nothing. Rather than render a broken image,
  * every accessor treats a missing file as an absent one, so a surface falls
  * back exactly as if nothing had been uploaded.
+ *
+ * The store's contact details (email, phone, address) live on the store
+ * record itself, not in settings: they describe the store, and the store
+ * email is also the address every outgoing email is sent from.
  */
 class StoreIdentity
 {
     /** Resolved once per request: three settings and at most two stats. */
     protected static ?array $memo = null;
+
+    /** The store record's contact columns, resolved once per request. */
+    protected static ?array $contact = null;
 
     /** The store's name, falling back to the application's. */
     public static function name(): string
@@ -50,6 +58,60 @@ class StoreIdentity
     public static function initial(): string
     {
         return mb_strtoupper(mb_substr(static::name(), 0, 1));
+    }
+
+    /** The store's email: shown to shoppers, and the address mail is sent from. */
+    public static function email(): ?string
+    {
+        return static::contact()['email'];
+    }
+
+    /** The store's phone number, or null when none is set. */
+    public static function phone(): ?string
+    {
+        return static::contact()['phone'];
+    }
+
+    /** The store's postal address as one plain block of text, or null. */
+    public static function address(): ?string
+    {
+        return static::contact()['address'];
+    }
+
+    /** @return array{email: ?string, phone: ?string, address: ?string} */
+    protected static function contact(): array
+    {
+        if (static::$contact !== null) {
+            return static::$contact;
+        }
+
+        $empty = ['email' => null, 'phone' => null, 'address' => null];
+
+        try {
+            $row = Store::query()
+                ->whereKey((int) config('app.store_id', 1))
+                ->first(['email', 'phone', 'address']);
+        } catch (\Throwable) {
+            // The table may not exist yet (during install or migration).
+            // Not memoized, so the next call sees the store once it does.
+            return $empty;
+        }
+
+        if ($row === null) {
+            return static::$contact = $empty;
+        }
+
+        $clean = static function (mixed $value): ?string {
+            $value = is_string($value) ? trim($value) : '';
+
+            return $value === '' ? null : $value;
+        };
+
+        return static::$contact = [
+            'email' => $clean($row->email),
+            'phone' => $clean($row->phone),
+            'address' => $clean($row->address),
+        ];
     }
 
     /** @return array{name: string, logo: ?string, favicon: ?string} */
@@ -91,5 +153,6 @@ class StoreIdentity
     public static function flush(): void
     {
         static::$memo = null;
+        static::$contact = null;
     }
 }

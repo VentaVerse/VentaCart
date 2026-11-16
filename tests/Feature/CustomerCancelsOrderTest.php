@@ -11,6 +11,7 @@ use App\Models\Setting;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\CustomerOrderCancellation;
+use App\Support\StoreIdentity;
 use Database\Seeders\EmailTemplateSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -36,7 +37,9 @@ class CustomerCancelsOrderTest extends TestCase
         parent::setUp();
         $this->seed(EmailTemplateSeeder::class);
         Mail::fake();
-        Setting::updateOrCreate(['group' => 'mail', 'key' => 'from_address'], ['value' => 'store@example.com']);
+        // Store alerts go to the store's own email, set in General.
+        Store::whereKey(config('app.store_id'))->update(['email' => 'store@example.com']);
+        StoreIdentity::flush();
         $this->store = Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
         $this->pending = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'is_default' => true, 'sort_order' => 1, 'deducts_stock' => true, 'customer_can_cancel' => true]);
         $this->processing = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 2, 'deducts_stock' => true]);

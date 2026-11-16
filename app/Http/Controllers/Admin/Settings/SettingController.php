@@ -218,13 +218,12 @@ class SettingController extends Controller
             } else {
                 config(['mail.default' => 'sendmail']);
             }
-            if (!empty($override['from_address'])) {
-                config([
-                    'mail.from.address' => $override['from_address'],
-                    'mail.from.name' => $override['from_name'] ?? config('mail.from.name'),
-                ]);
-            }
         }
+
+        // The test is sent from the store itself, as saved in General: the
+        // same sender every real store email uses. Nothing typed on the
+        // page can change it.
+        \App\Support\MailSender::apply();
 
         try {
             Mail::raw('This is a test email from ' . config('app.name') . '. If you received this, your mail configuration is working correctly.', function ($message) use ($request) {
