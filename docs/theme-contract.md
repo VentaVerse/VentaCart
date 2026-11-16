@@ -376,6 +376,21 @@ The wishlist is stored for signed-in customers and kept in the session for guest
 - Add: `POST /wishlist/items` (`wishlist.add`) with `product_id`; remove: `DELETE /wishlist/items/{product}` (`wishlist.remove`). Both need the CSRF token, are limited to 30 a minute, and answer `{"in": true|false, "count": n}`. Only an active product the shopper may see can be added.
 - Every storefront view has `$wishlistIds` and `$wishlistCount` (shared by `x-store-layout`). The default theme prints the ids as `window.__wishlist` and its `wishlistBtn` Alpine component dispatches `wishlist-updated` with `{productId, in, count}` after each change.
 
+## 5.6 Product listings
+
+A theme that lists products outside a category, brand or search page (a carousel, a tab, a block of its own) gets them from `App\Support\ProductFeed::get(array $criteria): Collection`, never from its own query. The product grid and product tabs widgets use it too.
+
+| criterion | meaning |
+|---|---|
+| `filter` | `new` (default, newest by date available), `best_sellers` (most revenue, then most viewed), `on_sale` (an active sale special), `most_viewed`, `random`. An unknown value reads as `new`. |
+| `ids` | hand-picked product ids, returned in the order given; unknown, inactive or hidden ids are dropped; an empty list returns nothing. `ProductFeed::parseIds('12, 7 31')` reads a typed list. |
+| `category` | a category id; `subcategories` (default true) includes its descendants. A missing or switched-off category returns nothing. |
+| `brand` | a brand id. A missing or switched-off brand returns nothing. |
+| `limit` | 1 to 48, default 12, clamped. |
+| `variants` | true also loads the active variants. |
+
+Only active products are listed, through the customer-group visibility scope: a product kept for a group never reaches a guest or another group. The products carry `images`, `specials`, `brand` and the card attributes, plus `reviews_avg_rating` and `reviews_count` while reviews are enabled. Prices still come from `Pricing::display()` (section 5.4).
+
 ## 6. Menus
 
 The main menu is composed in Layout > Menus (`nav_menus`, nested `nav_menu_items` with ten item kinds and mega menu options). The theme draws it from `$navTree` (`App\Support\NavTree::for('main')`), a list of resolved nodes with `label`, `url`, `children`, `accent`, `mega`, `banner`, `html`. Other menus are placed with the `nav.menu` widget.

@@ -5,6 +5,7 @@ namespace App\Storefront\Widgets;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\ProductFeed;
 use App\Support\Widgets;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +20,19 @@ use Illuminate\Support\Facades\DB;
  */
 class CoreWidgets
 {
+    /**
+     * What a product grid or tab can list. The keys are stored in saved
+     * layouts, so they stay as they are; products() maps each onto a
+     * ProductFeed filter. 'ids' lists the hand-picked products in the order
+     * typed.
+     */
+    private const LISTS = ['new' => 'Newest', 'ids' => 'Hand-picked', 'specials' => 'On sale', 'best_sellers' => 'Best sellers',
+        'most_viewed' => 'Most viewed', 'random' => 'Random'];
+
+    /** @var array<string, string> a list key => its ProductFeed filter */
+    private const FEED_FILTERS = ['new' => 'new', 'specials' => 'on_sale', 'best_sellers' => 'best_sellers',
+        'most_viewed' => 'most_viewed', 'random' => 'random'];
+
     public static function register(): void
     {
         Widgets::register('catalog.products', [
@@ -27,9 +41,8 @@ class CoreWidgets
             'module' => 'catalog',
             'view' => 'widgets.catalog.products',
             'schema' => [
-                'filter' => ['type' => 'select', 'label' => 'Show',
-                    'options' => ['new' => 'Newest', 'featured' => 'Featured', 'specials' => 'On sale', 'best_sellers' => 'Best sellers',
-                        'most_viewed' => 'Most viewed', 'random' => 'Random']],
+                'filter' => ['type' => 'select', 'label' => 'Show', 'options' => self::LISTS],
+                'products' => ['type' => 'text', 'label' => 'Hand-picked product IDs, in order', 'max' => 500],
                 'category' => ['type' => 'select', 'label' => 'From category', 'default' => '', 'options' => fn () => self::categoryChoices()],
                 'brand' => ['type' => 'select', 'label' => 'From brand', 'default' => '', 'options' => fn () => self::brandChoices()],
                 'limit' => ['type' => 'number', 'label' => 'How many', 'default' => 12],
@@ -43,7 +56,7 @@ class CoreWidgets
             'resolve' => fn (array $config) => ['products' => self::products($config)],
         ]);
 
-        // Tabs of product listings: Latest | Featured | Best sellers, the
+        // Tabs of product listings: Latest | On sale | Best sellers, the
         // arrangement every marketplace homepage carries.
         Widgets::register('catalog.product_tabs', [
             'title' => 'Product tabs',
@@ -53,7 +66,8 @@ class CoreWidgets
             'schema' => [
                 'tabs' => ['type' => 'rows', 'label' => 'Tabs', 'fields' => [
                     'title' => ['type' => 'text', 'label' => 'Tab'],
-                    'filter' => ['type' => 'select', 'label' => 'Show', 'options' => ['new' => 'Newest', 'featured' => 'Featured', 'specials' => 'On sale', 'best_sellers' => 'Best sellers', 'most_viewed' => 'Most viewed', 'random' => 'Random']],
+                    'filter' => ['type' => 'select', 'label' => 'Show', 'options' => self::LISTS],
+                    'products' => ['type' => 'text', 'label' => 'Hand-picked product IDs, in order', 'max' => 500],
                     'category' => ['type' => 'select', 'label' => 'From category', 'options' => fn () => self::categoryChoices()],
                     'limit' => ['type' => 'number', 'label' => 'How many'],
                 ]],
@@ -68,7 +82,7 @@ class CoreWidgets
                     }
                     $tabs[] = [
                         'title' => (string) ($tab['title'] ?? ''),
-                        'products' => self::products(['filter' => $tab['filter'] ?? 'new', 'category' => $tab['category'] ?? '', 'limit' => $tab['limit'] ?? 8]),
+                        'products' => self::products(['filter' => $tab['filter'] ?? 'new', 'products' => $tab['products'] ?? '', 'category' => $tab['category'] ?? '', 'limit' => $tab['limit'] ?? 8]),
                     ];
                 }
 
@@ -617,70 +631,39 @@ class CoreWidgets
         return ['' => 'Any brand'] + Brand::where('is_active', true)->whereNotNull('slug')->orderBy('name')->pluck('name', 'slug')->all();
     }
 
+    /**
+     * A grid's or tab's products, through the storefront's one listing query.
+     *
+     * A category or brand is named by its slug, so a layout or preset carries
+     * over between stores that use the same names. One that no longer exists
+     * shows nothing rather than everything.
+     */
     private static function products(array $config)
     {
-        $limit = max(1, min(48, (int) ($config['limit'] ?? 12)));
-        $filter = $config['filter'] ?? 'new';
+        $criteria = ['limit' => $config['limit'] ?? 12];
 
-        $query = Product::where('is_active', true)->with(['images', 'specials', \App\Support\ProductAttributes::CARD_RELATION]);
+        $list = is_string($config['filter'] ?? null) ? $config['filter'] : 'new';
+        if ($list === 'ids') {
+            $criteria['ids'] = ProductFeed::parseIds($config['products'] ?? '');
+        } else {
+            $criteria['filter'] = self::FEED_FILTERS[$list] ?? 'new';
+        }
 
-        // A category or brand is named by its slug, so a layout or preset
-        // carries over between stores that use the same names. One that no
-        // longer exists shows nothing rather than everything.
         if (is_string($config['category'] ?? null) && $config['category'] !== '') {
-            $category = Category::where('slug', $config['category'])->where('is_active', true)->first();
+            $category = Category::where('slug', $config['category'])->where('is_active', true)->value('id');
             if (! $category) {
                 return collect();
             }
-            $ids = $category->selfAndDescendantIds();
-            $query->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $ids));
+            $criteria['category'] = $category;
         }
         if (is_string($config['brand'] ?? null) && $config['brand'] !== '') {
-            $brand = Brand::where('slug', $config['brand'])->where('is_active', true)->first();
+            $brand = Brand::where('slug', $config['brand'])->where('is_active', true)->value('id');
             if (! $brand) {
                 return collect();
             }
-            $query->where('brand_id', $brand->id);
+            $criteria['brand'] = $brand;
         }
 
-        // Ratings ride along only while the reviews extension is present: the
-        // relation names its model, and a store that switched reviews off
-        // must still list products.
-        if (class_exists(\Extensions\Reviews\Models\Review::class)) {
-            $query->withAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'approved')], 'rating')
-                ->withCount(['reviews as reviews_count' => fn ($q) => $q->where('status', 'approved')]);
-        }
-
-        switch ($filter) {
-            case 'new':
-                $query->whereNotNull('date_available')->latest('date_available');
-                break;
-            case 'specials':
-                $query->whereHas('specials', function ($q) {
-                    $q->where('display_mode', 'sale')->activeAt();
-                });
-                break;
-            case 'most_viewed':
-                $query->orderByDesc('views')->orderByDesc('id');
-                break;
-            case 'random':
-                $query->inRandomOrder();
-                break;
-            case 'best_sellers':
-                $prefix = DB::getTablePrefix();
-                $query->withCount(['orderProducts as total_revenue' => function ($q) use ($prefix) {
-                    $q->select(DB::raw("COALESCE(SUM({$prefix}order_products.price * {$prefix}order_products.quantity), 0)"));
-                }])
-                    // Everything that has sold nothing has sold the same
-                    // amount, so a store with no orders yet would return
-                    // whatever the database felt like. Views break the tie,
-                    // which is the closest thing to a seller a new shop has.
-                    ->orderByDesc('total_revenue')->orderByDesc('views')->orderByDesc('id');
-                break;
-            default:
-                $query->latest();
-        }
-
-        return $query->limit($limit)->get();
+        return ProductFeed::get($criteria);
     }
 }
