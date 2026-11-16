@@ -164,5 +164,12 @@ class HitPayWebhookController extends Controller
             'order_status_id' => $order->order_status_id,
             'comment' => $comment,
         ]);
+
+        // An unpaid order whose payment failed or expired will not be paid
+        // on this page any more: the cart lets go of it, so the shopper's
+        // next Place order makes a new order and a new payment.
+        if ($order->order_status_id === null) {
+            app(\App\Services\CheckoutService::class)->releaseCart($order);
+        }
     }
 }

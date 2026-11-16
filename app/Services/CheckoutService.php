@@ -2,7 +2,11 @@
 
 namespace App\Services;
 
+use App\Exceptions\CartLinkTakenException;
+use App\Exceptions\CartPricesChangedException;
+use App\Exceptions\OrderAlreadyBeingPlacedException;
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Customer;
 use App\Models\CustomerAddress;
 use App\Models\Order;
@@ -125,6 +129,25 @@ class CheckoutService
         return ($method && $method->isEnabled()) ? $method : null;
     }
 
+    /**
+     * Turn the cart into an order, once.
+     *
+     * Place order can arrive twice for the same cart (a double click, two
+     * tabs, a browser retrying on a slow network). Two guards keep that to
+     * one order. A per-cart cache lock makes the second request wait for
+     * the first to finish, so it can be answered with the first's outcome.
+     * The real guarantee is in the database: the order and the cart's link
+     * to it (carts.placed_order_id) are written in one transaction under the
+     * cart's row lock, and a request that finds the cart already linked to
+     * an order it is a repeat of is sent to that order instead of placing
+     * another.
+     *
+     * The result carries 'duplicate' => true when the order is that earlier
+     * one: its payment result then points at the order's payment page while
+     * it is unpaid, or at nothing (its confirmation) once it is placed.
+     *
+     * @return array{order: Order, payment: PaymentResult, duplicate: bool}
+     */
     public function placeOrder(
         Customer $customer,
         CustomerAddress $shippingAddress,
@@ -135,6 +158,102 @@ class CheckoutService
         ?string $comment = null,
         ?string $courierComment = null
     ): array {
+        return $this->holdingCart($cart, fn () => $this->placeOrderFromCart(
+            $customer, $shippingAddress, $billingAddress, $paymentMethodKey,
+            $shippingMethodKey, $cart, $comment, $courierComment
+        ));
+    }
+
+    /**
+     * The order a submit for this now-empty cart repeats: one the cart
+     * became moments ago and that is placed. A cart is emptied once its
+     * order is placed, so a second Place order that arrives afterwards
+     * finds nothing to order and is sent to the order it already made.
+     */
+    public function recentlyPlacedOrder(Cart $cart): ?Order
+    {
+        $cart = Cart::find($cart->id);
+        if (! $cart || ! $cart->placed_order_id) {
+            return null;
+        }
+
+        $order = $this->linkedOrder($cart);
+
+        return $order && $order->order_status_id !== null && $this->withinRepeatWindow($order)
+            ? $order
+            : null;
+    }
+
+    /**
+     * Unlink the cart from an order that will not be paid this way (the
+     * payment gateway refused it, or the shopper came back from a payment
+     * that failed or was cancelled), so the next Place order makes a new
+     * order, exactly as it did before carts were linked to their orders.
+     */
+    public function releaseCart(Order $order): void
+    {
+        Cart::where('placed_order_id', $order->id)->update([
+            'placed_order_id' => null,
+            'placed_lines_key' => null,
+            'placed_request_key' => null,
+        ]);
+    }
+
+    /**
+     * Run $place while holding this cart's placement lock, when the cache
+     * store can lock. A request that cannot get the lock in time goes on
+     * without it: the database check inside the order transaction still
+     * decides, and answers that the order is being placed.
+     */
+    private function holdingCart(Cart $cart, \Closure $place): array
+    {
+        $store = \Illuminate\Support\Facades\Cache::store();
+        if (! $store->getStore() instanceof \Illuminate\Contracts\Cache\LockProvider) {
+            return $place();
+        }
+
+        $lock = $store->lock('checkout-placement:' . $cart->id, (int) config('checkout.placement.lock_seconds', 90));
+
+        try {
+            $lock->block((int) config('checkout.placement.wait_seconds', 40));
+        } catch (\Illuminate\Contracts\Cache\LockTimeoutException) {
+            return $place();
+        }
+
+        try {
+            return $place();
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function placeOrderFromCart(
+        Customer $customer,
+        CustomerAddress $shippingAddress,
+        ?array $billingAddress,
+        string $paymentMethodKey,
+        string $shippingMethodKey,
+        Cart $cart,
+        ?string $comment,
+        ?string $courierComment
+    ): array {
+        // A repeat of a submit that already made an order is answered with
+        // that order before anything else is checked: the first request may
+        // have emptied the cart, and "your cart is empty" would tell the
+        // shopper nothing about the order they just placed.
+        $current = Cart::find($cart->id) ?? $cart;
+        $lines = $current->items()->get();
+        $linesKey = $this->linesKey($lines);
+        $requestKey = $this->requestKey(
+            $linesKey, $current, $paymentMethodKey, $shippingMethodKey, $shippingAddress,
+            $billingAddress, $comment, $courierComment
+        );
+
+        $previous = $this->repeatedPlacement($current, $linesKey, $requestKey, $lines->isEmpty());
+        if ($previous !== null) {
+            return $previous;
+        }
+
         // A line switched off since it was added (its product or its
         // variant) is not for sale, whatever stock it shows. Asked first:
         // it is about the cart, whichever way the shopper pays.
@@ -165,9 +284,21 @@ class CheckoutService
             throw new \InvalidArgumentException('Invalid payment method.');
         }
 
-        $items = $cart->items()->with(['product', 'productVariant'])->get();
+        $items = $cart->items()->with(['product.specials', 'productVariant'])->get();
         if ($items->isEmpty()) {
             throw new \InvalidArgumentException('Cart is empty.');
+        }
+
+        // A line is charged what core prices it at now, never what it cost
+        // when it was added: a special may have ended, or the merchant may
+        // have changed a price. Any difference, up or down, stops the order
+        // so the shopper sees the new total before paying it. Asked before
+        // the subtotal, so shipping, payment rules and coupons below are
+        // all worked out on prices that are current.
+        $customerGroupId = $customer->customer_group_id;
+        $changes = $this->linePriceChanges($items, $customerGroupId);
+        if ($changes !== []) {
+            $this->refuseForPriceChanges($changes);
         }
 
         // Block checkout if cart contains out-of-stock items
@@ -224,7 +355,6 @@ class CheckoutService
         $totalQuantity = $items->sum('quantity');
         $cartCategoryIds = $items->pluck('product.category_id')->filter()->unique()->values()->all();
         $cartBrandIds = $items->pluck('product.brand_id')->filter()->unique()->values()->all();
-        $customerGroupId = $customer->customer_group_id;
 
         if (!PaymentRestrictionService::isAllowed(
             $paymentMethodKey, $addressData, $subtotal,
@@ -269,106 +399,409 @@ class CheckoutService
         $defaultStatus = \App\Services\PaymentManager::checkoutStatus($paymentMethod)
             ?? OrderStatus::where('store_id', $this->storeId)->where('is_default', true)->first();
 
-        $order = DB::transaction(function () use (
-            $customer, $shippingAddress, $billingAddress, $paymentMethodKey, $paymentMethod,
-            $shippingMethod, $shippingMethodKey, $shippingMeta, $items, $subtotal, $shippingCost, $total,
-            $comment, $cart, $totalsCtx, $couponLine, $courierComment
-        ) {
-            $orderData = [
-                'store_id' => $this->storeId,
-                'customer_id' => $customer->id,
-                'order_status_id' => null,
-                'first_name' => $customer->first_name,
-                'last_name' => $customer->last_name,
-                'email' => $customer->email,
-                'phone' => $customer->phone,
-                'shipping_first_name' => $shippingAddress->first_name,
-                'shipping_last_name' => $shippingAddress->last_name,
-                'shipping_address_1' => $shippingAddress->address_1,
-                'shipping_city' => $shippingAddress->city,
-                'shipping_district' => $shippingAddress->district,
-                'shipping_barangay' => $shippingAddress->barangay,
-                'shipping_state' => $shippingAddress->state,
-                'shipping_postcode' => $shippingAddress->postcode,
-                'shipping_country_id' => $shippingAddress->country_id,
-                'shipping_phone' => $shippingAddress->phone,
-                'payment_method' => $paymentMethodKey,
-                'payment_method_title' => $paymentMethod?->getName(),
-                'shipping_method' => $shippingMethod['name'],
-                'shipping_meta' => $shippingMeta,
-                'shipping_country_name' => \App\Models\Country::find($shippingAddress->country_id ?? null)?->name,
-                'subtotal' => $subtotal,
-                'shipping_cost' => $shippingCost,
-                'total' => $total,
-                'total_lines' => $totalsCtx->lines,
-                'coupon_code' => $couponLine['extras']['code'] ?? null,
-                'coupon_discount' => $couponLine ? -$couponLine['amount'] : 0,
-                'comment' => $comment,
-                'courier_comment' => $courierComment,
-            ];
+        $lateChanges = [];
+        $repeat = null;
+        try {
+            $order = DB::transaction(function () use (
+                $customer, $shippingAddress, $billingAddress, $paymentMethodKey, $paymentMethod,
+                $shippingMethod, $shippingMethodKey, $shippingMeta, $items, $subtotal, $shippingCost, $total,
+                $comment, $cart, $totalsCtx, $couponLine, $courierComment, $customerGroupId, $linesKey, $requestKey,
+                &$lateChanges, &$repeat
+            ) {
+                // The cart row is locked for the rest of the transaction, so
+                // a second request for this cart waits here until this one
+                // commits, and then reads the link written below.
+                $locked = Cart::whereKey($cart->id)->lockForUpdate()->first();
+                if (! $locked) {
+                    throw new \InvalidArgumentException('Cart is empty.');
+                }
 
-            if ($billingAddress) {
-                $orderData = array_merge($orderData, [
-                    'billing_first_name' => $billingAddress['first_name'],
-                    'billing_last_name' => $billingAddress['last_name'],
-                    'billing_address_1' => $billingAddress['address_1'],
-                    'billing_city' => $billingAddress['city'],
-                    'billing_district' => $billingAddress['district'] ?? null,
-                    'billing_barangay' => $billingAddress['barangay'] ?? null,
-                    'billing_state' => $billingAddress['state'] ?? null,
-                    'billing_postcode' => $billingAddress['postcode'] ?? null,
-                    'billing_country_id' => $billingAddress['country_id'],
-                    'billing_country_name' => \App\Models\Country::find($billingAddress['country_id'] ?? null)?->name,
-                ]);
-            }
+                // Shipping quotes and coupons take time, and another request
+                // for this cart may have placed its order meanwhile.
+                $repeat = $this->repeatedPlacement($locked, $linesKey, $requestKey, false);
+                if ($repeat !== null) {
+                    return null;
+                }
 
-            $order = Order::create($orderData);
+                // A special can end or a price can change meanwhile too. The
+                // lines are priced once more; on any difference nothing is
+                // written and the order is refused below.
+                $lateChanges = $this->lateCartChanges($cart, $items, $customerGroupId);
+                if ($lateChanges !== []) {
+                    return null;
+                }
 
-            foreach ($items as $item) {
-                OrderProduct::create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'name' => $item->name,
-                    'sku' => $item->sku,
-                    // The variant's OWN photo when it has one. A colourway is
-                    // what the buyer chose and what the packer pulls off the
-                    // shelf, so the line has to carry that picture and not the
-                    // parent's. Falls back to the product for a variant with no
-                    // photo of its own, and for a product with no variants.
-                    'image' => $item->productVariant?->image ?: $item->product?->image,
-                    'variant_label' => $item->variant_label,
-                    'price' => $item->price,
-                    'quantity' => $item->quantity,
-                    'total' => $item->price * $item->quantity,
-                    'is_custom' => false,
-                ]);
-            }
+                $order = $this->writeOrder(
+                    $customer, $shippingAddress, $billingAddress, $paymentMethodKey, $paymentMethod,
+                    $shippingMethod, $shippingMeta, $items, $subtotal, $shippingCost, $total,
+                    $comment, $totalsCtx, $couponLine, $courierComment
+                );
 
-            // Each contributed line's side effects (burn the coupon use,
-            // deduct the credit) run here, inside the transaction.
-            \App\Services\OrderTotals\OrderTotals::confirm($order, $totalsCtx->lines);
+                // Link the cart to its order, only if the link is still the
+                // one read under the lock. Zero rows means another request
+                // linked it first: everything above is rolled back.
+                $linked = Cart::whereKey($cart->id)
+                    ->when(
+                        $locked->placed_order_id === null,
+                        fn ($query) => $query->whereNull('placed_order_id'),
+                        fn ($query) => $query->where('placed_order_id', $locked->placed_order_id),
+                    )
+                    ->update([
+                        'placed_order_id' => $order->id,
+                        'placed_lines_key' => $linesKey,
+                        'placed_request_key' => $requestKey,
+                    ]);
 
-            return $order;
-        });
+                if ($linked !== 1) {
+                    throw new CartLinkTakenException();
+                }
 
-        $paymentResult = $paymentMethod->processPayment($order);
-
-        // Failed API call (e.g. HitPay rejected): return without clearing cart
-        if (!$paymentResult->success) {
-            return ['order' => $order, 'payment' => $paymentResult];
+                return $order;
+            });
+        } catch (CartLinkTakenException) {
+            $order = null;
+            $repeat = $this->repeatedPlacement(Cart::find($cart->id) ?? $cart, $linesKey, $requestKey, false)
+                ?? throw new OrderAlreadyBeingPlacedException();
         }
 
-        // Redirect-based payments (e.g. HitPay): webhook confirms and sets status
+        if ($repeat !== null) {
+            return $repeat;
+        }
+
+        if ($order === null) {
+            $this->refuseForPriceChanges($lateChanges);
+        }
+
+        try {
+            $paymentResult = $paymentMethod->processPayment($order);
+        } catch (\Throwable $e) {
+            $this->releaseCart($order);
+            throw $e;
+        }
+
+        // Failed API call (e.g. HitPay rejected): return without clearing
+        // cart, and unlinked from it, so placing again makes a new order.
+        if (!$paymentResult->success) {
+            $this->releaseCart($order);
+            return ['order' => $order, 'payment' => $paymentResult, 'duplicate' => false];
+        }
+
+        // Redirect-based payments (e.g. HitPay): webhook confirms and sets
+        // status. The payment page is kept, so a repeated submit is sent
+        // back to it rather than opening a second payment.
         if ($paymentResult->redirectUrl) {
-            return ['order' => $order, 'payment' => $paymentResult];
+            $order->forceFill(['payment_url' => $paymentResult->redirectUrl])->save();
+            return ['order' => $order, 'payment' => $paymentResult, 'duplicate' => false];
         }
 
         // Immediate payments (e.g. bank transfer, COD): confirm order now
         $this->confirmOrder($order, $defaultStatus);
         $cart->items()->delete();
 
-        return ['order' => $order, 'payment' => $paymentResult];
+        return ['order' => $order, 'payment' => $paymentResult, 'duplicate' => false];
+    }
+
+    /**
+     * Write the order and its lines, and run each total line's side effects
+     * (burn the coupon use, deduct the credit). Called inside the order
+     * transaction.
+     */
+    private function writeOrder(
+        Customer $customer,
+        CustomerAddress $shippingAddress,
+        ?array $billingAddress,
+        string $paymentMethodKey,
+        PaymentMethodInterface $paymentMethod,
+        array $shippingMethod,
+        mixed $shippingMeta,
+        Collection $items,
+        float|int $subtotal,
+        float|int $shippingCost,
+        float|int $total,
+        ?string $comment,
+        \App\Services\OrderTotals\TotalsContext $totalsCtx,
+        ?array $couponLine,
+        ?string $courierComment
+    ): Order {
+        $orderData = [
+            'store_id' => $this->storeId,
+            'customer_id' => $customer->id,
+            'order_status_id' => null,
+            'first_name' => $customer->first_name,
+            'last_name' => $customer->last_name,
+            'email' => $customer->email,
+            'phone' => $customer->phone,
+            'shipping_first_name' => $shippingAddress->first_name,
+            'shipping_last_name' => $shippingAddress->last_name,
+            'shipping_address_1' => $shippingAddress->address_1,
+            'shipping_city' => $shippingAddress->city,
+            'shipping_district' => $shippingAddress->district,
+            'shipping_barangay' => $shippingAddress->barangay,
+            'shipping_state' => $shippingAddress->state,
+            'shipping_postcode' => $shippingAddress->postcode,
+            'shipping_country_id' => $shippingAddress->country_id,
+            'shipping_phone' => $shippingAddress->phone,
+            'payment_method' => $paymentMethodKey,
+            'payment_method_title' => $paymentMethod?->getName(),
+            'shipping_method' => $shippingMethod['name'],
+            'shipping_meta' => $shippingMeta,
+            'shipping_country_name' => \App\Models\Country::find($shippingAddress->country_id ?? null)?->name,
+            'subtotal' => $subtotal,
+            'shipping_cost' => $shippingCost,
+            'total' => $total,
+            'total_lines' => $totalsCtx->lines,
+            'coupon_code' => $couponLine['extras']['code'] ?? null,
+            'coupon_discount' => $couponLine ? -$couponLine['amount'] : 0,
+            'comment' => $comment,
+            'courier_comment' => $courierComment,
+        ];
+
+        if ($billingAddress) {
+            $orderData = array_merge($orderData, [
+                'billing_first_name' => $billingAddress['first_name'],
+                'billing_last_name' => $billingAddress['last_name'],
+                'billing_address_1' => $billingAddress['address_1'],
+                'billing_city' => $billingAddress['city'],
+                'billing_district' => $billingAddress['district'] ?? null,
+                'billing_barangay' => $billingAddress['barangay'] ?? null,
+                'billing_state' => $billingAddress['state'] ?? null,
+                'billing_postcode' => $billingAddress['postcode'] ?? null,
+                'billing_country_id' => $billingAddress['country_id'],
+                'billing_country_name' => \App\Models\Country::find($billingAddress['country_id'] ?? null)?->name,
+            ]);
+        }
+
+        $order = Order::create($orderData);
+
+        foreach ($items as $item) {
+            OrderProduct::create([
+                'order_id' => $order->id,
+                'product_id' => $item->product_id,
+                'product_variant_id' => $item->product_variant_id,
+                'name' => $item->name,
+                'sku' => $item->sku,
+                // The variant's OWN photo when it has one. A colourway is
+                // what the buyer chose and what the packer pulls off the
+                // shelf, so the line has to carry that picture and not the
+                // parent's. Falls back to the product for a variant with no
+                // photo of its own, and for a product with no variants.
+                'image' => $item->productVariant?->image ?: $item->product?->image,
+                'variant_label' => $item->variant_label,
+                'price' => $item->price,
+                'quantity' => $item->quantity,
+                'total' => $item->price * $item->quantity,
+                'is_custom' => false,
+            ]);
+        }
+
+        // Each contributed line's side effects (burn the coupon use,
+        // deduct the credit) run here, inside the transaction.
+        \App\Services\OrderTotals\OrderTotals::confirm($order, $totalsCtx->lines);
+
+        return $order;
+    }
+
+    /**
+     * The lines whose stored price is not what core prices them at now.
+     *
+     * @return array<int, array{item_id: int, label: string, was: float, now: float}>
+     */
+    private function linePriceChanges(Collection $items, ?int $customerGroupId): array
+    {
+        $changes = [];
+
+        foreach ($items as $item) {
+            $now = CartService::currentLinePrice($item, $customerGroupId);
+            if ($now === null || CartService::samePrice((float) $item->price, $now)) {
+                continue;
+            }
+
+            $changes[] = [
+                'item_id' => (int) $item->id,
+                'label' => $item->name . ($item->variant_label ? ' (' . $item->variant_label . ')' : ''),
+                'was' => (float) $item->price,
+                'now' => $now,
+            ];
+        }
+
+        return $changes;
+    }
+
+    /**
+     * Save the current prices on the cart lines, then refuse the order.
+     * The cart and checkout pages read the saved prices, so the shopper's
+     * next look shows the new total.
+     *
+     * @param  array<int, array{item_id: int, label: string, was: float, now: float}>  $changes
+     */
+    private function refuseForPriceChanges(array $changes): never
+    {
+        foreach ($changes as $change) {
+            CartItem::whereKey($change['item_id'])->update(['price' => $change['now']]);
+        }
+
+        throw new CartPricesChangedException($changes);
+    }
+
+    /**
+     * Run inside the order transaction, with the cart locked: read its
+     * lines again and price them again. Returns the price changes found, empty
+     * when the order may be written. A cart whose lines or quantities
+     * moved since this request read them is refused outright, because the
+     * order copies the lines it read.
+     *
+     * @return array<int, array{item_id: int, label: string, was: float, now: float}>
+     */
+    private function lateCartChanges(Cart $cart, Collection $items, ?int $customerGroupId): array
+    {
+        $fresh = $cart->items()->with(['product.specials', 'productVariant'])->get()->keyBy('id');
+
+        $sameLines = $fresh->count() === $items->count()
+            && $items->every(fn ($item) => $fresh->has($item->id)
+                && (int) $fresh[$item->id]->quantity === (int) $item->quantity);
+
+        if (! $sameLines) {
+            throw new \InvalidArgumentException('Your cart changed while the order was being placed. Please review it and try again.');
+        }
+
+        // Each freshly read line, carrying the price the subtotal above
+        // was built from, against what core prices it at now.
+        $lines = $items->map(function ($item) use ($fresh) {
+            $line = $fresh[$item->id];
+            $line->price = $item->price;
+
+            return $line;
+        });
+
+        return $this->linePriceChanges($lines, $customerGroupId);
+    }
+
+    /**
+     * The earlier placement this request repeats, answered with that
+     * order, or null when this request should place one.
+     *
+     * - An order that is placed (it has a status) is repeated by any submit
+     *   while the cart still holds the lines it was made from, or is empty
+     *   because placing it emptied it. One cart's lines become one order.
+     * - An unpaid order waiting on its payment page is repeated only by the
+     *   same submit (same lines, same choices): the shopper is sent back to
+     *   that page. A shopper who went back and changed the address or the
+     *   payment method is placing a new order, as before.
+     * - An unpaid order with no payment page yet is still being placed by
+     *   another request, and this one is refused until that one finishes.
+     *
+     * Each answer holds only for a short while after the order was made,
+     * so an order left behind (a placement that died, a payment abandoned
+     * long ago) never keeps the cart from placing again.
+     *
+     * @return array{order: Order, payment: PaymentResult, duplicate: bool}|null
+     */
+    private function repeatedPlacement(Cart $cart, string $linesKey, string $requestKey, bool $cartEmpty): ?array
+    {
+        if (! $cart->placed_order_id) {
+            return null;
+        }
+
+        $order = $this->linkedOrder($cart);
+        if (! $order) {
+            return null;
+        }
+
+        if ($order->order_status_id !== null) {
+            $repeats = $this->withinRepeatWindow($order)
+                && ($cartEmpty || hash_equals((string) $cart->placed_lines_key, $linesKey));
+
+            return $repeats
+                ? ['order' => $order, 'payment' => new PaymentResult(success: true), 'duplicate' => true]
+                : null;
+        }
+
+        if ($order->payment_url === null) {
+            $stillPlacing = $order->created_at
+                && $order->created_at->gt(now()->subSeconds((int) config('checkout.placement.lock_seconds', 90)));
+
+            if ($stillPlacing) {
+                throw new OrderAlreadyBeingPlacedException();
+            }
+
+            return null;
+        }
+
+        $repeats = ! $cartEmpty
+            && $this->withinRepeatWindow($order)
+            && hash_equals((string) $cart->placed_request_key, $requestKey);
+
+        return $repeats
+            ? ['order' => $order, 'payment' => new PaymentResult(success: true, redirectUrl: $order->payment_url), 'duplicate' => true]
+            : null;
+    }
+
+    /** The order the cart is linked to, when it is this cart's customer's own. */
+    private function linkedOrder(Cart $cart): ?Order
+    {
+        return Order::whereKey($cart->placed_order_id)
+            ->where('store_id', $cart->store_id)
+            ->where('customer_id', $cart->customer_id)
+            ->first();
+    }
+
+    private function withinRepeatWindow(Order $order): bool
+    {
+        return $order->created_at !== null
+            && $order->created_at->gt(now()->subSeconds((int) config('checkout.placement.repeat_window_seconds', 600)));
+    }
+
+    /**
+     * A fingerprint of the cart's lines: which lines, how many of each and
+     * at what price. A line added, removed, changed or re-added afterwards
+     * gives a different fingerprint.
+     */
+    private function linesKey(Collection $lines): string
+    {
+        $parts = $lines
+            ->sortBy('id')
+            ->map(fn (CartItem $line) => [
+                (int) $line->id,
+                (int) $line->product_id,
+                $line->product_variant_id === null ? null : (int) $line->product_variant_id,
+                (int) $line->quantity,
+                number_format((float) $line->price, 2, '.', ''),
+                $line->created_at?->getTimestamp(),
+            ])
+            ->values()
+            ->all();
+
+        return hash('sha256', json_encode($parts));
+    }
+
+    /**
+     * A fingerprint of one Place order submit: the cart's lines and every
+     * choice the shopper made on the checkout page.
+     */
+    private function requestKey(
+        string $linesKey,
+        Cart $cart,
+        string $paymentMethodKey,
+        string $shippingMethodKey,
+        CustomerAddress $shippingAddress,
+        ?array $billingAddress,
+        ?string $comment,
+        ?string $courierComment
+    ): string {
+        if ($billingAddress !== null) {
+            ksort($billingAddress);
+        }
+
+        return hash('sha256', json_encode([
+            $linesKey,
+            $paymentMethodKey,
+            $shippingMethodKey,
+            (int) $shippingAddress->id,
+            $billingAddress,
+            (string) $comment,
+            (string) $courierComment,
+            (string) $cart->coupon_code,
+        ]));
     }
 
     /**

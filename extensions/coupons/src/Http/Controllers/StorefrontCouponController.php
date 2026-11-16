@@ -24,7 +24,10 @@ class StorefrontCouponController extends Controller
 
         $customer = Auth::guard('customer')->user();
         $cart = $this->cartService->findCart();
-        $items = $cart ? $cart->items()->with(['product.categories', 'productVariant'])->get() : collect();
+        // Lines at today's prices (an ended special or a changed price is
+        // saved on the cart first), so a minimum spend or a percentage is
+        // judged on the subtotal the order will be charged.
+        $items = $cart ? $this->cartService->getItems() : collect();
 
         if (!$cart || $items->isEmpty()) {
             return response()->json([
@@ -32,6 +35,8 @@ class StorefrontCouponController extends Controller
                 'message' => 'Your cart is empty.',
             ], 422);
         }
+
+        $items->load('product.categories');
 
         $subtotal = $items->sum(fn($item) => $item->price * $item->quantity);
 

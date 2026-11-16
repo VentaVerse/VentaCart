@@ -247,23 +247,45 @@ class CartService
         $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
 
         foreach ($items as $item) {
-            $product = $item->product;
-            if (!$product) {
+            $correctPrice = self::currentLinePrice($item, $customerGroupId);
+            if ($correctPrice === null) {
                 continue;
             }
 
-            // Start with base product or variant price
-            $basePrice = $item->productVariant
-                ? (float) $item->productVariant->price
-                : (float) $product->price;
-
-            $correctPrice = self::resolvePrice($product, $basePrice, $item->quantity, $customerGroupId);
-
-            if ((float) $item->price !== $correctPrice) {
+            if (! self::samePrice((float) $item->price, $correctPrice)) {
                 $item->update(['price' => $correctPrice]);
                 $item->price = $correctPrice;
             }
         }
+    }
+
+    /**
+     * What a cart line costs right now: the variant's price (which carries
+     * its modifier) or the product's, run through the specials and volume
+     * tiers for the customer group and the line's quantity. Rounded to the
+     * cents a price column stores. Null when the product is gone.
+     *
+     * The cart page, the checkout page and order placement all price a
+     * line here, so the figure a shopper is shown is the figure charged.
+     */
+    public static function currentLinePrice(CartItem $item, ?int $customerGroupId = null): ?float
+    {
+        $product = $item->product;
+        if (! $product) {
+            return null;
+        }
+
+        $basePrice = $item->productVariant
+            ? (float) $item->productVariant->price
+            : (float) $product->price;
+
+        return round(self::resolvePrice($product, $basePrice, (int) $item->quantity, $customerGroupId), 2);
+    }
+
+    /** Two prices are the same when they agree to the cent. */
+    public static function samePrice(float $a, float $b): bool
+    {
+        return abs(round($a, 2) - round($b, 2)) < 0.005;
     }
 
     public function getCount(): int

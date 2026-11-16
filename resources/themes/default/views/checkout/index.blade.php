@@ -787,7 +787,7 @@
 
                 {{-- Buttons --}}
                 <div class="checkout-modal-actions">
-                    <button @click="closeConfirmModal()" class="checkout-modal-btn-back">Go Back</button>
+                    <button @click="closeConfirmModal()" class="checkout-modal-btn-back" :disabled="placing">Go Back</button>
                     <button @click="confirmOrder()" class="checkout-modal-btn-confirm" :disabled="placing">
                         <span x-show="!placing">Confirm & Pay</span>
                         <span x-show="placing">Processing...</span>

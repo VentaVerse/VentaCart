@@ -1097,17 +1097,34 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
         this.refreshShippingRates();
     },
 
+    init() {
+        // Coming back to this page with the browser's Back button (from a
+        // payment page, say) can restore it exactly as it was left, with
+        // the order already submitting. Let the shopper place again.
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                this.placing = false;
+            }
+        });
+    },
+
     submitOrder() {
-        if (!this.selectedAddressId || !this.selectedPayment) return;
+        if (this.placing || !this.selectedAddressId || !this.selectedPayment) return;
         this.showConfirmModal = true;
     },
 
     closeConfirmModal() {
+        // Once the order is submitting, the dialog stays: closing it would
+        // bring back a button that submits the same order again.
+        if (this.placing) return;
         this.showConfirmModal = false;
-        this.placing = false;
     },
 
+    // Submits once. A second click, or Enter pressed again, does nothing
+    // while the first submit is on its way. This is only a courtesy: the
+    // server places one order per cart however often it is asked.
     confirmOrder() {
+        if (this.placing) return;
         this.placing = true;
         this.$refs.orderForm.submit();
     },

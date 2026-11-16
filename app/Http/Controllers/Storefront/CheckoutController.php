@@ -33,7 +33,10 @@ class CheckoutController extends Controller
             ?? $addresses->first();
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'iso2', 'name', 'phone_code']);
 
-        $subtotal = $this->cartService->getSubtotal();
+        // getItems() has already priced every line as core does now (an
+        // ended special or a changed price is saved on the cart), so the
+        // page, its shipping quotes and its coupon all use current prices.
+        $subtotal = (float) $items->sum(fn ($item) => $item->price * $item->quantity);
 
         $shippingMethods = $defaultAddress
             ? $this->checkoutService->shippingQuotesFor($defaultAddress, $items, $subtotal)
@@ -127,6 +130,13 @@ class CheckoutController extends Controller
         $items = $cart ? $cart->items()->with(['product', 'productVariant'])->get() : collect();
 
         if (!$cart || $items->isEmpty()) {
+            // A second Place order arriving after the first emptied the
+            // cart is a repeat of that order: show it, not an empty cart.
+            $placed = $cart ? $this->checkoutService->recentlyPlacedOrder($cart) : null;
+            if ($placed) {
+                return redirect()->route('checkout.confirmation', $placed);
+            }
+
             return redirect()->route('cart.index')->with('error', 'Your cart is empty.');
         }
 
@@ -208,7 +218,7 @@ class CheckoutController extends Controller
         $customer = Auth::guard('customer')->user();
         $address = $customer->addresses()->findOrFail($request->input('address_id'));
         $items = $this->cartService->getItems();
-        $subtotal = $this->cartService->getSubtotal();
+        $subtotal = (float) $items->sum(fn ($item) => $item->price * $item->quantity);
 
         $quotes = $this->checkoutService->shippingQuotesFor($address, $items, $subtotal);
 
@@ -234,8 +244,14 @@ class CheckoutController extends Controller
             return redirect()->route('account.orders');
         }
 
-        // Customer didn't complete payment: send back to checkout
+        // Customer didn't complete payment: send back to checkout. The
+        // cart lets go of this unpaid order, so placing again makes a new
+        // order and a new payment, as it always has.
         if ($status !== 'completed') {
+            if ($order->order_status_id === null) {
+                $this->checkoutService->releaseCart($order);
+            }
+
             return redirect()->route('checkout.index')
                 ->with('error', 'Payment was not completed. Your cart has been preserved, please try again.');
         }

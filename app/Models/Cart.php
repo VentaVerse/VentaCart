@@ -34,6 +34,15 @@ class Cart extends Model
         return $this->hasMany(CartItem::class);
     }
 
+    /**
+     * The order this cart's lines last became. Written by checkout only,
+     * which is why it is not fillable.
+     */
+    public function placedOrder(): BelongsTo
+    {
+        return $this->belongsTo(Order::class, 'placed_order_id');
+    }
+
     public function getTotalAttribute(): float
     {
         return $this->items->sum(fn($item) => $item->price * $item->quantity);
