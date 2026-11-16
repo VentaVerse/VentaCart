@@ -10,18 +10,18 @@ use Illuminate\Database\Eloquent\Builder;
  * A name typed into a search box is a set of words, not a string. Matching it
  * as one unbroken run of characters means the search cannot step over
  * anything sitting between those words, so a customer stored as
- * first_name "Paolo Andres", last_name "Reyes" is not found by "Paolo Reyes".
- * On the live NGD table that was 1,227 customers out of 3,547.
+ * first_name "Juan Miguel", last_name "Dela Cruz" is not found by "Juan Dela Cruz".
+ * Stores imported from older systems often hold a large share of names in
+ * that shape.
  *
- * It is not an import artefact. The sign-up form has two boxes, first and
- * last, so people type a middle name or a compound given name into the first
- * one, and five of the twenty-nine customers created natively in Venta
- * already had the shape. Any new store will grow its own.
+ * It is not only an import artefact. The sign-up form has two boxes, first
+ * and last, so people type a middle name or a compound given name into the
+ * first one, and every store grows records of that shape over time.
  *
  * So: split on whitespace, and require EVERY word to appear in the name
- * somewhere. "Paolo Reyes" becomes "has Paolo somewhere AND has Reyes
- * somewhere", which finds the record whatever sits between the two, in
- * either order, and whether or not the name was ever split into two columns.
+ * somewhere. "Juan Dela Cruz" becomes "has Juan AND has Dela AND has Cruz
+ * somewhere", which finds the record whatever sits between the words, in
+ * any order, and whether or not the name was ever split into two columns.
  * One rule covers the legacy shape and the tidy shape.
  */
 class NameSearch
