@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\CartService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,7 @@ use Illuminate\Support\Facades\DB;
  *
  *   filter         'new' (default): newest first, by date available
  *                  'best_sellers':  most revenue from order lines first
- *                  'on_sale':       only products with an active sale special
+ *                  'on_sale':       only products on sale for the shopper looking (their customer group, one unit)
  *                  'most_viewed':   most viewed first
  *                  'random':        a random pick
  *                  An unknown value is read as 'new', so a stored block with a
@@ -87,22 +88,58 @@ final class ProductFeed
                 ->withCount(['reviews as reviews_count' => fn ($q) => $q->where('status', 'approved')]);
         }
 
-        if ($filter === 'on_sale') {
-            $query->whereHas('specials', fn ($q) => $q->where('display_mode', 'sale')->activeAt());
+        $onSale = $filter === 'on_sale';
+        $groupId = $onSale ? CartService::customerGroupId() : null;
+
+        if ($onSale) {
+            // A special belongs to one customer group, or to every group when
+            // it names none. "On sale" means on sale for the shopper looking:
+            // a sale kept for another group must not put a product in this
+            // shopper's list at their regular price.
+            $query->whereHas('specials', fn ($q) => $q
+                ->where('display_mode', 'sale')
+                ->where('quantity', '<=', 1)
+                ->where(fn ($g) => $g->whereNull('customer_group_id')->orWhere('customer_group_id', $groupId))
+                ->activeAt());
         }
 
         if ($ids !== null) {
             $position = array_flip($ids);
 
-            return $query->whereIn('id', $ids)->get()
-                ->sortBy(fn (Product $product) => $position[$product->id])
-                ->take($limit)
-                ->values();
+            $products = $query->whereIn('id', $ids)->get()
+                ->sortBy(fn (Product $product) => $position[$product->id]);
+
+            return self::keepOnSale($products, $onSale, $groupId)->take($limit)->values();
         }
 
         self::order($query, $filter);
 
-        return $query->limit($limit)->get();
+        if (! $onSale) {
+            return $query->limit($limit)->get();
+        }
+
+        // The card shows whichever special wins for this shopper, so a
+        // product stays only when that winner is a sale. Read a few extra in
+        // case one drops out.
+        return self::keepOnSale($query->limit(min(self::LIMIT_MAX * 2, $limit * 2))->get(), true, $groupId)
+            ->take($limit)
+            ->values();
+    }
+
+    /**
+     * Keep the products whose winning special for one unit, for this shopper's
+     * group, is shown as a sale: the same special the price on the card uses.
+     *
+     * @param  Collection<int, Product>  $products
+     * @return Collection<int, Product>
+     */
+    private static function keepOnSale(Collection $products, bool $onSale, ?int $groupId): Collection
+    {
+        if (! $onSale) {
+            return $products;
+        }
+
+        return $products->filter(fn (Product $product) => CartService::winningSpecial($product, 1, $groupId)?->display_mode === 'sale');
     }
 
     /** Parse a typed list such as "12, 7 31" into ids, keeping order and dropping repeats. @return list<int> */

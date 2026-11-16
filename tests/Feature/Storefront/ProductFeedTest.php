@@ -96,6 +96,50 @@ class ProductFeedTest extends TestCase
         $this->assertSame(['On Sale'], $this->names(['filter' => 'on_sale']));
     }
 
+    public function test_on_sale_follows_the_shoppers_customer_group(): void
+    {
+        $retail = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
+        $reseller = CustomerGroup::create(['store_id' => 1, 'name' => 'Reseller']);
+        $window = ['display_mode' => 'sale', 'date_start' => now()->subDay(), 'date_end' => now()->addDay()];
+
+        $everyone = $this->product('Sale For Everyone', ['date_available' => now()->subDays(3)]);
+        $retailOnly = $this->product('Retail Sale', ['date_available' => now()->subDays(2)]);
+        $resellerOnly = $this->product('Reseller Sale', ['date_available' => now()->subDay()]);
+
+        ProductSpecial::create(['product_id' => $everyone->id, 'price' => 80] + $window);
+        ProductSpecial::create(['product_id' => $retailOnly->id, 'customer_group_id' => $retail->id, 'price' => 80] + $window);
+        ProductSpecial::create(['product_id' => $resellerOnly->id, 'customer_group_id' => $reseller->id, 'price' => 70] + $window);
+
+        // A guest shops as the default group: a reseller's sale is not theirs.
+        $this->assertSame(['Retail Sale', 'Sale For Everyone'], $this->names(['filter' => 'on_sale']));
+
+        $customer = Customer::create(['store_id' => 1, 'customer_group_id' => $reseller->id, 'first_name' => 'Juan',
+            'last_name' => 'Dela Cruz', 'email' => 'reseller@example.com', 'password' => bcrypt('secret'), 'is_active' => true]);
+        $this->actingAs($customer, 'customer');
+
+        $this->assertSame(['Reseller Sale', 'Sale For Everyone'], $this->names(['filter' => 'on_sale']));
+        $this->assertSame(['Reseller Sale'], $this->names(['filter' => 'on_sale', 'ids' => [$resellerOnly->id, $retailOnly->id]]));
+    }
+
+    public function test_on_sale_skips_volume_tiers_and_specials_that_win_without_a_sale_label(): void
+    {
+        CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
+        $window = ['date_start' => now()->subDay(), 'date_end' => now()->addDay()];
+
+        $tier = $this->product('Ten Or More');
+        $quiet = $this->product('Quiet Price Wins');
+        $plain = $this->product('Plain Sale');
+
+        // Only from ten units: one unit is at the regular price.
+        ProductSpecial::create(['product_id' => $tier->id, 'price' => 50, 'quantity' => 10, 'display_mode' => 'sale'] + $window);
+        // A quiet price with the higher rank wins on the card, so no sale shows.
+        ProductSpecial::create(['product_id' => $quiet->id, 'price' => 90, 'priority' => 1, 'display_mode' => 'override'] + $window);
+        ProductSpecial::create(['product_id' => $quiet->id, 'price' => 70, 'priority' => 5, 'display_mode' => 'sale'] + $window);
+        ProductSpecial::create(['product_id' => $plain->id, 'price' => 70, 'display_mode' => 'sale'] + $window);
+
+        $this->assertSame(['Plain Sale'], $this->names(['filter' => 'on_sale']));
+    }
+
     public function test_most_viewed_ranks_by_views(): void
     {
         $this->product('Few Views', ['views' => 3]);
