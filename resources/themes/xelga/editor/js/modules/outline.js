@@ -7,7 +7,7 @@
 
 import { $, $$, h, icon, dotsIcon } from './dom.js';
 import { S, ctx, ui, groupsInScope, groupList, blockList, labelOf, sec, isBusy, isFixed, isShared, openOnly } from './state.js';
-import { sectionDef, blockDef, sectionIcon, blockIcon, absentNote } from './catalog.js';
+import { sectionDef, blockDef, sectionIcon, blockIcon, absentLabel } from './catalog.js';
 import { select } from './selection.js';
 import { openMenu } from './popover.js';
 import { highlight } from './preview.js';
@@ -285,7 +285,8 @@ function sectionItem(s, index, count, errors, group) {
     row.append(h('span', { class: 'o-grip o-grip--none', 'aria-hidden': 'true' }));
   }
 
-  if (canHaveBlocks || blocks.length) {
+  // A section the catalog lacks offers only move and remove: no blocks to open, no hide.
+  if (def && (canHaveBlocks || blocks.length)) {
     row.append(h('button', {
       type: 'button', class: 'o-row__toggle', 'aria-expanded': String(isOpen),
       'aria-label': `${isOpen ? 'Hide' : 'Show'} blocks in ${label}`,
@@ -304,24 +305,24 @@ function sectionItem(s, index, count, errors, group) {
   } else {
     row.append(h('button', {
       type: 'button', class: 'o-row__main', 'aria-current': selected ? 'true' : null,
-      title: def ? `${label} (${def.label})` : absentNote(s.type, ctx.boot?.extensions) || 'This section is no longer available',
+      title: def ? `${label} (${def.label})` : absentLabel(s, ctx.boot?.extensions) || 'This section is no longer available',
       'aria-keyshortcuts': group === 'template' && !main ? `F2 Delete ${MOD}+D Alt+ArrowUp Alt+ArrowDown` : 'F2 Alt+ArrowUp Alt+ArrowDown',
       onclick: () => select(s.id),
       onkeydown: (e) => rowKeys(e, { sid: s.id, removable: group === 'template' && !main, copyable: group === 'template' && canDuplicate(s.id) }),
     }, icon(def ? sectionIcon(s.type) : 'alert', 'o-row__icon'),
-    def ? rowText(label, needTag(s.id)) : h('span', { class: 'o-row__label', text: absentNote(s.type, ctx.boot?.extensions) || 'No longer available' }),
+    def ? rowText(label, needTag(s.id)) : h('span', { class: 'o-row__label', text: absentLabel(s, ctx.boot?.extensions) || 'No longer available' }),
     busy ? h('span', { class: 'o-row__busy', text: 'Updating' }) : null,
     errors.has(s.id) ? h('span', { class: 'o-row__err', 'aria-label': 'Has a value that was not accepted' }, icon('alert')) : null));
   }
 
   row.append(h('span', { class: 'o-row__actions' },
-    main ? null : eyeButton(hidden, label, () => toggleVisible(s.id)),
+    main || !def ? null : eyeButton(hidden, label, () => toggleVisible(s.id)),
     moreButton(label, (e) => sectionMenu(e.currentTarget, s.id, index, count, group))));
 
-  const li = h('li', { class: `o-item${isOpen ? ' is-open' : ''}`, dataset: { sid: s.id, group } }, row);
+  const li = h('li', { class: `o-item${isOpen && def ? ' is-open' : ''}`, dataset: { sid: s.id, group } }, row);
   if (movable) wireDrag(li, { kind: 'section', sid: s.id, group });
 
-  if (isOpen && (blocks.length || canHaveBlocks)) {
+  if (def && isOpen && (blocks.length || canHaveBlocks)) {
     const ul = h('ul', { class: 'o-blocks', role: 'list', dataset: { sid: s.id } });
     blocks.forEach((b, i) => ul.append(blockItem(s, b, i, blocks.length)));
     const { types, full, max } = addableBlocks(s.id);
@@ -354,11 +355,25 @@ function blockMenu(s, types) {
 
 /* A block of an extension that is away: kept, shown with its note, and only movable or removable. */
 function absentBlockItem(s, b, index, count) {
-  const label = absentNote(b.type, ctx.boot?.extensions) || 'No longer available';
+  const label = absentLabel(b, ctx.boot?.extensions) || 'No longer available';
+  const name = labelOf(s.id, b.id) || label;
   const li = h('li', { class: 'o-item', dataset: { bid: b.id } });
-  const row = h('div', { class: 'o-row o-row--block is-missing', dataset: { row: b.id } },
+  const row = h('div', { class: 'o-row o-row--block is-missing', dataset: { row: b.id } });
+  if (count > 1) {
+    row.append(h('button', {
+      type: 'button', class: 'o-grip o-grip--block', 'aria-label': `Move ${name}. Use the up and down arrow keys.`,
+      onkeydown: (e) => {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          moveBlockBy(s.id, b.id, e.key === 'ArrowUp' ? -1 : 1);
+        }
+      },
+      onpointerdown: () => { li.draggable = true; },
+    }, icon('grip')));
+  }
+  row.append(
     h('span', { class: 'o-row__main', title: label }, icon('alert', 'o-row__icon'), h('span', { class: 'o-row__label', text: label })),
-    h('span', { class: 'o-row__actions' }, moreButton(labelOf(s.id, b.id) || label, (e) => openMenu(e.currentTarget, [
+    h('span', { class: 'o-row__actions' }, moreButton(name, (e) => openMenu(e.currentTarget, [
       { label: 'Move up', iconName: 'chevron-up', disabled: index === 0, run: () => moveBlockBy(s.id, b.id, -1) },
       { label: 'Move down', iconName: 'chevron-down', disabled: index >= count - 1, run: () => moveBlockBy(s.id, b.id, 1) },
       { sep: true },

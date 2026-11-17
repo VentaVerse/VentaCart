@@ -51,9 +51,21 @@ final class SectionRenderer
         $disabled = (bool) ($section['disabled'] ?? false);
 
         if ($schema === null) {
-            return $context->preview
-                ? $this->wrap($id, view('xelga::snippets.section-missing', ['id' => $id, 'type' => $type] + self::owner($type))->render())
-                : '';
+            if (! $context->preview) {
+                return '';
+            }
+            // The preview draws a note in its place; the editor knows it is
+            // shown, and names it by its own name rather than its id.
+            $this->pageData[] = [
+                'id' => $id,
+                'type' => $type,
+                'group' => $context->group,
+                'label' => self::nameOf($section),
+                'disabled' => (bool) ($section['disabled'] ?? false),
+                'blocks' => [],
+            ];
+
+            return $this->wrap($id, view('xelga::snippets.section-missing', ['id' => $id, 'type' => $type, 'name' => self::nameOf($section)] + self::owner($type))->render());
         }
         // Where an extension section sits is checked again here, whatever
         // wrote the stored document: one that breaks its schema's rules is
@@ -188,6 +200,23 @@ final class SectionRenderer
         }
 
         return $types;
+    }
+
+    /**
+     * A section the catalog lacks, by its own name: the label it was saved
+     * with, else its type made readable (`marketplace.seller-card` reads
+     * "Seller card").
+     */
+    public static function nameOf(array $section): string
+    {
+        $label = trim((string) ($section['label'] ?? ''));
+        if ($label !== '') {
+            return $label;
+        }
+        $type = (string) ($section['type'] ?? '');
+        $name = str_contains($type, '.') ? substr($type, (int) strpos($type, '.') + 1) : $type;
+
+        return \Illuminate\Support\Str::ucfirst(str_replace('-', ' ', $name)) ?: 'Section';
     }
 
     /**
