@@ -276,6 +276,109 @@ class XelgaRowsDocumentTest extends TestCase
         $this->assertSame([[$last]], $draft['rows'][$at + 1]['columns']);
     }
 
+    /**
+     * The home page laid out in exactly Layout::MAX_ROWS rows: $first,
+     * then one plain row per remaining home section, then $extra tiles in
+     * plain rows, then empty 6-6 rows to fill up to the limit.
+     */
+    private function homeAtRowLimit(array $first, array $inFirst, int $extra = 0): array
+    {
+        $home = $this->defaults('home');
+        $rows = [$first];
+        foreach ($home['order'] as $id) {
+            if (! in_array($id, $inFirst, true)) {
+                $rows[] = ['split' => '12', 'columns' => [[$id]], 'settings' => []];
+            }
+        }
+        foreach ($inFirst as $id) {
+            if (! isset($home['sections'][$id])) {
+                $home['sections'][$id] = $this->tile();
+                $home['order'][] = $id;
+            }
+        }
+        for ($i = 1; $i <= $extra; $i++) {
+            $home['sections']["extra-{$i}"] = $this->tile();
+            $home['order'][] = "extra-{$i}";
+            $rows[] = ['split' => '12', 'columns' => [["extra-{$i}"]], 'settings' => []];
+        }
+        while (count($rows) < Layout::MAX_ROWS) {
+            $rows[] = ['split' => '6-6', 'columns' => [[], []], 'settings' => []];
+        }
+        $home['rows'] = $rows;
+
+        return $home;
+    }
+
+    /** Open the page in the editor and save it back unchanged. */
+    private function resave(string $handle): array
+    {
+        $this->forgetXelgaState();
+        $state = $this->actingAs($this->admin())->getJson(route('admin.xelga.documents.show', ['handle' => $handle]))->assertOk()->json('data');
+        $this->assertLessThanOrEqual(Layout::MAX_ROWS, count($state['content']['rows'] ?? []));
+
+        return $this->saveWithRows($handle, json_decode(json_encode($state['content']), true), (int) $state['draft_version'])->assertOk()->json('data');
+    }
+
+    public function test_a_page_at_the_row_limit_with_a_misfit_saves_and_saves_again(): void
+    {
+        // The banner is too wide for half a row; moving it out must not take the page over the limit.
+        $home = $this->homeAtRowLimit(['id' => 'row-top', 'split' => '6-6', 'columns' => [['hero-1'], []], 'settings' => []], ['hero-1']);
+        $this->assertCount(Layout::MAX_ROWS, $home['rows']);
+
+        $this->saveWithRows('home', $home, 0)->assertOk()->assertJsonPath('data.adjusted.0.reason', 'too-wide');
+
+        $draft = $this->draft('home');
+        $this->assertCount(Layout::MAX_ROWS, $draft['rows']);
+        $this->assertNotContains('row-top', array_column($draft['rows'], 'id'), 'The row the banner left empty goes first.');
+        $this->assertSame([['hero-1']], $draft['rows'][0]['columns']);
+        $this->assertSame([[], []], end($draft['rows'])['columns'], 'Empty rows the merchant made stay.');
+
+        $this->assertSame([], $this->resave('home')['adjusted']);
+        $this->assertSame($draft['rows'], $this->draft('home')['rows']);
+    }
+
+    public function test_a_duplicate_into_a_full_column_at_the_row_limit_saves(): void
+    {
+        $tiles = ['tile-1', 'tile-2', 'tile-3', 'tile-4', 'tile-5', 'tile-6'];
+        $home = $this->homeAtRowLimit(['id' => 'row-tiles', 'split' => '6-6', 'columns' => [$tiles, []], 'settings' => []], $tiles);
+        $this->saveWithRows('home', $home, 0)->assertOk();
+        $this->assertCount(Layout::MAX_ROWS, $this->draft('home')['rows']);
+
+        $this->forgetXelgaState();
+        $copy = $this->actingAs($this->admin())->postJson(route('admin.xelga.documents.duplicate', ['handle' => 'home']), ['section' => 'tile-1', 'draft_version' => 1])
+            ->assertOk()->json('data.new_id');
+
+        $draft = $this->draft('home');
+        $this->assertCount(Layout::MAX_ROWS, $draft['rows']);
+        $this->assertSame([[$copy]], $draft['rows'][1]['columns'], 'Its own row, right after the full column\'s row.');
+        $this->resave('home');
+    }
+
+    public function test_a_page_at_the_row_limit_still_reads_and_saves_after_a_span_is_raised(): void
+    {
+        $home = $this->homeAtRowLimit(['id' => 'row-tiles', 'split' => '4-4-4', 'columns' => [['tile-a'], [], []], 'settings' => []], ['tile-a'], 20);
+        $this->saveWithRows('home', $home, 0)->assertOk()->assertJsonPath('data.adjusted', []);
+        $this->publish($this->admin(), ['home' => 1])->assertOk();
+
+        // A theme update makes the tile need half the page.
+        $file = base_path('tests/fixtures/extensions/sample-extension/resources/xelga/schemas/sections/sample-extension.tile.json');
+        $original = (string) file_get_contents($file);
+        $schema = json_decode($original, true);
+        $schema['span'] = ['min' => 6];
+        file_put_contents($file, json_encode($schema));
+        try {
+            $this->forgetXelgaState();
+            $this->page('/')->assertSee('data-sample-tile', false);
+            $this->resave('home');
+            $draft = $this->draft('home');
+            $this->assertCount(Layout::MAX_ROWS, $draft['rows']);
+            $this->assertSame([['tile-a']], $draft['rows'][0]['columns']);
+        } finally {
+            file_put_contents($file, $original);
+            $this->forgetXelgaState();
+        }
+    }
+
     public function test_a_custom_template_copy_keeps_rows_and_drops_left_out_sections(): void
     {
         $product = $this->withTileRow(Defaults::content('product'), 'product-main-1');
