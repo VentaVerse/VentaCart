@@ -1,3 +1,7 @@
+@php
+    $storeSymbol = (string) app(\App\Services\ThemeService::class)->getDefaultCurrency()?->symbol;
+    $costLabel = $storeSymbol !== '' ? "Cost ({$storeSymbol})" : 'Cost';
+@endphp
 <x-admin.shell :title="$method ? 'Edit weight-based method' : 'Add weight-based method'">
     <div class="v-head">
         <div class="v-head__body">
@@ -68,7 +72,7 @@
                         <div class="v-row">
                             <input type="number" :name="'rates['+i+'][weight_from]'" x-model="rate.weight_from" step="0.001" min="0" aria-label="Weight from (kg)" class="v-control v-mono">
                             <input type="number" :name="'rates['+i+'][weight_to]'" x-model="rate.weight_to" step="0.001" min="0" aria-label="Weight to (kg)" class="v-control v-mono">
-                            <input type="number" :name="'rates['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0" aria-label="Cost (₱)" class="v-control v-mono">
+                            <input type="number" :name="'rates['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0" aria-label="{{ $costLabel }}" class="v-control v-mono">
                             <button type="button" class="v-row__x" @click="rates.splice(i, 1); touch()" aria-label="Remove tier"><x-admin.icon name="x" /></button>
                         </div>
                     </template>

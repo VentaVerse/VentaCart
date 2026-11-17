@@ -13,7 +13,7 @@
     <div class="v-settle">
         <div class="v-stats">
             <div class="v-stat"><div class="v-stat__label">Abandoned</div><div class="v-stat__value">{{ number_format($totalAbandoned) }}</div></div>
-            <div class="v-stat"><div class="v-stat__label">Value sitting in them</div><div class="v-stat__value">₱{{ number_format($totalValue, 2) }}</div></div>
+            <div class="v-stat"><div class="v-stat__label">Value sitting in them</div><div class="v-stat__value">{{ store_money($totalValue) }}</div></div>
         </div>
 
         <form method="GET" action="{{ route('admin.abandoned-carts.index') }}" class="v-filterbar">

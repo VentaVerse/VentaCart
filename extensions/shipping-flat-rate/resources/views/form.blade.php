@@ -1,3 +1,7 @@
+@php
+    $storeSymbol = (string) app(\App\Services\ThemeService::class)->getDefaultCurrency()?->symbol;
+    $costLabel = $storeSymbol !== '' ? "Cost ({$storeSymbol})" : 'Cost';
+@endphp
 <x-admin.shell :title="$rate ? 'Edit flat rate' : 'Add flat rate'">
     <div class="v-head">
         <div class="v-head__body">
@@ -21,7 +25,7 @@
                            value="{{ old('name', $rate?->name) }}">
                 </x-admin.field>
                 <div class="v-gap">
-                    <x-admin.field name="cost" label="Cost (₱)" hint="0 makes it free, for pickup or promos." required>
+                    <x-admin.field name="cost" :label="$costLabel" hint="0 makes it free, for pickup or promos." required>
                         <input type="number" name="cost" step="0.01" min="0" required class="v-control v-mono v-w-rate"
                                value="{{ old('cost', $rate?->cost ?? '0.00') }}">
                     </x-admin.field>

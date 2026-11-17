@@ -41,7 +41,7 @@
                 <div class="v-ledger">
                     <dl>
                         <dt class="v-facts__sum">Total</dt>
-                        <dd class="v-facts__sum v-mono">₱{{ number_format($cart->total, 2) }}</dd>
+                        <dd class="v-facts__sum v-mono">{{ store_money($cart->total) }}</dd>
                     </dl>
                 </div>
             </x-admin.panel>

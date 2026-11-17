@@ -33,7 +33,7 @@
                                     <td><a href="{{ route('admin.flat-rates.edit', $fr) }}" class="v-cell-link">{{ $fr->name ?: 'Unnamed' }}</a></td>
                                     <td class="v-cell-quiet">{{ $fr->geoZone?->name ?? 'All' }}</td>
                                     <td class="v-cell-quiet">{{ $fr->customerGroup?->name ?? 'All' }}</td>
-                                    <td class="v-mono">₱{{ number_format($fr->cost, 2) }}</td>
+                                    <td class="v-mono">{{ store_money($fr->cost) }}</td>
                                     <td><span class="v-badge {{ $fr->is_active ? 'v-badge--good' : 'v-badge--quiet' }}">{{ $fr->is_active ? 'Active' : 'Inactive' }}</span></td>
                                     <td class="v-cell-act">
                                         <a href="{{ route('admin.flat-rates.edit', $fr) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
