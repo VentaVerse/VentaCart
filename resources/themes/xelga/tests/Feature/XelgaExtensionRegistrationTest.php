@@ -63,7 +63,7 @@ class XelgaExtensionRegistrationTest extends TestCase
         $this->assertSame(realpath(base_path('tests/fixtures/extensions/sample-extension/resources/xelga')), $part->path);
         $this->assertSame('Tests\\Fixtures\\Extensions\\SampleExtension\\', $part->namespace);
         $this->assertSame('extensions/sample-extension/resources/css/xelga.css', $part->stylesheet);
-        $this->assertSame(['sample-extension.card.json', 'sample-extension.main.json'], array_map('basename', $part->schemaFiles()));
+        $this->assertSame(['sample-extension.card.json', 'sample-extension.main.json', 'sample-extension.tile.json'], array_map('basename', $part->schemaFiles()));
         $this->assertSame(['sample_page'], array_keys($part->templates()));
         $this->assertSame('card', $part->placements()[0]['key']);
         $this->assertSame('sample-extension@1.0.0', $this->fresh()->fingerprint());

@@ -52,6 +52,9 @@ class XelgaServiceProvider extends ServiceProvider
         $this->app->scoped(Storefront::class);
         // The parts extensions registered, collected once per request.
         $this->app->scoped(\Themes\Xelga\Extensions\Extensions::class);
+        // What the layout normalizer asks about a document's sections,
+        // resolved with the document's handle.
+        $this->app->bind(\Themes\Xelga\Documents\LayoutRules::class, \Themes\Xelga\Documents\CatalogLayoutRules::class);
     }
 
     public function boot(): void

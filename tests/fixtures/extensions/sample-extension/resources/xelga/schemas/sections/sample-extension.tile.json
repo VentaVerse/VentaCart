@@ -1,0 +1,13 @@
+{
+  "type": "sample-extension.tile",
+  "label": "Sample tile",
+  "description": "A short heading that fits any column.",
+  "group": "template",
+  "templates": ["home", "product", "category", "page", "*custom"],
+  "limit": null,
+  "span": { "min": 3 },
+  "settings": [
+    { "key": "heading", "type": "text", "label": "Heading", "default": "Sample tile", "max": 80 }
+  ],
+  "presets": [ { "key": "default", "label": "Sample tile" } ]
+}

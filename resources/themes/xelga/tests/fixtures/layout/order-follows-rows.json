@@ -1,0 +1,151 @@
+{
+  "name": "order-follows-rows",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "e",
+      "d",
+      "c",
+      "b",
+      "a"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      },
+      "c": {
+        "type": "text"
+      },
+      "d": {
+        "type": "text"
+      },
+      "e": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "a"
+          ]
+        ]
+      },
+      {
+        "id": "row-2",
+        "split": "6-6",
+        "columns": [
+          [
+            "b"
+          ],
+          [
+            "c",
+            "d"
+          ]
+        ]
+      },
+      {
+        "id": "row-3",
+        "split": "12",
+        "columns": [
+          [
+            "e"
+          ]
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      },
+      "c": {
+        "type": "text"
+      },
+      "d": {
+        "type": "text"
+      },
+      "e": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-2",
+        "split": "6-6",
+        "columns": [
+          [
+            "b"
+          ],
+          [
+            "c",
+            "d"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-3",
+        "split": "12",
+        "columns": [
+          [
+            "e"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "moved": []
+}

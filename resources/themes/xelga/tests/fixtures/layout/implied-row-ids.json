@@ -1,0 +1,76 @@
+{
+  "name": "implied-row-ids",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "a",
+      "row-86f7e437"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "row-86f7e437": {
+        "type": "text"
+      }
+    }
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "a",
+      "row-86f7e437"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "row-86f7e437": {
+        "type": "text"
+      }
+    }
+  },
+  "moved": [],
+  "rows": [
+    {
+      "id": "row-86f7e437fa",
+      "split": "12",
+      "columns": [
+        [
+          "a"
+        ]
+      ],
+      "settings": {
+        "width": "page",
+        "scheme": "",
+        "space": "md"
+      }
+    },
+    {
+      "id": "row-aa81619e",
+      "split": "12",
+      "columns": [
+        [
+          "row-86f7e437"
+        ]
+      ],
+      "settings": {
+        "width": "page",
+        "scheme": "",
+        "space": "md"
+      }
+    }
+  ]
+}

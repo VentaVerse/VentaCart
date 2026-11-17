@@ -1,0 +1,68 @@
+{
+  "name": "sides-not-allowed",
+  "rules": {
+    "min": {
+      "text": 3
+    },
+    "main": [],
+    "sides": false
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "f",
+      "a",
+      "g"
+    ],
+    "sections": {
+      "f": {
+        "type": "text"
+      },
+      "a": {
+        "type": "text"
+      },
+      "g": {
+        "type": "text"
+      }
+    },
+    "sides": {
+      "left": [
+        "f"
+      ],
+      "right": [
+        "g"
+      ]
+    }
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "a",
+      "f",
+      "g"
+    ],
+    "sections": {
+      "f": {
+        "type": "text"
+      },
+      "a": {
+        "type": "text"
+      },
+      "g": {
+        "type": "text"
+      }
+    }
+  },
+  "moved": [
+    {
+      "path": "content.sections.f",
+      "reason": "no-sides",
+      "value": "row-4a0a1921"
+    },
+    {
+      "path": "content.sections.g",
+      "reason": "no-sides",
+      "value": "row-54fd1711"
+    }
+  ]
+}

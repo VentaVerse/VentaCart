@@ -1,0 +1,100 @@
+{
+  "name": "main-in-column-moves",
+  "rules": {
+    "min": {
+      "text": 3,
+      "product-main": 3
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "m",
+      "a"
+    ],
+    "sections": {
+      "m": {
+        "type": "product-main"
+      },
+      "a": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "8-4",
+        "columns": [
+          [
+            "m"
+          ],
+          [
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "a",
+      "m"
+    ],
+    "sections": {
+      "m": {
+        "type": "product-main"
+      },
+      "a": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "8-4",
+        "columns": [
+          [],
+          [
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-6b0d31c0",
+        "split": "12",
+        "columns": [
+          [
+            "m"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "moved": [
+    {
+      "path": "content.sections.m",
+      "reason": "main-section",
+      "value": "row-6b0d31c0"
+    }
+  ]
+}
