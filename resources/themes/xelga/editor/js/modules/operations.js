@@ -20,7 +20,7 @@
 import { S, doc, sec, ctx, labelOf } from './state.js';
 import { sectionDef, blockDef, liveMode, themeSetting } from './catalog.js';
 import { clone, same } from './util.js';
-import { place, locate, rowsOf, addRow, moveRow, removeRow, changeSplit, setRow, effectsOf, tidy, catalogRules } from './board/model.js';
+import { place, locate, rowsOf, addRow, moveRow, removeRow, changeSplit, setRow, effectsOf, tidy, catalogRules, replaceIn } from './board/model.js';
 
 const listeners = new Set();
 
@@ -152,6 +152,12 @@ function layoutType(change, describe) {
     },
     describe,
   };
+}
+
+/** Gives a document's sections these entries, in this order, keeping the map itself (other parts of the editor hold it). */
+function setSections(c, entries) {
+  Object.keys(c.sections).forEach((id) => { delete c.sections[id]; });
+  entries.forEach(([id, section]) => { c.sections[id] = section; });
 }
 
 /**
@@ -349,6 +355,42 @@ const TYPES = {
     describe: (op) => `${op.kind === 'duplicate' ? 'duplicate' : 'add'} ${op.name || 'section'}`,
   },
 
+  /*
+   * { doc, sid, newSid, snapshot } a section of another type in the place
+   * of `sid`: the same row, column or side, under `newSid`. Refused (no
+   * change) when the new section does not fit that place. Undo puts the
+   * old section back exactly, its id, settings, blocks and place.
+   */
+  replace: {
+    apply(op, fwd) {
+      const c = contentOf(op.doc);
+      if (!c) return [];
+      const layout = layoutPayload();
+      // The row model reads the sections too: compare against a copy of the map.
+      const before = () => ({ ...layoutView(c), sections: { ...c.sections } });
+      if (fwd) {
+        if (!c.sections[op.sid] || c.sections[op.newSid]) return [];
+        const result = replaceIn(c, op.sid, op.newSid, clone(op.snapshot), rulesFor(op.doc));
+        if (!result) return [];
+        op.old = clone(c.sections[op.sid]);
+        op.prior = { ...layoutSnapshot(c), sectionKeys: Object.keys(c.sections) };
+        const was = before();
+        setSections(c, Object.entries(result.content.sections));
+        writeLayout(c, Object.keys(result.content), result.content);
+        return [effectsOf(was, c, layout)];
+      }
+      if (!c.sections[op.newSid] || c.sections[op.sid] || !op.old || !op.prior) return [];
+      op.snapshot = clone(c.sections[op.newSid]);
+      const was = before();
+      const keys = op.prior.sectionKeys.filter((id) => id === op.sid || c.sections[id]);
+      Object.keys(c.sections).forEach((id) => { if (id !== op.newSid && !keys.includes(id)) keys.push(id); });
+      setSections(c, keys.map((id) => [id, id === op.sid ? clone(op.old) : c.sections[id]]));
+      writeLayout(c, op.prior.keys, op.prior.values);
+      return [effectsOf(was, c, layout)];
+    },
+    describe: (op) => `replace ${op.name || 'section'}`,
+  },
+
   /* { doc, sid, bid, index, snapshot } */
   'block-add': {
     apply(op, fwd) {
@@ -525,6 +567,7 @@ export function reapply(ops) {
     // Rows and sides are worked out again from the document as it is now.
     delete op.prior;
     delete op.layout;
+    delete op.old;
     const c = doc(op.doc)?.content;
     if (op.t === 'set') {
       const s = c?.sections?.[op.sid];
@@ -559,6 +602,8 @@ export function reapply(ops) {
     } else if (op.t === 'remove' && !c?.sections?.[op.sid]) {
       return;
     } else if (op.t === 'place' && !c?.sections?.[op.sid]) {
+      return;
+    } else if (op.t === 'replace' && (!c?.sections?.[op.sid] || c.sections[op.newSid])) {
       return;
     }
     commit(op);

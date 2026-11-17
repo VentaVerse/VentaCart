@@ -25,6 +25,7 @@ final class CatalogLinter
     /** @var list<int> the widths, in twelfths of a row, a section may ask for */
     private const SPANS = [3, 4, 6, 8, 12];
 
+
     private const LIVE = ['text', 'attr', 'css', 'render'];
 
     /** `render`: the setting is read by the views, so a change shows when the page is drawn again. */
@@ -254,6 +255,9 @@ final class CatalogLinter
         }
 
         $this->spans($where, $spec, $part === null);
+        if ($part === null) {
+            $this->pickerGroup($where, $spec);
+        }
 
         $settings = (array) ($spec['settings'] ?? []);
         $this->settings($where, $settings, $spec);
@@ -365,6 +369,28 @@ final class CatalogLinter
                 $this->problem("{$where}: can sit in a narrow column, so css/sections/{$spec['type']}.css must set container-type: inline-size on .{$class} itself.");
             }
         }
+    }
+
+    /**
+     * Which group of tiles the section picker shows one of the theme's own
+     * sections in. Every section that can be added names one of the four
+     * groups; an extension's sections are grouped under the extension's
+     * name, so theirs is not read.
+     */
+    private function pickerGroup(string $where, array $spec): void
+    {
+        $words = 'banners, products, categories or text';
+        if (array_key_exists('picker_group', $spec) && in_array($spec['picker_group'], SectionSchema::PICKER_GROUPS, true)) {
+            return;
+        }
+        if (! array_key_exists('picker_group', $spec)) {
+            if (($spec['group'] ?? null) === 'template' && ($spec['main'] ?? false) !== true) {
+                $this->problem("{$where}: needs a picker_group ({$words}).");
+            }
+
+            return;
+        }
+        $this->problem("{$where}: picker_group must be {$words}.");
     }
 
     /**

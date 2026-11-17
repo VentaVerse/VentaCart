@@ -2,6 +2,7 @@
   "type": "promo-banners",
   "label": "Promo banners",
   "group": "template",
+  "picker_group": "banners",
   "templates": [
     "*"
   ],

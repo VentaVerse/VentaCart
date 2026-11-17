@@ -16,7 +16,7 @@ import { S, ui, doc, sec, groupHandle, labelOf, isFixed, templateOf, locate as l
 import { ownThemeGroups } from '../catalog.js';
 import { commit, undo, layoutPayload, rulesFor } from '../operations.js';
 import { select, deselect, post, radioItems, radioKeys } from '../selection.js';
-import { rowsOf, locate } from './model.js';
+import { rowsOf, roomOf as roomIn } from './model.js';
 import { splitOf, listWords } from './words.js';
 import { schemePicker, schemeGroupKey, schemeChoices } from '../forms/schemes.js';
 
@@ -42,13 +42,8 @@ export const drawerBody = () => $('#drawer-body');
 /** How wide a section's place is, in twelfths: its column, its side, or the full page. */
 export function roomOf(sid) {
   const at = locateSection(sid);
-  const layout = layoutPayload();
-  if (!at || at.group !== 'template' || !layout) return 12;
-  const where = locate(at.doc.content, sid, layout);
-  if (!where) return 12;
-  if (where.where === 'side') return layout.side_span;
-  const row = rowsOf(at.doc.content, layout).find((r) => r.id === where.rowId);
-  return splitOf(row?.split).parts[where.column] ?? 12;
+  if (!at || at.group !== 'template' || !layoutPayload()) return 12;
+  return roomIn(at.doc.content, sid, rulesFor(at.handle)) ?? 12;
 }
 
 /** Whether a section would still fit its place with another layout (variant). */

@@ -11,7 +11,10 @@
  * touched.
  *
  * Sections are added where they will show: an Add line between rows (a
- * row of columns, or one section full width) and an Add under each column.
+ * row of columns, or one section full width) and an Add under each column,
+ * both opening the section picker. Each section but the page's main one
+ * has a Change control on its name bar that opens the same picker to
+ * replace it in its spot.
  * Sections and rows move by drag and drop or Alt plus the arrow keys (see
  * drag.js); every spot that takes a drop carries its target in
  * `data-target`.
@@ -29,7 +32,7 @@ import { fitFrame } from '../preview.js';
 import { rowsOf } from './model.js';
 import { createPictures } from './pictures.js';
 import { boardSource } from '../layouts.js';
-import { openAdd } from '../add-section.js';
+import { openPicker, pickerSpot, pickerReplacing } from './picker.js';
 import { splitOf, listWords, columnName } from './words.js';
 import { startDrag, keyMove, keyMoveRow, dragJustEnded, afterRender, targetKey } from './drag.js';
 import { openDrawer, closeDrawer } from './drawer.js';
@@ -62,7 +65,7 @@ const SHORTCUTS = 'Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight';
 /** A spot that takes a drop: the row model's target, kept on the element. */
 const dropData = (target) => ({ target: JSON.stringify(target), drop: target.drop });
 
-function piece(section, span, { movable = false } = {}) {
+function piece(section, span, { movable = false, changeable = false } = {}) {
   const def = sectionDef(section.type);
   const selected = S.sel?.kind === 'section' && S.sel.sid === section.id;
   const name = labelOf(section.id);
@@ -73,7 +76,7 @@ function piece(section, span, { movable = false } = {}) {
   if (main) flags.push(['lock', 'Page content', 'The page content: it can be moved, never removed']);
   if (hidden) flags.push(['eye-off', 'Hidden', 'Hidden on the store']);
   if (!def) flags.push(['alert', 'Not shown', 'The part of the store this section belongs to is not installed']);
-  return h('button', {
+  const el = h('button', {
     type: 'button',
     class: `piece${selected ? ' is-selected' : ''}${main ? ' piece--main' : ''}${hidden ? ' is-hidden' : ''}`,
     dataset: { sid: section.id, type: section.type },
@@ -95,6 +98,15 @@ function piece(section, span, { movable = false } = {}) {
   h('span', { class: 'piece__shot' },
     h('span', { class: 'piece__sketch' }, schematic(variantDrawing(section.type, variantOf(section.id)))),
     picture));
+  // The header, the footer and the page's main section keep their section: they have no Change.
+  if (!changeable || main || !def) return el;
+  const replacing = pickerReplacing() === section.id;
+  return h('div', { class: `piece-wrap${replacing ? ' is-replacing' : ''}`, dataset: { sid: section.id } },
+    el,
+    h('button', {
+      type: 'button', class: 'piece__change', 'aria-label': `Change ${name} to another section`, title: 'Change section',
+      onclick: () => { if (!dragJustEnded()) openPicker({ replace: section.id }); },
+    }, icon('replace', 'icon--sm')));
 }
 
 /* ------------------------------------------------------------------------
@@ -117,13 +129,8 @@ function rowBackground(row) {
   return scheme?.colors?.bg ? { background: scheme.colors.bg } : null;
 }
 
-/** The spot the add panel adds at, while it is open from the board. */
-function addTarget() {
-  return S.nav === 'add' && S.view.type === 'add' && S.addAt?.target ? S.addAt.target : null;
-}
-
 const isAddTarget = (target) => {
-  const t = addTarget();
+  const t = pickerSpot();
   return Boolean(t) && targetKey(t) === targetKey(target);
 };
 
@@ -139,7 +146,7 @@ function gapEl(before, above, below) {
   return h('div', { class: 'gap', dataset: dropData(target) },
     h('button', {
       type: 'button', class: 'gap__add', 'aria-label': `Add a section or a row of columns${where ? ` ${where}` : ''}`,
-      onclick: () => { if (!dragJustEnded()) openAdd(null, target); },
+      onclick: () => { if (!dragJustEnded()) openPicker({ target }); },
     }, h('span', { class: 'gap__line', 'aria-hidden': 'true' }), h('span', { class: 'gap__pill' }, icon('plus', 'icon--xs'), 'Add')));
 }
 
@@ -179,7 +186,7 @@ function rowEl(row, sections) {
     const column = h('div', { class: 'col', dataset: { span: String(part) } });
     const list = (row.columns[index] || []).map((sid) => (sections[sid] ? { id: sid, ...sections[sid] } : null)).filter(Boolean);
     if (single) {
-      list.forEach((s) => column.append(piece(s, part, { movable: true })));
+      list.forEach((s) => column.append(piece(s, part, { movable: true, changeable: true })));
       // Two sections side by side: a drop on the left or right edge of a full-width one.
       if (list.length === 1 && !main) {
         ['left', 'right'].forEach((side) => column.append(h('div', {
@@ -191,7 +198,7 @@ function rowEl(row, sections) {
       list.forEach((s) => {
         const spot = { drop: 'column', rowId: row.id, column: index, before: s.id };
         if (isAddTarget(spot)) column.append(newSpot());
-        column.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(spot) }), piece(s, part, { movable: true }));
+        column.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(spot) }), piece(s, part, { movable: true, changeable: true }));
       });
       const end = { drop: 'column', rowId: row.id, column: index, before: null };
       if (isAddTarget(end)) {
@@ -199,13 +206,13 @@ function rowEl(row, sections) {
       } else if (!list.length) {
         column.append(h('button', {
           type: 'button', class: 'col__empty', dataset: dropData(end), 'aria-label': `Add a section to the ${name}`,
-          onclick: () => { if (!dragJustEnded()) openAdd(null, end); },
+          onclick: () => { if (!dragJustEnded()) openPicker({ target: end }); },
         }, icon('plus', 'icon--sm'), h('span', { text: 'Add a section' })));
       } else if (list.length < max) {
         column.append(h('button', {
           type: 'button', class: 'col__add', dataset: dropData(end),
           'aria-label': `Add a section to the ${name}, under ${labelOf(list[list.length - 1].id)}`,
-          onclick: () => { if (!dragJustEnded()) openAdd(null, end); },
+          onclick: () => { if (!dragJustEnded()) openPicker({ target: end }); },
         }, icon('plus', 'icon--xs'), h('span', { text: 'Add' })));
       } else {
         column.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(end) }));
@@ -223,7 +230,7 @@ function sideEl(which, ids, sections) {
   ids.forEach((sid) => {
     if (!sections[sid]) return;
     el.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData({ drop: 'side', side: which, before: sid }) }),
-      piece({ id: sid, ...sections[sid] }, 3, { movable: true }));
+      piece({ id: sid, ...sections[sid] }, 3, { movable: true, changeable: true }));
   });
   el.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData({ drop: 'side', side: which, before: null }) }));
   return el;
@@ -278,12 +285,8 @@ export function renderBoard() {
   if (!board) return;
   app().dataset.loaded = String(Boolean(S.loaded));
   // The board follows the selection made anywhere: the section list, the preview, undo.
-  if (S.view.type === 'add' && !addTarget()) S.view = { type: 'board' };
-  // While the add panel is open at a spot of the board, the board keeps showing that spot.
-  if (S.view.type !== 'add') {
-    if (S.sel?.kind === 'section') S.view = { type: 'section', sid: S.sel.sid };
-    else if (S.view.type === 'section') S.view = { type: 'board' };
-  }
+  if (S.sel?.kind === 'section') S.view = { type: 'section', sid: S.sel.sid };
+  else if (S.view.type === 'section') S.view = { type: 'board' };
   if (S.view.type === 'row' && !rowExists(S.view.rowId)) S.view = { type: 'board' };
 
   if (!S.loaded || !S.page) {
@@ -292,6 +295,7 @@ export function renderBoard() {
   }
   ensurePictures();
   const keep = board.scrollTop;
+  const focused = focusKey(board);
   const sheet = h('div', { class: 'sheet', role: 'group', 'aria-label': `${pageTitle()}, drawn as the page` });
   sheet.append(sharedBand('header'));
   if (isFixed()) {
@@ -302,7 +306,39 @@ export function renderBoard() {
   sheet.append(sharedBand('footer'));
   board.replaceChildren(h('div', { class: 'board__inner' }, head(), sheet));
   board.scrollTop = keep;
+  if (focused) refocusKey(board, focused);
   afterRender();
+}
+
+/*
+ * The board is drawn anew after every change and when its pictures come
+ * in. The control that had the keyboard focus gets it back, so a keyboard
+ * user never drops to the top of the page.
+ */
+function focusKey(board) {
+  const el = document.activeElement;
+  if (!el || el === board || !board.contains(el)) return null;
+  const wrap = el.closest('[data-sid]');
+  if (el.matches('.piece__change') && wrap) return { sid: wrap.dataset.sid, change: true };
+  if (el.matches('.piece')) return { sid: el.dataset.sid };
+  if (el.matches('.row__tab')) return { rowId: el.closest('.row')?.dataset.rowId };
+  const spot = el.closest('[data-target]');
+  return spot ? { target: spot.dataset.target } : null;
+}
+
+function refocusKey(board, key) {
+  let el = null;
+  if (key.sid) {
+    el = key.change
+      ? board.querySelector(`.piece-wrap[data-sid="${CSS.escape(key.sid)}"] .piece__change`)
+      : board.querySelector(`.piece[data-sid="${CSS.escape(key.sid)}"]`);
+  } else if (key.rowId) {
+    el = board.querySelector(`.row[data-row-id="${CSS.escape(key.rowId)}"] .row__tab`);
+  } else if (key.target) {
+    const spot = Array.from(board.querySelectorAll('[data-target]')).find((x) => x.dataset.target === key.target);
+    el = spot && (spot.matches('button') ? spot : spot.querySelector('button'));
+  }
+  el?.focus({ preventScroll: true });
 }
 
 function rowExists(rowId) {

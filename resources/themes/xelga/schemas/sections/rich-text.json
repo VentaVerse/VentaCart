@@ -2,6 +2,7 @@
   "type": "rich-text",
   "label": "Text",
   "group": "template",
+  "picker_group": "text",
   "templates": [
     "*"
   ],

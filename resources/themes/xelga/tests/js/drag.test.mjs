@@ -19,7 +19,7 @@ globalThis.window = globalThis.window || { addEventListener: noop, removeEventLi
 
 const { useLayout } = await import('../../editor/js/modules/board/model.js');
 const { targetsFor, keyTarget } = await import('../../editor/js/modules/board/drag.js');
-const { addableTypes } = await import('../../editor/js/modules/add-section.js');
+const { addableTypes } = await import('../../editor/js/modules/board/choices.js');
 
 const here = dirname(fileURLToPath(import.meta.url));
 const LAYOUT = JSON.parse(readFileSync(join(here, '../fixtures/layout/_layout.json'), 'utf8'));

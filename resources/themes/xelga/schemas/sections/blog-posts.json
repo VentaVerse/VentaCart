@@ -2,6 +2,7 @@
   "type": "blog-posts",
   "label": "Blog posts",
   "group": "template",
+  "picker_group": "text",
   "templates": [
     "*"
   ],

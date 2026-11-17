@@ -70,7 +70,9 @@ final class BootPayload
     /**
      * Every section type of the catalog with its width: `span.min` is the
      * narrowest column it fits (12 when it declares none) and
-     * `span.variants` the variants that set their own.
+     * `span.variants` the variants that set their own; and the group of
+     * tiles the section picker shows it in (`picker_group`, null for an
+     * extension's section, which is grouped under the extension).
      *
      * @return array<string, array>
      */
@@ -78,8 +80,12 @@ final class BootPayload
     {
         $out = [];
         foreach (Catalog::sections() as $type => $spec) {
-            $spans = (new \Themes\Xelga\Catalog\SectionSchema($spec))->spans();
-            $out[$type] = ['span' => ['min' => $spans['min'], 'variants' => (object) $spans['variants']]] + $spec;
+            $schema = new \Themes\Xelga\Catalog\SectionSchema($spec);
+            $spans = $schema->spans();
+            $out[$type] = [
+                'span' => ['min' => $spans['min'], 'variants' => (object) $spans['variants']],
+                'picker_group' => $schema->pickerGroup(),
+            ] + $spec;
         }
 
         return $out;

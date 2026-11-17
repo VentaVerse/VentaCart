@@ -19,6 +19,7 @@
 /* The layout board in the canvas. */
 @import "./board.css";
 @import "./drawer.css";
+@import "./picker.css";
 
 @font-face {
   font-family: "IBM Plex Sans";

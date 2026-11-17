@@ -2,6 +2,7 @@
   "type": "product-spotlight",
   "label": "Product spotlight",
   "group": "template",
+  "picker_group": "products",
   "templates": [
     "*"
   ],

@@ -3,6 +3,7 @@
   "label": "Customer reviews",
   "description": "Quotes you type in yourself. Product reviews have their own section.",
   "group": "template",
+  "picker_group": "text",
   "templates": [
     "*"
   ],

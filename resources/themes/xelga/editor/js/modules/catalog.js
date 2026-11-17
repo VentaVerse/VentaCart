@@ -178,6 +178,24 @@ export const SCHEMATICS = {
     carousel: 'h4,5,20,3 i4,12,14,16 t4,30,10,2 i21,12,14,16 t21,30,10,2 i38,12,14,16 t38,30,10,2 i55,12,9,16 t55,30,9,2',
     list: 'h4,4,20,3 i4,11,8,8 h14,12,14,2 t14,16,9,2 i34,11,8,8 h44,12,14,2 t44,16,9,2 i4,24,8,8 h14,25,14,2 t14,29,9,2 i34,24,8,8 h44,25,14,2 t44,29,9,2',
   },
+  'recently-viewed': {
+    grid: 'h4,3,20,3 i4,9,12,10 t4,20,9,2 i19,9,12,10 t19,20,9,2 i34,9,12,10 t34,20,9,2 i49,9,12,10 t49,20,9,2 i4,25,12,10 i19,25,12,10 i34,25,12,10 i49,25,12,10',
+    carousel: 'h4,5,20,3 i4,12,14,16 t4,30,10,2 i21,12,14,16 t21,30,10,2 i38,12,14,16 t38,30,10,2 i55,12,9,16 t55,30,9,2',
+  },
+  'related-products': {
+    grid: 'h4,3,20,3 i4,9,12,10 t4,20,9,2 i19,9,12,10 t19,20,9,2 i34,9,12,10 t34,20,9,2 i49,9,12,10 t49,20,9,2 i4,25,12,10 i19,25,12,10 i34,25,12,10 i49,25,12,10',
+    carousel: 'h4,5,20,3 i4,12,14,16 t4,30,10,2 i21,12,14,16 t21,30,10,2 i38,12,14,16 t38,30,10,2 i55,12,9,16 t55,30,9,2',
+  },
+  // `only`: the drawing of a type that has no layouts to choose from.
+  'product-details': {
+    only: 'h3,5,11,2 h18,5,11,2 h32,5,11,2 m3,9,58,1 t3,14,51,2 t3,17,56,2 t3,20,46,2 t3,23,53,2 t3,28,24,2 t32,28,24,2 t3,32,24,2 t32,32,24,2',
+  },
+  'product-reviews': {
+    only: 'h3,5,21,3 t3,10,18,2 m3,15,58,1 t3,18,13,2 t3,22,51,2 t3,25,40,2 m3,29,58,1 t3,32,13,2 t3,35,48,2',
+  },
+  breadcrumbs: {
+    only: 't5,18,8,2 t15,18,10,2 t27,18,11,2',
+  },
   'product-spotlight': {
     split: 'i4,5,26,30 h34,8,22,3 t34,14,24,2 t34,18,18,2 o34,23,5,5 o41,23,5,5 o48,23,5,5 b34,31,14,5',
     banner: 'i0,0,64,40 w34,7,26,26 h37,11,18,3 t37,16,16,2 b37,26,12,4',
@@ -239,5 +257,5 @@ export const SCHEMATICS = {
 
 export function variantDrawing(type, value) {
   const fromSchema = sectionDef(type)?.variants?.find((v) => v.value === value)?.schematic;
-  return fromSchema || SCHEMATICS[type]?.[value] || null;
+  return fromSchema || SCHEMATICS[type]?.[value] || SCHEMATICS[type]?.only || null;
 }

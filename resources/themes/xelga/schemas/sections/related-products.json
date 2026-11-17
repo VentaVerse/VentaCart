@@ -2,6 +2,7 @@
   "type": "related-products",
   "label": "Related products",
   "group": "template",
+  "picker_group": "products",
   "templates": [
     "product",
     "*custom"

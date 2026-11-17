@@ -2,6 +2,7 @@
   "type": "image-with-text",
   "label": "Image with text",
   "group": "template",
+  "picker_group": "banners",
   "templates": [
     "*"
   ],

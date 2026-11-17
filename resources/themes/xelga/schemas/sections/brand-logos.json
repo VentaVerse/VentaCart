@@ -2,6 +2,7 @@
   "type": "brand-logos",
   "label": "Brand logos",
   "group": "template",
+  "picker_group": "categories",
   "templates": [
     "*"
   ],

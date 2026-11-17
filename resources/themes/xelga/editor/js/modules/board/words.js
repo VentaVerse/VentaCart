@@ -1,12 +1,12 @@
 /*
  * The words the board uses for rows, columns and drop targets, shared by
- * the board, its drag and drop and the add panel, so a spot is named the
- * same way wherever it is shown.
+ * the board, its drag and drop and the section picker, so a spot is named
+ * the same way wherever it is shown.
  */
 
 import { doc, groupHandle, labelOf } from '../state.js';
 import { layoutPayload } from '../operations.js';
-import { rowsOf } from './model.js';
+import { rowsOf, locate } from './model.js';
 
 export const splitOf = (split) => layoutPayload()?.splits?.[split] || { parts: [12], label: 'One column' };
 
@@ -84,4 +84,68 @@ function sideWords(where, list, before) {
   const at = before == null ? list.length : list.indexOf(before);
   if (at <= 0) return `${where}, above ${labelOf(list[0])}`;
   return `${where}, under ${labelOf(list[at - 1])}`;
+}
+
+/*
+ * Where the section picker puts a section, as the parts of a sentence:
+ * plain words, then each name to show in bold at the odd places.
+ * `{target}` a spot of the board ("Goes in the left half, under Text"),
+ * `{replace: sid}` the section being replaced ("Stays at the top, above
+ * Store promises").
+ */
+export function pickerWhere(spot) {
+  const content = doc(groupHandle('template'))?.content;
+  const layout = layoutPayload();
+  if (!content || !layout || !spot) return [];
+  const rows = rowsOf(content, layout);
+  const verb = spot.replace ? 'Stays' : 'Goes';
+  const between = (above, below) => {
+    if (above && below) return [`${verb} between `, rowName(above), ' and ', rowName(below)];
+    if (below) return [`${verb} at the top, above `, rowName(below)];
+    if (above) return [`${verb} at the bottom, below `, rowName(above)];
+    return null;
+  };
+  const inList = (where, list, at, skip) => {
+    const others = list.filter((sid) => sid !== skip);
+    if (!others.length) return [`${verb} ${where}`];
+    if (at <= 0) return [`${verb} ${where}, above `, labelOf(others[0])];
+    return [`${verb} ${where}, under `, labelOf(list[at - 1])];
+  };
+
+  if (spot.replace) {
+    const sid = spot.replace;
+    const at = locate(content, sid, layout);
+    if (!at) return ['Stays in its place'];
+    if (at.where === 'side') return inList(`in the ${at.side} side`, content.sides?.[at.side] || [], at.index, sid);
+    const index = rows.findIndex((r) => r.id === at.rowId);
+    const r = rows[index];
+    if (r.split === '12') return between(rows[index - 1], rows[index + 1]) || ['Stays in its place'];
+    const where = `in the ${columnName(splitOf(r.split).parts, at.column).toLowerCase()}`;
+    const column = r.columns[at.column];
+    if (column.length > 1) return inList(where, column, at.index, sid);
+    const other = r.columns.flat().find((x) => x !== sid);
+    return other ? [`Stays ${where}, beside `, labelOf(other)] : [`Stays ${where}`];
+  }
+
+  const target = spot.target;
+  if (target?.drop === 'gap') {
+    const index = target.before === 'end' ? rows.length : rows.findIndex((r) => r.id === target.before);
+    return (index >= 0 && between(rows[index - 1], rows[index])) || ['Goes on the page'];
+  }
+  if (target?.drop === 'side') {
+    const list = content.sides?.[target.side] || [];
+    return inList(`in the ${target.side} side`, list, target.before == null ? list.length : list.indexOf(target.before), null);
+  }
+  if (target?.drop === 'column') {
+    const r = rows.find((x) => x.id === target.rowId);
+    if (!r) return ['Goes on the page'];
+    const where = `in the ${columnName(splitOf(r.split).parts, target.column).toLowerCase()}`;
+    const column = r.columns[target.column] || [];
+    if (!column.length) {
+      const others = r.columns.flat();
+      return others.length ? [`Goes ${where}, beside `, labelOf(others[0])] : [`Goes ${where}`];
+    }
+    return inList(where, column, target.before == null ? column.length : column.indexOf(target.before), null);
+  }
+  return ['Goes on the page'];
 }

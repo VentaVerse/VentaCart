@@ -2,6 +2,7 @@
   "type": "hero",
   "label": "Main banner",
   "group": "template",
+  "picker_group": "banners",
   "templates": [
     "*"
   ],
