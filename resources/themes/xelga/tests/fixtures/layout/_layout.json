@@ -1,0 +1,17 @@
+{
+  "splits": {
+    "12": { "parts": [12], "label": "One column" },
+    "6-6": { "parts": [6, 6], "label": "Halves" },
+    "8-4": { "parts": [8, 4], "label": "Wide left" },
+    "4-8": { "parts": [4, 8], "label": "Wide right" },
+    "4-4-4": { "parts": [4, 4, 4], "label": "Thirds" },
+    "3-6-3": { "parts": [3, 6, 3], "label": "Wide middle" },
+    "3-3-3-3": { "parts": [3, 3, 3, 3], "label": "Quarters" }
+  },
+  "row_defaults": { "width": "page", "scheme": "", "space": "md" },
+  "max_rows": 40,
+  "max_per_column": 6,
+  "max_per_side": 6,
+  "side_span": 3,
+  "sides_on": ["home", "product", "category", "brand", "brand-list", "search", "blog", "blog-post", "page", "contact", "not-found"]
+}

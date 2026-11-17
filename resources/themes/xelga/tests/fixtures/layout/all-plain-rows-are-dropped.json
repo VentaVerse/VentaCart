@@ -1,0 +1,71 @@
+{
+  "name": "all-plain-rows-are-dropped",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "a",
+      "b"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-86f7e437",
+        "split": "12",
+        "columns": [
+          [
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-e9d71f5e",
+        "split": "12",
+        "columns": [
+          [
+            "b"
+          ]
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "a",
+      "b"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      }
+    }
+  },
+  "moved": []
+}

@@ -61,7 +61,7 @@ class XelgaExtensionSectionsTest extends TestCase
         $this->assertSame('Tests\\Fixtures\\Extensions\\SampleExtension\\Xelga\\Sections\\Card', $card['data_class']);
 
         $types = array_keys(Catalog::sections());
-        $this->assertSame(['sample-extension.card', 'sample-extension.main'], array_slice($types, -2), 'After the theme\'s own types.');
+        $this->assertSame(['sample-extension.card', 'sample-extension.main', 'sample-extension.tile'], array_slice($types, -3), 'After the theme\'s own types.');
         $this->assertNull(Catalog::section('hero')->source());
         $this->assertSame('xelga::sections.hero', Catalog::section('hero')->view());
     }

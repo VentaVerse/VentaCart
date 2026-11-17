@@ -139,6 +139,33 @@ final class SectionSchema
     }
 
     /**
+     * The narrowest column, in twelfths, this section reads well in: the
+     * variant's own `span` when it declares one (some variants cannot
+     * shrink as far as the section), else the section's `span.min`. A
+     * section that declares no span is full width only.
+     */
+    public function minSpan(?string $variant = null): int
+    {
+        $spans = $this->spans();
+
+        return $variant !== null && isset($spans['variants'][$variant]) ? $spans['variants'][$variant] : $spans['min'];
+    }
+
+    /** @return array{min: int, variants: array<string, int>} the section's span and each variant that sets its own */
+    public function spans(): array
+    {
+        $span = $this->raw['span'] ?? null;
+        $variants = [];
+        foreach ((array) ($this->raw['variants'] ?? []) as $spec) {
+            if (is_array($spec) && is_string($spec['value'] ?? null) && is_int($spec['span'] ?? null)) {
+                $variants[$spec['value']] = $spec['span'];
+            }
+        }
+
+        return ['min' => is_array($span) && is_int($span['min'] ?? null) ? $span['min'] : 12, 'variants' => $variants];
+    }
+
+    /**
      * Whether a section of this type may sit in the document with this
      * handle: a group section only in its own group, a template section
      * only in the page types it lists.
