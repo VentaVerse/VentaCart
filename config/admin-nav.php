@@ -98,14 +98,12 @@ return [
         'items' => [
             // The directory is the group's landing (URL /extensions, no
             // child segment); activeItemKey() lights a group's first item
-            // at its root URL. Typed category children (Payments, Shipping)
-            // join as their pages re-home (wave 0 pieces 2b/2c).
+            // at its root URL. Themes is not in this group: it has its own
+            // top-level entry above.
             ['key' => 'all', 'label' => 'All Extensions', 'route' => 'admin.extensions.index', 'icon' => 'modules', 'permission' => null, 'keywords' => ['extensions', 'plugins', 'install']],
             ['key' => 'modules', 'label' => 'Modules', 'route' => 'admin.extensions.modules', 'icon' => 'modules', 'permission' => null, 'keywords' => ['modules', 'features', 'seo', 'stock alerts', 'abandoned carts']],
             ['key' => 'payments', 'label' => 'Payments', 'route' => 'admin.payment-settings.index', 'icon' => 'payments', 'permission' => null, 'keywords' => ['bank transfer', 'cod', 'hitpay', 'gateway', 'restrictions']],
             ['key' => 'shipping', 'label' => 'Shipping', 'route' => 'admin.shipping-settings.index', 'icon' => 'shipping', 'permission' => null, 'keywords' => ['rates', 'flat rate', 'weight', 'free shipping', 'dhl', 'couriers']],
-            // Themes (theme extension manifest, after: shipping) inserts
-            // itself above this one while enabled.
             ['key' => 'order-totals', 'label' => 'Order Totals', 'route' => 'admin.extensions.order-totals', 'icon' => 'coupons', 'permission' => null, 'keywords' => ['coupons', 'store credit', 'discounts', 'rewards', 'checkout lines']],
         ],
     ],
