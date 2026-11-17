@@ -16,7 +16,7 @@ import { S, doc, groupHandle, labelOf, locate as locateSection } from '../state.
 import { sectionIcon } from '../catalog.js';
 import { commit, undo, layoutPayload, rulesFor } from '../operations.js';
 import { rowsOf, fits, locate, spanAt } from './model.js';
-import { rowName, targetWords, listWords } from './words.js';
+import { rowName, targetWords, movedBesideSideWords } from './words.js';
 import { createPress, PRESS_DELAY } from './phone.js';
 
 const SIDES = ['left', 'right'];
@@ -76,8 +76,12 @@ export function targetsFor(content, item, rules) {
 /**
  * The spot Alt plus an arrow key moves a section to, or null. Up and down
  * move one place within a column or side, then out of it into the gap
- * above or below its row; a full-width section moves its row. Left and
- * right move to the end of the nearest column in that direction it fits.
+ * above or below its row; from the top of a side into the gap above the
+ * first row, from its end into the gap below the last. A full-width
+ * section moves its row. Left and right move to the end of the nearest
+ * column in that direction it fits; past the first column (or from a
+ * full-width row) Left goes to the end of the left side, past the last
+ * Right goes to the right side, when the section fits there.
  */
 export function keyTarget(content, sid, arrow, rules) {
   const layout = rules.layout;
@@ -90,18 +94,21 @@ export function keyTarget(content, sid, arrow, rules) {
   if (!up && !down && !sideways) return null;
   const ok = (t) => (t && fits(content, sid, t, rules) ? t : null);
 
+  const intoSide = () => ok({ drop: 'side', side: arrow === 'ArrowLeft' ? 'left' : 'right', before: null });
+
   if (at.where === 'side') {
     if (sideways) return null;
     const list = content.sides[at.side];
     const index = at.index + (up ? -1 : 1);
-    if (index < 0 || index >= list.length) return null;
+    if (index < 0) return ok({ drop: 'gap', before: rows[0]?.id ?? 'end' });
+    if (index >= list.length) return ok({ drop: 'gap', before: 'end' });
     return ok({ drop: 'side', side: at.side, before: up ? list[index] : list[index + 1] ?? null });
   }
 
   const ri = rows.findIndex((r) => r.id === at.rowId);
   const r = rows[ri];
   if (r.split === '12') {
-    if (sideways) return null;
+    if (sideways) return intoSide();
     if (up) return ri > 0 ? ok({ drop: 'gap', before: rows[ri - 1].id }) : null;
     return ri < rows.length - 1 ? ok({ drop: 'gap', before: rows[ri + 2]?.id ?? 'end' }) : null;
   }
@@ -112,7 +119,7 @@ export function keyTarget(content, sid, arrow, rules) {
       const t = ok({ drop: 'column', rowId: r.id, column: c, before: null });
       if (t) return t;
     }
-    return null;
+    return intoSide();
   }
   const column = r.columns[at.column];
   const index = at.index + (up ? -1 : 1);
@@ -223,12 +230,7 @@ export function moveItem(item, target) {
 
 /* The sections a new side pushed out of their columns, in a sentence; empty when none. */
 function movedWords(ids) {
-  const names = (ids || []).filter((sid) => locateSection(sid)).map((sid) => labelOf(sid));
-  if (!names.length) return '';
-  const list = listWords(names);
-  return names.length === 1
-    ? ` ${list} needs a wider column beside the side, so it moved to a row of its own.`
-    : ` ${list} need wider columns beside the side, so they moved to rows of their own.`;
+  return movedBesideSideWords((ids || []).filter((sid) => locateSection(sid)).map((sid) => labelOf(sid)));
 }
 
 const bandOrder = (group) => doc(group)?.content?.order || [];

@@ -20,7 +20,7 @@ globalThis.window = globalThis.window || { addEventListener: noop, removeEventLi
 
 const { useLayout, replaceIn, catalogRules } = await import('../../editor/js/modules/board/model.js');
 const {
-  addableTypes, pickerGroups, matches, choicesOf, layoutsFor, pillWords, replacedWords,
+  addableTypes, pickerGroups, matches, choicesOf, layoutsFor, pillWords, replacedWords, needsWords,
 } = await import('../../editor/js/modules/board/choices.js');
 const { S, ctx } = await import('../../editor/js/modules/state.js');
 const { setCatalog } = await import('../../editor/js/modules/catalog.js');
@@ -134,6 +134,22 @@ test('a half column offers what fits and greys the rest in place, with the reaso
   ['products', 'tiles', 'text', 'plain', 'demo.card'].forEach((type) => assert.equal(by[type].disabled, false, type));
   // The order of the catalog is kept: greyed tiles do not move.
   assert.deepEqual(list.map((x) => x.type), Object.keys(offered));
+});
+
+test('beside a side, a half column greys a section of 6 as narrowed by the sides, not as needing half', () => {
+  const c = samplePage({ side: true });
+  const target = { drop: 'column', rowId: 'r-two', column: 0, before: null };
+  const by = byType(addableTypes(c, target, offered, RULES));
+  assert.equal(by.tiles.disabled, true);
+  assert.equal(pillWords(by.tiles), 'Too narrow beside the sides');
+  // A section that needs more than the column's own part still names its size.
+  assert.equal(pillWords(by.look), 'Needs two thirds');
+  assert.equal(by.text.disabled, false);
+  // The same in replace mode, from the spot's own sizes.
+  const replacing = byType(addableTypes(c, null, offered, RULES, { span: 4.5, whole: 6, now: 'text' }));
+  assert.equal(pillWords(replacing.tiles), 'Too narrow beside the sides');
+  assert.equal(needsWords(6, 6), 'Too narrow beside the sides');
+  assert.equal(needsWords(8, 6), 'Needs two thirds');
 });
 
 test('a gap between rows offers every type but those at their limit', () => {

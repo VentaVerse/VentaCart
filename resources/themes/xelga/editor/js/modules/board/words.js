@@ -15,6 +15,17 @@ export function listWords(names) {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
+/**
+ * The sections a side filled for the first time pushed out of their
+ * columns, as a sentence starting with a space; empty when none.
+ */
+export function movedBesideSideWords(names) {
+  if (!names.length) return '';
+  return names.length === 1
+    ? ` ${names[0]} needs a wider column beside the side, so it moved to a row of its own.`
+    : ` ${listWords(names)} need wider columns beside the side, so they moved to rows of their own.`;
+}
+
 export function columnName(parts, index) {
   const n = parts.length;
   if (n === 2 && parts[0] === parts[1]) return ['Left half', 'Right half'][index];

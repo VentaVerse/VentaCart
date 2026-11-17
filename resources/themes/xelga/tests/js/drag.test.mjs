@@ -33,6 +33,8 @@ const RULES = {
   sidesAllowed: true,
 };
 
+const NO_SIDES = { ...RULES, sidesAllowed: false };
+
 function page(types, extra = {}) {
   const sections = {};
   Object.entries(types).forEach(([id, type]) => { sections[id] = { type }; });
@@ -162,13 +164,49 @@ test('keyTarget moves within a column, out of it past its end, and to the next c
   assert.deepEqual(keyTarget(c, 'b', 'ArrowUp', RULES), { drop: 'gap', before: 'r1' });
   assert.deepEqual(keyTarget(c, 'w', 'ArrowDown', RULES), { drop: 'gap', before: 'end' });
   assert.deepEqual(keyTarget(c, 'b', 'ArrowRight', RULES), { drop: 'column', rowId: 'r1', column: 1, before: null });
-  // Too wide for the 4 column: it stays.
+  // Too wide for the 4 column and for a side: it stays.
   assert.equal(keyTarget(c, 'w', 'ArrowRight', RULES), null);
   assert.deepEqual(keyTarget(c, 't', 'ArrowLeft', RULES), { drop: 'column', rowId: 'r1', column: 0, before: null });
-  // A full-width section moves its row up and down; there is nothing to its side.
+  // A full-width section moves its row up and down.
   assert.deepEqual(keyTarget(c, 'a', 'ArrowDown', RULES), { drop: 'gap', before: 'end' });
   assert.equal(keyTarget(c, 'a', 'ArrowUp', RULES), null);
-  assert.equal(keyTarget(c, 'a', 'ArrowLeft', RULES), null);
+  // On a page that cannot have sides there is nothing to its side.
+  assert.equal(keyTarget(c, 'a', 'ArrowLeft', NO_SIDES), null);
+  assert.equal(keyTarget(c, 't', 'ArrowRight', NO_SIDES), null);
+});
+
+test('Alt with left or right moves a section into a side past the outer column', () => {
+  const c = page({ a: 'text', b: 'text', w: 'wide', t: 'text' }, {
+    rows: [row('ra', '12', [['a']]), row('r1', '8-4', [['b', 'w'], ['t']])],
+  });
+  c.order = ['a', 'b', 'w', 't'];
+  // From a full-width row: Left to the left side, Right to the right side.
+  assert.deepEqual(keyTarget(c, 'a', 'ArrowLeft', RULES), { drop: 'side', side: 'left', before: null });
+  assert.deepEqual(keyTarget(c, 'a', 'ArrowRight', RULES), { drop: 'side', side: 'right', before: null });
+  // From the first column Left, from the last column Right.
+  assert.deepEqual(keyTarget(c, 'b', 'ArrowLeft', RULES), { drop: 'side', side: 'left', before: null });
+  assert.deepEqual(keyTarget(c, 't', 'ArrowRight', RULES), { drop: 'side', side: 'right', before: null });
+  // Into a filled side, at its end.
+  const filled = { ...c, sections: { ...c.sections, s: { type: 'text' } }, sides: { left: ['s'] }, order: ['s', ...c.order] };
+  assert.deepEqual(keyTarget(filled, 'b', 'ArrowLeft', RULES), { drop: 'side', side: 'left', before: null });
+  // A section of 8 never goes into a side.
+  assert.equal(keyTarget(c, 'w', 'ArrowLeft', RULES), null);
+});
+
+test('Alt with up or down moves a section out of a side past its top or end', () => {
+  const c = sampleWithSide();
+  c.sections.s2 = { type: 'text' };
+  c.sides = { left: ['s', 's2'] };
+  c.order = ['s', 's2', ...c.order.filter((id) => id !== 's')];
+  // From the top of the side: the gap above the first row.
+  assert.deepEqual(keyTarget(c, 's', 'ArrowUp', RULES), { drop: 'gap', before: 'ra' });
+  // From its end: the gap below the last row.
+  assert.deepEqual(keyTarget(c, 's2', 'ArrowDown', RULES), { drop: 'gap', before: 'end' });
+  // Within the side, one place.
+  assert.deepEqual(keyTarget(c, 's', 'ArrowDown', RULES), { drop: 'side', side: 'left', before: null });
+  assert.deepEqual(keyMoves(c, 's', RULES), ['ArrowUp', 'ArrowDown']);
+  // Left and right never move a section out of a side.
+  assert.equal(keyTarget(c, 's', 'ArrowRight', RULES), null);
 });
 
 test('keyMoves lists only the arrows a section can really move by', () => {
@@ -176,12 +214,15 @@ test('keyMoves lists only the arrows a section can really move by', () => {
     rows: [row('ra', '12', [['a']]), row('r1', '8-4', [['b', 'w'], ['t']])],
   });
   c.order = ['a', 'b', 'w', 't'];
-  // A full-width section never offers Left or Right, and the first one not Up.
-  assert.deepEqual(keyMoves(c, 'a', RULES), ['ArrowDown']);
-  assert.deepEqual(keyMoves(c, 'b', RULES), ['ArrowUp', 'ArrowDown', 'ArrowRight']);
-  // Too wide for the column on its right.
+  // The first section offers no Up; Left and Right lead into the sides.
+  assert.deepEqual(keyMoves(c, 'a', RULES), ['ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  assert.deepEqual(keyMoves(c, 'b', RULES), ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  // Too wide for the column on its right and for a side.
   assert.deepEqual(keyMoves(c, 'w', RULES), ['ArrowUp', 'ArrowDown']);
-  assert.deepEqual(keyMoves(c, 't', RULES), ['ArrowUp', 'ArrowDown', 'ArrowLeft']);
+  assert.deepEqual(keyMoves(c, 't', RULES), ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+  // Without sides, a full-width section never offers Left or Right.
+  assert.deepEqual(keyMoves(c, 'a', NO_SIDES), ['ArrowDown']);
+  assert.deepEqual(keyMoves(c, 't', NO_SIDES), ['ArrowUp', 'ArrowDown', 'ArrowLeft']);
 });
 
 test('rowKeyMoves offers up only below the first row and down only above the last', () => {
