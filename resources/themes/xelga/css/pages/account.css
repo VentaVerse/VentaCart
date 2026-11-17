@@ -1008,7 +1008,15 @@
   }
 }
 
-/* What extensions add to the order pages (App\Support\OrderPanels). */
+/* What extensions add to the order pages (App\Support\OrderPanels). A
+   panel belongs to the order above it: no divider between the two. */
 .orders__panel td { padding-block-start: 0; }
+.fixed-page .orders .orders__row--panel > th,
+.fixed-page .orders .orders__row--panel > td { border-bottom: 0; }
+
+@media (max-width: 749px) {
+  .fixed-page .orders .orders__row--panel { border-bottom: 0; }
+  .fixed-page .orders .orders__panel { display: block; padding-block: 0 1rem; }
+}
 .order-panel { margin-block: 1rem; }
 .order-panel--actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-block: 0; }

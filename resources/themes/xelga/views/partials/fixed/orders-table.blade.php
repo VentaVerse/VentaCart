@@ -15,7 +15,7 @@
     @foreach ($orders as $order)
         @php $canCancel = (bool) ($cancellable[$order->id] ?? false); @endphp
         <tbody>
-            <tr>
+            <tr @class(['orders__row--panel' => isset($orderPanels[$order->id])])>
                 <th scope="row"><a href="{{ route('account.orders.show', $order) }}">#{{ $order->id }}</a></th>
                 <td data-label="Placed">{{ $order->created_at->format('j M Y') }}</td>
                 <td data-label="Status">@include('xelga::partials.fixed.status', ['name' => $order->order_status_name ?? 'Pending', 'tone' => $order->status?->tone])</td>

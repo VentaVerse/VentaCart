@@ -116,7 +116,9 @@ class XelgaExtensionAccountTest extends TestCase
         $this->signIn();
         $order = $this->order();
 
+        // The order's row is marked, so no divider separates it from its panel.
         $this->page('/account/orders')
+            ->assertSee('<tr class="orders__row--panel">', false)
             ->assertSee('<tr class="orders__panel"><td colspan="6"><p data-sample-row="' . $order->id . '">Sold by Demo Store</p></td></tr>', false);
 
         $html = $this->page('/account/orders/' . $order->id)
@@ -132,7 +134,7 @@ class XelgaExtensionAccountTest extends TestCase
         $this->signIn();
         $order = $this->order();
 
-        $this->page('/account/orders')->assertDontSee('orders__panel', false);
+        $this->page('/account/orders')->assertDontSee('orders__panel', false)->assertDontSee('orders__row--panel', false);
         $this->page('/account/orders/' . $order->id)->assertDontSee('order-panel', false);
     }
 
