@@ -404,12 +404,11 @@ class OrderController extends Controller
     public function destroy(Order $order)
     {
         // An unpaid order gives back the store credit it holds before it
-        // goes; the ledger keeps the lines without the link. A placed
-        // order's credit stays the merchant's call, as on cancelling one.
-        DB::transaction(function () use ($order): void {
-            \App\Services\UnpaidOrderAbandonment::abandon($order);
-            $order->delete();
-        });
+        // goes, once its payment is closed with the gateway; the ledger
+        // keeps the lines without the link. A placed order's credit stays
+        // the merchant's call, as on cancelling one.
+        \App\Services\UnpaidOrderAbandonment::abandon($order);
+        $order->delete();
 
         return redirect()->route('admin.orders.index')
             ->with('success', 'Order deleted successfully.');
@@ -473,6 +472,25 @@ class OrderController extends Controller
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Order updated.');
+    }
+
+    /** The merchant has looked at what the order was marked for; the history keeps who and when. */
+    public function clearReview(Order $order)
+    {
+        if ($order->review_reason !== null) {
+            DB::transaction(function () use ($order): void {
+                $order->histories()->create([
+                    'order_status_id' => $order->order_status_id,
+                    'comment' => 'Marked reviewed: ' . $order->review_reason,
+                    'notify_customer' => false,
+                    'created_by' => Auth::id(),
+                ]);
+                $order->forceFill(['review_reason' => null])->save();
+            });
+        }
+
+        return redirect()->route('admin.orders.show', $order)
+            ->with('success', 'Order marked reviewed.');
     }
 
     public function deleteHistory(Order $order, int $historyId)

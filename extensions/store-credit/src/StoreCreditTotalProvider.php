@@ -4,6 +4,7 @@ namespace Extensions\StoreCredit;
 
 use App\Models\Order;
 use App\Services\OrderTotals\OrderTotalProviderInterface;
+use App\Services\OrderTotals\ReclaimResult;
 use App\Services\OrderTotals\ReleasableTotalInterface;
 use App\Services\OrderTotals\TotalsContext;
 use Extensions\StoreCredit\Models\CustomerTransaction;
@@ -15,9 +16,10 @@ use Extensions\StoreCredit\Models\CustomerTransaction;
  * the placement transaction.
  *
  * An order that is never paid gives its credit back (release()), and one
- * paid after that takes it again (reclaim()). A placed order that is
- * later cancelled is not credited back automatically: the merchant
- * re-credits by hand from the customer's panel.
+ * paid after that takes it again when the balance covers it (reclaim()).
+ * A placed order that is later cancelled is not credited back
+ * automatically: the merchant re-credits by hand from the customer's
+ * panel.
  */
 class StoreCreditTotalProvider implements OrderTotalProviderInterface, ReleasableTotalInterface
 {
@@ -77,7 +79,7 @@ class StoreCreditTotalProvider implements OrderTotalProviderInterface, Releasabl
         return 'Store credit of ' . number_format($held / 100, 2) . ' returned to the customer, as the order was not paid.';
     }
 
-    public function reclaim(Order $order, array $line): ?string
+    public function reclaim(Order $order, array $line): ?ReclaimResult
     {
         $customerId = $this->customerOf($order, $line);
         if ($customerId === null) {
@@ -89,11 +91,21 @@ class StoreCreditTotalProvider implements OrderTotalProviderInterface, Releasabl
             return null;
         }
 
-        // May take the balance below zero when the returned credit was
-        // spent meanwhile; the ledger then shows what the customer owes.
+        // Taken back only in full and only from what the customer has: a
+        // balance spent meanwhile is never driven below zero. The order is
+        // marked for the merchant to settle instead.
+        $balance = (int) round(CreditService::balance($customerId) * 100);
+        if ($balance < $owed) {
+            return new ReclaimResult(
+                'Paid after its store credit of ' . number_format($owed / 100, 2) . ' was returned, and the customer\'s balance of '
+                    . number_format($balance / 100, 2) . ' does not cover it. Nothing was taken back: settle it from the customer\'s store credit.',
+                needsReview: true,
+            );
+        }
+
         CreditService::add($customerId, -$owed / 100, 'Order #' . $order->id . ' paid, store credit applied again', $order->id);
 
-        return 'Store credit of ' . number_format($owed / 100, 2) . ' applied again, as the order was paid after it had been returned.';
+        return new ReclaimResult('Store credit of ' . number_format($owed / 100, 2) . ' applied again, as the order was paid after it had been returned.');
     }
 
     private function customerOf(Order $order, array $line): ?int

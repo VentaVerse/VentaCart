@@ -24,6 +24,7 @@ Route::prefix('sales')->group(function () {
     Route::post('/orders/{order}/history', [OrderController::class, 'addHistory'])->name('orders.history.store');
     Route::delete('/orders/{order}/history/{history}', [OrderController::class, 'deleteHistory'])->name('orders.history.destroy');
     Route::post('/orders/{order}/tracking', [OrderController::class, 'updateTracking'])->name('orders.update-tracking');
+    Route::post('/orders/{order}/review', [OrderController::class, 'clearReview'])->name('orders.review.clear');
     Route::resource('orders', OrderController::class);
 
     // Abandoned Carts moved to the abandoned-carts extension

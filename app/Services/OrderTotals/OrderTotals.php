@@ -105,23 +105,23 @@ class OrderTotals
     }
 
     /**
-     * The order was placed after it had been given up on: each releasable
+     * The order was paid after it had been given up on: each releasable
      * line takes again what it gave back. Call with the order's row
      * locked, inside a transaction.
      *
-     * @return list<string> notes for the order's history
+     * @return list<ReclaimResult>
      */
     public static function reclaim(Order $order): array
     {
-        $notes = [];
+        $results = [];
         foreach (self::releasableLines($order) as [$provider, $line]) {
-            $note = $provider->reclaim($order, $line);
-            if ($note !== null && $note !== '') {
-                $notes[] = $note;
+            $result = $provider->reclaim($order, $line);
+            if ($result !== null) {
+                $results[] = $result;
             }
         }
 
-        return $notes;
+        return $results;
     }
 
     /** @return list<array{0: ReleasableTotalInterface, 1: array}> */

@@ -2,6 +2,7 @@
 
 namespace Extensions\PaymentHitpay;
 
+use App\Services\PaymentMethods\ClosesUnpaidPayment;
 use App\Services\PaymentMethods\PaymentMethodInterface;
 use App\Services\PaymentMethods\PaymentResult;
 
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class HitPayPayment implements PaymentMethodInterface
+class HitPayPayment implements PaymentMethodInterface, ClosesUnpaidPayment
 {
     private const SANDBOX_URL = 'https://api.sandbox.hit-pay.com/v1/payment-requests';
     private const PRODUCTION_URL = 'https://api.hit-pay.com/v1/payment-requests';
@@ -194,6 +195,81 @@ class HitPayPayment implements PaymentMethodInterface
         }
 
         return $matches;
+    }
+
+    /**
+     * Statuses after which HitPay takes no payment on a request: it ran out
+     * of time, was voided, or the link was switched off. "failed" is not
+     * one of them: the shopper can try again on the same page.
+     */
+    private const CLOSED_STATUSES = ['expired', 'canceled', 'inactive'];
+
+    /**
+     * Make sure this order's payment request can no longer be paid.
+     *
+     * HitPay's API decides, never the return address. A request already
+     * expired, cancelled or switched off is closed. One still open
+     * (pending, or failed and open to another try) is deleted, which
+     * HitPay allows only for a request not yet paid; a request it reports
+     * paid, or holding a payment that succeeded, is not closed. HitPay
+     * unreachable or answering anything unexpected is not closed either,
+     * so the order keeps what it holds until a later call can tell.
+     */
+    public function closeUnpaidPayment(Order $order): bool
+    {
+        $paymentRequestId = (string) $order->payment_reference;
+        if ($paymentRequestId === '') {
+            // No request was ever opened, so there is nothing to pay.
+            return true;
+        }
+
+        $request = $this->fetchPaymentRequest($paymentRequestId);
+        if ($request === null || ($request['id'] ?? null) !== $paymentRequestId) {
+            return false;
+        }
+
+        if ($this->succeededPayment($request) !== null || ($request['status'] ?? null) === 'completed') {
+            return false;
+        }
+
+        if (in_array($request['status'] ?? null, self::CLOSED_STATUSES, true)) {
+            return true;
+        }
+
+        return $this->deletePaymentRequest($paymentRequestId);
+    }
+
+    /** Delete a request not yet paid; true only when HitPay says it did. */
+    private function deletePaymentRequest(string $paymentRequestId): bool
+    {
+        $mode = $this->getSetting('hitpay_mode', 'sandbox');
+        $apiKey = $this->getDecryptedSetting("hitpay_{$mode}_api_key");
+
+        if (! $apiKey) {
+            return false;
+        }
+
+        $base = $mode === 'production' ? self::PRODUCTION_URL : self::SANDBOX_URL;
+
+        try {
+            $response = Http::withHeaders(['X-BUSINESS-API-KEY' => $apiKey])
+                ->timeout(20)
+                ->delete($base . '/' . rawurlencode($paymentRequestId));
+
+            if ($response->successful() && $response->json('success') === true) {
+                return true;
+            }
+
+            Log::warning('HitPay: could not delete the payment request', [
+                'payment_request' => $paymentRequestId, 'status' => $response->status(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('HitPay: payment request delete failed', [
+                'payment_request' => $paymentRequestId, 'error' => $e->getMessage(),
+            ]);
+        }
+
+        return false;
     }
 
     /** The payment request as HitPay reports it, or null when it cannot be read. */

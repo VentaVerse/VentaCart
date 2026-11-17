@@ -20,6 +20,7 @@ use App\Services\UnpaidOrderAbandonment;
 use Extensions\StoreCredit\CreditService;
 use Extensions\StoreCredit\Models\CustomerTransaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -27,11 +28,14 @@ use Tests\TestCase;
 
 /**
  * Store credit is taken off an order the moment it is written, before the
- * shopper pays. An order that is then never paid (the payment failed or
- * expired, the shopper came back without paying, the gateway refused it,
- * the merchant deleted it) gives the credit back, exactly once, whichever
- * of those paths gets there first. An order that is paid after all takes
- * it again.
+ * shopper pays. An order that is then never paid gives the credit back,
+ * exactly once, but only once its payment can no longer be made: HitPay's
+ * signed webhook says the request expired, or HitPay's own API confirms
+ * the request is closed (or deletes it). Nothing the shopper's browser
+ * sends decides it, and a failed attempt keeps the credit held, because
+ * the same payment page takes another try. An order paid after its credit
+ * was returned takes it again when the balance covers it, and is marked
+ * for the merchant to review when it does not.
  */
 class UnpaidOrderStoreCreditTest extends TestCase
 {
@@ -42,6 +46,17 @@ class UnpaidOrderStoreCreditTest extends TestCase
     private Customer $customer;
 
     private OrderStatus $paid;
+
+    /**
+     * What HitPay's API answers for pr_demo_1. Http::fake keeps the first
+     * stub for a URL, so one stub reads this and the tests change it.
+     *
+     * @var array{down: bool, status: string, payments: array, delete: int}
+     */
+    private array $hitpay = ['down' => false, 'status' => 'pending', 'payments' => [], 'delete' => 200];
+
+    /** @var list<string> the HitPay API calls made, as "METHOD path" */
+    private array $hitpayCalls = [];
 
     protected function setUp(): void
     {
@@ -70,6 +85,31 @@ class UnpaidOrderStoreCreditTest extends TestCase
             'email' => 'juan@example.test', 'password' => bcrypt('secret'),
         ]);
         CreditService::add($this->customer->id, 500.0, 'Welcome credit');
+
+        Http::fake(function (ClientRequest $request) {
+            $path = (string) parse_url($request->url(), PHP_URL_PATH);
+            $this->hitpayCalls[] = $request->method() . ' ' . $path;
+
+            if (str_ends_with($path, '/payment-requests')) {
+                return Http::response(['message' => 'Temporarily unavailable'], 503);
+            }
+            if ($this->hitpay['down']) {
+                return Http::response(['message' => 'down'], 503);
+            }
+            if ($request->method() === 'DELETE') {
+                return $this->hitpay['delete'] === 200
+                    ? Http::response(['success' => true], 200)
+                    : Http::response(['message' => 'Not allowed'], $this->hitpay['delete']);
+            }
+
+            return Http::response([
+                'id' => 'pr_demo_1',
+                'status' => $this->hitpay['status'],
+                'reference_number' => (string) (Order::max('id') ?? 0),
+                'amount' => '800.00',
+                'payments' => $this->hitpay['payments'],
+            ], 200);
+        });
     }
 
     protected function tearDown(): void
@@ -82,9 +122,10 @@ class UnpaidOrderStoreCreditTest extends TestCase
 
     /**
      * An unpaid HitPay order, written the way checkout writes it: the
-     * credit line on the order and its spend in the ledger.
+     * credit line on the order, its spend in the ledger, and the payment
+     * page the shopper was sent to.
      */
-    private function unpaidOrder(float $credit = 200.0, string $reference = 'pr_demo_1'): Order
+    private function unpaidOrder(float $credit = 200.0): Order
     {
         $lines = $credit > 0
             ? [['code' => 'store_credit', 'label' => 'Store Credit', 'amount' => -$credit, 'extras' => ['customer_id' => $this->customer->id]]]
@@ -94,10 +135,11 @@ class UnpaidOrderStoreCreditTest extends TestCase
             'store_id' => 1, 'customer_id' => $this->customer->id,
             'first_name' => 'Juan', 'last_name' => 'Dela Cruz', 'email' => 'juan@example.test',
             'order_status_id' => null,
-            'payment_method' => 'hitpay', 'payment_reference' => $reference,
+            'payment_method' => 'hitpay', 'payment_reference' => 'pr_demo_1',
             'subtotal' => 1000, 'shipping_cost' => 0, 'total' => 1000 - $credit,
             'total_lines' => $lines,
         ]);
+        $order->forceFill(['payment_url' => 'https://pay.example.test/pr_demo_1'])->save();
         OrderTotals::confirm($order, $lines);
 
         return $order;
@@ -126,6 +168,12 @@ class UnpaidOrderStoreCreditTest extends TestCase
         ]));
     }
 
+    private function comeBack(string $status = 'canceled')
+    {
+        return $this->actingAs($this->customer, 'customer')
+            ->get(route('checkout.hitpay.return', ['reference' => 'pr_demo_1', 'status' => $status]));
+    }
+
     private function balance(): float
     {
         return CreditService::balance($this->customer->id);
@@ -136,12 +184,21 @@ class UnpaidOrderStoreCreditTest extends TestCase
         return CustomerTransaction::where('order_id', $order->id)->where('amount', '>', 0)->get();
     }
 
-    public function test_a_failed_payment_returns_the_credit(): void
+    private function deletes(): int
+    {
+        return count(array_filter($this->hitpayCalls, fn ($c) => str_starts_with($c, 'DELETE ')));
+    }
+
+    // -----------------------------------------------------------------
+    // Signed webhooks
+    // -----------------------------------------------------------------
+
+    public function test_an_expired_payment_returns_the_credit(): void
     {
         $order = $this->unpaidOrder(200.0);
         $this->assertSame(300.0, $this->balance());
 
-        $this->webhook($order, 'failed')->assertOk();
+        $this->webhook($order, 'expired')->assertOk();
 
         $this->assertSame(500.0, $this->balance());
         $returned = $this->returnsFor($order);
@@ -151,67 +208,129 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $this->assertTrue($order->histories()->where('comment', 'like', '%store credit%returned%')->exists());
     }
 
-    public function test_an_expired_payment_returns_the_credit(): void
+    /** The same payment page takes another try after a failed one. */
+    public function test_a_failed_attempt_keeps_the_credit_held(): void
     {
         $order = $this->unpaidOrder(200.0);
+        $cart = Cart::create(['store_id' => 1, 'customer_id' => $this->customer->id, 'placed_order_id' => $order->id]);
 
-        $this->webhook($order, 'expired')->assertOk();
+        $this->webhook($order, 'failed')->assertOk();
 
-        $this->assertSame(500.0, $this->balance());
-        $this->assertCount(1, $this->returnsFor($order));
+        $this->assertSame(300.0, $this->balance());
+        $this->assertCount(0, $this->returnsFor($order));
+        $this->assertSame(0, $this->deletes(), 'A failed attempt never closes the shopper\'s page.');
+        $this->assertNull($cart->fresh()->placed_order_id, 'The cart still lets go of the order, as before.');
     }
 
     public function test_a_repeated_webhook_returns_the_credit_once(): void
     {
         $order = $this->unpaidOrder(200.0);
 
-        $this->webhook($order, 'failed')->assertOk();
         $this->webhook($order, 'expired')->assertOk();
         $this->webhook($order, 'failed')->assertOk();
+        $this->webhook($order, 'expired')->assertOk();
 
         $this->assertSame(500.0, $this->balance());
         $this->assertCount(1, $this->returnsFor($order));
     }
 
     /**
-     * The webhook, the shopper's browser and any other path can each hold
-     * a copy of the order read before the others wrote. Each decides under
-     * the order's row lock from the ledger as it stands, so the second
-     * finds nothing left to return.
+     * The webhook, the shopper's browser and an admin can each hold a copy
+     * of the order read before the others wrote. Each decides under the
+     * order's row lock from the ledger as it stands, so the second finds
+     * nothing left to return.
      */
     public function test_racing_paths_holding_stale_copies_return_the_credit_once(): void
     {
         $order = $this->unpaidOrder(200.0);
         $first = Order::find($order->id);
         $second = Order::find($order->id);
+        $this->hitpay['status'] = 'expired';
 
-        $this->assertTrue(UnpaidOrderAbandonment::abandon($first));
+        $this->assertTrue(UnpaidOrderAbandonment::abandon($first, paymentClosed: true));
         $this->assertTrue(UnpaidOrderAbandonment::abandon($second));
-        $this->actingAs($this->customer, 'customer')
-            ->get(route('checkout.hitpay.return', ['reference' => 'pr_demo_1', 'status' => 'canceled']));
-        $this->webhook($order, 'failed')->assertOk();
+        $this->comeBack();
+        $this->webhook($order, 'expired')->assertOk();
 
         $this->assertSame(500.0, $this->balance());
         $this->assertCount(1, $this->returnsFor($order));
     }
 
-    public function test_coming_back_without_paying_returns_the_credit(): void
+    // -----------------------------------------------------------------
+    // The return page: its address decides nothing about money
+    // -----------------------------------------------------------------
+
+    /** HitPay still has the page open: it is deleted first, then the credit goes back. */
+    public function test_coming_back_unpaid_closes_the_open_payment_then_returns_the_credit(): void
     {
         $order = $this->unpaidOrder(200.0);
 
-        $this->actingAs($this->customer, 'customer')
-            ->get(route('checkout.hitpay.return', ['reference' => 'pr_demo_1', 'status' => 'canceled']))
-            ->assertRedirect(route('checkout.index'));
+        $this->comeBack()->assertRedirect(route('checkout.index'));
 
+        $this->assertSame(1, $this->deletes());
         $this->assertSame(500.0, $this->balance());
     }
+
+    public function test_coming_back_after_hitpay_expired_the_request_returns_the_credit(): void
+    {
+        $order = $this->unpaidOrder(200.0);
+        $this->hitpay['status'] = 'canceled';
+
+        $this->comeBack();
+
+        $this->assertSame(0, $this->deletes(), 'Already closed: nothing to delete.');
+        $this->assertSame(500.0, $this->balance());
+    }
+
+    /**
+     * The reported attack: edit the return address to say canceled, get
+     * the credit back, then pay the page still open. HitPay will not
+     * delete the request (here, already paid), so nothing is returned.
+     */
+    public function test_a_typed_status_does_not_return_credit_when_hitpay_cannot_close_the_page(): void
+    {
+        $order = $this->unpaidOrder(200.0);
+        $this->hitpay['delete'] = 422;
+
+        $this->comeBack()->assertRedirect(route('checkout.index'));
+
+        $this->assertSame(300.0, $this->balance());
+        $this->assertCount(0, $this->returnsFor($order));
+    }
+
+    public function test_a_request_hitpay_reports_paid_is_never_closed_or_returned(): void
+    {
+        $order = $this->unpaidOrder(200.0);
+        $this->hitpay['status'] = 'completed';
+        $this->hitpay['payments'] = [['id' => 'p1', 'status' => 'succeeded', 'fees' => '10.00']];
+
+        $this->comeBack('canceled');
+
+        $this->assertSame(0, $this->deletes());
+        $this->assertSame(300.0, $this->balance());
+    }
+
+    public function test_hitpay_being_unreachable_keeps_the_credit_held(): void
+    {
+        $order = $this->unpaidOrder(200.0);
+        $this->hitpay['down'] = true;
+
+        $this->comeBack();
+
+        $this->assertSame(300.0, $this->balance());
+        $this->assertCount(0, $this->returnsFor($order));
+    }
+
+    // -----------------------------------------------------------------
+    // What the order holds
+    // -----------------------------------------------------------------
 
     public function test_an_order_without_credit_is_unaffected(): void
     {
         $order = $this->unpaidOrder(0.0);
         $cart = Cart::create(['store_id' => 1, 'customer_id' => $this->customer->id, 'placed_order_id' => $order->id]);
 
-        $this->webhook($order, 'failed')->assertOk();
+        $this->webhook($order, 'expired')->assertOk();
 
         $this->assertSame(500.0, $this->balance());
         $this->assertSame(0, CustomerTransaction::where('order_id', $order->id)->count());
@@ -224,13 +343,13 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $order = $this->unpaidOrder(200.0);
         OrderStatusChanger::apply($order, $this->paid->id, 'Paid.');
 
-        $this->webhook($order->fresh(), 'failed')->assertOk();
-        $this->assertFalse(UnpaidOrderAbandonment::abandon($order->fresh()));
-        $this->actingAs($this->customer, 'customer')
-            ->get(route('checkout.hitpay.return', ['reference' => 'pr_demo_1', 'status' => 'canceled']));
+        $this->webhook($order->fresh(), 'expired')->assertOk();
+        $this->assertFalse(UnpaidOrderAbandonment::abandon($order->fresh(), paymentClosed: true));
+        $this->comeBack();
 
         $this->assertSame(300.0, $this->balance());
         $this->assertCount(0, $this->returnsFor($order));
+        $this->assertSame(0, $this->deletes(), 'A paid order\'s request is never touched.');
     }
 
     public function test_credit_already_partly_returned_gives_back_only_the_rest(): void
@@ -238,7 +357,7 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $order = $this->unpaidOrder(200.0);
         CreditService::add($this->customer->id, 50.0, 'Goodwill for order', $order->id);
 
-        $this->webhook($order, 'failed')->assertOk();
+        $this->webhook($order, 'expired')->assertOk();
 
         $this->assertSame(500.0, $this->balance());
         $this->assertSame(150.0, (float) CustomerTransaction::where('order_id', $order->id)
@@ -256,7 +375,7 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $order = $this->unpaidOrder(200.0);
         CreditService::add($this->customer->id, 200.0, 'Seller order not paid, credit returned', $order->id);
 
-        $this->assertTrue(UnpaidOrderAbandonment::abandon($order));
+        $this->assertTrue(UnpaidOrderAbandonment::abandon($order, paymentClosed: true));
         $this->webhook($order, 'expired')->assertOk();
 
         $this->assertSame(500.0, $this->balance());
@@ -264,28 +383,60 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $this->assertFalse($order->histories()->where('comment', 'like', '%store credit%')->exists());
     }
 
-    /**
-     * A failed attempt does not close a HitPay payment page: the shopper
-     * may try another card and pay. The order then takes again the credit
-     * it gave back, so the discount is never had twice.
-     */
-    public function test_an_order_paid_after_its_credit_was_returned_takes_it_again(): void
+    // -----------------------------------------------------------------
+    // Paid after all
+    // -----------------------------------------------------------------
+
+    private function paidAfterAll(Order $order): void
+    {
+        $this->hitpay['status'] = 'completed';
+        $this->hitpay['payments'] = [['id' => 'p1', 'status' => 'succeeded', 'fees' => '10.00']];
+        $this->webhook($order, 'completed')->assertOk();
+        $this->webhook($order, 'completed')->assertOk();
+    }
+
+    public function test_an_order_paid_after_its_credit_was_returned_takes_it_again_when_the_balance_covers_it(): void
     {
         $order = $this->unpaidOrder(200.0);
-        $this->webhook($order, 'failed')->assertOk();
+        $this->assertTrue(UnpaidOrderAbandonment::abandon($order, paymentClosed: true));
         $this->assertSame(500.0, $this->balance());
 
-        Http::fake(['*/payment-requests/pr_demo_1' => Http::response([
-            'id' => 'pr_demo_1', 'status' => 'completed', 'reference_number' => (string) $order->id,
-            'amount' => '800.00', 'payments' => [['id' => 'p1', 'status' => 'succeeded', 'fees' => '10.00']],
-        ], 200)]);
-        $this->webhook($order, 'completed')->assertOk();
-        $this->webhook($order, 'completed')->assertOk();
+        $this->paidAfterAll($order);
 
-        $this->assertSame($this->paid->id, (int) $order->fresh()->order_status_id);
+        $fresh = $order->fresh();
+        $this->assertSame($this->paid->id, (int) $fresh->order_status_id);
         $this->assertSame(300.0, $this->balance());
         $this->assertSame(1, CustomerTransaction::where('order_id', $order->id)
             ->where('description', "Order #{$order->id} paid, store credit applied again")->count());
+        $this->assertNull($fresh->review_reason);
+    }
+
+    public function test_an_order_paid_after_its_credit_was_returned_and_spent_is_marked_for_review(): void
+    {
+        $order = $this->unpaidOrder(200.0);
+        $this->assertTrue(UnpaidOrderAbandonment::abandon($order, paymentClosed: true));
+        // The customer spends the returned credit on another order.
+        CreditService::add($this->customer->id, -450.0, 'Order #9999');
+        $this->assertSame(50.0, $this->balance());
+
+        $this->paidAfterAll($order);
+
+        $fresh = $order->fresh();
+        $this->assertSame($this->paid->id, (int) $fresh->order_status_id, 'The payment still confirms the order.');
+        $this->assertSame(50.0, $this->balance(), 'The balance is left alone, never driven below zero.');
+        $this->assertSame(0, CustomerTransaction::where('order_id', $order->id)->where('description', 'like', '%applied again%')->count());
+        $this->assertNotNull($fresh->review_reason);
+        $this->assertStringContainsString('does not cover it', $fresh->review_reason);
+        $this->assertTrue($order->histories()->where('comment', 'like', '%does not cover it%')->exists());
+
+        $admin = User::factory()->create();
+        $this->actingAs($admin)->get(route('admin.orders.show', $order))
+            ->assertOk()->assertSee('This order needs review')->assertSee('does not cover it');
+
+        $this->actingAs($admin)->post(route('admin.orders.review.clear', $order))
+            ->assertRedirect(route('admin.orders.show', $order));
+        $this->assertNull($order->fresh()->review_reason);
+        $this->assertTrue($order->histories()->where('comment', 'like', 'Marked reviewed:%')->exists());
     }
 
     public function test_an_order_paid_without_ever_being_abandoned_is_charged_once(): void
@@ -296,6 +447,7 @@ class UnpaidOrderStoreCreditTest extends TestCase
 
         $this->assertSame(300.0, $this->balance());
         $this->assertSame(1, CustomerTransaction::where('order_id', $order->id)->count());
+        $this->assertNull($order->fresh()->review_reason);
     }
 
     /** Only a confirmed payment takes the credit again, never a status the merchant sets. */
@@ -312,7 +464,11 @@ class UnpaidOrderStoreCreditTest extends TestCase
             ->where('description', 'like', '%applied again%')->count());
     }
 
-    public function test_deleting_an_unpaid_order_returns_its_credit(): void
+    // -----------------------------------------------------------------
+    // Admin and checkout
+    // -----------------------------------------------------------------
+
+    public function test_deleting_an_unpaid_order_closes_its_payment_and_returns_its_credit(): void
     {
         $order = $this->unpaidOrder(200.0);
         $admin = User::factory()->create();
@@ -320,7 +476,20 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $this->actingAs($admin)->delete(route('admin.orders.destroy', $order));
 
         $this->assertNull(Order::find($order->id));
+        $this->assertSame(1, $this->deletes());
         $this->assertSame(500.0, $this->balance());
+    }
+
+    public function test_deleting_an_unpaid_order_hitpay_cannot_close_keeps_the_credit_held(): void
+    {
+        $order = $this->unpaidOrder(200.0);
+        $this->hitpay['down'] = true;
+        $admin = User::factory()->create();
+
+        $this->actingAs($admin)->delete(route('admin.orders.destroy', $order));
+
+        $this->assertNull(Order::find($order->id));
+        $this->assertSame(300.0, $this->balance());
     }
 
     public function test_deleting_a_placed_order_leaves_the_credit_to_the_merchant(): void
@@ -339,7 +508,7 @@ class UnpaidOrderStoreCreditTest extends TestCase
     {
         $order = $this->unpaidOrder(200.0);
 
-        $this->webhook($order, 'failed')->assertOk();
+        $this->webhook($order, 'expired')->assertOk();
 
         $fresh = $order->fresh();
         $this->assertNull($fresh->order_status_id);
@@ -347,6 +516,7 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $this->assertSame(0, Order::visibleToCustomer()->count());
     }
 
+    /** The gateway refused to open a payment page, so there is nothing left to pay. */
     public function test_a_payment_the_gateway_refused_at_checkout_returns_the_credit(): void
     {
         $manager = app(ExtensionManager::class);
@@ -367,8 +537,6 @@ class UnpaidOrderStoreCreditTest extends TestCase
         ]);
         $cart = Cart::create(['store_id' => 1, 'customer_id' => $this->customer->id]);
         $cart->items()->create(['product_id' => $product->id, 'name' => 'Demo Cable', 'price' => 500, 'quantity' => 2]);
-
-        Http::fake(['*/payment-requests' => Http::response(['message' => 'Temporarily unavailable'], 503)]);
 
         $this->actingAs($this->customer, 'customer')
             ->from(route('checkout.index'))

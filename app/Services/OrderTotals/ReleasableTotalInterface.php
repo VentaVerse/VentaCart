@@ -29,11 +29,13 @@ interface ReleasableTotalInterface
     public function release(Order $order, array $line): ?string;
 
     /**
-     * The order was placed after all: take again whatever release() gave
-     * back, so the line's discount is never had twice.
+     * The order was paid after all: take again whatever release() gave
+     * back, so the line's discount is never had twice. When it cannot be
+     * taken back in full (the customer has spent it meanwhile), take
+     * nothing and answer with needsReview, so the merchant settles it.
      *
      * @param  array  $line  the line this provider added, as stored on the order
-     * @return string|null a note for the order's history, or null when nothing was taken
+     * @return ReclaimResult|null null when nothing was owed
      */
-    public function reclaim(Order $order, array $line): ?string;
+    public function reclaim(Order $order, array $line): ?ReclaimResult;
 }
