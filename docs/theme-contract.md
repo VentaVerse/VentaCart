@@ -147,6 +147,19 @@ An extension with storefront pages of its own adds a page type for them from its
 
 The first argument is the type (lower case letters, digits and underscores; core's own types are refused), the second its label, the third the route name prefixes it covers. Core's prefixes are matched first, so an extension never takes over a core page. `StorefrontPageType::all()` lists it and `current()` returns it on those routes. A type whose extension is switched off is not registered.
 
+The extension's controller draws such a page through `App\Support\StorefrontPage::render()`, so the live theme can lay it out:
+
+```php
+return \App\Support\StorefrontPage::render('shop', 'marketplace::shop.show', [
+    'title' => $shop->name,
+    'subject' => $shop,
+    'breadcrumbs' => [['label' => 'Shops', 'url' => route('marketplace.shop.index')], ['label' => $shop->name]],
+    'shop' => $shop,
+]);
+```
+
+When the live theme provides the optional view `extension-page` (section 4), that view draws the page; otherwise the extension's own view (the second argument) gets the data as given. A page type no extension registered always gets the extension's view.
+
 ## 4. Views the theme must provide
 
 Core routes render these view names; the theme's `views/` folder is prepended to the view finder, so `home` is `views/home.blade.php`.
@@ -164,6 +177,8 @@ partials.product-card
 While the extension exists on disk: `blog.index`, `blog.show` (blog); `review.submit`, `review.thankyou` (reviews).
 
 Optional: `product.quick-view` (the quick view fragment; core answers 404 without it), `maintenance`, `sitemap`, `wishlist.index` (core draws its own inside the theme's layout with `partials.product-card`).
+
+Optional, for extensions (section 9): `extension-page`, a page of an extension's page type. It receives `pageType` (the type), `title` (string or null), `subject` (the model the page is about, or null), `breadcrumbs` (a list of `{label, url}`, labels as plain text and links already through `SafeInput::link`, `url` null when there is none) and `page` (every value the extension passed, for the page's sections to read).
 
 ### 4.1 The layout
 
@@ -274,3 +289,13 @@ Menus are core data, edited at Content > Menus (`nav_menus`, nested `nav_menu_it
 3. Keep every view in section 4.
 4. `npm run build`, then Themes > Install. The install check names anything missing.
 5. `php artisan test --filter=ThemePackagesTest` passes with the new theme on disk (the contract test checks every theme in `resources/themes`).
+
+## 9. Extensions inside a theme (hooks API 1)
+
+An extension can add to the storefront without editing a theme, and a theme can show what extensions add without knowing them. Every hook below is optional on both sides: with no extension registered, every theme draws as before, and a theme that ignores a hook still works.
+
+These names are API 1 of the hooks. Renaming or removing any of them, or changing a shape below, is a new API version.
+
+### 9.1 Pages of an extension's page type
+
+Section 3: the extension registers a page type and draws its pages with `StorefrontPage::render()`; a theme that wants to lay such pages out provides `extension-page` (section 4).

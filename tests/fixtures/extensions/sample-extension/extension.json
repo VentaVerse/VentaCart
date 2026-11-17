@@ -1,0 +1,9 @@
+{
+    "name": "sample-extension",
+    "title": "Sample Extension",
+    "version": "1.0.0",
+    "description": "Fixture extension that uses every storefront extension hook, for the hook tests.",
+    "provider": "Tests\\Fixtures\\Extensions\\SampleExtension\\SampleExtensionServiceProvider",
+    "icon": "puzzle",
+    "type": "feature"
+}

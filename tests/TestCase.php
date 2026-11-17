@@ -28,6 +28,11 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Hooks extensions register live in static lists; none may carry
+        // over from an earlier test.
+        self::forgetStorefrontHooks();
+        $this->beforeApplicationDestroyed(fn () => self::forgetStorefrontHooks());
+
         $this->linkSampleTheme();
         config(['themes.bundled' => self::SAMPLE_THEME]);
 
@@ -41,6 +46,15 @@ abstract class TestCase extends BaseTestCase
             // The sample's stylesheet is never built.
             $this->withoutVite();
         }
+    }
+
+    /**
+     * Take away every storefront hook an extension registered: the fixture
+     * extension's page type, and anything registered with core's hook lists.
+     */
+    public static function forgetStorefrontHooks(): void
+    {
+        \App\Support\StorefrontPageType::forget('sample_page');
     }
 
     /**
