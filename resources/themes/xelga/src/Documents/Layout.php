@@ -219,7 +219,9 @@ final class Layout
                 $columns[$c] = array_values(array_filter($column, $claim));
             }
             $settings = self::settings($row['settings'] ?? []);
-            $seed = array_merge(...$columns)[0] ?? (string) $i;
+            // An empty row with no usable id gets one from a fixed seed, lengthened while taken,
+            // so its id does not depend on where the row sits.
+            $seed = array_merge(...$columns)[0] ?? 'row';
 
             if ($split === '12') {
                 $column = $columns[0];

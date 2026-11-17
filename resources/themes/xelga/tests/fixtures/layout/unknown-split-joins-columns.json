@@ -1,0 +1,90 @@
+{
+  "name": "unknown-split-joins-columns",
+  "rules": {
+    "min": {
+      "text": 3
+    },
+    "main": [],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "a",
+      "b"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "5-7",
+        "columns": [
+          [
+            "a"
+          ],
+          [
+            "b"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "a",
+      "b"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-e9d71f5e",
+        "split": "12",
+        "columns": [
+          [
+            "b"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "moved": []
+}

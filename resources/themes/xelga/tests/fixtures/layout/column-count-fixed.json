@@ -1,0 +1,167 @@
+{
+  "name": "column-count-fixed",
+  "rules": {
+    "min": {
+      "text": 3
+    },
+    "main": [],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      },
+      "c": {
+        "type": "text"
+      },
+      "d": {
+        "type": "text"
+      },
+      "e": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-2",
+        "split": "4-4-4",
+        "columns": [
+          [
+            "b"
+          ],
+          [
+            "c"
+          ],
+          [
+            "d"
+          ],
+          [
+            "e"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-3",
+        "split": "3-3-3-3",
+        "columns": "not-a-list",
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "a",
+      "b",
+      "c",
+      "d",
+      "e"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      },
+      "c": {
+        "type": "text"
+      },
+      "d": {
+        "type": "text"
+      },
+      "e": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [
+            "a"
+          ],
+          []
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-2",
+        "split": "4-4-4",
+        "columns": [
+          [
+            "b"
+          ],
+          [
+            "c"
+          ],
+          [
+            "d",
+            "e"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-3",
+        "split": "3-3-3-3",
+        "columns": [
+          [],
+          [],
+          [],
+          []
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "moved": []
+}
