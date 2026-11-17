@@ -495,3 +495,23 @@ Applied when a page is read, for shoppers and in the editor, never written at in
 **The stylesheet.** `xelga.json`'s `stylesheet` is a plain CSS file under the extension's `resources/`, loaded on every storefront page after Xelga's own. Xelga loads it from the store's build when that has the entry, else from the `build/` the package ships (section 1), else it serves the file itself, exactly as it ships, at `/xelga/extensions/{name}/{fingerprint}.css` (route `xelga.extension-css`, cached for a year, a new address for each new file, only while the extension is switched on). So an extension installed from an upload is styled without `npm run build`, provided the file is CSS a browser reads as it is: no `@import` of build-time sources, no Tailwind directives. That last case is logged once each time the catalog is compiled, not on every request.
 
 **Checks.** `php artisan xelga:lint --extension=marketplace`; range settings get their CSS rules from `node resources/themes/xelga/bin/ranges.mjs --schemas <parts>/schemas/sections --out <stylesheet>`.
+
+### 9.9 Product card lines (API 1 addition)
+
+An extension adds a short line to product cards ("Sold by Demo Shop", "Ships from Cebu") from its provider's `boot()`:
+
+```php
+use App\Support\ProductCardLines;
+
+ProductCardLines::add('marketplace', fn (\Illuminate\Support\Collection $products) => [/* product id => fragment */]);
+```
+
+- `add(string $name, callable $fn)`: the name is 1 to 40 lower case letters, digits or hyphens, starting with a letter, usually the extension's name. A name that breaks this, or one already taken, is refused and logged.
+- `$fn` receives the products of one list of cards at once (a page of a category, a product row, the wishlist), so it can read what it needs in one query, and answers fragments keyed by product id. A fragment is as in section 9.5: an `Htmlable` is printed as given, a plain string is text and core escapes it. A fragment for a product not in the list, an empty one or anything else is dropped. A callable that throws is reported and left out; the page still draws.
+- `ProductCardLines::for($products)` returns `[product id => HtmlString]` for the products that have a line: each extension's fragment inside `<div class="card__ext-line" data-ext="{name}">`, joined in the order the lines were added. Each callable runs once per call. With nothing registered it returns `[]` without looking at the products.
+
+A theme calls `for()` once per list, where it has the list (a section's data, a listing page's paginator), never once per card, and draws a product's lines in one fixed place on its card: under the product name, before the price, inside `<div class="card__ext">`. Nothing is drawn for a product with no line. `ProductCardLines::has()` tells a theme whether any line is registered, so it can skip the call and any setting it reads for it.
+
+A theme that ignores this hook still works. A theme that draws lines may offer a setting to hide them (Xelga does: Product cards > Show details from extensions); hidden, it does not call `for()`, so no extension is asked.
+
+Where cards are drawn by script, in API 1 they do not show lines. The bundled theme draws every product card on the server (pages loaded with Load more included); the cart drawer and the cart page list cart lines, not product cards, and have no lines.
