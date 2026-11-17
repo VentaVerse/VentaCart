@@ -251,6 +251,16 @@
   font-size: 1.125rem;
 }
 
+/* Too narrow for the photo beside the offer: the photo goes above it. */
+@container (max-width: 299px) {
+  .s-spotlight[data-variant="compact"] .spotlight {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .s-spotlight[data-variant="compact"] .spotlight__media {
+    max-width: 112px;
+  }
+}
+
 @container (min-width: 990px) {
   .s-spotlight[data-variant="compact"] .spotlight__body {
     grid-template-columns: minmax(0, 1.2fr) auto auto;

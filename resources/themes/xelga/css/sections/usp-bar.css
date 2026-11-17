@@ -149,10 +149,13 @@
 
 @container (max-width: 749px) {
   .s-usp[data-variant="strip"] .usp {
+    justify-content: flex-start;
+  }
+  /* The strip runs out to the screen's edge only where the section sits in the page's gutters, not inside a column. */
+  :where(:not(.xr__col)) > .s-usp[data-variant="strip"] .usp {
     margin-inline: calc(var(--gutter) * -1);
     padding-inline: var(--gutter);
     scroll-padding-inline: var(--gutter);
-    justify-content: flex-start;
   }
   .s-usp[data-variant="strip"] .usp__item {
     padding-inline: 1rem;
