@@ -39,7 +39,7 @@ final class TemplateResolver
 
     public function handleFor(string $pageType, mixed $subject = null): string
     {
-        $base = in_array($pageType, Handles::TEMPLATES, true) ? $pageType : 'page';
+        $base = Handles::baseFor($pageType);
 
         if (! isset(self::SUBJECTS[$base]) || ! $this->documents->ready()) {
             return $base;

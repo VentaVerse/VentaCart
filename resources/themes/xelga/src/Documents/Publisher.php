@@ -34,10 +34,13 @@ final class Publisher
         }
 
         $result = DB::transaction(function () use ($versions, $user) {
+            // A template whose extension is away is left as it is: not
+            // published, not a conflict. It waits for its extension.
             $rows = Document::query()
                 ->where(fn ($q) => $q->whereNotNull('draft')->orWhereIn('handle', array_keys($versions)))
                 ->lockForUpdate()
                 ->get()
+                ->filter(fn (Document $row) => Handles::known((string) $row->handle))
                 ->keyBy('handle');
 
             $this->checkVersions($rows, $versions);
@@ -116,7 +119,9 @@ final class Publisher
     {
         $deleted = [];
         $out = DB::transaction(function () use ($user, $versions, &$deleted) {
-            $rows = Document::query()->whereNotNull('draft')->lockForUpdate()->get()->keyBy('handle');
+            $rows = Document::query()->whereNotNull('draft')->lockForUpdate()->get()
+                ->filter(fn (Document $row) => Handles::known((string) $row->handle))
+                ->keyBy('handle');
             if ($versions !== null) {
                 $this->checkVersions($rows, $versions);
             }

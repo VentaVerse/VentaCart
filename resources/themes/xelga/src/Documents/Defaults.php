@@ -39,7 +39,10 @@ final class Defaults
             return self::$shipped[$handle];
         }
 
-        $file = Catalog::root('store-templates/_defaults/' . basename($handle) . '.json');
+        $extension = Handles::isExtensionTemplate($handle) ? \Themes\Xelga\Extensions\Extensions::current()->get(Handles::extensionTemplates()[$handle]) : null;
+        $file = $extension !== null
+            ? (string) ($extension->templates()[$handle] ?? '')
+            : Catalog::root('store-templates/_defaults/' . basename($handle) . '.json');
         $data = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
 
         if (! is_array($data)) {

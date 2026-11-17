@@ -45,7 +45,7 @@ final class Storefront
         $this->page = $page;
         $this->handle = $this->resolver->handleFor($pageType, $subject);
 
-        $base = in_array($pageType, Handles::TEMPLATES, true) ? $pageType : 'page';
+        $base = Handles::baseFor($pageType);
         $content = self::withMainSection($this->documents->content($this->handle), $base);
 
         return new HtmlString($this->renderer->render(

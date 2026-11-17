@@ -70,6 +70,8 @@ final class CatalogLinter
             $this->extensionRanges($where, $spec, $css);
         }
 
+        $this->extensionTemplates($part);
+
         foreach ($part->blockFiles() as $file) {
             $name = basename($file, '.json');
             $where = "{$part->name}: block {$name}";
@@ -95,6 +97,56 @@ final class CatalogLinter
         }
 
         return $this->problems;
+    }
+
+    /**
+     * An extension's template defaults: a page type core knows, the same
+     * checks as a merchant's document, exactly one main section and it the
+     * extension's own, and no record a picker or a link names, since
+     * defaults belong to no store.
+     */
+    private function extensionTemplates(ExtensionParts $part): void
+    {
+        $handles = Handles::extensionTemplates();
+        foreach ($part->templates() as $type => $file) {
+            $where = "{$part->name}: templates/{$type}.json";
+            if (($handles[$type] ?? null) !== $part->name) {
+                $this->problem("{$where}: {$type} is not a page type the extension registered with core (StorefrontPageType::register), or another extension ships it.");
+                continue;
+            }
+            $content = json_decode((string) file_get_contents($file), true);
+            if (! is_array($content)) {
+                $this->problem("{$where}: not valid JSON.");
+                continue;
+            }
+            $mains = [];
+            foreach ((array) ($content['sections'] ?? []) as $id => $section) {
+                $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
+                if ($schema === null) {
+                    continue;
+                }
+                if (($schema->raw['main'] ?? false) === true) {
+                    $mains[] = $schema;
+                }
+                $settings = [[$schema->settings(), (array) ($section['settings'] ?? [])]];
+                foreach ((array) ($section['blocks'] ?? []) as $block) {
+                    $settings[] = [$schema->blockSettings((string) ($block['type'] ?? '')), (array) ($block['settings'] ?? [])];
+                }
+                foreach ($settings as [$schemaSettings, $values]) {
+                    foreach ($values as $key => $value) {
+                        $setting = $schemaSettings[$key] ?? null;
+                        $isRecord = $setting !== null && (isset(SanitizeContext::PICKER_RECORDS[$setting->type]) || ($setting->type === 'url' && is_array($value) && isset($value['id'])));
+                        if ($isRecord && $value !== null && $value !== [] && $value !== '') {
+                            $this->problem("{$where}: {$id} names a store's record in {$key}; defaults belong to no store.");
+                        }
+                    }
+                }
+            }
+            if (count($mains) !== 1 || $mains[0]->source() !== $part->name) {
+                $this->problem("{$where}: holds exactly one main section, and it is one of the extension's own.");
+            }
+            $this->lintDocument("{$part->name}: templates", $type, $content, ['scheme-1', 'scheme-2', 'scheme-3']);
+        }
     }
 
     /** The extension's stylesheet must hold a rule for every range value of its sections. */

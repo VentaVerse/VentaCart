@@ -68,6 +68,17 @@ final class Breadcrumbs implements SectionData
                 $current = 'Page not found';
                 break;
             default:
+                if (\App\Support\StorefrontPage::isExtensionType($context->pageType)) {
+                    // An extension's page hands its trail; the last step without a link is the page itself.
+                    $trail = \App\Support\StorefrontPage::breadcrumbs($context->get('breadcrumbs'));
+                    $last = end($trail);
+                    if ($last !== false && $last['url'] === null) {
+                        array_pop($trail);
+                        $current = $last['label'];
+                    }
+                    $crumbs = [...$crumbs, ...$trail];
+                    break;
+                }
                 $page = $context->get('page');
                 $current = is_object($page) ? ($page->title ?? null) : null;
         }

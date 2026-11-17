@@ -251,7 +251,9 @@ final class TemplateManager
             ->orderBy('page_type')->orderBy('label')->orderBy('id')
             ->get(['id', 'handle', 'page_type', 'label', 'published_version', 'draft_version', 'published_at', 'draft_updated_at'])
             ->filter(fn (Document $d) => Handles::isCustom((string) $d->handle));
-        $hasDraft = Document::query()->whereNotNull('draft')->pluck('draft_version', 'handle');
+        // Drafts of a template whose extension is away are not listed: Publish and Discard leave them.
+        $hasDraft = Document::query()->whereNotNull('draft')->pluck('draft_version', 'handle')
+            ->filter(fn ($version, $handle) => Handles::known((string) $handle));
 
         $counts = Assignment::query()->whereIn('document_id', $rows->pluck('id'))
             ->selectRaw('document_id, count(*) as aggregate')->groupBy('document_id')->pluck('aggregate', 'document_id');

@@ -155,6 +155,9 @@ final class SectionSchema
         if (in_array('*', $templates, true)) {
             return true;
         }
+        if (\Themes\Xelga\Documents\Handles::isExtensionTemplate($handle) && in_array('*extension', $templates, true)) {
+            return true;
+        }
         $isCustom = str_contains($handle, '.');
 
         return $isCustom ? in_array('*custom', $templates, true) && in_array($pageType, $templates, true) : in_array($pageType, $templates, true);

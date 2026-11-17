@@ -15,7 +15,8 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->prefix(trim((string) config('admin.prefix', 'admin'), '/') . '/extensions/theme/xelga')
     ->name('admin.xelga.')
     ->group(function () {
-        $handle = '[a-z0-9][a-z0-9.\-]{0,63}';
+        // Underscores for templates of page types extensions added (`gift_registry`).
+        $handle = '[a-z0-9][a-z0-9._\-]{0,63}';
 
         Route::get('/editor', [EditorController::class, 'show'])->middleware('throttle:xelga-editor')->name('editor');
         Route::post('/preview', [EditorController::class, 'openPreview'])->middleware('throttle:xelga-preview')->name('preview.open');

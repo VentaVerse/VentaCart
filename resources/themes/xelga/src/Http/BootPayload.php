@@ -204,6 +204,22 @@ final class BootPayload
                 'url' => self::pageUrl($page['type'], $page['route'], $subject),
             ];
         }
+        // Pages of page types extensions added, after the theme's own, under
+        // the extension's name. A page with nothing to show yet has no url.
+        $extensions = \Themes\Xelga\Extensions\Extensions::current();
+        foreach (\Themes\Xelga\Documents\Handles::extensionTemplates() as $type => $extension) {
+            $out[] = [
+                'type' => $type,
+                'handle' => $type,
+                'label' => (string) \App\Support\StorefrontPageType::label($type),
+                'kind' => 'template',
+                'subject_type' => null,
+                'subject' => null,
+                'url' => $extensions->previewUrl($type),
+                'extension' => true,
+                'group' => $extensions->titleOf($extension),
+            ];
+        }
         foreach (self::FIXED_PAGES as $page) {
             $out[] = [
                 'type' => $page['type'],

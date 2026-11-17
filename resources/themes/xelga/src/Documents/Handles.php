@@ -46,7 +46,50 @@ final class Handles
         return $handle === self::SETTINGS
             || in_array($handle, self::GROUPS, true)
             || in_array($handle, self::TEMPLATES, true)
-            || self::isCustom($handle);
+            || self::isCustom($handle)
+            || self::isExtensionTemplate($handle);
+    }
+
+    /**
+     * The templates of page types extensions added, by handle (the page
+     * type as core registered it, e.g. `shop`) with the extension that
+     * ships its defaults. Only while the extension is registered and its
+     * page type exists; a page type that would take one of the theme's
+     * own handles is refused.
+     *
+     * @return array<string, string> handle => extension
+     */
+    public static function extensionTemplates(): array
+    {
+        $out = [];
+        foreach (\Themes\Xelga\Extensions\Extensions::current()->all() as $part) {
+            foreach (array_keys($part->templates()) as $type) {
+                if (isset($out[$type]) || ! \App\Support\StorefrontPage::isExtensionType($type)) {
+                    continue;
+                }
+                if ($type === self::SETTINGS || in_array($type, [...self::GROUPS, ...self::TEMPLATES], true)) {
+                    \Themes\Xelga\Extensions\Registrar::refuse($part->name, "the template {$type} takes the name of one of the theme's own documents");
+                    continue;
+                }
+                $out[$type] = $part->name;
+            }
+        }
+
+        return $out;
+    }
+
+    public static function isExtensionTemplate(string $handle): bool
+    {
+        return ! str_contains($handle, '.') && isset(self::extensionTemplates()[$handle]);
+    }
+
+    /**
+     * The template a page type draws when it has no special layout: its own
+     * when the theme or an extension ships one, else the content page's.
+     */
+    public static function baseFor(string $pageType): string
+    {
+        return in_array($pageType, self::TEMPLATES, true) || self::isExtensionTemplate($pageType) ? $pageType : 'page';
     }
 
     /** A custom template handle: a page type that allows them, a dot, a name. */

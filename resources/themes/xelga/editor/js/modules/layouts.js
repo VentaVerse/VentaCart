@@ -99,7 +99,9 @@ export function updatePageButton() {
    ------------------------------------------------------------------------ */
 
 export function pageMenu(anchor) {
-  const editable = S.pages.filter((p) => p.kind !== 'fixed');
+  // The theme's own pages, then each extension's pages under its name.
+  const editable = S.pages.filter((p) => p.kind !== 'fixed' && !p.extension);
+  const extensionPages = S.pages.filter((p) => p.kind !== 'fixed' && p.extension);
   const fixed = S.pages.filter((p) => p.kind === 'fixed');
   const shared = isShared();
   const items = [
@@ -129,6 +131,17 @@ export function pageMenu(anchor) {
       iconName: 'plus',
       // The menu closes first; the form opens on the same button.
       run: () => window.setTimeout(() => newLayoutForm(anchor, p), 0),
+    });
+  });
+  let group = null;
+  extensionPages.forEach((p) => {
+    if (p.group !== group) items.push({ sep: true }, { heading: p.group || 'Extensions' });
+    group = p.group;
+    items.push({
+      label: p.label,
+      checked: !shared && S.page?.type === p.type,
+      hint: p.url ? null : 'Nothing to preview yet',
+      run: () => ui.openPage({ type: p.type }),
     });
   });
   if (fixed.length) {
