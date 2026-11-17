@@ -78,10 +78,13 @@ export function updateToolbar() {
   presence.hidden = !others.length;
   if (others.length) {
     const names = others.map((p) => p.name);
-    $('.presence__text', presence).textContent = names.length === 1
+    const who = names.length === 1
       ? `${names[0]} is also editing`
       : `${names[0]} and ${plural(names.length - 1, 'other')} are also editing`;
-    presence.title = `${names.join(', ')} ${names.length === 1 ? 'has' : 'have'} the editor open. You share one draft: if you both change the same part, the second save is asked whose version to keep.`;
+    // Where the top bar is crowded the notice shows as its icon only, so
+    // the save status keeps its room; the tip and the hidden text say who.
+    $('.presence__text', presence).textContent = who;
+    presence.dataset.tip = `${who}. You share one draft.`;
   }
 }
 

@@ -3555,12 +3555,21 @@ button.pick-row:hover {
   color: var(--text-2);
 }
 
-@media (max-width: 1179px) {
+/* Below a wide screen the notice is its icon only, so the save status
+   beside it is never cut short. The name stays readable to screen
+   readers, and the tip shows it on hover and focus. */
+@media (max-width: 1599px) {
   .presence__text {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
   .presence {
+    flex: none;
     padding: 6px;
   }
 }

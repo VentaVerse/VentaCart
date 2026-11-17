@@ -33,7 +33,7 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
       h('div', { class: 'btn-pair' },
         h('button', { type: 'button', class: 'icon-btn', id: 'undo-btn', 'aria-label': 'Undo', 'data-tip': 'Undo (Ctrl+Z)', disabled: true }, icon('undo')),
         h('button', { type: 'button', class: 'icon-btn', id: 'redo-btn', 'aria-label': 'Redo', 'data-tip': 'Redo (Ctrl+Shift+Z)', disabled: true }, icon('redo'))),
-      h('p', { class: 'presence', id: 'presence', hidden: true },
+      h('p', { class: 'presence', id: 'presence', tabindex: 0, hidden: true },
         icon('user', 'icon--sm'), h('span', { class: 'presence__text' })),
       h('p', { class: 'status', id: 'status', role: 'status', 'aria-live': 'polite' },
         h('span', { class: 'status__dot', 'aria-hidden': 'true' }), h('span', { class: 'status__text', text: 'Loading store' })),
