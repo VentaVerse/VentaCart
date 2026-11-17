@@ -590,7 +590,7 @@ body.is-dragging .beside.is-over span { display: inline; }
   display: flex;
   align-items: center;
   min-width: 0;
-  padding: 7px 10px;
+  padding-block: 7px;
   container: piece-bar / inline-size;
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -609,12 +609,14 @@ body.is-dragging .beside.is-over span { display: inline; }
   color: var(--text-3);
 }
 
+/* The side padding sits here, not on the bar, so the bar's container width is its full width. */
 .piece__line {
   display: flex;
   flex: 1 1 auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  padding-inline: 10px;
 }
 
 .piece__name {
@@ -796,8 +798,12 @@ body.is-dragging .beside.is-over span { display: inline; }
   .piece__bar {
     grid-column: 2;
     min-height: 44px;
-    padding: 6px 8px;
+    padding-block: 6px;
     border: 0;
+  }
+
+  .piece__line {
+    padding-inline: 8px;
   }
 
   .piece__variant,
