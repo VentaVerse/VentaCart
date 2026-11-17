@@ -29,9 +29,15 @@ class ThemePackagesTest extends TestCase
         $this->actingAs(User::factory()->create());
     }
 
+    /** Every theme on disk, the bundled one when it is there, and the sample core's tests run on. */
     public function test_the_shipped_themes_keep_the_contract(): void
     {
-        $this->assertSame([], ThemeContract::check(resource_path('themes/default')));
+        $folders = array_filter(glob(resource_path('themes/*'), GLOB_ONLYDIR) ?: [], fn ($dir) => is_file($dir . '/theme.json'));
+        $this->assertContains(resource_path('themes/sample'), $folders);
+
+        foreach ($folders as $dir) {
+            $this->assertSame([], ThemeContract::check($dir), basename($dir));
+        }
     }
 
     public function test_the_contract_names_what_a_broken_package_lacks(): void

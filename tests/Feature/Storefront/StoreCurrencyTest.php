@@ -66,10 +66,10 @@ class StoreCurrencyTest extends TestCase
         $this->assertStringContainsString('$1,234.50', $this->get(route('checkout.confirmation', $this->order->id))->getContent());
     }
 
-    public function test_the_default_theme_and_core_views_name_no_currency(): void
+    public function test_the_sample_theme_and_core_views_name_no_currency(): void
     {
         $files = array_merge(
-            File::allFiles(resource_path('themes/default')),
+            File::allFiles(base_path('tests/fixtures/themes/sample')),
             File::allFiles(resource_path('views')),
         );
 

@@ -10,12 +10,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The default theme's look is its own and cannot be edited: its colors and
- * fonts live in its stylesheet, not in settings. What a merchant does
- * decide is the store's rules (Settings > Catalog, Blog settings) and the
- * arrangement of its pages (Layout).
+ * The store's own rules (Settings > Catalog, Blog settings) reach the pages
+ * that list products and posts, whatever the theme draws them with.
  */
-class DefaultThemeLookIsFixedTest extends TestCase
+class StoreRulesReachThePagesTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -23,29 +21,6 @@ class DefaultThemeLookIsFixedTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-    }
-
-    public function test_the_theme_declares_no_editable_look(): void
-    {
-        $meta = json_decode((string) file_get_contents(resource_path('themes/'.ThemeService::bundled().'/theme.json')), true);
-
-        foreach (['colors', 'fonts', 'settings', 'vars'] as $key) {
-            $this->assertArrayNotHasKey($key, $meta);
-        }
-        $this->assertDirectoryDoesNotExist(resource_path('themes/'.ThemeService::bundled().'/presets'));
-    }
-
-    public function test_stored_colors_and_fonts_do_not_reach_the_storefront(): void
-    {
-        Setting::create(['group' => 'colors', 'key' => 'primary', 'value' => '#ABCDEF']);
-        Setting::create(['group' => 'fonts', 'key' => 'heading', 'value' => 'Lobster']);
-        app(ThemeService::class)->clearCache();
-
-        $html = $this->get('/')->assertOk()->getContent();
-
-        $this->assertStringNotContainsString('#ABCDEF', $html);
-        $this->assertStringNotContainsString('Lobster', $html);
-        $this->assertStringContainsString('family=Figtree', $html);
     }
 
     public function test_the_catalog_settings_reach_the_category_page(): void
