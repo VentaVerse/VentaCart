@@ -363,4 +363,24 @@ class OrderStatusesPageTest extends TestCase
         $this->assertDatabaseHas('order_statuses', ['id' => $foreign->id]);
     }
 
+    /**
+     * The page is named for what it lists, the same in the settings menu and
+     * on the page itself; its address and route name stay as they were.
+     */
+    public function test_the_page_and_its_menu_item_are_called_order_statuses(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->assertSame('/admin/settings/order-statuses', parse_url(route('admin.order-statuses.index'), PHP_URL_PATH));
+        $this->get(route('admin.order-statuses.index'))
+            ->assertOk()
+            ->assertSee('<h1 class="v-head__title">Order statuses</h1>', false)
+            ->assertSee('Order statuses')
+            ->assertDontSee('Order Status<', false);
+
+        foreach (['admin-settings-nav', 'settings-nav'] as $file) {
+            $items = collect(config($file))->flatMap(fn ($group) => $group['items'] ?? [])->keyBy('key');
+            $this->assertSame('Order statuses', $items['order-statuses']['label'] ?? null, $file);
+        }
+    }
 }

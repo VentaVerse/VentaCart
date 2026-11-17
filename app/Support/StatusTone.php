@@ -5,7 +5,7 @@ namespace App\Support;
 /**
  * The tone an order status wears on the storefront: the colour family of
  * its badge on My Orders, the order page and the account dashboard. Stored
- * per status and chosen by the merchant (Settings, Order Status); the
+ * per status and chosen by the merchant (Settings, Order statuses); the
  * suggestion here only fills a fresh seed and the one-time backfill for a
  * store that predates the column, so a status the merchant renamed keeps
  * whatever tone they set afterwards.

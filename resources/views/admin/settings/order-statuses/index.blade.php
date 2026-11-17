@@ -1,7 +1,7 @@
-<x-admin.settings-shell title="Orders" active="order-statuses">
+<x-admin.settings-shell title="Order statuses" active="order-statuses">
     <div class="v-head">
         <div class="v-head__body">
-            <h1 class="v-head__title">Orders</h1>
+            <h1 class="v-head__title">Order statuses</h1>
             <p class="v-head__standing">The status flow, and what each status does to stock and revenue.</p>
         </div>
     </div>
