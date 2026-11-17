@@ -114,6 +114,24 @@ class ThemeSeeder extends Seeder
             ]);
         }
 
+        // A footer menu of the store's own pages, so a theme that draws a
+        // footer menu has links from the first visit. Only made when the
+        // store has none: a store that already has a footer menu, or that
+        // deleted its items, keeps what it has.
+        if (! \App\Models\NavMenu::where('key', 'footer')->exists()) {
+            $footerMenu = \App\Models\NavMenu::create(['key' => 'footer', 'name' => 'Footer menu']);
+
+            foreach (['search', 'brands', 'contact', 'account'] as $at => $page) {
+                NavMenuItem::create([
+                    'menu_id' => $footerMenu->id,
+                    'label' => NavMenuItem::SYSTEM[$page]['label'],
+                    'type' => 'system',
+                    'config' => ['page' => $page],
+                    'sort_order' => $at + 1,
+                ]);
+            }
+        }
+
         // Default Currency — generic platform default. Sites that operate in
         // a different currency override STORE_CURRENCY in .env before seeding,
         // or add their own currency in admin and disable USD afterwards.
