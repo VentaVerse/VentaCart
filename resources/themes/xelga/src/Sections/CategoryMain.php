@@ -38,16 +38,30 @@ final class CategoryMain implements SectionData
             'subcategories' => $subcategories,
             'list' => Listing::page($context->get('products'), $context),
             'sorts' => Listing::sorts(Listing::SORTS, (string) $context->get('sort', 'date_added')),
-            'filters' => Listing::filters([
-                'price' => $context->get('priceRange'),
-                'brands' => $context->get('availableBrands', []),
-                'brand_filter' => true,
-                'tags' => $context->get('availableTags', []),
-                'attributes' => $context->get('availableAttributes', []),
-            ]),
+            'filters' => Listing::filters(self::filterSource($context)),
             'carried' => Listing::carried(['sort']),
+            // A Filters section elsewhere on the page holds the filter form; the listing then links to it.
+            'filters_at' => $context->has('filters') ? $context->idOf('filters') : null,
             'per_page' => (int) ($context->get('products')?->perPage() ?? 0),
             'settings_url' => Listing::settingsUrl(),
+        ];
+    }
+
+    /**
+     * The filters core's category controller worked out for this page:
+     * the price range, brands, tags and attributes of the products it
+     * lists. The listing and the Filters section read the same ones.
+     *
+     * @return array{price: mixed, brands: iterable, brand_filter: bool, tags: iterable, attributes: mixed}
+     */
+    public static function filterSource(RenderContext $context): array
+    {
+        return [
+            'price' => $context->get('priceRange'),
+            'brands' => $context->get('availableBrands', []),
+            'brand_filter' => true,
+            'tags' => $context->get('availableTags', []),
+            'attributes' => $context->get('availableAttributes', []),
         ];
     }
 }

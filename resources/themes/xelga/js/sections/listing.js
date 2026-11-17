@@ -7,8 +7,12 @@
  * filters move into a drawer on phones, the sort is sent on change, the
  * grid or list choice is remembered for this shopper, and Load more adds
  * the next page's cards in place. Without it every part still works.
+ *
+ * When the page draws a Filters section, the listing has no filter form
+ * of its own: its Filter button is a link to that section (filters.js).
  */
 import { $, $$ } from '../util.js';
+import { initFilterForm } from './filter-form.js';
 
 const VIEW_KEY = 'xelga.listing-view';
 
@@ -103,25 +107,7 @@ export function initListing(section) {
 
     // In the column a change is sent at once; in the drawer the shopper
     // picks several and sends them with the drawer's button.
-    let timer = null;
-    const send = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => form.requestSubmit(), 350);
-    };
-    on(form, 'change', (event) => {
-      if (inDrawer()) return;
-      if (event.target.matches('input[type=checkbox]')) send();
-    });
-    on(form, 'input', (event) => {
-      if (inDrawer() || event.target.type !== 'number') return;
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => form.requestSubmit(), 900);
-    });
-    on(form, 'submit', () => {
-      // Empty price boxes would otherwise reach the address as min_price=.
-      $$('input[type=number]', form).forEach((input) => { input.disabled = input.value.trim() === ''; });
-    });
-    cleanups.push(() => window.clearTimeout(timer));
+    cleanups.push(initFilterForm(form, { instant: () => !inDrawer() }));
 
     if (drawer) {
       on($('[data-filter-open]', section), 'click', (event) => openDialog(drawer, event.currentTarget));

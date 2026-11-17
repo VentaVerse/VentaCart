@@ -18,6 +18,7 @@ import { initHotspots } from './sections/shop-the-look.js';
 import { initProduct, initProductDetails, initReviews } from './sections/product.js';
 import { initCartPage } from './sections/cart-main.js';
 import { initListing } from './sections/listing.js';
+import { initFilters } from './sections/filters.js';
 import { initPageParts } from './sections/page-parts.js';
 import { bindCartDrawer } from './cart-drawer.js';
 
@@ -36,6 +37,7 @@ const INITIALIZERS = {
   'recently-viewed': [initRail],
   'cart-main': [initCartPage],
   'category-main': [initListing],
+  filters: [initFilters],
   'search-main': [initListing],
   'brand-main': [initListing],
   'brand-list-main': [initListing],

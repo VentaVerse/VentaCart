@@ -47,7 +47,8 @@ final class SectionRenderer
     {
         $sections = (array) ($content['sections'] ?? []);
         $this->placeableIds = $this->placeableIds($content, $context);
-        $context = $context->withTypes($this->drawnTypes($content, $context));
+        $firstIds = $this->drawnIds($content, $context);
+        $context = $context->withTypes(array_keys($firstIds), $firstIds);
         $sides = self::sides($content);
 
         if ($context->group !== 'template') {
@@ -136,19 +137,30 @@ final class SectionRenderer
      */
     public function drawnTypes(array $content, RenderContext $context): array
     {
+        return array_keys($this->drawnIds($content, $context));
+    }
+
+    /**
+     * The same types, each with the id of its first section in reading
+     * order, so a section can link to another one on the page.
+     *
+     * @return array<string, string> type => section id
+     */
+    private function drawnIds(array $content, RenderContext $context): array
+    {
         $sections = (array) ($content['sections'] ?? []);
         $placeable = $this->placeableIds($content, $context);
-        $types = [];
+        $ids = [];
         foreach (self::drawOrder($content) as $id) {
             $section = $sections[$id] ?? null;
             $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
             if ($schema === null || ($schema->source() !== null && ! isset($placeable[$id])) || (bool) ($section['disabled'] ?? false)) {
                 continue;
             }
-            $types[$schema->type] = true;
+            $ids[$schema->type] ??= $id;
         }
 
-        return array_keys($types);
+        return $ids;
     }
 
     /**

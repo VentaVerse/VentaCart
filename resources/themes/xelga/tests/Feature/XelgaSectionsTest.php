@@ -111,10 +111,15 @@ class XelgaSectionsTest extends TestCase
                 $sections[] = ['type' => $type, 'settings' => $preset['settings'] ?? [], 'blocks' => $preset['blocks'] ?? []];
             }
         }
-        $this->publishHome($sections);
-
-        $html = $this->home()->getContent();
-        $this->assertStringNotContainsString('could not be drawn', $html);
+        // A page holds at most 40 sections, so they are drawn on as many home pages as that takes.
+        $html = '';
+        foreach (array_chunk($sections, 40) as $chunk) {
+            \Themes\Xelga\Documents\Document::where('handle', 'home')->delete();
+            $this->publishHome($chunk);
+            $page = $this->home()->getContent();
+            $this->assertStringNotContainsString('could not be drawn', $page);
+            $html .= $page;
+        }
         foreach (['hero', 'usp-bar', 'featured-products', 'image-with-text', 'promo-banners', 'testimonials', 'rich-text'] as $type) {
             $this->assertStringContainsString('data-section-type="' . $type . '"', $html, $type);
         }
@@ -125,7 +130,7 @@ class XelgaSectionsTest extends TestCase
     {
         $this->assertSame([
             'announcement-bar', 'blog-main', 'blog-posts', 'brand-list-main', 'brand-logos', 'brand-main', 'breadcrumbs',
-            'cart-main', 'category-main', 'category-tiles', 'contact-main', 'featured-products', 'footer', 'header', 'hero',
+            'cart-main', 'category-list', 'category-main', 'category-tiles', 'contact-main', 'featured-products', 'filters', 'footer', 'header', 'hero',
             'image-with-text', 'not-found-main', 'page-main', 'post-main', 'product-details', 'product-main', 'product-reviews',
             'product-spotlight', 'promo-banners', 'recently-viewed', 'related-products', 'rich-text', 'search-main',
             'shop-the-look', 'testimonials', 'usp-bar',

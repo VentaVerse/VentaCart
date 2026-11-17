@@ -46,6 +46,8 @@
 @import './sections/recently-viewed.css';
 @import './sections/cart-main.css';
 @import './sections/category-main.css';
+@import './sections/filters.css';
+@import './sections/category-list.css';
 @import './sections/search-main.css';
 @import './sections/brand-main.css';
 @import './sections/brand-list-main.css';

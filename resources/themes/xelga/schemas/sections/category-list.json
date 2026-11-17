@@ -1,0 +1,67 @@
+{
+  "type": "category-list",
+  "label": "Category list",
+  "group": "template",
+  "picker_group": "categories",
+  "picker_order": 85,
+  "templates": [
+    "home",
+    "product",
+    "category",
+    "brand",
+    "brand-list",
+    "search",
+    "blog",
+    "blog-post",
+    "page",
+    "contact",
+    "not-found",
+    "*custom"
+  ],
+  "limit": 1,
+  "main": false,
+  "span": {
+    "min": 3
+  },
+  "class": "s-category-list",
+  "settings": [
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "Categories",
+      "max": 80
+    },
+    {
+      "key": "depth",
+      "type": "select",
+      "label": "Show",
+      "default": "two",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top level"
+        },
+        {
+          "value": "two",
+          "label": "With subcategories"
+        }
+      ],
+      "info": "Categories and their order are set in VentaCart, Catalog, Categories.",
+      "control": "segmented"
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    }
+  ],
+  "presets": [
+    {
+      "key": "category-list",
+      "label": "Category list",
+      "settings": {}
+    }
+  ]
+}

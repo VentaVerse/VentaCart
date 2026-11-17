@@ -6,13 +6,16 @@
     $list = $data['list'];
     $filtersOn = $data['filters']['facets'] !== [] || $data['filters']['price'] !== null;
     $hasActive = $data['filters']['active'] > 0;
+    // A Filters section elsewhere on the page holds the form; the listing then has no column or drawer of its own.
+    $filtersAt = $data['filters_at'] ?? null;
+    $ownFilters = $filtersOn && $filtersAt === null;
     // Cards a line from 990px: the setting, or fewer where sides narrow the content area (the styles cap it too).
     $fitCols = $context->fitColumns($settings['cols'], 3);
 @endphp
 <section class="s {{ $section['class'] }} {{ $settings['scheme'] }}" id="{{ $section['id'] }}" @include('xelga::snippets.section-attrs')
          data-variant="{{ $settings['view'] }}" data-default-view="{{ $settings['view'] }}" data-switch-view="{{ $settings['switch_view'] ? 'true' : 'false' }}"
          data-cols="{{ $settings['cols'] }}" data-mobile-cols="{{ $settings['mobile_cols'] }}" data-subcats="{{ $settings['subcats'] }}"
-         data-filters="{{ $filtersOn ? $settings['filters'] : 'none' }}" data-show-description="{{ $settings['show_description'] ? 'true' : 'false' }}"
+         data-filters="{{ $filtersOn ? ($ownFilters ? $settings['filters'] : 'elsewhere') : 'none' }}" data-show-description="{{ $settings['show_description'] ? 'true' : 'false' }}"
          data-show-image="{{ $settings['show_image'] ? 'true' : 'false' }}" data-pagination="{{ $settings['pagination'] }}"
          aria-labelledby="{{ $section['id'] }}-title">
     <div class="s__inner">
@@ -42,13 +45,13 @@
         @endif
         @include('xelga::blocks.listing.editor-note')
         <div class="listing" data-listing>
-            @if ($filtersOn)
+            @if ($ownFilters)
                 <aside class="listing__aside" aria-label="Filters" data-filter-home>
                     @include('xelga::blocks.listing.filters')
                 </aside>
             @endif
             <div class="listing__main">
-                @include('xelga::blocks.listing.toolbar', ['withFilters' => $filtersOn])
+                @include('xelga::blocks.listing.toolbar', ['withFilters' => $filtersOn, 'filtersAt' => $ownFilters ? null : $filtersAt])
                 @include('xelga::blocks.listing.chips')
                 @if ($list['cards'] === [])
                     <div class="no-match">
@@ -68,7 +71,7 @@
                 @include('xelga::blocks.listing.pagination')
             </div>
         </div>
-        @if ($filtersOn)
+        @if ($ownFilters)
             @include('xelga::blocks.listing.drawer')
         @endif
     </div>

@@ -1,0 +1,37 @@
+/*
+ * Category list: the store's categories as a list of links, sized for a
+ * page side or a narrow column. The category the shopper is on is marked.
+ */
+.s-category-list {
+  container-type: inline-size;
+  /* A compact part of the page, so it takes half a section's space above and below. */
+  --pad: calc(var(--space-section) * .5);
+}
+
+.category-list { display: grid; gap: .75rem; }
+.category-list__title { font-size: var(--fs-h4); }
+.category-list__list,
+.category-list__sub { margin: 0; padding: 0; list-style: none; }
+.category-list__list { display: grid; }
+.category-list__item + .category-list__item { border-block-start: 1px solid var(--c-border); }
+.category-list__sub { padding-block-end: .5rem; padding-inline-start: .875rem; }
+
+.category-list__link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.category-list__sub .category-list__link { min-height: 40px; font-weight: 400; color: var(--c-muted); }
+.category-list__link:hover { text-decoration: underline; text-underline-offset: .2em; }
+.category-list__link[aria-current="page"] { color: var(--c-text); font-weight: 700; box-shadow: inset 3px 0 0 var(--c-text); padding-inline-start: .75rem; }
+
+/* Wide enough (a full row), the top categories run in columns. */
+@container (min-width: 640px) {
+  .category-list__list { display: block; columns: 14rem; column-gap: var(--grid-gap); }
+  .category-list__item { break-inside: avoid; }
+  .category-list__item + .category-list__item { border-block-start: 0; }
+}

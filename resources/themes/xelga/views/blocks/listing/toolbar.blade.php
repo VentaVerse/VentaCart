@@ -1,11 +1,16 @@
 {{--
     The row above a listing: the filter button (phones, or every screen
-    when filters open in a drawer), the number of products, the sort and
-    the grid or list switch. Sorting is a real form, so it works before
+    when filters open in a drawer; a link when a Filters section holds
+    them), the number of products, the sort and the grid or list switch. Sorting is a real form, so it works before
     the script loads; the script only sends it as soon as the choice changes.
 --}}
 <div class="toolbar">
-    @if ($withFilters)
+    @if ($withFilters && ($filtersAt ?? null) !== null)
+        {{-- The filters are in their own section on this page: the button leads there and opens them. --}}
+        <a class="btn btn--secondary btn--sm toolbar__filter" href="#{{ $filtersAt }}" data-filter-jump>
+            <svg class="icon" aria-hidden="true"><use href="#i-filter"></use></svg>Filter<span class="toolbar__badge" data-filter-badge @if ($data['filters']['active'] === 0) hidden @endif>{{ $data['filters']['active'] }}</span>
+        </a>
+    @elseif ($withFilters)
         <button type="button" class="btn btn--secondary btn--sm toolbar__filter" data-filter-open aria-haspopup="dialog" aria-controls="{{ $section['id'] }}-filter-drawer">
             <svg class="icon" aria-hidden="true"><use href="#i-filter"></use></svg>Filter<span class="toolbar__badge" data-filter-badge @if ($data['filters']['active'] === 0) hidden @endif>{{ $data['filters']['active'] }}</span>
         </button>

@@ -72,7 +72,7 @@ export const SECTION_ICONS = {
   'category-tiles': 'columns', 'featured-products': 'tag', 'product-spotlight': 'bolt',
   'image-with-text': 'layout', 'promo-banners': 'layers', 'shop-the-look': 'map-pin',
   'brand-logos': 'plus-square', testimonials: 'chat', 'rich-text': 'type',
-  'blog-posts': 'align-left', footer: 'columns',
+  'blog-posts': 'align-left', footer: 'columns', filters: 'filter', 'category-list': 'menu',
 };
 
 export const BLOCK_ICONS = {
@@ -170,6 +170,12 @@ export const SCHEMATICS = {
   },
   breadcrumbs: {
     only: 't5,18,8,2 t15,18,10,2 t27,18,11,2',
+  },
+  filters: {
+    only: 'h4,4,16,3 m4,10,56,1 t4,14,18,2 o4,18,3,3 t9,18,14,2 o4,23,3,3 t9,23,12,2 m4,28,56,1 t4,32,22,2',
+  },
+  'category-list': {
+    only: 'h4,4,22,3 t4,11,20,2 m4,15,56,1 t4,18,16,2 t8,22,18,2 t8,26,14,2 m4,30,56,1 t4,33,22,2',
   },
   'product-spotlight': {
     split: 'i4,5,26,30 h34,8,22,3 t34,14,24,2 t34,18,18,2 o34,23,5,5 o41,23,5,5 o48,23,5,5 b34,31,14,5',
