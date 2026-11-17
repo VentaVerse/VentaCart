@@ -64,39 +64,260 @@ function initGallery(section, signal) {
 
   const box = $('[data-lightbox]', section);
   const zoom = $('[data-gallery-zoom]', root);
-  if (box && zoom) {
-    const img = $('[data-lightbox-img]', box);
-    const count = $('[data-lightbox-now]', box);
-    let li = 0;
-    let opener = null;
-    const show = (i) => {
-      li = (i + slides.length) % slides.length;
-      const src = $('img', slides[li]);
-      img.src = src.currentSrc || src.src;
-      img.alt = src.alt;
-      count.textContent = String(li + 1);
-    };
-    const open = (i, trigger) => {
-      show(i);
-      opener = trigger;
-      box.showModal();
-    };
-    zoom.addEventListener('click', (e) => open(index, e.currentTarget), { signal });
-    slides.forEach((s, i) => s.addEventListener('click', () => open(i, zoom), { signal }));
-    $('[data-lightbox-prev]', box)?.addEventListener('click', () => show(li - 1), { signal });
-    $('[data-lightbox-next]', box)?.addEventListener('click', () => show(li + 1), { signal });
-    $('[data-lightbox-close]', box)?.addEventListener('click', () => box.close(), { signal });
-    box.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') show(li + 1);
-      if (e.key === 'ArrowLeft') show(li - 1);
-    }, { signal });
-    box.addEventListener('close', () => {
-      go(li, false);
-      opener?.focus();
-    }, { signal });
-  }
+  if (box) initLightbox(box, {
+    openers: [zoom, ...slides],
+    current: () => index,
+    // Back on the page: show the photo last viewed and put focus on it.
+    closed: (i, opener) => {
+      go(i, false);
+      if (opener === zoom) zoom.focus();
+      else if (slides[i]) {
+        slides[i].tabIndex = -1;
+        slides[i].focus({ preventScroll: true });
+      }
+    },
+  }, signal);
 
   return { go };
+}
+
+/*
+ * Full screen photos. The track is a row of photos, one screen wide each,
+ * moved by a transform rather than by scrolling, so every input ends the same
+ * way: a photo let go past the threshold carries straight on to the next one
+ * from where it was let go, and never springs back to the middle first.
+ * Inputs: the arrow buttons and keys, Home and End, a mouse wheel or trackpad
+ * (one photo per turn, up and down or sideways), and dragging with a mouse,
+ * finger or pen. The viewer never moves on its own.
+ *
+ * With two or more photos it loops. The track holds a copy of the last photo
+ * before the first and a copy of the first after the last, so stepping past
+ * either end is an ordinary one-photo move; once the track comes to rest on
+ * a copy it is put, unseen, on the real photo it copies. Positions below are
+ * counted in "slots": slot 0 is the copy of the last photo, slots 1 to n the
+ * real photos, slot n + 1 the copy of the first. Between the copies, slot s
+ * and slot s + n look the same, which is what lets the track jump between
+ * them without a visible change.
+ */
+function initLightbox(box, { openers, current, closed }, signal) {
+  const track = $('[data-lightbox-track]', box);
+  const items = $$('[data-lightbox-slide]', box);
+  const prev = $('[data-lightbox-prev]', box);
+  const next = $('[data-lightbox-next]', box);
+  const now = $('[data-lightbox-now]', box);
+  const live = $('[data-lightbox-live]', box);
+  if (!track || !items.length) return;
+  const n = items.length;
+  const loops = n > 1;
+
+  if (loops) {
+    // The copies are for the eye only: screen readers, Tab and Find skip them.
+    const copy = (slide) => {
+      const c = slide.cloneNode(true);
+      c.removeAttribute('data-lightbox-slide');
+      c.removeAttribute('role');
+      c.removeAttribute('aria-roledescription');
+      c.removeAttribute('aria-label');
+      c.setAttribute('aria-hidden', 'true');
+      c.inert = true;
+      $('img', c).alt = '';
+      return c;
+    };
+    track.prepend(copy(items[n - 1]));
+    track.append(copy(items[0]));
+  }
+  const offset = loops ? 1 : 0;
+  const maxSlot = loops ? n + 1 : 0;
+
+  let pos = offset; // the slot in view; between two slots while moving
+  let aim = offset; // the slot the track is heading for
+  let at = 0; // the real photo counted as shown
+  let frame = 0;
+  let opener = null;
+  let drag = null;
+  let moved = 0;
+
+  const rtl = () => getComputedStyle(track).direction === 'rtl';
+  const width = () => track.getBoundingClientRect().width || 1;
+  const realOf = (slot) => (((Math.round(slot) - offset) % n) + n) % n;
+  // The track is as wide as the viewer, so a percentage moves whole photos.
+  const paint = () => {
+    track.style.transform = `translate3d(${(rtl() ? pos : -pos) * 100}%, 0, 0)`;
+  };
+
+  const mark = (i, speak) => {
+    at = i;
+    if (now) now.textContent = String(i + 1);
+    if (speak && live) live.textContent = `Photo ${i + 1} of ${n}`;
+  };
+
+  // Resting on a copy: swap to the real photo it copies, which looks the same.
+  const rest = () => {
+    frame = 0;
+    if (loops && (aim === 0 || aim === maxSlot)) {
+      aim = aim === 0 ? n : 1;
+      pos = aim;
+      paint();
+    }
+    if (realOf(aim) !== at) mark(realOf(aim), false);
+  };
+
+  // Eases from wherever the track is now to a slot, so a photo let go mid-drag
+  // or caught mid-move keeps going the way it was going.
+  const glide = (slot, speak = true) => {
+    cancelAnimationFrame(frame);
+    aim = slot;
+    mark(realOf(slot), speak);
+    const from = pos;
+    const distance = slot - from;
+    if (reduceMotion.matches || Math.abs(distance) < 0.001) {
+      pos = slot;
+      paint();
+      rest();
+      return;
+    }
+    const duration = Math.min(480, 260 + 120 * Math.abs(distance));
+    const start = performance.now();
+    const tick = (time) => {
+      const p = Math.min(1, (time - start) / duration);
+      pos = from + distance * (1 - (1 - p) ** 3);
+      paint();
+      if (p < 1) frame = requestAnimationFrame(tick);
+      else rest();
+    };
+    frame = requestAnimationFrame(tick);
+  };
+
+  // Keeps a moving track between the half-way points of the two copies by
+  // jumping one whole set of photos, which shows exactly the same picture.
+  const wrap = () => {
+    if (!loops) return 0;
+    if (pos < 0.5) { pos += n; return n; }
+    if (pos > n + 0.5) { pos -= n; return -n; }
+    return 0;
+  };
+
+  // One photo forward (1) or back (-1). If the next slot would be past a copy
+  // (quick presses while the track is still moving), the track first jumps a
+  // whole set of photos to the same picture, so the move stays one photo long.
+  const step = (by) => {
+    if (!loops) return;
+    let target = aim + by;
+    if (target > maxSlot || target < 0) {
+      const shift = target > maxSlot ? -n : n;
+      pos = pos + shift >= 0 && pos + shift <= maxSlot ? pos + shift : aim + shift;
+      target += shift;
+      paint();
+    }
+    glide(target);
+  };
+  const go = (i) => glide(i + offset);
+
+  const open = (e) => {
+    if (inEditorPreview() || box.open) return;
+    opener = e.currentTarget;
+    const start = opener.matches('.gallery__slide') ? Number(opener.dataset.index) : current();
+    // Photos off to the side are never in view until they slide in, so a lazy
+    // photo would arrive blank; load them all once the viewer is opened.
+    $$('img', track).forEach((img) => { img.loading = 'eager'; });
+    box.showModal();
+    const i = Number.isFinite(start) ? Math.max(0, Math.min(n - 1, start)) : 0;
+    cancelAnimationFrame(frame);
+    pos = aim = i + offset;
+    paint();
+    mark(i, false);
+  };
+  openers.filter(Boolean).forEach((el) => el.addEventListener('click', open, { signal }));
+  box.addEventListener('close', () => {
+    cancelAnimationFrame(frame);
+    if (drag) endDrag();
+    closed(at, opener);
+  }, { signal });
+  $('[data-lightbox-close]', box)?.addEventListener('click', () => box.close(), { signal });
+  prev?.addEventListener('click', () => step(-1), { signal });
+  next?.addEventListener('click', () => step(1), { signal });
+
+  box.addEventListener('keydown', (e) => {
+    if (!loops) return;
+    const back = rtl() ? 1 : -1;
+    const keys = { ArrowRight: () => step(-back), ArrowLeft: () => step(back), Home: () => go(0), End: () => go(n - 1) };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    keys[e.key]();
+  }, { signal });
+
+  // A wheel or trackpad moves one photo per turn, up and down or sideways.
+  // Further wheel events (a trackpad's glide) are ignored until they pause.
+  // Pinch zoom (wheel with Ctrl) is left to the browser.
+  let wheelHeld = false;
+  let wheelSum = 0;
+  let wheelTimer = 0;
+  box.addEventListener('wheel', (e) => {
+    if (e.ctrlKey) return;
+    e.preventDefault();
+    if (!loops) return;
+    const sideways = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+    const delta = sideways ? (rtl() ? -e.deltaX : e.deltaX) : e.deltaY;
+    if (!wheelHeld) {
+      wheelSum += delta * (e.deltaMode === 1 ? 16 : 1);
+      if (Math.abs(wheelSum) >= 12) {
+        wheelHeld = true;
+        step(wheelSum > 0 ? 1 : -1);
+      }
+    }
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => { wheelHeld = false; wheelSum = 0; }, 200);
+  }, { passive: false, signal });
+
+  // Dragging with a mouse, finger or pen. The photo follows the pointer; let
+  // go past a short pull (or with a quick flick) it carries on to the next
+  // photo in that direction, otherwise it settles back where it started.
+  const endDrag = () => {
+    if (!drag) return;
+    const { from, speed } = drag;
+    drag = null;
+    track.classList.remove('is-dragging');
+    const travelled = (pos - from) * width();
+    const pulled = Math.abs(travelled) > Math.min(80, width() * 0.12)
+      || (Math.abs(speed) > 0.35 && Math.abs(travelled) > 12);
+    if (!pulled) {
+      glide(Math.round(pos), false);
+      return;
+    }
+    const target = travelled > 0 ? Math.ceil(pos - 0.001) : Math.floor(pos + 0.001);
+    glide(Math.max(0, Math.min(maxSlot, target)));
+  };
+  track.addEventListener('pointerdown', (e) => {
+    moved = 0;
+    if (!loops || drag || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    // Catch a moving photo where it is.
+    cancelAnimationFrame(frame);
+    wrap();
+    drag = { id: e.pointerId, x: e.clientX, from: pos, lastX: e.clientX, lastTime: e.timeStamp, speed: 0 };
+    track.setPointerCapture(e.pointerId);
+    track.classList.add('is-dragging');
+  }, { signal });
+  track.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    moved = e.clientX - drag.x;
+    const elapsed = e.timeStamp - drag.lastTime;
+    if (elapsed > 0) drag.speed = 0.6 * ((e.clientX - drag.lastX) / elapsed) + 0.4 * drag.speed;
+    drag.lastX = e.clientX;
+    drag.lastTime = e.timeStamp;
+    pos = drag.from - (rtl() ? -moved : moved) / width();
+    const shift = wrap();
+    drag.from += shift;
+    paint();
+  }, { signal });
+  track.addEventListener('pointerup', endDrag, { signal });
+  track.addEventListener('pointercancel', endDrag, { signal });
+  track.addEventListener('lostpointercapture', endDrag, { signal });
+
+  // A click anywhere but the photo closes the viewer, unless it ended a drag.
+  track.addEventListener('click', (e) => {
+    if (Math.abs(moved) > 6) return;
+    if (!e.target.closest('.lightbox__img')) box.close();
+  }, { signal });
 }
 
 /* ------------------------------------------------------------ prices, variants, stock and buying */

@@ -166,6 +166,40 @@ class XelgaProductPageTest extends TestCase
         $this->page('/product/linen-shirt')->assertDontSee(money(700))->assertDontSee('data-sale-end', false)->assertSee(money(1000));
     }
 
+    public function test_the_full_screen_viewer_lists_every_photo_in_the_gallery_order(): void
+    {
+        $shirt = $this->product('Linen Shirt', ['image' => 'media/products/demo/front.jpg']);
+        $shirt->images()->create(['path' => 'media/products/demo/back.jpg', 'sort_order' => 1]);
+        $shirt->images()->create(['path' => 'media/products/demo/side.jpg', 'sort_order' => 2]);
+
+        $html = $this->page('/product/linen-shirt')
+            ->assertSee('data-lightbox-track', false)
+            ->assertSee('data-lightbox-prev', false)->assertSee('aria-label="Previous photo"', false)
+            ->assertSee('data-lightbox-next', false)->assertSee('aria-label="Next photo"', false)
+            ->assertSee('data-lightbox-close', false)
+            ->assertSee('<span data-lightbox-now>1</span> / 3', false)
+            ->getContent();
+
+        // The viewer holds one slide per gallery photo, in the same order, so a
+        // photo picked on the page (or by a variant) opens at the same place.
+        preg_match_all('/data-lightbox-slide="(\d+)"/', $html, $viewer);
+        preg_match_all('/class="gallery__slide"[^>]*data-index="(\d+)"/', $html, $gallery);
+        $this->assertSame(['0', '1', '2'], $viewer[1]);
+        $this->assertSame($gallery[1], $viewer[1]);
+        $this->assertLessThan(strpos($html, 'back.jpg', strpos($html, 'data-lightbox-track')), strpos($html, 'front.jpg', strpos($html, 'data-lightbox-track')));
+    }
+
+    public function test_a_single_photo_opens_full_screen_without_arrows_or_a_counter(): void
+    {
+        $this->product('Linen Shirt', ['image' => 'media/products/demo/front.jpg']);
+
+        $html = $this->page('/product/linen-shirt')->getContent();
+        $this->assertSame(1, substr_count($html, 'data-lightbox-slide='));
+        $this->assertStringContainsString('data-lightbox-close', $html);
+        $this->assertStringNotContainsString('data-lightbox-prev', $html);
+        $this->assertStringNotContainsString('data-lightbox-now', $html);
+    }
+
     public function test_variants_carry_core_prices_stock_and_photos(): void
     {
         $shirt = $this->product('Linen Shirt', ['has_variants' => true, 'quantity' => 0]);

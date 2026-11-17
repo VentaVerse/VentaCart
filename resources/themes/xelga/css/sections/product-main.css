@@ -197,18 +197,62 @@
     body:has(.buybar.is-visible) .toast { inset-block-end: 5.5rem; }
 }
 
-/* full screen photos */
+/*
+ * Full screen photos: one photo per screen width in a row the script moves.
+ * Each photo is fitted whole (never cropped) and centered on a dark
+ * backdrop whatever the store's color scheme, because a photo reads best
+ * against near black. The page behind does not scroll while it is open.
+ */
+html:has(.lightbox[open]) { overflow: hidden; }
 .lightbox {
+    --c-text: #f4f4f2; --c-bg: #0d0d0f; --c-focus: #f4f4f2; --c-hover: rgb(255 255 255 / .16); --c-border: rgb(255 255 255 / .24);
+    --lb-gap-block: 4.25rem; --lb-gap-inline: 1rem;
+    position: fixed; inset: 0;
     width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
-    color: var(--c-text); background: var(--c-bg);
+    overflow: hidden; color: var(--c-text); background: var(--c-bg); color-scheme: dark;
 }
-.lightbox[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); }
-.lightbox__bar { display: flex; align-items: center; justify-content: space-between; padding: .5rem .75rem .5rem 1.25rem; }
-.lightbox__count { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
-.lightbox__stage { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .75rem; min-height: 0; padding: 0 .75rem 1rem; }
-.lightbox__img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
-.lightbox[open] .lightbox__img { animation: lightbox-in .35s var(--ease-out); }
-@keyframes lightbox-in { from { opacity: 0; scale: .985; } }
+.lightbox::backdrop { background: #0d0d0f; }
+.lightbox[open] { display: block; animation: lightbox-in .2s var(--ease-out); }
+@keyframes lightbox-in { from { opacity: 0; } }
+.lightbox__track {
+    display: flex; height: 100%;
+    touch-action: pan-y pinch-zoom; will-change: transform;
+}
+.lightbox__track.is-dragging { cursor: grabbing; user-select: none; }
+.lightbox__slide {
+    flex: 0 0 100%;
+    display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center;
+    min-width: 0; min-height: 0; margin: 0;
+    padding: var(--lb-gap-block) var(--lb-gap-inline);
+}
+.lightbox__img {
+    display: block; max-width: 100%; max-height: 100%; width: auto; height: auto;
+    object-fit: contain; user-select: none; -webkit-user-drag: none;
+}
+.lightbox__close, .lightbox__nav {
+    position: absolute; z-index: 1; color: var(--c-text); border-radius: 999px;
+    background: rgb(13 13 15 / .6); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .18);
+}
+.lightbox__close:hover, .lightbox__nav:hover { background: rgb(40 40 44 / .85); }
+.lightbox__close { top: .75rem; inset-inline-end: .75rem; }
+.lightbox__nav { top: 50%; translate: 0 -50%; width: 48px; height: 48px; }
+.lightbox__nav--prev { inset-inline-start: .75rem; }
+.lightbox__nav--next { inset-inline-end: .75rem; }
+.lightbox__count {
+    position: absolute; inset-block-end: 1.25rem; inset-inline: 0; margin: 0;
+    text-align: center; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; letter-spacing: .04em;
+    color: rgb(255 255 255 / .72); pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+    .lightbox__track { cursor: grab; }
+    .lightbox__img { cursor: default; }
+}
+@media (min-width: 750px) {
+    .lightbox { --lb-gap-inline: 5rem; }
+    .lightbox__nav--prev { inset-inline-start: 1.25rem; }
+    .lightbox__nav--next { inset-inline-end: 1.25rem; }
+    .lightbox__close { top: 1rem; inset-inline-end: 1.25rem; }
+}
 
 
 /* Stock running low is told apart from in stock by color as well as words. */
@@ -246,5 +290,5 @@
 .buybar__meta [data-buybar-variant]:not(:empty)::after { content: " · "; }
 @media (prefers-reduced-motion: reduce) {
     .buybar, .s-product .buybar { transition: none; }
-    .lightbox[open] .lightbox__img { animation: none; }
+    .lightbox[open] { animation: none; }
 }

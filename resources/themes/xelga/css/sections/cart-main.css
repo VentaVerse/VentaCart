@@ -32,7 +32,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .buybar, .line.is-leaving, .ship-meter span, .tabs__tab::after { transition: none; }
-    .lightbox[open] .lightbox__img { animation: none; }
+    .lightbox[open] { animation: none; }
 }
 
 /* phones: keep quantity, add and wishlist on one row, and the three detail tabs in view */

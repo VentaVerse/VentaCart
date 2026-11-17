@@ -43,20 +43,23 @@
         @endif
 
         @if ($settings['zoom'] === 'lightbox' && count($data['images']) > 0)
-            <dialog class="lightbox scheme-3" data-lightbox aria-label="Photos of {{ $product->name }}">
-                <div class="lightbox__bar">
-                    <p class="lightbox__count" aria-live="polite"><span data-lightbox-now>1</span> of {{ count($data['images']) }}</p>
-                    <button type="button" class="icon-btn" data-lightbox-close aria-label="Close full screen photos"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+            @php $photoCount = count($data['images']); @endphp
+            {{-- Full screen photos: one photo per screen width, moved by swipe, scroll, drag, arrows or keys. --}}
+            <dialog class="lightbox" data-lightbox aria-label="Photos of {{ $product->name }}">
+                <div class="lightbox__track" data-lightbox-track>
+                    @foreach ($data['images'] as $i => $image)
+                        <figure class="lightbox__slide" data-lightbox-slide="{{ $i }}" @if ($photoCount > 1) role="group" aria-roledescription="slide" aria-label="{{ $i + 1 }} of {{ $photoCount }}" @endif>
+                            <img class="lightbox__img" src="{{ $image['src'] }}" alt="{{ $image['alt'] }}" loading="lazy" decoding="async" draggable="false">
+                        </figure>
+                    @endforeach
                 </div>
-                <div class="lightbox__stage">
-                    @if (count($data['images']) > 1)
-                        <button type="button" class="icon-btn icon-btn--outline lightbox__nav" data-lightbox-prev aria-label="Previous photo"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"></use></svg></button>
-                    @endif
-                    <img class="lightbox__img" data-lightbox-img src="{{ $data['images'][0]['src'] }}" alt="{{ $data['images'][0]['alt'] }}">
-                    @if (count($data['images']) > 1)
-                        <button type="button" class="icon-btn icon-btn--outline lightbox__nav" data-lightbox-next aria-label="Next photo"><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"></use></svg></button>
-                    @endif
-                </div>
+                <button type="button" class="icon-btn lightbox__close" data-lightbox-close aria-label="Close photos" autofocus><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+                @if ($photoCount > 1)
+                    <button type="button" class="icon-btn lightbox__nav lightbox__nav--prev" data-lightbox-prev aria-label="Previous photo"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"></use></svg></button>
+                    <button type="button" class="icon-btn lightbox__nav lightbox__nav--next" data-lightbox-next aria-label="Next photo"><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"></use></svg></button>
+                    <p class="lightbox__count" aria-hidden="true"><span data-lightbox-now>1</span> / {{ $photoCount }}</p>
+                    <p class="visually-hidden" aria-live="polite" data-lightbox-live></p>
+                @endif
             </dialog>
         @endif
     </section>
