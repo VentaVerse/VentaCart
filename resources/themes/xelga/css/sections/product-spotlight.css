@@ -1,0 +1,263 @@
+/* ==========================================================================
+   13. Product spotlight (split, banner, compact)
+   ========================================================================== */
+
+.spotlight {
+  display: grid;
+  gap: clamp(1.5rem, 1rem + 3vw, 4.5rem);
+  align-items: center;
+}
+
+@media (min-width: 750px) {
+  .spotlight {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  }
+  .s-spotlight[data-image-pos="end"] .spotlight__media {
+    order: 2;
+  }
+}
+
+.spotlight__media {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--c-card);
+  border-radius: var(--radius-card);
+}
+
+.spotlight__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.spotlight__media .badge {
+  position: absolute;
+  inset-block-start: 1rem;
+  inset-inline-start: 1rem;
+  font-size: .875rem;
+}
+
+.spotlight__body {
+  display: grid;
+  justify-items: start;
+  gap: 1.125rem;
+  max-width: 34rem;
+}
+
+.spotlight__heading {
+  font-size: var(--fs-h2);
+}
+
+.spotlight__text {
+  color: var(--c-muted);
+}
+
+.spotlight__product {
+  font-family: var(--font-body);
+  font-size: var(--fs-h3);
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.spotlight__product a {
+  text-decoration: none;
+}
+
+.spotlight__product a:hover {
+  text-decoration: underline;
+}
+
+.spotlight .price {
+  font-size: 1.375rem;
+}
+
+.spec-list {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  width: 100%;
+  margin: 0;
+  font-size: var(--fs-sm);
+}
+
+.spec-list dt,
+.spec-list dd {
+  padding-block: .5rem;
+  border-block-start: 1px solid var(--c-border);
+}
+
+.spec-list dt {
+  padding-inline-end: 1.5rem;
+  color: var(--c-muted);
+}
+
+.spec-list dd {
+  font-weight: 550;
+}
+
+.s[data-show-specs="false"] .spec-list {
+  display: none;
+}
+
+.countdown {
+  display: grid;
+  gap: .5rem;
+}
+
+.countdown__label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.countdown__units {
+  display: flex;
+  gap: .5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.countdown__unit {
+  display: grid;
+  justify-items: center;
+  min-width: 4rem;
+  padding: .5rem .5rem .4rem;
+  background: var(--c-card);
+  border-radius: calc(var(--radius-card) * .75);
+}
+
+.countdown__num {
+  font-family: var(--font-heading);
+  font-stretch: var(--heading-stretch);
+  font-size: 1.625rem;
+  font-weight: var(--font-heading-weight);
+  line-height: 1.1;
+}
+
+.countdown__unit-label {
+  font-size: .75rem;
+  color: var(--c-muted);
+}
+
+.countdown__ended {
+  display: none;
+  font-weight: 600;
+}
+
+.countdown.is-ended .countdown__units,
+.countdown.is-ended .countdown__label {
+  display: none;
+}
+
+.countdown.is-ended .countdown__ended {
+  display: block;
+}
+
+.s[data-show-countdown="false"] .countdown {
+  display: none;
+}
+
+.spotlight__buy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  width: 100%;
+}
+
+.spotlight__buy .btn {
+  flex: 1 1 12rem;
+}
+
+/* Banner: the photo fills the section, the offer sits on a panel */
+.s-spotlight[data-variant="banner"] .spotlight {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: clamp(520px, 60vw, 640px);
+  padding: clamp(1rem, 4vw, 3rem);
+  overflow: hidden;
+  border-radius: var(--radius-card);
+}
+
+.s-spotlight[data-variant="banner"] .spotlight__media {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
+.s-spotlight[data-variant="banner"] .spotlight__body {
+  position: relative;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  background: var(--c-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-2);
+}
+
+.s-spotlight[data-variant="banner"][data-image-pos="start"] .spotlight__body {
+  justify-self: end;
+}
+
+.s-spotlight[data-variant="banner"] .spotlight__media .badge {
+  display: none;
+}
+
+/* Compact: one horizontal strip */
+.s-spotlight[data-variant="compact"] .spotlight {
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 1rem 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--c-border);
+  background: var(--c-card);
+  border-radius: var(--radius-card);
+}
+
+.s-spotlight[data-variant="compact"] .spotlight__media {
+  order: 0;
+  background: var(--c-bg);
+}
+
+.s-spotlight[data-variant="compact"] .spotlight__body {
+  grid-template-columns: minmax(0, 1fr);
+  gap: .5rem;
+  max-width: none;
+}
+
+.s-spotlight[data-variant="compact"] .spotlight__text,
+.s-spotlight[data-variant="compact"] .spec-list,
+.s-spotlight[data-variant="compact"] .spotlight__media .badge,
+.s-spotlight[data-variant="compact"] .qty {
+  display: none;
+}
+
+.s-spotlight[data-variant="compact"] .spotlight__heading {
+  font-size: var(--fs-h4);
+}
+
+.s-spotlight[data-variant="compact"] .countdown__unit {
+  min-width: 3rem;
+  padding: .25rem .375rem;
+  background: var(--c-bg);
+}
+
+.s-spotlight[data-variant="compact"] .countdown__num {
+  font-size: 1.125rem;
+}
+
+@media (min-width: 990px) {
+  .s-spotlight[data-variant="compact"] .spotlight__body {
+    grid-template-columns: minmax(0, 1.2fr) auto auto;
+    grid-template-areas:
+      "head count buy"
+      "prod count buy"
+      "price count buy";
+    align-items: center;
+    column-gap: 2rem;
+  }
+  .s-spotlight[data-variant="compact"] .spotlight__heading { grid-area: head; }
+  .s-spotlight[data-variant="compact"] .spotlight__product { grid-area: prod; }
+  .s-spotlight[data-variant="compact"] .price { grid-area: price; }
+  .s-spotlight[data-variant="compact"] .countdown { grid-area: count; }
+  .s-spotlight[data-variant="compact"] .spotlight__buy { grid-area: buy; width: auto; }
+}
+

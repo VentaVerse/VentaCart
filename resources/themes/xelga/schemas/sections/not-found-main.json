@@ -1,0 +1,128 @@
+{
+  "type": "not-found-main",
+  "label": "Page not found",
+  "group": "template",
+  "templates": [
+    "not-found"
+  ],
+  "limit": 1,
+  "main": true,
+  "class": "s-mainnotfound",
+  "variants": [],
+  "settings": [
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "lg",
+      "control": "segmented",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ]
+    }
+  ],
+  "blocks": {
+    "min": 0,
+    "max": 3,
+    "types": [
+      {
+        "type": "heading",
+        "label": "Heading and text",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "default": "This page has moved or no longer exists"
+          },
+          {
+            "key": "text",
+            "type": "textarea",
+            "label": "Text",
+            "default": "The link may be old, or the product may no longer be sold. Search the shop, or start from one of these."
+          }
+        ]
+      },
+      {
+        "type": "search",
+        "label": "Search the shop",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "placeholder",
+            "type": "text",
+            "label": "Search hint",
+            "default": "Search the shop"
+          }
+        ]
+      },
+      {
+        "type": "links",
+        "label": "Buttons",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "shop_label",
+            "type": "text",
+            "label": "Second button text",
+            "default": "Shop new arrivals"
+          },
+          {
+            "key": "shop_link",
+            "type": "url",
+            "label": "Second button goes to",
+            "default": {
+              "type": "search"
+            }
+          },
+          {
+            "key": "show_contact",
+            "type": "toggle",
+            "label": "Show a Contact us button",
+            "default": true
+          }
+        ]
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "not-found",
+      "label": "Page not found",
+      "settings": {},
+      "blocks": [
+        {
+          "type": "heading"
+        },
+        {
+          "type": "search"
+        },
+        {
+          "type": "links"
+        }
+      ]
+    }
+  ]
+}

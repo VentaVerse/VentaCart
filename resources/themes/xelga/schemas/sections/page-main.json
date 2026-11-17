@@ -1,0 +1,120 @@
+{
+  "type": "page-main",
+  "label": "Page content",
+  "description": "Pages are written in VentaCart, Pages.",
+  "group": "template",
+  "templates": [
+    "page",
+    "*custom"
+  ],
+  "limit": 1,
+  "main": true,
+  "class": "s-mainpage",
+  "variants": [],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "sidebar",
+      "control": "cards",
+      "options": [
+        {
+          "value": "sidebar",
+          "label": "With a menu beside"
+        },
+        {
+          "value": "plain",
+          "label": "Text only"
+        }
+      ]
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "control": "segmented",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ]
+    }
+  ],
+  "blocks": {
+    "min": 0,
+    "max": 3,
+    "types": [
+      {
+        "type": "title",
+        "label": "Page title",
+        "limit": 1,
+        "settings": []
+      },
+      {
+        "type": "pages",
+        "label": "Menu of other pages",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "default": "Help"
+          },
+          {
+            "key": "menu",
+            "type": "menu-picker",
+            "label": "Menu",
+            "default": "",
+            "info": "Left empty, every page is listed, with Contact us last."
+          }
+        ]
+      },
+      {
+        "type": "body",
+        "label": "Page text",
+        "limit": 1,
+        "settings": []
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "page",
+      "label": "Page content",
+      "settings": {},
+      "blocks": [
+        {
+          "type": "title"
+        },
+        {
+          "type": "pages"
+        },
+        {
+          "type": "body"
+        }
+      ]
+    }
+  ]
+}

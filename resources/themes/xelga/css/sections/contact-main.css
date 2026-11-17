@@ -1,0 +1,106 @@
+/* The contact page: heading, the store's details and the message form. */
+
+.contact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+}
+
+.contact__head {
+  margin-block-end: 0;
+}
+
+@media (min-width: 990px) {
+  .contact {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    column-gap: clamp(3rem, 6vw, 6rem);
+    align-items: start;
+  }
+
+  .contact > * {
+    grid-column: 1;
+  }
+
+  .contact__form {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+
+  .s-maincontact[data-variant="stacked"] .contact {
+    grid-template-columns: minmax(0, 44rem);
+    justify-content: center;
+  }
+
+  .s-maincontact[data-variant="stacked"] .contact > * {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+.contact__subtitle {
+  font-size: var(--fs-h4);
+  margin-block-end: 1rem;
+}
+
+.store-details {
+  display: grid;
+  gap: 1.25rem;
+  margin: 0;
+}
+
+.store-details > div {
+  display: grid;
+  gap: .25rem;
+}
+
+.store-details dt {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+.store-details dd {
+  margin: 0;
+  padding-inline-start: 1.75rem;
+  color: var(--c-muted);
+  line-height: 1.55;
+}
+
+.store-details a {
+  color: var(--c-text);
+}
+
+.form-card {
+  display: grid;
+  gap: 1.25rem;
+  padding: clamp(1.25rem, 1rem + 2vw, 2.5rem);
+  border-radius: var(--radius-card);
+  background: var(--c-card);
+}
+
+.form-card .contact__subtitle {
+  margin: 0;
+}
+
+.form-card .input,
+.form-card .select {
+  background: var(--c-bg);
+}
+
+.store-details__lines {
+  white-space: pre-line;
+}
+
+.s-maincontact [data-show-email="false"] [data-detail="email"],
+.s-maincontact [data-show-phone="false"] [data-detail="phone"],
+.s-maincontact [data-show-address="false"] [data-detail="address"],
+.s-maincontact [data-show-hours="false"] [data-detail="hours"] {
+  display: none;
+}
+
+/* The page's own content starts close under the header; the spacing setting sets the space below. */
+.s-maincontact {
+  padding-block-start: clamp(1.25rem, 1rem + 1.5vw, 2.5rem);
+}

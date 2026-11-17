@@ -1,0 +1,61 @@
+/* ==========================================================================
+   19. Rich text (center, start, split)
+   ========================================================================== */
+
+.richtext {
+  --rt-width: 46rem;
+  display: grid;
+  justify-items: start;
+  gap: 1.125rem;
+  max-width: var(--rt-width);
+}
+
+.s[data-width="narrow"] .richtext { --rt-width: 36rem; }
+.s[data-width="wide"] .richtext { --rt-width: 64rem; }
+
+.richtext__title {
+  font-size: var(--fs-h2);
+}
+
+.s[data-heading-size="large"] .richtext__title {
+  font-size: var(--fs-h1);
+}
+
+.richtext__body {
+  color: var(--c-muted);
+  font-size: 1.0625rem;
+}
+
+.richtext__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-block-start: .25rem;
+}
+
+.s-richtext[data-variant="center"] .richtext {
+  justify-items: center;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.s-richtext[data-variant="center"] .rte {
+  margin-inline: auto;
+}
+
+.s-richtext[data-variant="center"] .richtext__actions {
+  justify-content: center;
+}
+
+@media (min-width: 750px) {
+  .s-richtext[data-variant="split"] .richtext {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    column-gap: clamp(2rem, 5vw, 5rem);
+    align-items: start;
+    max-width: none;
+  }
+  .s-richtext[data-variant="split"] .richtext__title {
+    grid-row: span 2;
+  }
+}
+

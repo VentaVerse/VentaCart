@@ -1,0 +1,62 @@
+/* ==========================================================================
+   7. Carousel rail (product lists, testimonials)
+   ========================================================================== */
+
+.rail__nav {
+  display: none;
+  gap: .5rem;
+}
+
+.s:is([data-variant="carousel"], [data-variant="large"]) .rail__nav {
+  display: flex;
+}
+
+.s:is([data-variant="carousel"], [data-variant="large"]) .rail-track {
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  grid-auto-columns: calc((100% - (var(--cols, 4) - 1) * var(--grid-gap)) / var(--cols, 4));
+  margin-inline: calc(var(--gutter) * -1);
+  padding-inline: var(--gutter);
+  padding-block-end: .5rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: none;
+}
+
+.s:is([data-variant="carousel"], [data-variant="large"]) .rail-track::-webkit-scrollbar {
+  display: none;
+}
+
+.s:is([data-variant="carousel"], [data-variant="large"]) .rail-track > * {
+  scroll-snap-align: start;
+}
+
+@media (min-width: 750px) {
+  .s:is([data-variant="carousel"], [data-variant="large"]) .rail-track {
+    margin-inline: 0;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
+  }
+}
+
+@media (max-width: 749px) {
+  .s[data-variant="carousel"] .rail-track {
+    grid-auto-columns: 46%;
+  }
+  .s[data-variant="carousel"][data-mobile-cols="1"] .rail-track {
+    grid-auto-columns: 80%;
+  }
+}
+
+@media (min-width: 750px) and (max-width: 989px) {
+  .s[data-variant="carousel"] .rail-track {
+    grid-auto-columns: calc((100% - 2 * var(--grid-gap)) / 3);
+  }
+}
+
+.s[data-variant="large"] .rail-track {
+  grid-auto-columns: 100%;
+}
+

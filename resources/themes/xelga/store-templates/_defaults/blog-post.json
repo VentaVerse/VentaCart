@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "order": [
+    "post-main-1",
+    "post-related",
+    "post-shop"
+  ],
+  "sections": {
+    "post-main-1": {
+      "type": "post-main",
+      "label": "Blog post",
+      "disabled": false,
+      "settings": {
+        "variant": "narrow",
+        "image_width": "wide",
+        "scheme": "scheme-1",
+        "pad": "md"
+      },
+      "block_order": [
+        "post-main-1-title",
+        "post-main-1-image",
+        "post-main-1-body",
+        "post-main-1-tags"
+      ],
+      "blocks": {
+        "post-main-1-title": {
+          "type": "title",
+          "label": "Title, date and category",
+          "disabled": false,
+          "settings": {}
+        },
+        "post-main-1-image": {
+          "type": "image",
+          "label": "Featured photo",
+          "disabled": false,
+          "settings": {}
+        },
+        "post-main-1-body": {
+          "type": "body",
+          "label": "Post text",
+          "disabled": false,
+          "settings": {}
+        },
+        "post-main-1-tags": {
+          "type": "tags",
+          "label": "Tags and back link",
+          "disabled": false,
+          "settings": {}
+        }
+      }
+    },
+    "post-related": {
+      "type": "blog-posts",
+      "label": "More posts",
+      "disabled": false,
+      "settings": {
+        "variant": "grid",
+        "heading": "Keep reading",
+        "link_label": "All posts",
+        "link": {
+          "type": "blog"
+        },
+        "count": 3,
+        "cols": 3,
+        "scheme": "scheme-2",
+        "pad": "md"
+      },
+      "block_order": [],
+      "blocks": {}
+    },
+    "post-shop": {
+      "type": "featured-products",
+      "label": "Shop new arrivals",
+      "disabled": false,
+      "settings": {
+        "variant": "grid",
+        "heading": "Shop new arrivals",
+        "subheading": "",
+        "link_label": "Shop everything new",
+        "link": {
+          "type": "search"
+        },
+        "source": "newest",
+        "count": 4,
+        "cols": 4,
+        "rows": 1,
+        "show_rating": false,
+        "show_quick_add": true,
+        "show_brand": false,
+        "scheme": "scheme-1",
+        "pad": "md"
+      },
+      "block_order": [],
+      "blocks": {}
+    }
+  }
+}

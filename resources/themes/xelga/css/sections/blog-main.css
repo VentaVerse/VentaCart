@@ -1,0 +1,222 @@
+/*
+ * Blog posts (the blog page's main section): heading, category links,
+ * search, the post list as a grid or a list, and the pager.
+ */
+
+.blog-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding-block-end: 1.5rem;
+  margin-block-end: clamp(1.5rem, 1rem + 1.5vw, 2.5rem);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.chips ul {
+  display: flex;
+  gap: .5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips ul::-webkit-scrollbar {
+  display: none;
+}
+
+.chips {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.blog-search {
+  flex: 1 1 16rem;
+  max-width: 22rem;
+}
+
+.blog-list__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block-end: 1.25rem;
+}
+
+.blog-list__count {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--c-muted);
+}
+
+.view-toggle {
+  display: flex;
+  gap: .25rem;
+}
+
+.view-toggle .icon-btn {
+  border-radius: var(--radius-input);
+  color: var(--c-muted);
+}
+
+.view-toggle .icon-btn[aria-pressed="true"] {
+  color: var(--c-text);
+  background: var(--c-card);
+}
+
+.s-mainblog .posts .post__title {
+  font-size: var(--fs-h3);
+}
+
+.s-mainblog .post__title a,
+.s-blog .post__title a {
+  text-decoration: none;
+}
+
+.s-mainblog .post__title a::after,
+.s-blog .post__title a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.s-mainblog .post__title a:hover,
+.s-blog .post__title a:hover {
+  text-decoration: underline;
+}
+
+.post__excerpt {
+  margin: 0;
+  color: var(--c-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.post__category {
+  color: var(--c-text);
+  font-weight: 600;
+}
+
+.s-mainblog[data-show-excerpt="false"] .post__excerpt,
+.s-mainblog[data-show-date="false"] .post__date,
+.s-mainblog[data-show-category="false"] .post__category {
+  display: none;
+}
+
+@media (min-width: 750px) {
+  .s-mainblog[data-variant="grid"] .posts {
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  }
+
+  .s-mainblog[data-cols="2"] {
+    --cols: 2;
+  }
+
+  .s-mainblog[data-cols="3"] {
+    --cols: 3;
+  }
+
+  .s-mainblog[data-cols="4"] {
+    --cols: 4;
+  }
+
+  .s-mainblog[data-variant="list"] .post {
+    grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+    align-items: center;
+    gap: 2rem;
+  }
+}
+
+@media (min-width: 750px) and (max-width: 989px) {
+  .s-mainblog[data-variant="grid"] .posts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.s-mainblog[data-variant="list"] .posts {
+  gap: 0;
+}
+
+.s-mainblog[data-variant="list"] .post {
+  padding-block: 1.5rem;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.s-mainblog[data-variant="list"] .post:first-child {
+  padding-block-start: 0;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  margin-block-start: clamp(2rem, 1.5rem + 2vw, 3.5rem);
+  font-size: var(--fs-sm);
+}
+
+.pager__pages {
+  display: flex;
+  gap: .25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pager__page,
+.pager__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+  min-width: 44px;
+  min-height: 44px;
+  padding-inline: .75rem;
+  border-radius: var(--radius-input);
+  text-decoration: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pager__page:hover,
+.pager__btn:hover {
+  background: var(--c-hover);
+}
+
+.pager__page[aria-current] {
+  color: var(--c-bg);
+  background: var(--c-text);
+}
+
+.pager__btn.is-disabled {
+  color: var(--c-muted);
+  opacity: .55;
+  pointer-events: none;
+}
+
+.pager__gap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 44px;
+  color: var(--c-muted);
+}
+
+.blog-list__count .text-btn {
+  min-height: 0;
+  margin-inline-start: .5rem;
+}
+
+.s-mainblog [data-show-counts="false"] .chip__count {
+  display: none;
+}
+
+/* The page's own content starts close under the header; the spacing setting sets the space below. */
+.s-mainblog {
+  padding-block-start: clamp(1.25rem, 1rem + 1.5vw, 2.5rem);
+}

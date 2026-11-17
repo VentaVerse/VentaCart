@@ -1,0 +1,25 @@
+/*
+ * Featured products: the grid, swipe row and compact list come from the
+ * shared product list styles (components/card.css and components/rail.css).
+ * Only what is particular to this section lives here.
+ */
+
+.s-products .editor-note {
+  margin-block-start: 0;
+}
+
+/* Swipe row: a mouse can drag the row; snapping waits until it is let go. */
+.s-products[data-variant="carousel"][data-draggable="true"] .rail-track {
+  cursor: grab;
+}
+
+.s-products[data-variant="carousel"].is-dragging .rail-track {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+  user-select: none;
+}
+
+.s-products[data-variant="carousel"].is-dragging .rail-track :is(a, img) {
+  pointer-events: none;
+}

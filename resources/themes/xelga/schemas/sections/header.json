@@ -1,0 +1,86 @@
+{
+  "type": "header",
+  "label": "Header",
+  "group": "header",
+  "limit": 1,
+  "main": false,
+  "class": "s-header",
+  "variants": [
+    { "value": "classic", "label": "Logo left, menu in line" },
+    { "value": "centered", "label": "Logo in the middle" },
+    { "value": "search-first", "label": "Big search bar" }
+  ],
+  "settings": [
+    {
+      "key": "variant", "type": "select", "label": "Layout",
+      "default": "classic", "control": "cards",
+      "options": [
+        { "value": "classic", "label": "Logo left, menu in line" },
+        { "value": "centered", "label": "Logo in the middle" },
+        { "value": "search-first", "label": "Big search bar" }
+      ]
+    },
+    {
+      "key": "logo_text", "type": "text", "label": "Logo text", "max": 60,
+      "info": "Used only when there is no logo image.",
+      "default": ""
+    },
+    {
+      "key": "logo_image", "type": "image", "label": "Logo image",
+      "default": ""
+    },
+    {
+      "key": "logo_width", "type": "range", "label": "Logo width",
+      "default": 150, "min": 80, "max": 280, "step": 10, "unit": "px", "advanced": true
+    },
+    {
+      "key": "menu", "type": "menu-picker", "label": "Menu",
+      "info": "Menus are edited in VentaCart, Content, Menus.",
+      "default": "main"
+    },
+    {
+      "key": "menu_style", "type": "select", "label": "Menu panels",
+      "default": "mega", "control": "segmented",
+      "options": [
+        { "value": "dropdown", "label": "Simple dropdown" },
+        { "value": "mega", "label": "Wide panel with columns and a photo" }
+      ]
+    },
+    { "key": "sticky", "type": "toggle", "label": "Keep header at the top while scrolling", "default": true },
+    { "key": "show_search", "type": "toggle", "label": "Show search", "default": true },
+    {
+      "key": "search_placeholder", "type": "text", "label": "Search hint", "max": 80,
+      "default": "Search products", "advanced": true
+    },
+    { "key": "show_account", "type": "toggle", "label": "Show account icon", "default": true },
+    { "key": "show_wishlist", "type": "toggle", "label": "Show wishlist icon", "default": true },
+    {
+      "key": "scheme", "type": "color-scheme", "label": "Color scheme",
+      "default": "scheme-1"
+    }
+  ],
+  "render_keys": ["menu", "menu_style"],
+  "blocks": {
+    "min": 0,
+    "max": 4,
+    "types": [
+      {
+        "type": "mega-promo",
+        "label": "Photo in a menu panel",
+        "description": "Shows only when Menu panels is set to the wide panel.",
+        "limit": null,
+        "settings": [
+          {
+            "key": "menu_item", "type": "text", "label": "Menu item it belongs to", "max": 80,
+            "info": "Type its name exactly as it shows in the menu.",
+            "default": ""
+          },
+          { "key": "image", "type": "image", "label": "Photo", "default": "" },
+          { "key": "heading", "type": "text", "label": "Title", "max": 120, "default": "New this week" },
+          { "key": "link", "type": "url", "label": "Link goes to", "default": { "type": "search" } }
+        ]
+      }
+    ]
+  },
+  "presets": []
+}

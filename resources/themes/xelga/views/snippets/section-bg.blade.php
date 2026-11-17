@@ -1,0 +1,13 @@
+{{--
+    A section's optional background photo, drawn behind its content. The
+    texture is a pattern in the stylesheet, chosen by the section's
+    data-texture attribute.
+--}}
+@php $bgPicture = \Themes\Xelga\Rendering\Picture::of($settings['bg_image'] ?? ''); @endphp
+@if ($bgPicture || $context->preview)
+    <div class="s__bg" aria-hidden="true" @if (! $bgPicture) hidden @endif>
+        <img src="{{ $bgPicture['src'] ?? '' }}" alt="" loading="lazy" decoding="async" data-setting="bg_image"
+             @if ($bgPicture && $bgPicture['width']) width="{{ $bgPicture['width'] }}" height="{{ $bgPicture['height'] }}" @endif
+             @if (! $bgPicture) hidden @endif>
+    </div>
+@endif

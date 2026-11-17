@@ -1,0 +1,567 @@
+{
+  "type": "product-main",
+  "label": "Product information",
+  "description": "Prices, stock and variants come from VentaCart.",
+  "group": "template",
+  "templates": [
+    "product",
+    "*custom"
+  ],
+  "limit": 1,
+  "main": true,
+  "class": "s-product",
+  "render_keys": [
+    "picker_color",
+    "picker_size"
+  ],
+  "settings": [
+    {
+      "key": "gallery",
+      "type": "select",
+      "label": "Photo layout",
+      "default": "thumbs-below",
+      "options": [
+        {
+          "value": "thumbs-below",
+          "label": "Thumbnails below"
+        },
+        {
+          "value": "thumbs-left",
+          "label": "Thumbnails on the left"
+        },
+        {
+          "value": "stacked",
+          "label": "Stacked photos"
+        },
+        {
+          "value": "grid",
+          "label": "Two-column grid"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "picker_color",
+      "type": "select",
+      "label": "Color variants as",
+      "default": "swatches",
+      "options": [
+        {
+          "value": "swatches",
+          "label": "Swatches"
+        },
+        {
+          "value": "buttons",
+          "label": "Buttons"
+        }
+      ],
+      "control": "segmented",
+      "info": "Color variants are the variant groups named Color, Fabric, Finish or Shade."
+    },
+    {
+      "key": "picker_size",
+      "type": "select",
+      "label": "Other variants as",
+      "default": "buttons",
+      "options": [
+        {
+          "value": "buttons",
+          "label": "Buttons"
+        },
+        {
+          "value": "dropdown",
+          "label": "Dropdown"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "zoom",
+      "type": "select",
+      "label": "Photo zoom",
+      "default": "lightbox",
+      "options": [
+        {
+          "value": "lightbox",
+          "label": "Full screen photos"
+        },
+        {
+          "value": "off",
+          "label": "Off"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "sticky_buy",
+      "type": "select",
+      "label": "Buy bar at the bottom of the screen",
+      "default": "phones",
+      "options": [
+        {
+          "value": "phones",
+          "label": "Phones only"
+        },
+        {
+          "value": "always",
+          "label": "Every screen"
+        },
+        {
+          "value": "off",
+          "label": "Off"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "sm",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "blocks": {
+    "min": 1,
+    "max": 12,
+    "types": [
+      {
+        "type": "gallery",
+        "label": "Photos",
+        "limit": 1,
+        "settings": []
+      },
+      {
+        "type": "brand",
+        "label": "Brand",
+        "limit": 1,
+        "settings": []
+      },
+      {
+        "type": "title",
+        "label": "Product name",
+        "limit": 1,
+        "settings": []
+      },
+      {
+        "type": "rating",
+        "label": "Rating",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "show_count",
+            "type": "toggle",
+            "label": "Show the number of reviews",
+            "default": true
+          }
+        ]
+      },
+      {
+        "type": "price",
+        "label": "Price",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "show_badge",
+            "type": "toggle",
+            "label": "Show the sale badge",
+            "default": true
+          },
+          {
+            "key": "show_countdown",
+            "type": "toggle",
+            "label": "Show when the sale price ends",
+            "default": true,
+            "info": "Uses the end date of the product's special in VentaCart. Hidden when there is none."
+          }
+        ]
+      },
+      {
+        "type": "short-description",
+        "label": "Short description",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "length",
+            "type": "range",
+            "label": "Characters from the description",
+            "default": 220,
+            "min": 80,
+            "max": 400,
+            "step": 20,
+            "unit": " characters"
+          }
+        ]
+      },
+      {
+        "type": "variants",
+        "label": "Variants",
+        "limit": 1,
+        "settings": []
+      },
+      {
+        "type": "stock",
+        "label": "Stock note",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "show_low",
+            "type": "toggle",
+            "label": "Say how many are left when stock is low",
+            "default": true,
+            "info": "The low stock level is set in VentaCart under stock settings."
+          }
+        ]
+      },
+      {
+        "type": "volume-pricing",
+        "label": "Volume pricing",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "default": "Volume pricing",
+            "max": 60
+          }
+        ]
+      },
+      {
+        "type": "quantity-and-buy",
+        "label": "Quantity and Add to cart",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "show_wishlist",
+            "type": "toggle",
+            "label": "Show the wishlist button",
+            "default": true
+          },
+          {
+            "key": "show_notify",
+            "type": "toggle",
+            "label": "Offer a back in stock email when sold out",
+            "default": true,
+            "info": "Needs the Stock alerts extension in VentaCart."
+          }
+        ]
+      },
+      {
+        "type": "delivery-note",
+        "label": "Delivery and payment notes",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "icon_1",
+            "type": "select",
+            "label": "Line 1 icon",
+            "default": "truck",
+            "options": [
+              {
+                "value": "truck",
+                "label": "Truck"
+              },
+              {
+                "value": "cash",
+                "label": "Cash"
+              },
+              {
+                "value": "rotate-ccw",
+                "label": "Return arrow"
+              },
+              {
+                "value": "shield-check",
+                "label": "Shield"
+              },
+              {
+                "value": "package",
+                "label": "Package"
+              },
+              {
+                "value": "clock",
+                "label": "Clock"
+              },
+              {
+                "value": "map-pin",
+                "label": "Map pin"
+              },
+              {
+                "value": "tag",
+                "label": "Tag"
+              },
+              {
+                "value": "chat",
+                "label": "Chat"
+              },
+              {
+                "value": "phone",
+                "label": "Phone"
+              },
+              {
+                "value": "check",
+                "label": "Check"
+              },
+              {
+                "value": "info",
+                "label": "Info"
+              }
+            ],
+            "control": "icons"
+          },
+          {
+            "key": "title_1",
+            "type": "text",
+            "label": "Line 1 title",
+            "default": "Ships nationwide",
+            "max": 60
+          },
+          {
+            "key": "text_1",
+            "type": "text",
+            "label": "Line 1 text",
+            "default": "Ships in 1 to 2 working days.",
+            "max": 160
+          },
+          {
+            "key": "icon_2",
+            "type": "select",
+            "label": "Line 2 icon",
+            "default": "cash",
+            "options": [
+              {
+                "value": "truck",
+                "label": "Truck"
+              },
+              {
+                "value": "cash",
+                "label": "Cash"
+              },
+              {
+                "value": "rotate-ccw",
+                "label": "Return arrow"
+              },
+              {
+                "value": "shield-check",
+                "label": "Shield"
+              },
+              {
+                "value": "package",
+                "label": "Package"
+              },
+              {
+                "value": "clock",
+                "label": "Clock"
+              },
+              {
+                "value": "map-pin",
+                "label": "Map pin"
+              },
+              {
+                "value": "tag",
+                "label": "Tag"
+              },
+              {
+                "value": "chat",
+                "label": "Chat"
+              },
+              {
+                "value": "phone",
+                "label": "Phone"
+              },
+              {
+                "value": "check",
+                "label": "Check"
+              },
+              {
+                "value": "info",
+                "label": "Info"
+              }
+            ],
+            "control": "icons"
+          },
+          {
+            "key": "title_2",
+            "type": "text",
+            "label": "Line 2 title",
+            "default": "Cash on delivery",
+            "max": 60
+          },
+          {
+            "key": "text_2",
+            "type": "text",
+            "label": "Line 2 text",
+            "default": "Pay the courier when your order arrives.",
+            "max": 160
+          },
+          {
+            "key": "icon_3",
+            "type": "select",
+            "label": "Line 3 icon",
+            "default": "rotate-ccw",
+            "options": [
+              {
+                "value": "truck",
+                "label": "Truck"
+              },
+              {
+                "value": "cash",
+                "label": "Cash"
+              },
+              {
+                "value": "rotate-ccw",
+                "label": "Return arrow"
+              },
+              {
+                "value": "shield-check",
+                "label": "Shield"
+              },
+              {
+                "value": "package",
+                "label": "Package"
+              },
+              {
+                "value": "clock",
+                "label": "Clock"
+              },
+              {
+                "value": "map-pin",
+                "label": "Map pin"
+              },
+              {
+                "value": "tag",
+                "label": "Tag"
+              },
+              {
+                "value": "chat",
+                "label": "Chat"
+              },
+              {
+                "value": "phone",
+                "label": "Phone"
+              },
+              {
+                "value": "check",
+                "label": "Check"
+              },
+              {
+                "value": "info",
+                "label": "Info"
+              }
+            ],
+            "control": "icons"
+          },
+          {
+            "key": "title_3",
+            "type": "text",
+            "label": "Line 3 title",
+            "default": "Easy exchanges",
+            "max": 60
+          },
+          {
+            "key": "text_3",
+            "type": "text",
+            "label": "Line 3 text",
+            "default": "Exchange for another size or color within 14 days.",
+            "max": 160
+          }
+        ]
+      },
+      {
+        "type": "share",
+        "label": "Share buttons",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "facebook",
+            "type": "toggle",
+            "label": "Facebook",
+            "default": true
+          },
+          {
+            "key": "pinterest",
+            "type": "toggle",
+            "label": "Pinterest",
+            "default": true
+          },
+          {
+            "key": "copy",
+            "type": "toggle",
+            "label": "Copy link",
+            "default": true
+          }
+        ]
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "standard",
+      "label": "Product information",
+      "settings": {},
+      "blocks": [
+        {
+          "type": "gallery"
+        },
+        {
+          "type": "brand"
+        },
+        {
+          "type": "title"
+        },
+        {
+          "type": "rating"
+        },
+        {
+          "type": "price"
+        },
+        {
+          "type": "short-description"
+        },
+        {
+          "type": "variants"
+        },
+        {
+          "type": "stock"
+        },
+        {
+          "type": "volume-pricing"
+        },
+        {
+          "type": "quantity-and-buy"
+        },
+        {
+          "type": "delivery-note"
+        },
+        {
+          "type": "share"
+        }
+      ]
+    }
+  ]
+}

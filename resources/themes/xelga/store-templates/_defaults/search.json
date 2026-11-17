@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "order": [
+    "breadcrumbs-1",
+    "search-main-1",
+    "search-suggest-1"
+  ],
+  "sections": {
+    "breadcrumbs-1": {
+      "type": "breadcrumbs",
+      "label": "Breadcrumbs",
+      "disabled": false,
+      "settings": {
+        "show_current": true,
+        "scheme": "scheme-1"
+      },
+      "block_order": [],
+      "blocks": {}
+    },
+    "search-main-1": {
+      "type": "search-main",
+      "label": "Search results",
+      "disabled": false,
+      "settings": {
+        "show_search": true,
+        "suggestions": "Phones\nLaptops\nMonitors\nTablets\nAccessories",
+        "cols": "4",
+        "mobile_cols": "2",
+        "view": "grid",
+        "switch_view": true,
+        "pagination": "numbers",
+        "scheme": "scheme-1",
+        "pad": "sm"
+      },
+      "block_order": [
+        "search-main-1-b1",
+        "search-main-1-b2",
+        "search-main-1-b3"
+      ],
+      "blocks": {
+        "search-main-1-b1": {
+          "type": "link",
+          "label": "Shop new arrivals",
+          "disabled": false,
+          "settings": {
+            "label": "Shop new arrivals",
+            "link": {
+              "type": "search"
+            }
+          }
+        },
+        "search-main-1-b2": {
+          "type": "link",
+          "label": "Browse brands",
+          "disabled": false,
+          "settings": {
+            "label": "Browse brands",
+            "link": {
+              "type": "brands"
+            }
+          }
+        },
+        "search-main-1-b3": {
+          "type": "link",
+          "label": "Ask the store",
+          "disabled": false,
+          "settings": {
+            "label": "Ask the store",
+            "link": {
+              "type": "contact"
+            }
+          }
+        }
+      }
+    },
+    "search-suggest-1": {
+      "type": "featured-products",
+      "label": "New arrivals",
+      "disabled": false,
+      "settings": {
+        "variant": "grid",
+        "heading": "New arrivals",
+        "subheading": "",
+        "link_label": "",
+        "link": {
+          "type": "search"
+        },
+        "source": "newest",
+        "count": 4,
+        "cols": 4,
+        "show_rating": false,
+        "show_quick_add": true,
+        "show_brand": true,
+        "scheme": "scheme-1",
+        "pad": "md"
+      },
+      "block_order": [],
+      "blocks": {}
+    }
+  }
+}

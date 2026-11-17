@@ -1,0 +1,189 @@
+{
+  "type": "related-products",
+  "label": "Related products",
+  "group": "template",
+  "templates": [
+    "product",
+    "*custom"
+  ],
+  "limit": 2,
+  "main": false,
+  "class": "s-products",
+  "render_keys": [
+    "source",
+    "count"
+  ],
+  "settings": [
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "You may also like",
+      "max": 60
+    },
+    {
+      "key": "source",
+      "type": "select",
+      "label": "Products from",
+      "default": "related",
+      "options": [
+        {
+          "value": "related",
+          "label": "The same categories"
+        },
+        {
+          "value": "brand",
+          "label": "The same brand"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "count",
+      "type": "range",
+      "label": "Number of products",
+      "default": 4,
+      "min": 2,
+      "max": 12,
+      "step": 1
+    },
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "grid",
+      "options": [
+        {
+          "value": "grid",
+          "label": "Grid"
+        },
+        {
+          "value": "carousel",
+          "label": "Swipe row"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "cols",
+      "type": "range",
+      "label": "Products per row",
+      "default": 4,
+      "min": 2,
+      "max": 5,
+      "step": 1
+    },
+    {
+      "key": "mobile_cols",
+      "type": "select",
+      "label": "Products per row on phones",
+      "default": "2",
+      "options": [
+        {
+          "value": "1",
+          "label": "One"
+        },
+        {
+          "value": "2",
+          "label": "Two"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "show_rating",
+      "type": "toggle",
+      "label": "Show star rating",
+      "default": true
+    },
+    {
+      "key": "show_quick_add",
+      "type": "toggle",
+      "label": "Show Add to cart button",
+      "default": true
+    },
+    {
+      "key": "show_brand",
+      "type": "toggle",
+      "label": "Show the brand",
+      "default": true,
+      "advanced": true
+    },
+    {
+      "key": "head_align",
+      "type": "select",
+      "label": "Heading alignment",
+      "default": "start",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "variants": [
+    {
+      "value": "grid",
+      "label": "Grid"
+    },
+    {
+      "value": "carousel",
+      "label": "Swipe row"
+    }
+  ],
+  "presets": [
+    {
+      "key": "related",
+      "label": "From the same categories",
+      "settings": {
+        "source": "related"
+      }
+    },
+    {
+      "key": "brand",
+      "label": "More from the brand",
+      "settings": {
+        "source": "brand",
+        "heading": "More from this brand"
+      }
+    }
+  ]
+}

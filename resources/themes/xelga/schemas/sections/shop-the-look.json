@@ -1,0 +1,343 @@
+{
+  "type": "shop-the-look",
+  "label": "Shop the look",
+  "description": "A photo with dots that show its products.",
+  "group": "template",
+  "templates": [
+    "*"
+  ],
+  "limit": null,
+  "main": false,
+  "class": "s-look",
+  "variants": [
+    {
+      "value": "side",
+      "label": "Photo with a list beside it"
+    },
+    {
+      "value": "full",
+      "label": "Wide photo, list below"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "side",
+      "options": [
+        {
+          "value": "side",
+          "label": "Photo with a list beside it"
+        },
+        {
+          "value": "full",
+          "label": "Wide photo, list below"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "Shop the look"
+    },
+    {
+      "key": "text",
+      "type": "textarea",
+      "label": "Text",
+      "default": ""
+    },
+    {
+      "key": "image",
+      "type": "image",
+      "label": "Photo",
+      "default": ""
+    },
+    {
+      "key": "image_alt",
+      "type": "text",
+      "label": "Photo description for screen readers",
+      "default": "",
+      "advanced": true
+    },
+    {
+      "key": "ratio",
+      "type": "select",
+      "label": "Photo shape",
+      "default": "portrait",
+      "control": "segmented",
+      "options": [
+        {
+          "value": "square",
+          "label": "Square"
+        },
+        {
+          "value": "portrait",
+          "label": "Portrait"
+        },
+        {
+          "value": "tall",
+          "label": "Tall"
+        },
+        {
+          "value": "landscape",
+          "label": "Landscape"
+        }
+      ]
+    },
+    {
+      "key": "image_pos",
+      "type": "select",
+      "label": "Photo side",
+      "default": "start",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "end",
+          "label": "Right"
+        }
+      ],
+      "control": "segmented",
+      "visible_if": {
+        "variant": "side"
+      }
+    },
+    {
+      "key": "show_numbers",
+      "type": "toggle",
+      "label": "Number the dots and the list",
+      "default": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "bg_image",
+      "type": "image",
+      "label": "Background photo",
+      "default": "",
+      "advanced": true
+    },
+    {
+      "key": "bg_overlay",
+      "type": "range",
+      "label": "Darken background photo",
+      "default": 40,
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "advanced": true
+    },
+    {
+      "key": "texture",
+      "type": "select",
+      "label": "Background texture",
+      "default": "none",
+      "advanced": true,
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "dots",
+          "label": "Dots"
+        },
+        {
+          "value": "grid",
+          "label": "Grid lines"
+        },
+        {
+          "value": "lines",
+          "label": "Diagonal lines"
+        },
+        {
+          "value": "grain",
+          "label": "Fine grain"
+        }
+      ]
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "render_keys": [
+    "image"
+  ],
+  "blocks": {
+    "min": 1,
+    "max": 6,
+    "types": [
+      {
+        "type": "hotspot",
+        "label": "Product dot",
+        "settings": [
+          {
+            "key": "product",
+            "type": "product-picker",
+            "label": "Product",
+            "default": null,
+            "info": "Hidden from shoppers who cannot see this product."
+          },
+          {
+            "key": "x",
+            "type": "range",
+            "label": "Dot position across",
+            "info": "Or drag the dot on the preview.",
+            "default": 50,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "unit": "%"
+          },
+          {
+            "key": "y",
+            "type": "range",
+            "label": "Dot position down",
+            "default": 50,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "unit": "%"
+          }
+        ],
+        "limit": null
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "side",
+      "label": "Photo with a list beside it",
+      "settings": {
+        "variant": "side",
+        "heading": "Shop the look",
+        "image": "media/xelga/clothes/look-2-rooftop.jpg",
+        "ratio": "portrait",
+        "text": "Three pieces that work from the office to dinner."
+      },
+      "blocks": [
+        {
+          "type": "hotspot",
+          "label": "Dot 1",
+          "settings": {
+            "x": 45,
+            "y": 30
+          }
+        },
+        {
+          "type": "hotspot",
+          "label": "Dot 2",
+          "settings": {
+            "x": 52,
+            "y": 62
+          }
+        },
+        {
+          "type": "hotspot",
+          "label": "Dot 3",
+          "settings": {
+            "x": 40,
+            "y": 88
+          }
+        }
+      ]
+    },
+    {
+      "key": "side-right",
+      "label": "Photo on the right",
+      "settings": {
+        "variant": "side",
+        "image_pos": "end",
+        "heading": "Wear it two ways",
+        "image": "media/xelga/clothes/look-5-stairwell.jpg",
+        "ratio": "tall"
+      },
+      "blocks": [
+        {
+          "type": "hotspot",
+          "label": "Dot 1",
+          "settings": {
+            "x": 50,
+            "y": 35
+          }
+        },
+        {
+          "type": "hotspot",
+          "label": "Dot 2",
+          "settings": {
+            "x": 48,
+            "y": 70
+          }
+        }
+      ]
+    },
+    {
+      "key": "full",
+      "label": "Wide photo, list below",
+      "settings": {
+        "variant": "full",
+        "heading": "Ready for the weekend",
+        "image": "media/xelga/clothes/look-3-clutch.jpg",
+        "ratio": "landscape"
+      },
+      "blocks": [
+        {
+          "type": "hotspot",
+          "label": "Dot 1",
+          "settings": {
+            "x": 30,
+            "y": 45
+          }
+        },
+        {
+          "type": "hotspot",
+          "label": "Dot 2",
+          "settings": {
+            "x": 55,
+            "y": 50
+          }
+        },
+        {
+          "type": "hotspot",
+          "label": "Dot 3",
+          "settings": {
+            "x": 72,
+            "y": 60
+          }
+        }
+      ]
+    }
+  ]
+}

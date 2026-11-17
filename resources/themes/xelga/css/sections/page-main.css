@@ -1,0 +1,148 @@
+/* An information page: title, a menu of other pages beside it, and the text. */
+
+.info {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem 4rem;
+}
+
+.info__head {
+  margin-block-end: 0;
+}
+
+@media (min-width: 990px) {
+  .info {
+    grid-template-columns: 15rem minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .info > * {
+    grid-column: 2;
+  }
+
+  .info__nav {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    position: sticky;
+    top: calc(var(--header-h, 0px) + 1.5rem);
+  }
+
+  .s-mainpage[data-variant="plain"] .info {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .s-mainpage[data-variant="plain"] .info > * {
+    grid-column: 1;
+  }
+}
+
+.s-mainpage[data-variant="plain"] .info__nav {
+  display: none;
+}
+
+.info__nav-title {
+  margin-block-end: .75rem;
+  font-family: var(--font-body);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--c-muted);
+}
+
+.info__nav ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-inline-start: 1px solid var(--c-border);
+}
+
+.info__nav a {
+  display: block;
+  padding: .5rem 1rem;
+  margin-inline-start: -1px;
+  border-inline-start: 1px solid transparent;
+  color: var(--c-muted);
+  text-decoration: none;
+}
+
+.info__nav a:hover {
+  color: var(--c-text);
+}
+
+.info__nav a[aria-current] {
+  color: var(--c-text);
+  font-weight: 600;
+  border-inline-start-color: var(--c-text);
+}
+
+@media (max-width: 989px) {
+  .info__nav {
+    padding-block-start: 1.5rem;
+    border-top: 1px solid var(--c-border);
+  }
+}
+
+.info__body {
+  max-width: 44rem;
+  line-height: 1.7;
+}
+
+.info__body h2 {
+  margin-block-start: .75em;
+  font-size: var(--fs-h3);
+}
+
+.info__body h2:first-child {
+  margin-block-start: 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-card);
+}
+
+.table-wrap table {
+  width: 100%;
+  min-width: 26rem;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.table-wrap th,
+.table-wrap td {
+  padding: .75rem 1rem;
+  text-align: start;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.table-wrap thead th {
+  font-weight: 600;
+  background: var(--c-card);
+}
+
+.table-wrap tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.table-wrap tbody th {
+  font-weight: 600;
+}
+
+/* Tables in the page's text scroll sideways on a narrow screen (the script wraps them). */
+.info__body table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.info__body img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* The page's own content starts close under the header; the spacing setting sets the space below. */
+.s-mainpage {
+  padding-block-start: clamp(1.25rem, 1rem + 1.5vw, 2.5rem);
+}

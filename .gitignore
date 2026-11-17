@@ -81,3 +81,6 @@ resources/themes/*/extensions/zz-test-*
 # The sample theme is linked here while tests run.
 /resources/themes/sample
 /resources/themes/sample-two
+
+# The bundled theme ships its product brief.
+!/resources/themes/xelga/PRODUCT.md

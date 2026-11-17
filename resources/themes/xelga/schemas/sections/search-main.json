@@ -1,0 +1,169 @@
+{
+  "type": "search-main",
+  "label": "Search results",
+  "group": "template",
+  "templates": [
+    "search"
+  ],
+  "limit": 1,
+  "main": true,
+  "class": "s-listing",
+  "settings": [
+    {
+      "key": "show_search",
+      "type": "toggle",
+      "label": "Show the search box on the page",
+      "default": true
+    },
+    {
+      "key": "suggestions",
+      "type": "textarea",
+      "label": "Suggest when nothing matches, one per line",
+      "default": "",
+      "max": 600
+    },
+    {
+      "key": "cols",
+      "type": "select",
+      "label": "Products per row",
+      "default": "4",
+      "options": [
+        {
+          "value": "3",
+          "label": "Three"
+        },
+        {
+          "value": "4",
+          "label": "Four"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "mobile_cols",
+      "type": "select",
+      "label": "Products per row on phones",
+      "default": "2",
+      "options": [
+        {
+          "value": "1",
+          "label": "One"
+        },
+        {
+          "value": "2",
+          "label": "Two"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "view",
+      "type": "select",
+      "label": "Show products as",
+      "default": "grid",
+      "options": [
+        {
+          "value": "grid",
+          "label": "Grid"
+        },
+        {
+          "value": "list",
+          "label": "List"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "switch_view",
+      "type": "toggle",
+      "label": "Let shoppers switch between grid and list",
+      "default": true
+    },
+    {
+      "key": "pagination",
+      "type": "select",
+      "label": "More products",
+      "default": "numbers",
+      "options": [
+        {
+          "value": "numbers",
+          "label": "Page numbers"
+        },
+        {
+          "value": "load-more",
+          "label": "Load more button"
+        }
+      ],
+      "control": "segmented",
+      "info": "How many products a page holds is set in VentaCart, Settings, Catalog."
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "sm",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    }
+  ],
+  "blocks": {
+    "min": 0,
+    "max": 4,
+    "types": [
+      {
+        "type": "link",
+        "label": "Link when nothing matches",
+        "limit": 4,
+        "settings": [
+          {
+            "key": "label",
+            "type": "text",
+            "label": "Link text",
+            "default": "Shop all products",
+            "max": 80
+          },
+          {
+            "key": "link",
+            "type": "url",
+            "label": "Link goes to",
+            "default": {
+              "type": "search"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "results",
+      "label": "Search results",
+      "settings": {},
+      "blocks": []
+    }
+  ]
+}

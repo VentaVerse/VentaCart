@@ -1,0 +1,31 @@
+/* ==========================================================================
+   23. Toast for cart feedback (status only, never a modal)
+   ========================================================================== */
+
+.toast {
+  position: fixed;
+  inset-block-end: 1rem;
+  inset-inline: 1rem auto;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  max-width: min(26rem, calc(100vw - 2rem));
+  padding: .875rem 1rem;
+  font-size: var(--fs-sm);
+  font-weight: 550;
+  color: var(--c-bg);
+  background: var(--c-text);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-2);
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition: opacity .3s ease, transform .4s var(--ease-out);
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: none;
+}
+

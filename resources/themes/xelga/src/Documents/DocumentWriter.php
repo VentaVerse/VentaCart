@@ -1,0 +1,138 @@
+<?php
+
+namespace Themes\Xelga\Documents;
+
+use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
+use Themes\Xelga\Settings\ContrastCheck;
+use Themes\Xelga\Settings\SanitizeContext;
+
+/**
+ * The only code that writes a document's draft. Every path that changes a
+ * draft (the editor, restoring a revision, applying a store template) comes
+ * through here, so nothing skips validation and sanitizing.
+ *
+ * One shared draft per document. A save names the draft_version it was
+ * based on; when someone else saved first, nothing is written and the
+ * caller gets a ConflictException carrying what is there now.
+ */
+final class DocumentWriter
+{
+    /**
+     * @return array{document: Document, adjusted: list<array>, warnings: list<array>}
+     *
+     * @throws ShapeException|ConflictException
+     */
+    public function saveDraft(string $handle, mixed $content, int $baseVersion, User $user): array
+    {
+        if (! Handles::known($handle)) {
+            throw new ShapeException(['handle' => ['There is no such document.']]);
+        }
+
+        $kind = Handles::kind($handle);
+        $result = self::clean($handle, $content);
+        $json = $result['json'];
+        $warnings = $kind === 'settings' ? ContrastCheck::failures(json_decode($json, true)['schemes'] ?? []) : [];
+
+        $document = DB::transaction(function () use ($handle, $kind, $json, $baseVersion, $user) {
+            $row = Document::where('handle', $handle)->first();
+            $now = now();
+
+            if ($row === null) {
+                // A special layout is made by TemplateManager, with its name;
+                // a draft save never brings one into being, nor back after
+                // someone deleted it.
+                if (Handles::isCustom($handle)) {
+                    throw new MissingDocumentException();
+                }
+                if ($baseVersion !== 0) {
+                    throw $this->conflict($handle, null);
+                }
+                try {
+                    $id = DB::table('xelga_documents')->insertGetId([
+                        'handle' => $handle,
+                        'kind' => $kind,
+                        'page_type' => Handles::pageType($handle),
+                        'published_version' => 0,
+                        'draft' => $json,
+                        'draft_version' => 1,
+                        'draft_base_version' => 0,
+                        'draft_updated_by' => $user->id,
+                        'draft_updated_at' => $now,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
+                } catch (UniqueConstraintViolationException) {
+                    throw $this->conflict($handle, Document::where('handle', $handle)->first());
+                }
+
+                return Document::findOrFail($id);
+            }
+
+            $changed = DB::table('xelga_documents')
+                ->where('id', $row->id)
+                ->where('draft_version', $baseVersion)
+                ->update([
+                    'draft' => $json,
+                    'draft_version' => DB::raw('draft_version + 1'),
+                    'draft_base_version' => DB::raw('COALESCE(draft_base_version, published_version)'),
+                    'draft_updated_by' => $user->id,
+                    'draft_updated_at' => $now,
+                    'updated_at' => $now,
+                ]);
+
+            if ($changed === 0) {
+                throw $this->conflict($handle, Document::find($row->id));
+            }
+
+            return Document::findOrFail($row->id);
+        });
+
+        return ['document' => $document, 'adjusted' => $result['adjusted'], 'warnings' => $warnings];
+    }
+
+    /**
+     * A document's content checked and sanitized exactly as a draft save
+     * does it, encoded the way drafts are stored. Code that puts a draft
+     * back by other means (undoing a starting store) runs it through here
+     * too, so nothing reaches a draft unchecked.
+     *
+     * @return array{content: array, json: string, adjusted: list<array>}
+     *
+     * @throws ShapeException
+     */
+    public static function clean(string $handle, mixed $content): array
+    {
+        if (! Handles::known($handle)) {
+            throw new ShapeException(['handle' => ['There is no such document.']]);
+        }
+        $context = SanitizeContext::forStore(Handles::kind($handle) === 'settings' ? [] : self::schemeIds());
+        $result = (new Shape($context))->normalize($handle, $content);
+
+        return $result + ['json' => json_encode($result['content'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)];
+    }
+
+    /**
+     * The scheme ids sections may use: those of the settings draft when
+     * there is one (the editor previews it), else the published ones.
+     *
+     * @return list<string>
+     */
+    public static function schemeIds(): array
+    {
+        $row = Document::where('handle', Handles::SETTINGS)->first();
+        $content = $row?->draft ?? $row?->published ?? Defaults::content(Handles::SETTINGS);
+        $ids = array_values(array_filter(array_column((array) ($content['schemes'] ?? []), 'id'), 'is_string'));
+
+        return $ids !== [] ? $ids : ['scheme-1'];
+    }
+
+    private function conflict(string $handle, ?Document $row): ConflictException
+    {
+        return new ConflictException(
+            'Someone else saved this page after you opened it.',
+            DocumentPresenter::state($handle, $row),
+        );
+    }
+}

@@ -1,0 +1,620 @@
+{
+  "format": 1,
+  "name": "Coffee",
+  "line": "Specialty beans and brewing gear",
+  "position": 5,
+  "documents": {
+    "settings": {
+      "schema": 1,
+      "values": {
+        "font_pair": "sofia-condensed",
+        "heading_case": "uppercase",
+        "heading_weight": "800",
+        "button_case": "uppercase",
+        "button_radius": 2,
+        "card_style": "plain",
+        "card_ratio": "portrait",
+        "card_hover": "zoom",
+        "card_radius": 2,
+        "quick_add": "button",
+        "badge_style": "word",
+        "density": "airy",
+        "grid_gap": "loose",
+        "page_width": 1360,
+        "button_fill": "solid"
+      },
+      "schemes": [
+        {
+          "id": "scheme-1",
+          "label": "Bar wall",
+          "colors": {
+            "bg": "#f3f3f1",
+            "text": "#161616",
+            "muted": "#555552",
+            "accent": "#b93f0e",
+            "accent-text": "#ffffff",
+            "button": "#161616",
+            "button-text": "#ffffff",
+            "border": "#d9d9d4",
+            "card": "#e8dfcf"
+          }
+        },
+        {
+          "id": "scheme-2",
+          "label": "Paper filter",
+          "colors": {
+            "bg": "#ffffff",
+            "text": "#161616",
+            "muted": "#585855",
+            "accent": "#b93f0e",
+            "accent-text": "#ffffff",
+            "button": "#161616",
+            "button-text": "#ffffff",
+            "border": "#e2e2dd",
+            "card": "#efe7da"
+          }
+        },
+        {
+          "id": "scheme-3",
+          "label": "Felt letterboard",
+          "colors": {
+            "bg": "#19191b",
+            "text": "#f3f3ef",
+            "muted": "#adada8",
+            "accent": "#ff8a4c",
+            "accent-text": "#19191b",
+            "button": "#f3f3ef",
+            "button-text": "#19191b",
+            "border": "#333336",
+            "card": "#232326"
+          }
+        },
+        {
+          "id": "scheme-4",
+          "label": "Monstera",
+          "colors": {
+            "bg": "#22402e",
+            "text": "#f1f4ee",
+            "muted": "#c3d1c1",
+            "accent": "#ffa067",
+            "accent-text": "#19191b",
+            "button": "#f1f4ee",
+            "button-text": "#22402e",
+            "border": "#3d5d49",
+            "card": "#2b4b38"
+          }
+        },
+        {
+          "id": "scheme-5",
+          "label": "Bag sticker",
+          "colors": {
+            "bg": "#f07033",
+            "text": "#141414",
+            "muted": "#3b2111",
+            "accent": "#141414",
+            "accent-text": "#ffffff",
+            "button": "#141414",
+            "button-text": "#ffffff",
+            "border": "#c9581f",
+            "card": "#f3854f"
+          }
+        }
+      ]
+    },
+    "header": {
+      "schema": 1,
+      "order": [
+        "announcement-1",
+        "header-1"
+      ],
+      "sections": {
+        "announcement-1": {
+          "type": "announcement-bar",
+          "label": "Announcement bar",
+          "disabled": false,
+          "settings": {
+            "variant": "marquee",
+            "interval": 5,
+            "show_arrows": true,
+            "scheme": "scheme-5"
+          },
+          "block_order": [
+            "announcement-1-b1",
+            "announcement-1-b2",
+            "announcement-1-b3"
+          ],
+          "blocks": {
+            "announcement-1-b1": {
+              "type": "message",
+              "label": "Message 1",
+              "disabled": false,
+              "settings": {
+                "text": "Roasted every Tuesday and Friday, shipped the next morning"
+              }
+            },
+            "announcement-1-b2": {
+              "type": "message",
+              "label": "Message 2",
+              "disabled": false,
+              "settings": {
+                "text": "Cash on delivery anywhere in the Philippines"
+              }
+            },
+            "announcement-1-b3": {
+              "type": "message",
+              "label": "Message 3",
+              "disabled": false,
+              "settings": {
+                "text": "Free shipping on orders from ₱1,500"
+              }
+            }
+          }
+        },
+        "header-1": {
+          "type": "header",
+          "label": "Header",
+          "disabled": false,
+          "settings": {
+            "variant": "classic",
+            "logo_text": "",
+            "logo_width": 150,
+            "menu": "main",
+            "menu_style": "dropdown",
+            "sticky": true,
+            "show_search": true,
+            "search_placeholder": "Search beans, origins, brewers...",
+            "show_account": true,
+            "show_wishlist": true,
+            "scheme": "scheme-2",
+            "logo_image": ""
+          },
+          "block_order": [],
+          "blocks": {}
+        }
+      }
+    },
+    "footer": {
+      "schema": 1,
+      "order": [
+        "footer-1"
+      ],
+      "sections": {
+        "footer-1": {
+          "type": "footer",
+          "label": "Footer",
+          "disabled": false,
+          "settings": {
+            "variant": "columns",
+            "about": "Specialty coffee from the Philippine highlands, roasted in Baguio twice a week and shipped anywhere in the country.",
+            "show_socials": true,
+            "show_payments": true,
+            "legal": "",
+            "scheme": "scheme-3"
+          },
+          "block_order": [
+            "footer-1-b1",
+            "footer-1-b2",
+            "footer-1-b4"
+          ],
+          "blocks": {
+            "footer-1-b1": {
+              "type": "menu",
+              "label": "Menu: Coffee",
+              "disabled": false,
+              "settings": {
+                "heading": "Coffee",
+                "menu": "main"
+              }
+            },
+            "footer-1-b2": {
+              "type": "menu",
+              "label": "Menu: Brewing",
+              "disabled": false,
+              "settings": {
+                "heading": "Brewing",
+                "menu": "footer"
+              }
+            },
+            "footer-1-b4": {
+              "type": "contact",
+              "label": "Contact details",
+              "disabled": false,
+              "settings": {
+                "heading": "Visit or write",
+                "show_phone": true,
+                "show_email": true,
+                "show_address": true,
+                "show_hours": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "home": {
+      "schema": 1,
+      "order": [
+        "hero-1",
+        "usp-1",
+        "categories-1",
+        "products-1",
+        "subscription-1",
+        "products-2",
+        "blog-1",
+        "promos-1",
+        "sourcing-1"
+      ],
+      "sections": {
+        "hero-1": {
+          "type": "hero",
+          "label": "Main banner",
+          "disabled": false,
+          "settings": {
+            "variant": "split",
+            "height": "large",
+            "autoplay": false,
+            "interval": 6,
+            "heading_size": "large",
+            "scheme": "scheme-3"
+          },
+          "block_order": [
+            "hero-1-b1"
+          ],
+          "blocks": {
+            "hero-1-b1": {
+              "type": "slide",
+              "label": "Slide 1: Pour-over",
+              "disabled": false,
+              "settings": {
+                "image": "images/slide-1-pourover.jpg",
+                "image_alt": "A barista pours hot water from a black gooseneck kettle into a white cone dripper on a scale",
+                "heading": "Highland coffee, roasted twice a week",
+                "text": "Single origins from Benguet, Sagada, Mt. Apo and Batangas, roasted in small batches and shipped the morning after.",
+                "button_label": "Shop this week's beans",
+                "button_link": {
+                  "type": "search"
+                },
+                "button2_label": "Find your roast",
+                "button2_link": {
+                  "type": "search"
+                }
+              }
+            }
+          }
+        },
+        "usp-1": {
+          "type": "usp-bar",
+          "label": "Store promises",
+          "disabled": false,
+          "settings": {
+            "variant": "strip",
+            "icon_style": "plain",
+            "scheme": "scheme-2",
+            "pad": "sm"
+          },
+          "block_order": [
+            "usp-1-b1",
+            "usp-1-b2",
+            "usp-1-b3",
+            "usp-1-b4"
+          ],
+          "blocks": {
+            "usp-1-b1": {
+              "type": "promise",
+              "label": "Roast date on every bag",
+              "disabled": false,
+              "settings": {
+                "icon": "clock",
+                "title": "Roast date on every bag",
+                "text": "Tuesday and Friday roasts, sent the next morning."
+              }
+            },
+            "usp-1-b2": {
+              "type": "promise",
+              "label": "Ground for your brewer",
+              "disabled": false,
+              "settings": {
+                "icon": "check",
+                "title": "Ground for your brewer",
+                "text": "Whole bean, or ground for pour-over, moka or press."
+              }
+            },
+            "usp-1-b3": {
+              "type": "promise",
+              "label": "Cash on delivery",
+              "disabled": false,
+              "settings": {
+                "icon": "cash",
+                "title": "Cash on delivery",
+                "text": "Pay the courier when your coffee arrives."
+              }
+            },
+            "usp-1-b4": {
+              "type": "promise",
+              "label": "Ships nationwide",
+              "disabled": false,
+              "settings": {
+                "icon": "truck",
+                "title": "Ships nationwide",
+                "text": "Luzon, Visayas and Mindanao by courier."
+              }
+            }
+          }
+        },
+        "categories-1": {
+          "type": "category-tiles",
+          "label": "Shop by roast",
+          "disabled": false,
+          "settings": {
+            "variant": "text-over-image",
+            "heading": "Shop by roast",
+            "subheading": "Not sure where to start? Light roasts taste brighter and fruitier; dark roasts taste of cacao and stand up to milk.",
+            "link_label": "All coffee",
+            "link": {
+              "type": "search"
+            },
+            "cols": 4,
+            "ratio": "portrait",
+            "show_note": true,
+            "mobile_layout": "grid",
+            "head_align": "start",
+            "scheme": "scheme-1",
+            "pad": "lg"
+          },
+          "block_order": [
+            "categories-1-b1",
+            "categories-1-b2",
+            "categories-1-b3",
+            "categories-1-b4"
+          ],
+          "blocks": {
+            "categories-1-b1": {
+              "type": "category",
+              "label": "Light roast",
+              "disabled": false,
+              "settings": {
+                "category": "light-roast",
+                "label": "Light roast",
+                "note": "Floral, citrus, tea-like",
+                "image": "images/cat-light.jpg"
+              }
+            },
+            "categories-1-b2": {
+              "type": "category",
+              "label": "Medium roast",
+              "disabled": false,
+              "settings": {
+                "category": "medium-roast",
+                "label": "Medium roast",
+                "note": "Caramel, red fruit, round body",
+                "image": "images/cat-medium.jpg"
+              }
+            },
+            "categories-1-b3": {
+              "type": "category",
+              "label": "Dark roast",
+              "disabled": false,
+              "settings": {
+                "category": "dark-roast",
+                "label": "Dark roast",
+                "note": "Cacao, molasses, heavy body",
+                "image": "images/cat-dark.jpg"
+              }
+            },
+            "categories-1-b4": {
+              "type": "category",
+              "label": "Espresso",
+              "disabled": false,
+              "settings": {
+                "category": "espresso",
+                "label": "Espresso",
+                "note": "Built for shots and milk",
+                "image": "images/cat-espresso.jpg"
+              }
+            }
+          }
+        },
+        "products-1": {
+          "type": "featured-products",
+          "label": "This week's single origins",
+          "disabled": false,
+          "settings": {
+            "variant": "grid",
+            "heading": "This week's single origins",
+            "subheading": "Roasted on 13 November. Every bag is 250 g, whole bean or ground for your brewer.",
+            "link_label": "All single origins",
+            "link": {
+              "type": "search"
+            },
+            "source": "hand-picked",
+            "category": null,
+            "products": [
+              "benguet-highland-washed",
+              "mt-apo-honey-process",
+              "sagada-ridge-natural",
+              "batangas-barako-liberica"
+            ],
+            "count": 4,
+            "cols": 4,
+            "rows": 1,
+            "mobile_cols": "2",
+            "show_rating": true,
+            "show_quick_add": true,
+            "show_brand": false,
+            "head_align": "start",
+            "scheme": "scheme-1",
+            "pad": "lg"
+          },
+          "block_order": [],
+          "blocks": {}
+        },
+        "subscription-1": {
+          "type": "image-with-text",
+          "label": "Coffee subscription",
+          "disabled": false,
+          "settings": {
+            "variant": "split",
+            "image": "images/banner-subscription.jpg",
+            "image_alt": "Two kraft coffee bags in an open delivery box on a doorstep",
+            "image_pos": "start",
+            "ratio": "landscape",
+            "media_width": 50,
+            "align": "center",
+            "heading": "Fresh beans at your door, every two or four weeks",
+            "text": "<p>Pick a roast, or let us send whatever came off the roaster that week. From ₱520 a delivery, shipping included. Skip, pause or cancel from your account before the next roast day.</p>",
+            "button_label": "Start a subscription",
+            "button_link": {
+              "type": "search"
+            },
+            "scheme": "scheme-4",
+            "pad": "lg"
+          },
+          "block_order": [
+            "subscription-1-b1",
+            "subscription-1-b2",
+            "subscription-1-b3"
+          ],
+          "blocks": {
+            "subscription-1-b1": {
+              "type": "step",
+              "label": "Step 1: Choose your coffee",
+              "disabled": false,
+              "settings": {
+                "title": "Choose your coffee",
+                "text": "One origin you love, or the roaster's pick each time."
+              }
+            },
+            "subscription-1-b2": {
+              "type": "step",
+              "label": "Step 2: Set the rhythm",
+              "disabled": false,
+              "settings": {
+                "title": "Set the rhythm",
+                "text": "250 g or 500 g, every two or four weeks."
+              }
+            },
+            "subscription-1-b3": {
+              "type": "step",
+              "label": "Step 3: Brew it within the month",
+              "disabled": false,
+              "settings": {
+                "title": "Brew it within the month",
+                "text": "Bags leave the day after roasting, with the roast date printed."
+              }
+            }
+          }
+        },
+        "products-2": {
+          "type": "featured-products",
+          "label": "Brewing gear",
+          "disabled": false,
+          "settings": {
+            "variant": "grid",
+            "heading": "Brewing gear",
+            "subheading": "The same drippers, kettles and grinders we use on the cafe bar.",
+            "link_label": "All brewing gear",
+            "link": {
+              "type": "search"
+            },
+            "source": "hand-picked",
+            "category": null,
+            "products": [
+              "ceramic-cone-dripper-1-to-4-cups",
+              "gooseneck-kettle-1-l-matte-black",
+              "steel-hand-grinder-conical-burr",
+              "paper-cone-filters-pack-of-100"
+            ],
+            "count": 4,
+            "cols": 4,
+            "rows": 1,
+            "mobile_cols": "2",
+            "show_rating": false,
+            "show_quick_add": true,
+            "show_brand": false,
+            "head_align": "start",
+            "scheme": "scheme-2",
+            "pad": "lg"
+          },
+          "block_order": [],
+          "blocks": {}
+        },
+        "blog-1": {
+          "type": "blog-posts",
+          "label": "Brew guides",
+          "disabled": false,
+          "settings": {
+            "variant": "grid",
+            "heading": "Brew guides",
+            "link_label": "All guides",
+            "link": {
+              "type": "blog"
+            },
+            "source": "latest",
+            "blog_category": "",
+            "count": 3,
+            "cols": 3,
+            "show_date": true,
+            "show_excerpt": true,
+            "head_align": "start",
+            "scheme": "scheme-1",
+            "pad": "lg"
+          },
+          "block_order": [],
+          "blocks": {}
+        },
+        "promos-1": {
+          "type": "promo-banners",
+          "label": "Cafe banner",
+          "disabled": false,
+          "settings": {
+            "variant": "overlay",
+            "height": "large",
+            "text_y": "bottom",
+            "scheme": "scheme-1",
+            "pad": "md"
+          },
+          "block_order": [
+            "promos-1-b1"
+          ],
+          "blocks": {
+            "promos-1-b1": {
+              "type": "banner",
+              "label": "Banner: Visit the cafe",
+              "disabled": false,
+              "settings": {
+                "image": "images/banner-cafe.jpg",
+                "heading": "Have a cup at the roastery",
+                "text": "Our Baguio cafe pours every coffee we sell, as filter or espresso, next to the roaster it came from. Open daily, 7 AM to 6 PM.",
+                "button_label": "Get directions",
+                "link": {
+                  "type": "search"
+                },
+                "scheme": "scheme-3"
+              }
+            }
+          }
+        },
+        "sourcing-1": {
+          "type": "rich-text",
+          "label": "Where our coffee comes from",
+          "disabled": false,
+          "settings": {
+            "variant": "center",
+            "heading": "Bought from farms we can drive to",
+            "text": "<p>Every coffee we roast is grown in the Philippines: washed Typica from Benguet, naturals dried on raised beds in Sagada, honey-process lots from the slopes of Mt. Apo and Liberica barako from Batangas.</p><p>We cup each lot before we buy it, pay the farm directly, and print the farm, altitude and process on the back of every bag.</p>",
+            "button_label": "Meet the farms",
+            "button_link": {
+              "type": "search"
+            },
+            "width": "medium",
+            "heading_size": "large",
+            "scheme": "scheme-3",
+            "pad": "lg"
+          },
+          "block_order": [],
+          "blocks": {}
+        }
+      }
+    }
+  }
+}

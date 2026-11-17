@@ -1,0 +1,518 @@
+/*
+ * Main banner: full-image, split, slideshow and collage.
+ */
+
+.s-hero {
+  --overlay: 35;
+  --hero-h: clamp(440px, 64svh, 660px);
+  padding-block: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.s-hero[data-height="small"] { --hero-h: clamp(340px, 44svh, 460px); }
+.s-hero[data-height="medium"] { --hero-h: clamp(440px, 64svh, 660px); }
+.s-hero[data-height="large"] { --hero-h: clamp(540px, 82svh, 860px); }
+.s-hero[data-height="full"] { --hero-h: max(520px, calc(100svh - var(--header-h))); }
+
+.hero__slides {
+  position: relative;
+  display: grid;
+}
+
+.hero__slide {
+  position: relative;
+  display: grid;
+  grid-area: 1 / 1;
+  min-height: var(--hero-h);
+}
+
+.s-hero:not([data-variant="slideshow"], [data-variant="collage"]) .hero__slide:not(.is-active) {
+  display: none;
+}
+
+.hero__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--c-card);
+}
+
+.hero__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--focal-x, 50%) var(--focal-y, 50%);
+}
+
+.hero__media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(var(--overlay-angle, 90deg), rgb(var(--overlay-rgb) / calc(var(--overlay) * 1%)) 0%, rgb(var(--overlay-rgb) / calc(var(--overlay) * .35%)) 75%);
+  pointer-events: none;
+}
+
+.hero__slide[data-text-x="end"] { --overlay-angle: 270deg; }
+.hero__slide[data-text-x="center"] { --overlay-angle: 0deg; }
+
+.hero__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: min(100% - 2 * var(--gutter), var(--page-width));
+  margin-inline: auto;
+  padding-block: clamp(2.5rem, 6vw, 5rem);
+}
+
+.hero__slide[data-text-x="center"] .hero__content { justify-content: center; text-align: center; }
+.hero__slide[data-text-x="end"] .hero__content { justify-content: flex-end; }
+.hero__slide[data-text-y="top"] .hero__content { align-items: flex-start; }
+.hero__slide[data-text-y="bottom"] .hero__content { align-items: flex-end; }
+
+.hero__box {
+  display: grid;
+  justify-items: start;
+  gap: 1.125rem;
+  max-width: 38rem;
+}
+
+.hero__slide[data-text-x="center"] .hero__box {
+  justify-items: center;
+}
+
+.hero__title {
+  font-size: var(--fs-display);
+  text-wrap: balance;
+}
+
+.s-hero[data-heading-size="medium"] .hero__title {
+  font-size: var(--fs-h1);
+}
+
+.hero__text {
+  max-width: 46ch;
+  font-size: clamp(1rem, .95rem + .3vw, 1.1875rem);
+  color: var(--c-muted);
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  margin-block-start: .5rem;
+}
+
+.hero__slide[data-text-x="center"] .hero__actions {
+  justify-content: center;
+}
+
+/* Text sitting directly on a photo reads in the on-image color */
+.s-hero:is([data-variant="full-image"], [data-variant="slideshow"]) .hero__slide:not([data-box="panel"]) .btn:not(.btn--secondary, .btn--accent) {
+  --btn-bg: var(--c-on-image);
+  --btn-fg: rgb(var(--overlay-rgb));
+  --btn-bd: var(--c-on-image);
+}
+
+.s-hero:is([data-variant="full-image"], [data-variant="slideshow"]) .hero__slide:not([data-box="panel"]) .hero__box {
+  --c-text: var(--c-on-image);
+  --c-muted: var(--c-on-image-muted);
+  --c-focus: var(--c-on-image);
+  color: var(--c-text);
+  text-shadow: 0 1px 24px rgb(var(--overlay-rgb) / .35);
+}
+
+.s-hero:is([data-variant="full-image"], [data-variant="slideshow"]) .hero__slide:not([data-box="panel"]) .btn--secondary {
+  --btn-fg: var(--c-on-image);
+  --btn-bd: var(--c-on-image);
+}
+
+.s-hero:is([data-variant="full-image"], [data-variant="slideshow"]) .hero__slide:not([data-box="panel"]) .btn--secondary:hover {
+  --btn-bg: var(--c-on-image);
+  --btn-fg: rgb(var(--overlay-rgb));
+}
+
+.hero__slide[data-box="panel"] .hero__box {
+  padding: clamp(1.5rem, 1rem + 2vw, 2.75rem);
+  background: var(--c-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-2);
+}
+
+.hero__slide[data-box="panel"] .hero__media::after {
+  opacity: .4;
+}
+
+/*
+ * Slideshow. Slides sit on top of each other. Each one rests at --pos-x /
+ * --pos-y with --scale, and --drag-x is how far a drag has pulled it. The
+ * script marks the shown slide .is-active, the one it replaced .is-leaving,
+ * a neighbour shown during a drag .is-peek, and where a waiting slide sits
+ * with data-pos (before or after). Only transform and opacity animate.
+ */
+.s-hero[data-variant="slideshow"] .hero__slide {
+  --move: .9s;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(calc(var(--pos-x, 0%) + var(--drag-x, 0px)), var(--pos-y, 0%)) scale(var(--scale, 1));
+  transition: opacity var(--move) ease, transform .35s var(--ease-out), visibility 0s var(--move);
+}
+
+.s-hero[data-variant="slideshow"] .hero__slide.is-active {
+  z-index: 1;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--move) ease, transform .35s var(--ease-out), visibility 0s;
+}
+
+/* Slide, Slide up and Cover move whole slides; nothing fades. */
+.s-hero[data-variant="slideshow"]:is([data-slide-change="slide"], [data-slide-change="slide-up"], [data-slide-change="cover"]) .hero__slide {
+  --move: .9s;
+  /* Eased at both ends, so the whole move reads as a move, not a jump. */
+  --move-ease: cubic-bezier(.65, .05, .36, 1);
+  opacity: 1;
+  transition: transform var(--move) var(--move-ease), visibility 0s var(--move);
+}
+
+.s-hero[data-variant="slideshow"]:is([data-slide-change="slide"], [data-slide-change="slide-up"], [data-slide-change="cover"]) .hero__slide:is(.is-active, .is-peek) {
+  visibility: visible;
+  transition: transform var(--move) var(--move-ease), visibility 0s;
+}
+
+/* Only the slide leaving and the slide arriving may move. Every other slide
+   jumps straight to its waiting place, out of sight: when the order wraps
+   around (or hidden slides change it), its waiting side flips, and an
+   animated jump would cross the banner. */
+.s-hero[data-variant="slideshow"]:is([data-slide-change="slide"], [data-slide-change="slide-up"], [data-slide-change="cover"]) .hero__slide:not(.is-active, .is-leaving, .is-peek) {
+  visibility: hidden;
+  transition: none;
+}
+
+/* Slide: the new slide comes in from the side while the old one leaves the other way. */
+.s-hero[data-variant="slideshow"]:is([data-slide-change="slide"], [data-slide-change="cover"]) .hero__slide[data-pos="before"]:not(.is-active) { --pos-x: -100%; }
+.s-hero[data-variant="slideshow"]:is([data-slide-change="slide"], [data-slide-change="cover"]) .hero__slide[data-pos="after"]:not(.is-active) { --pos-x: 100%; }
+
+/* Slide up: the new slide rises from below (from above when going back). */
+.s-hero[data-variant="slideshow"][data-slide-change="slide-up"] .hero__slide[data-pos="before"]:not(.is-active) { --pos-y: -100%; }
+.s-hero[data-variant="slideshow"][data-slide-change="slide-up"] .hero__slide[data-pos="after"]:not(.is-active) { --pos-y: 100%; }
+
+/* Cover: the new slide slides over the shown one, which stays put and dims. */
+.s-hero[data-variant="slideshow"][data-slide-change="cover"] .hero__slide.is-leaving[data-pos]:not(.is-active) {
+  --pos-x: 0%;
+}
+
+.s-hero[data-variant="slideshow"][data-slide-change="cover"] .hero__slide:is(.is-active, .is-peek) {
+  z-index: 2;
+}
+
+.s-hero[data-variant="slideshow"][data-slide-change="cover"] .hero__slide.is-active {
+  --drag-x: 0px;
+}
+
+.s-hero[data-variant="slideshow"][data-slide-change="cover"] .hero__slide::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: rgb(var(--overlay-rgb));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--move) var(--move-ease);
+}
+
+.s-hero[data-variant="slideshow"][data-slide-change="cover"] .hero__slide.is-leaving::after,
+.s-hero[data-variant="slideshow"][data-slide-change="cover"].is-dragging .hero__slide.is-active::after {
+  opacity: .35;
+}
+
+/* Zoom: a crossfade while the new slide's photo settles from slightly larger; the text stays sharp. */
+.s-hero[data-variant="slideshow"][data-slide-change="zoom"] .hero__slide {
+  --move: 1.1s;
+}
+
+.s-hero[data-variant="slideshow"][data-slide-change="zoom"] .hero__media {
+  transform: scale(1.18);
+  transition: transform 1.6s cubic-bezier(.16, .84, .3, 1);
+}
+
+.s-hero[data-variant="slideshow"][data-slide-change="zoom"] .hero__slide:is(.is-active, .is-leaving) .hero__media {
+  transform: none;
+}
+
+/* Slow zoom: the shown photo drifts slowly closer; slides crossfade. */
+.s-hero[data-variant="slideshow"][data-slide-change="slow-zoom"] .hero__slide {
+  --move: 1.2s;
+}
+
+.s-hero[data-variant="slideshow"][data-slide-change="slow-zoom"] .hero__slide:is(.is-active, .is-leaving) .hero__media img {
+  animation: hero-drift var(--slide-time, 7s) linear both;
+}
+
+@keyframes hero-drift {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+
+/* Dragging: a grab cursor when there is somewhere to go, and the slides follow the pointer at once. */
+.s-hero[data-variant="slideshow"][data-draggable="true"] .hero__slides {
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.s-hero[data-variant="slideshow"].is-dragging .hero__slides {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/* Important: this must beat every transition's own rule, whatever its specificity. */
+.s-hero[data-variant="slideshow"]:is(.is-dragging, .is-instant) :is(.hero__slide, .hero__media),
+.s-hero[data-variant="slideshow"] .hero__slide.is-instant,
+.s-hero[data-variant="slideshow"] .hero__slide.is-instant .hero__media {
+  transition: none !important;
+}
+
+/* Only the shown slide and the one a drag reveals follow the pointer. */
+.s-hero[data-variant="slideshow"] .hero__slide:not(.is-active, .is-peek) {
+  --drag-x: 0px;
+}
+
+.s-hero[data-variant="slideshow"].is-dragging .hero__slide img {
+  pointer-events: none;
+}
+
+/* The page's one authored moment: the shown slide settles into place. */
+.s-hero[data-variant="slideshow"][data-slide-change="fade"] .hero__slide.is-active .hero__media img,
+.s-hero[data-variant="full-image"] .hero__media img {
+  animation: hero-settle 1.6s var(--ease-out) both;
+}
+
+.s-hero[data-variant="slideshow"] .hero__slide.is-active .hero__box {
+  animation: hero-copy .9s var(--ease-out) both;
+}
+
+@keyframes hero-settle {
+  from { transform: scale(1.06); filter: blur(4px); }
+  to { transform: none; filter: none; }
+}
+
+@keyframes hero-copy {
+  from { opacity: .001; transform: translateY(14px); }
+}
+
+.hero__controls {
+  position: absolute;
+  inset-block-end: clamp(.75rem, 2vw, 1.5rem);
+  inset-inline: 0;
+  z-index: 2;
+  display: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: .25rem;
+  width: min(100% - 2 * var(--gutter), var(--page-width));
+  margin-inline: auto;
+  color: var(--c-on-image);
+}
+
+.s-hero[data-variant="slideshow"] .hero__controls {
+  display: flex;
+}
+
+.hero__controls .icon-btn {
+  background: rgb(var(--overlay-rgb) / .35);
+  backdrop-filter: blur(6px);
+}
+
+.hero__controls .icon-btn:hover {
+  background: rgb(var(--overlay-rgb) / .6);
+}
+
+.hero__dots {
+  display: flex;
+  gap: 0;
+  margin: 0 .25rem;
+  padding: 0;
+  list-style: none;
+}
+
+.hero__dot {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.hero__dot::before {
+  content: "";
+  width: 18px;
+  height: 3px;
+  background: var(--c-on-image);
+  border-radius: 2px;
+  opacity: .45;
+  transition: opacity .3s, width .3s var(--ease-out);
+}
+
+.hero__dot[aria-current="true"]::before {
+  width: 28px;
+  opacity: 1;
+}
+
+/* Split: photo on one half, text on the other */
+.s-hero[data-variant="split"] .hero__slide {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.s-hero[data-variant="split"] .hero__media {
+  position: relative;
+  inset: auto;
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.s-hero[data-variant="split"] .hero__media::after {
+  display: none;
+}
+
+.s-hero[data-variant="split"] .hero__content {
+  grid-column: 1;
+  grid-row: 1;
+  width: auto;
+  margin: 0;
+  padding-block: clamp(2.5rem, 6vw, 5rem);
+  padding-inline: max(var(--gutter), calc(100% - var(--page-width) / 2)) clamp(2rem, 5vw, 5rem);
+  text-align: start;
+  justify-content: flex-start;
+}
+
+.s-hero[data-variant="split"] .hero__slide[data-text-x="end"] .hero__media { grid-column: 1; }
+.s-hero[data-variant="split"] .hero__slide[data-text-x="end"] .hero__content {
+  grid-column: 2;
+  padding-inline: clamp(2rem, 5vw, 5rem) max(var(--gutter), calc(100% - var(--page-width) / 2));
+}
+
+.s-hero[data-variant="split"] .hero__slide[data-text-x="center"] .hero__box {
+  justify-items: start;
+}
+
+.s-hero[data-variant="split"] .hero__slide[data-text-x="center"] .hero__actions {
+  justify-content: flex-start;
+}
+
+@media (max-width: 749px) {
+  .s-hero[data-variant="split"] .hero__slide {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+  .s-hero[data-variant="split"] .hero__media,
+  .s-hero[data-variant="split"] .hero__slide[data-text-x="end"] .hero__media {
+    grid-column: 1;
+    grid-row: 1;
+    aspect-ratio: 4 / 3;
+  }
+  .s-hero[data-variant="split"] .hero__content,
+  .s-hero[data-variant="split"] .hero__slide[data-text-x="end"] .hero__content {
+    grid-column: 1;
+    grid-row: 2;
+    padding: 2rem var(--gutter) 2.5rem;
+  }
+}
+
+/* Collage: text panel plus up to three photos, taken from the first three slides */
+.s-hero[data-variant="collage"] .hero__slides {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, .8fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-areas:
+    "text a b"
+    "text a c";
+  gap: var(--grid-gap);
+  width: min(100% - 2 * var(--gutter), var(--page-width));
+  min-height: var(--hero-h);
+  margin-inline: auto;
+  padding-block: clamp(1rem, 2.5vw, 2rem);
+}
+
+.s-hero[data-variant="collage"] .hero__slide {
+  display: contents;
+}
+
+.s-hero[data-variant="collage"] .hero__slide:not([data-slot="1"], [data-slot="2"], [data-slot="3"]),
+.s-hero[data-variant="collage"] .hero__slide:not([data-slot="1"]) .hero__content {
+  display: none;
+}
+
+.s-hero[data-variant="collage"] .hero__media {
+  position: relative;
+  inset: auto;
+  border-radius: var(--radius-card);
+}
+
+.s-hero[data-variant="collage"] .hero__media::after { display: none; }
+.s-hero[data-variant="collage"] .hero__slide[data-slot="1"] .hero__media { grid-area: a; }
+.s-hero[data-variant="collage"] .hero__slide[data-slot="2"] .hero__media { grid-area: b; }
+.s-hero[data-variant="collage"] .hero__slide[data-slot="3"] .hero__media { grid-area: c; }
+
+.s-hero[data-variant="collage"] .hero__content {
+  grid-area: text;
+  width: auto;
+  margin: 0;
+  padding: clamp(1rem, 3vw, 3rem) clamp(0rem, 2vw, 2rem) clamp(1rem, 3vw, 3rem) 0;
+}
+
+.s-hero[data-variant="collage"] .hero__title {
+  font-size: var(--fs-h1);
+}
+
+@media (max-width: 749px) {
+  .s-hero[data-variant="collage"] .hero__slides {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      "text text"
+      "a a"
+      "b c";
+    min-height: 0;
+  }
+  .s-hero[data-variant="collage"] .hero__media { aspect-ratio: 1; }
+  .s-hero[data-variant="collage"] .hero__slide[data-slot="1"] .hero__media { aspect-ratio: 4 / 3; }
+  .s-hero[data-variant="collage"] .hero__content { padding: 1rem 0; }
+}
+
+
+/* Phones: the slideshow's arrows and dots get their own row under the text,
+   so they never sit on top of the heading, the text panel or a button. */
+@media (max-width: 749px) {
+  .s-hero[data-variant="slideshow"] .hero__content {
+    padding-block-end: calc(44px + clamp(1.25rem, 4vw, 2rem));
+  }
+  .s-hero[data-variant="slideshow"] .hero__controls {
+    justify-content: center;
+    inset-block-end: .5rem;
+  }
+}
+
+/* Editor preview only: every slide is hidden. */
+.hero__empty {
+  width: min(100% - 2 * var(--gutter), var(--page-width));
+  margin-inline: auto;
+  padding-block: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+/* Reduced motion: slides change at once and photos stay still. */
+@media (prefers-reduced-motion: reduce) {
+  .s-hero[data-variant="slideshow"] .hero__slide,
+  .s-hero[data-variant="slideshow"] .hero__slide::after,
+  .s-hero[data-variant="slideshow"] .hero__media {
+    transition: none !important;
+  }
+  .s-hero[data-variant="slideshow"][data-slide-change="zoom"] .hero__media {
+    transform: none;
+  }
+  .s-hero[data-variant="slideshow"] .hero__slide .hero__media img {
+    animation: none !important;
+  }
+}

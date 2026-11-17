@@ -1,0 +1,158 @@
+{
+  "type": "post-main",
+  "label": "Blog post",
+  "description": "Posts are written in VentaCart, Blog.",
+  "group": "template",
+  "templates": [
+    "blog-post",
+    "*custom"
+  ],
+  "limit": 1,
+  "main": true,
+  "class": "s-mainpost",
+  "variants": [],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Text width",
+      "default": "narrow",
+      "control": "segmented",
+      "options": [
+        {
+          "value": "narrow",
+          "label": "Narrow"
+        },
+        {
+          "value": "wide",
+          "label": "Wide"
+        }
+      ]
+    },
+    {
+      "key": "image_width",
+      "type": "select",
+      "label": "Photo width",
+      "default": "wide",
+      "control": "segmented",
+      "options": [
+        {
+          "value": "text",
+          "label": "Same as text"
+        },
+        {
+          "value": "wide",
+          "label": "Wide"
+        }
+      ]
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "control": "segmented",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ]
+    }
+  ],
+  "blocks": {
+    "min": 0,
+    "max": 4,
+    "types": [
+      {
+        "type": "title",
+        "label": "Title, date and category",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "show_date",
+            "type": "toggle",
+            "label": "Show the date",
+            "default": true
+          },
+          {
+            "key": "show_category",
+            "type": "toggle",
+            "label": "Show the category",
+            "default": true
+          },
+          {
+            "key": "show_excerpt",
+            "type": "toggle",
+            "label": "Show the summary under the title",
+            "default": true
+          }
+        ]
+      },
+      {
+        "type": "image",
+        "label": "Featured photo",
+        "limit": 1,
+        "settings": []
+      },
+      {
+        "type": "body",
+        "label": "Post text",
+        "limit": 1,
+        "settings": []
+      },
+      {
+        "type": "tags",
+        "label": "Tags and back link",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "show_back",
+            "type": "toggle",
+            "label": "Show \"Back to the blog\"",
+            "default": true
+          }
+        ]
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "post",
+      "label": "Blog post",
+      "settings": {},
+      "blocks": [
+        {
+          "type": "title"
+        },
+        {
+          "type": "image"
+        },
+        {
+          "type": "body"
+        },
+        {
+          "type": "tags"
+        }
+      ]
+    }
+  ]
+}

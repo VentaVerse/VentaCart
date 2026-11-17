@@ -1,0 +1,53 @@
+/* The cart page. */
+.cart-page__title { margin-block: 1.25rem 1.75rem; }
+.cart-page { display: grid; gap: 2.5rem; }
+@media (min-width: 990px) { .cart-page { grid-template-columns: minmax(0, 1fr) 25rem; gap: 4rem; align-items: start; } }
+.cart-page__lines { min-width: 0; }
+.cart-page__back { margin-block-start: 1rem; }
+.cart-page__back .icon { order: -1; }
+.cart-page__back:hover .icon { transform: translate(-3px); }
+@media (min-width: 750px) {
+    .lines--page .line { grid-template-columns: 112px minmax(0, 1fr) auto; gap: .25rem 1.5rem; padding-block: 1.5rem; }
+    .lines--page .line__title { font-size: 1rem; }
+    .lines--page .line__total { font-size: 1rem; }
+    .lines--page .line__actions { justify-content: flex-start; gap: 1.5rem; }
+}
+.summary { display: grid; gap: 1.125rem; padding: 1.5rem; border-radius: var(--radius-card); }
+@media (min-width: 990px) { .summary { position: sticky; top: calc(var(--header-h) + 1rem); } }
+.summary__title { font-size: var(--fs-h4); }
+.summary__pay { justify-content: center; }
+.estimate { border-block: 1px solid var(--c-border); }
+.estimate__summary {
+    display: flex; align-items: center; justify-content: space-between; min-height: 48px;
+    font-size: var(--fs-sm); font-weight: 600; list-style: none; cursor: pointer;
+}
+.estimate__summary::-webkit-details-marker { display: none; }
+.estimate[open] .estimate__summary .icon { transform: rotate(180deg); }
+.estimate__form { display: grid; gap: .875rem; padding-block-end: 1.125rem; }
+.estimate__result:empty { display: none; }
+.estimate__result { font-size: var(--fs-sm); }
+.estimate__result ul { display: grid; gap: .375rem; margin: 0; padding: 0; list-style: none; }
+.estimate__result li { display: flex; justify-content: space-between; gap: 1rem; font-variant-numeric: tabular-nums; }
+.estimate__result li span:last-child { font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+    .buybar, .line.is-leaving, .ship-meter span, .tabs__tab::after { transition: none; }
+    .lightbox[open] .lightbox__img { animation: none; }
+}
+
+/* phones: keep quantity, add and wishlist on one row, and the three detail tabs in view */
+.buy__add { white-space: nowrap; }
+@media (max-width: 499px) {
+    .buy__row { gap: .5rem; }
+    .buy .qty__btn { width: 40px; }
+    .buy .qty__input { width: 2.25rem; }
+    .buy__wish { width: 50px; }
+    .tabs__list { gap: 1.25rem; }
+    .tabs__tab { font-size: .8125rem; }
+}
+
+.coupon__applied { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; font-size: var(--fs-sm); }
+.estimate__fields { display: grid; gap: .75rem; }
+.estimate__fields:empty { display: none; }
+.line.is-flagged .line__media { opacity: .6; }
+.s-cart.is-busy [data-cart-page] { opacity: .6; pointer-events: none; transition: opacity .2s; }

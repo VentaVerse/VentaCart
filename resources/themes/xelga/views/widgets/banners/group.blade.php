@@ -1,0 +1,1 @@
+{{-- Xelga composes its pages from its own sections and places no core widgets, so this view draws nothing. The theme contract asks for it until themes that keep their own storage may declare that they draw no widgets. --}}

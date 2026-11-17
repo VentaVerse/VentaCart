@@ -1,0 +1,725 @@
+{
+  "format": 1,
+  "name": "Outdoor",
+  "line": "Hiking and camping gear",
+  "position": 6,
+  "documents": {
+    "settings": {
+      "schema": 1,
+      "values": {
+        "font_pair": "barlow-semi",
+        "heading_case": "uppercase",
+        "button_case": "uppercase",
+        "button_radius": 28,
+        "card_style": "panel",
+        "card_ratio": "square",
+        "card_hover": "zoom",
+        "card_radius": 14,
+        "quick_add": "icon",
+        "badge_style": "percent",
+        "density": "comfortable",
+        "page_width": 1360,
+        "input_radius": 24,
+        "button_fill": "solid"
+      },
+      "schemes": [
+        {
+          "id": "scheme-1",
+          "label": "Morning fog",
+          "colors": {
+            "bg": "#f1f4ef",
+            "text": "#16211a",
+            "muted": "#4d5a50",
+            "accent": "#a9321c",
+            "accent-text": "#ffffff",
+            "button": "#1f3a2a",
+            "button-text": "#ffffff",
+            "border": "#d3dacf",
+            "card": "#e4e9e0"
+          }
+        },
+        {
+          "id": "scheme-2",
+          "label": "Clear sky",
+          "colors": {
+            "bg": "#ffffff",
+            "text": "#16211a",
+            "muted": "#505c53",
+            "accent": "#a9321c",
+            "accent-text": "#ffffff",
+            "button": "#1f3a2a",
+            "button-text": "#ffffff",
+            "border": "#dfe4dc",
+            "card": "#f1f4ef"
+          }
+        },
+        {
+          "id": "scheme-3",
+          "label": "Pine at night",
+          "colors": {
+            "bg": "#1a281f",
+            "text": "#eef2ea",
+            "muted": "#b4c0b2",
+            "accent": "#f2a582",
+            "accent-text": "#1a281f",
+            "button": "#eef2ea",
+            "button-text": "#1a281f",
+            "border": "#33463a",
+            "card": "#223328"
+          }
+        },
+        {
+          "id": "scheme-4",
+          "label": "Signal red",
+          "colors": {
+            "bg": "#a42f1b",
+            "text": "#ffffff",
+            "muted": "#fbe3db",
+            "accent": "#ffffff",
+            "accent-text": "#8a2615",
+            "button": "#ffffff",
+            "button-text": "#7a2212",
+            "border": "#c25a46",
+            "card": "#b23a25"
+          }
+        },
+        {
+          "id": "scheme-5",
+          "label": "Lichen",
+          "colors": {
+            "bg": "#dbe3d1",
+            "text": "#16211a",
+            "muted": "#45514a",
+            "accent": "#9c2e1a",
+            "accent-text": "#ffffff",
+            "button": "#1f3a2a",
+            "button-text": "#ffffff",
+            "border": "#bfcab5",
+            "card": "#eaefe4"
+          }
+        }
+      ]
+    },
+    "header": {
+      "schema": 1,
+      "order": [
+        "announcement-1",
+        "header-1"
+      ],
+      "sections": {
+        "announcement-1": {
+          "type": "announcement-bar",
+          "label": "Announcement bar",
+          "disabled": false,
+          "settings": {
+            "variant": "static",
+            "interval": 5,
+            "show_arrows": true,
+            "scheme": "scheme-3"
+          },
+          "block_order": [
+            "announcement-1-b1",
+            "announcement-1-b2",
+            "announcement-1-b3"
+          ],
+          "blocks": {
+            "announcement-1-b1": {
+              "type": "message",
+              "label": "Message 1",
+              "disabled": false,
+              "settings": {
+                "text": "Cash on delivery anywhere in the Philippines"
+              }
+            },
+            "announcement-1-b2": {
+              "type": "message",
+              "label": "Message 2",
+              "disabled": false,
+              "settings": {
+                "text": "Tents and sleeping bags for rent, picked up at our Baguio shop"
+              }
+            },
+            "announcement-1-b3": {
+              "type": "message",
+              "label": "Message 3",
+              "disabled": false,
+              "settings": {
+                "text": "Boot fitting by appointment, free with any boot"
+              }
+            }
+          }
+        },
+        "header-1": {
+          "type": "header",
+          "label": "Header",
+          "disabled": false,
+          "settings": {
+            "variant": "classic",
+            "logo_text": "",
+            "logo_width": 170,
+            "menu": "main",
+            "menu_style": "mega",
+            "sticky": true,
+            "show_search": true,
+            "search_placeholder": "Search tents, packs, headlamps...",
+            "show_account": true,
+            "show_wishlist": true,
+            "scheme": "scheme-2",
+            "logo_image": ""
+          },
+          "block_order": [
+            "header-1-b1"
+          ],
+          "blocks": {
+            "header-1-b1": {
+              "type": "mega-promo",
+              "label": "Photo in the Shop gear panel",
+              "disabled": false,
+              "settings": {
+                "menu_item": "Shop gear",
+                "image": "images/banner-rental.jpg",
+                "heading": "Rent a tent for the weekend",
+                "link": {
+                  "type": "search"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "footer": {
+      "schema": 1,
+      "order": [
+        "footer-1"
+      ],
+      "sections": {
+        "footer-1": {
+          "type": "footer",
+          "label": "Footer",
+          "disabled": false,
+          "settings": {
+            "variant": "columns",
+            "about": "An outdoor shop in Baguio for hikers, campers, trail runners and climbers. Gear we have carried ourselves, rentals for your first climbs, and boot fitting in person.",
+            "show_socials": true,
+            "show_payments": true,
+            "legal": "",
+            "scheme": "scheme-3"
+          },
+          "block_order": [
+            "footer-1-b1",
+            "footer-1-b2",
+            "footer-1-b4"
+          ],
+          "blocks": {
+            "footer-1-b1": {
+              "type": "menu",
+              "label": "Menu: Shop",
+              "disabled": false,
+              "settings": {
+                "heading": "Shop",
+                "menu": "main"
+              }
+            },
+            "footer-1-b2": {
+              "type": "menu",
+              "label": "Menu: Services",
+              "disabled": false,
+              "settings": {
+                "heading": "Services",
+                "menu": "footer"
+              }
+            },
+            "footer-1-b4": {
+              "type": "contact",
+              "label": "Contact details",
+              "disabled": false,
+              "settings": {
+                "heading": "Visit the shop",
+                "show_phone": true,
+                "show_email": true,
+                "show_address": true,
+                "show_hours": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "home": {
+      "schema": 1,
+      "order": [
+        "hero-1",
+        "usp-1",
+        "categories-1",
+        "products-1",
+        "promos-1",
+        "spotlight-1",
+        "guide-1",
+        "brands-1",
+        "blog-1"
+      ],
+      "sections": {
+        "hero-1": {
+          "type": "hero",
+          "label": "Main banner",
+          "disabled": false,
+          "settings": {
+            "variant": "full-image",
+            "height": "large",
+            "autoplay": true,
+            "interval": 6,
+            "heading_size": "large",
+            "scheme": "scheme-3"
+          },
+          "block_order": [
+            "hero-1-b1"
+          ],
+          "blocks": {
+            "hero-1-b1": {
+              "type": "slide",
+              "label": "Slide 1: Sunrise ridge",
+              "disabled": false,
+              "settings": {
+                "image": "images/slide-1-ridge.jpg",
+                "image_alt": "Two hikers in red and gray jackets climbing a grassy ridge above a sea of clouds at sunrise",
+                "heading": "Be on the ridge before the sun",
+                "text": "Packs, shells and headlamps for the 2 AM start up Pulag, Ulap or Apo. Everything here has been carried up a Philippine mountain first.",
+                "button_label": "Shop hiking gear",
+                "button_link": {
+                  "type": "category",
+                  "slug": "hiking"
+                },
+                "button2_label": "Rent a tent",
+                "button2_link": {
+                  "type": "search"
+                }
+              }
+            }
+          }
+        },
+        "usp-1": {
+          "type": "usp-bar",
+          "label": "Store promises",
+          "disabled": false,
+          "settings": {
+            "variant": "columns",
+            "icon_style": "circle",
+            "scheme": "scheme-5",
+            "pad": "sm"
+          },
+          "block_order": [
+            "usp-1-b1",
+            "usp-1-b2",
+            "usp-1-b3",
+            "usp-1-b4"
+          ],
+          "blocks": {
+            "usp-1-b1": {
+              "type": "promise",
+              "label": "Cash on delivery",
+              "disabled": false,
+              "settings": {
+                "icon": "cash",
+                "title": "Cash on delivery",
+                "text": "Pay the courier when your gear arrives."
+              }
+            },
+            "usp-1-b2": {
+              "type": "promise",
+              "label": "Ships nationwide",
+              "disabled": false,
+              "settings": {
+                "icon": "truck",
+                "title": "Ships nationwide",
+                "text": "Luzon, Visayas and Mindanao by courier."
+              }
+            },
+            "usp-1-b3": {
+              "type": "promise",
+              "label": "Gear for rent",
+              "disabled": false,
+              "settings": {
+                "icon": "package",
+                "title": "Gear for rent",
+                "text": "Tents, bags and stoves for a weekend climb."
+              }
+            },
+            "usp-1-b4": {
+              "type": "promise",
+              "label": "Boot fitting in Baguio",
+              "disabled": false,
+              "settings": {
+                "icon": "map-pin",
+                "title": "Boot fitting in Baguio",
+                "text": "Try boots on with your own hiking socks."
+              }
+            }
+          }
+        },
+        "categories-1": {
+          "type": "category-tiles",
+          "label": "Shop by activity",
+          "disabled": false,
+          "settings": {
+            "variant": "text-over-image",
+            "heading": "Where are you headed?",
+            "subheading": "Gear sorted by what you plan to do, from a day hike to a week on the water.",
+            "link_label": "All activities",
+            "link": {
+              "type": "search"
+            },
+            "cols": 6,
+            "ratio": "portrait",
+            "show_note": true,
+            "mobile_layout": "scroll",
+            "head_align": "start",
+            "scheme": "scheme-1",
+            "pad": "md"
+          },
+          "block_order": [
+            "categories-1-b1",
+            "categories-1-b2",
+            "categories-1-b3",
+            "categories-1-b4",
+            "categories-1-b5",
+            "categories-1-b6"
+          ],
+          "blocks": {
+            "categories-1-b1": {
+              "type": "category",
+              "label": "Hiking",
+              "disabled": false,
+              "settings": {
+                "category": "hiking",
+                "label": "Hiking",
+                "note": "Packs, poles, boots",
+                "image": "images/cat-hiking.jpg"
+              }
+            },
+            "categories-1-b2": {
+              "type": "category",
+              "label": "Camping",
+              "disabled": false,
+              "settings": {
+                "category": "camping",
+                "label": "Camping",
+                "note": "Tents, bags, stoves",
+                "image": "images/cat-camping.jpg"
+              }
+            },
+            "categories-1-b3": {
+              "type": "category",
+              "label": "Trail running",
+              "disabled": false,
+              "settings": {
+                "category": "trail-running",
+                "label": "Trail running",
+                "note": "Vests, shoes, flasks",
+                "image": "images/cat-trail-running.jpg"
+              }
+            },
+            "categories-1-b4": {
+              "type": "category",
+              "label": "Climbing",
+              "disabled": false,
+              "settings": {
+                "category": "climbing",
+                "label": "Climbing",
+                "note": "Harnesses, shoes, chalk",
+                "image": "images/cat-climbing.jpg"
+              }
+            },
+            "categories-1-b5": {
+              "type": "category",
+              "label": "Water",
+              "disabled": false,
+              "settings": {
+                "category": "water",
+                "label": "Water",
+                "note": "Dry bags, sandals, PFDs",
+                "image": "images/cat-water.jpg"
+              }
+            },
+            "categories-1-b6": {
+              "type": "category",
+              "label": "Travel",
+              "disabled": false,
+              "settings": {
+                "category": "travel",
+                "label": "Travel",
+                "note": "Duffels, cubes, adapters",
+                "image": "images/cat-travel.jpg"
+              }
+            }
+          }
+        },
+        "products-1": {
+          "type": "featured-products",
+          "label": "Best sellers",
+          "disabled": false,
+          "settings": {
+            "variant": "carousel",
+            "heading": "Packed for this weekend",
+            "subheading": "What hikers are buying before Pulag and Ulap season: shelter, warmth and light.",
+            "link_label": "Shop all gear",
+            "link": {
+              "type": "search"
+            },
+            "source": "best-sellers",
+            "category": null,
+            "products": [],
+            "count": 8,
+            "cols": 4,
+            "rows": 2,
+            "mobile_cols": "2",
+            "show_rating": true,
+            "show_quick_add": true,
+            "show_brand": true,
+            "head_align": "start",
+            "scheme": "scheme-1",
+            "pad": "md"
+          },
+          "block_order": [],
+          "blocks": {}
+        },
+        "promos-1": {
+          "type": "promo-banners",
+          "label": "Rental and fitting banners",
+          "disabled": false,
+          "settings": {
+            "variant": "stacked",
+            "height": "medium",
+            "text_y": "bottom",
+            "scheme": "scheme-1",
+            "pad": "md"
+          },
+          "block_order": [
+            "promos-1-b1",
+            "promos-1-b2"
+          ],
+          "blocks": {
+            "promos-1-b1": {
+              "type": "banner",
+              "label": "Banner: Rent before you buy",
+              "disabled": false,
+              "settings": {
+                "image": "images/banner-rental.jpg",
+                "heading": "Rent before you buy",
+                "text": "Two-person tents, sleeping bags and stoves by the weekend. Pick up Friday, return Monday.",
+                "button_label": "See rental gear",
+                "link": {
+                  "type": "search"
+                },
+                "scheme": "scheme-3"
+              }
+            },
+            "promos-1-b2": {
+              "type": "banner",
+              "label": "Banner: Boots and packs, fitted in person",
+              "disabled": false,
+              "settings": {
+                "image": "images/banner-fitting.jpg",
+                "heading": "Boots and packs, fitted in person",
+                "text": "Bring your hiking socks. We measure both feet, then load the pack and adjust it on you.",
+                "button_label": "Book a fitting",
+                "link": {
+                  "type": "search"
+                },
+                "scheme": "scheme-3"
+              }
+            }
+          }
+        },
+        "spotlight-1": {
+          "type": "product-spotlight",
+          "label": "Cold-summit deal",
+          "disabled": false,
+          "settings": {
+            "variant": "banner",
+            "heading": "Cold-summit deal",
+            "text": "Pulag's summit drops close to freezing before dawn. This bag keeps you warm down to 5 °C and packs to the size of a loaf of bread.",
+            "product": "silong-down-sleeping-bag-5-c",
+            "image": "images/blog-summit-cold.jpg",
+            "image_pos": "end",
+            "show_countdown": true,
+            "show_specs": true,
+            "button_label": "Add sleeping bag to cart",
+            "scheme": "scheme-2",
+            "pad": "md"
+          },
+          "block_order": [],
+          "blocks": {}
+        },
+        "guide-1": {
+          "type": "image-with-text",
+          "label": "First overnight gear list",
+          "disabled": false,
+          "settings": {
+            "variant": "background",
+            "image": "images/slide-2-camp.jpg",
+            "image_alt": "Friends sharing hot drinks outside lit tents under a night sky",
+            "image_pos": "end",
+            "ratio": "landscape",
+            "media_width": 50,
+            "align": "center",
+            "heading": "Your first overnight: the gear list",
+            "text": "<p>A night on the mountain needs less than most first-timers pack. Start with these four, then rent or borrow the rest until you know what you like.</p>",
+            "button_label": "Read the full packing list",
+            "button_link": {
+              "type": "search"
+            },
+            "scheme": "scheme-3",
+            "pad": "lg"
+          },
+          "block_order": [
+            "guide-1-b1",
+            "guide-1-b2",
+            "guide-1-b3",
+            "guide-1-b4"
+          ],
+          "blocks": {
+            "guide-1-b1": {
+              "type": "step",
+              "label": "Step 1: Shelter",
+              "disabled": false,
+              "settings": {
+                "title": "Shelter",
+                "text": "A freestanding two-person tent that one person can pitch in the wind."
+              }
+            },
+            "guide-1-b2": {
+              "type": "step",
+              "label": "Step 2: Sleep system",
+              "disabled": false,
+              "settings": {
+                "title": "Sleep system",
+                "text": "A bag rated a few degrees below the forecast, plus an insulated pad."
+              }
+            },
+            "guide-1-b3": {
+              "type": "step",
+              "label": "Step 3: Light and water",
+              "disabled": false,
+              "settings": {
+                "title": "Light and water",
+                "text": "A headlamp with spare charge and two litres of water per person."
+              }
+            },
+            "guide-1-b4": {
+              "type": "step",
+              "label": "Step 4: Rain and cold",
+              "disabled": false,
+              "settings": {
+                "title": "Rain and cold",
+                "text": "A rain shell and a warm layer, even when the morning is clear."
+              }
+            }
+          }
+        },
+        "brands-1": {
+          "type": "brand-logos",
+          "label": "Brands we carry",
+          "disabled": false,
+          "settings": {
+            "variant": "grid",
+            "heading": "Brands on our shelves",
+            "cols": 6,
+            "grayscale": true,
+            "head_align": "start",
+            "scheme": "scheme-1",
+            "pad": "md"
+          },
+          "block_order": [
+            "brands-1-b1",
+            "brands-1-b2",
+            "brands-1-b3",
+            "brands-1-b4",
+            "brands-1-b5",
+            "brands-1-b6"
+          ],
+          "blocks": {
+            "brands-1-b1": {
+              "type": "brand",
+              "label": "Silong",
+              "disabled": false,
+              "settings": {
+                "name": "Silong",
+                "image": ""
+              }
+            },
+            "brands-1-b2": {
+              "type": "brand",
+              "label": "Bitbit",
+              "disabled": false,
+              "settings": {
+                "name": "Bitbit",
+                "image": ""
+              }
+            },
+            "brands-1-b3": {
+              "type": "brand",
+              "label": "Ulan",
+              "disabled": false,
+              "settings": {
+                "name": "Ulan",
+                "image": ""
+              }
+            },
+            "brands-1-b4": {
+              "type": "brand",
+              "label": "Yapak",
+              "disabled": false,
+              "settings": {
+                "name": "Yapak",
+                "image": ""
+              }
+            },
+            "brands-1-b5": {
+              "type": "brand",
+              "label": "Liwanag",
+              "disabled": false,
+              "settings": {
+                "name": "Liwanag",
+                "image": ""
+              }
+            },
+            "brands-1-b6": {
+              "type": "brand",
+              "label": "Apoy",
+              "disabled": false,
+              "settings": {
+                "name": "Apoy",
+                "image": ""
+              }
+            }
+          }
+        },
+        "blog-1": {
+          "type": "blog-posts",
+          "label": "Trail notes",
+          "disabled": false,
+          "settings": {
+            "variant": "grid",
+            "heading": "Trail notes",
+            "link_label": "All trail notes",
+            "link": {
+              "type": "blog"
+            },
+            "source": "latest",
+            "blog_category": "",
+            "count": 3,
+            "cols": 3,
+            "show_date": true,
+            "show_excerpt": true,
+            "head_align": "start",
+            "scheme": "scheme-2",
+            "pad": "lg"
+          },
+          "block_order": [],
+          "blocks": {}
+        }
+      }
+    }
+  }
+}

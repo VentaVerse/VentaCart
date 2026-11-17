@@ -1,0 +1,81 @@
+{
+  "type": "product-reviews",
+  "label": "Product reviews",
+  "description": "Shows approved reviews. Hidden while the Reviews extension is off.",
+  "group": "template",
+  "templates": [
+    "product",
+    "*custom"
+  ],
+  "limit": 1,
+  "main": false,
+  "class": "s-reviews",
+  "settings": [
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "Reviews",
+      "max": 60
+    },
+    {
+      "key": "per_page",
+      "type": "range",
+      "label": "Reviews shown at first",
+      "default": 5,
+      "min": 3,
+      "max": 20,
+      "step": 1
+    },
+    {
+      "key": "show_how",
+      "type": "toggle",
+      "label": "Say how reviews are collected",
+      "default": true
+    },
+    {
+      "key": "show_empty",
+      "type": "toggle",
+      "label": "Show the section when there are no reviews yet",
+      "default": false
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "presets": [
+    {
+      "key": "reviews",
+      "label": "Product reviews",
+      "settings": {}
+    }
+  ]
+}

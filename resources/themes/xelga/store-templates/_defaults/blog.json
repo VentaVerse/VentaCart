@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "order": [
+    "blog-main-1",
+    "blog-ask"
+  ],
+  "sections": {
+    "blog-main-1": {
+      "type": "blog-main",
+      "label": "Blog posts",
+      "disabled": false,
+      "settings": {
+        "variant": "grid",
+        "cols": "3",
+        "scheme": "scheme-1",
+        "pad": "md"
+      },
+      "block_order": [
+        "blog-main-1-heading",
+        "blog-main-1-categories",
+        "blog-main-1-search",
+        "blog-main-1-posts"
+      ],
+      "blocks": {
+        "blog-main-1-heading": {
+          "type": "heading",
+          "label": "Page heading",
+          "disabled": false,
+          "settings": {
+            "heading": "Blog",
+            "text": "Buying guides, setup tips and news from the store."
+          }
+        },
+        "blog-main-1-categories": {
+          "type": "categories",
+          "label": "Category links",
+          "disabled": false,
+          "settings": {
+            "show_counts": true
+          }
+        },
+        "blog-main-1-search": {
+          "type": "search",
+          "label": "Search the blog",
+          "disabled": false,
+          "settings": {
+            "placeholder": "Search posts"
+          }
+        },
+        "blog-main-1-posts": {
+          "type": "posts",
+          "label": "Post list",
+          "disabled": false,
+          "settings": {}
+        }
+      }
+    },
+    "blog-ask": {
+      "type": "image-with-text",
+      "label": "Ask before you buy",
+      "disabled": false,
+      "settings": {
+        "variant": "split",
+        "image": "media/xelga/gadgets/banner-desk.jpg",
+        "image_alt": "A laptop and a monitor on a dark desk beside a plant and headphones",
+        "image_pos": "end",
+        "heading": "Ask before you buy",
+        "text": "<p>Tell us what you will use it for and what you want to spend. We reply with the model that fits.</p>",
+        "button_label": "Ask us",
+        "button_link": {
+          "type": "contact"
+        },
+        "scheme": "scheme-2",
+        "pad": "lg"
+      },
+      "block_order": [],
+      "blocks": {}
+    }
+  }
+}

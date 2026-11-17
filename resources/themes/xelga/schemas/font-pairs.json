@@ -1,0 +1,347 @@
+{
+  "pairs": [
+    {
+      "value": "anybody-albert",
+      "label": "Anybody and Albert Sans",
+      "description": "Wide, spaced capitals over quiet, even copy. For fashion and design-led stores.",
+      "heading": "\"Anybody\", \"Helvetica Neue\", Arial, sans-serif",
+      "body": "\"Albert Sans\", system-ui, sans-serif",
+      "heading_weight": 500,
+      "preload": "anybody-latin.woff2",
+      "files": [
+        {
+          "family": "Anybody",
+          "file": "anybody-latin.woff2",
+          "weight": "400 700",
+          "stretch": "100% 150%",
+          "license": "Anybody-OFL.txt"
+        },
+        {
+          "family": "Albert Sans",
+          "file": "albert-sans-latin.woff2",
+          "weight": "400 700",
+          "stretch": "100%",
+          "license": "AlbertSans-OFL.txt"
+        }
+      ],
+      "tokens": {
+        "--heading-stretch": "125%",
+        "--heading-line": "1.12",
+        "--wordmark-weight": "600",
+        "--wordmark-stretch": "150%",
+        "--wordmark-case": "uppercase",
+        "--wordmark-tracking": "0.22em",
+        "--wordmark-size": "1.375rem",
+        "--menu-size": ".8125rem",
+        "--menu-weight": "500",
+        "--menu-case": "uppercase",
+        "--menu-tracking": "0.1em",
+        "--button-tracking": "0.1em",
+        "--button-weight": "600",
+        "--fs-display": "clamp(2rem, 1.2rem + 3.4vw, 4rem)",
+        "--fs-h1": "clamp(1.75rem, 1.3rem + 1.9vw, 2.75rem)",
+        "--fs-h2": "clamp(1.25rem, 1.05rem + .9vw, 1.875rem)",
+        "--fs-h3": "clamp(1rem, .95rem + .3vw, 1.1875rem)",
+        "--fs-h4": ".9375rem"
+      }
+    },
+    {
+      "value": "archivo-public",
+      "label": "Archivo and Public Sans",
+      "description": "Narrow, firm headings over a plain, very legible body. For parts, tools and large catalogs.",
+      "heading": "\"Archivo\", \"Arial Narrow\", sans-serif",
+      "body": "\"Public Sans\", system-ui, sans-serif",
+      "heading_weight": 700,
+      "preload": "archivo-latin.woff2",
+      "files": [
+        {
+          "family": "Archivo",
+          "file": "archivo-latin.woff2",
+          "weight": "500 800",
+          "stretch": "62% 100%",
+          "license": "Archivo-OFL.txt"
+        },
+        {
+          "family": "Public Sans",
+          "file": "public-sans-latin.woff2",
+          "weight": "400 700",
+          "stretch": "100%",
+          "license": "PublicSans-OFL.txt"
+        }
+      ],
+      "tokens": {
+        "--heading-stretch": "85%",
+        "--heading-line": "1.04",
+        "--wordmark-weight": "800",
+        "--wordmark-stretch": "75%",
+        "--wordmark-case": "uppercase",
+        "--wordmark-tracking": "0.02em",
+        "--wordmark-size": "1.5rem",
+        "--menu-size": ".875rem",
+        "--menu-weight": "600",
+        "--menu-case": "none",
+        "--menu-tracking": "0em",
+        "--button-tracking": "0.02em",
+        "--button-weight": "600",
+        "--fs-display": "clamp(2.375rem, 1.5rem + 3.6vw, 4.25rem)",
+        "--fs-h1": "clamp(2rem, 1.45rem + 2.4vw, 3.25rem)",
+        "--fs-h2": "clamp(1.5rem, 1.2rem + 1.4vw, 2.375rem)",
+        "--fs-h3": "clamp(1.125rem, 1rem + .45vw, 1.375rem)",
+        "--fs-h4": "1.0625rem"
+      }
+    },
+    {
+      "value": "big-shoulders-franklin",
+      "label": "Big Shoulders Display and Libre Franklin",
+      "description": "Tall, loud poster capitals over a sturdy body. For music, events and anything with volume.",
+      "heading": "\"Big Shoulders Display\", \"Arial Narrow\", sans-serif",
+      "body": "\"Libre Franklin\", system-ui, sans-serif",
+      "heading_weight": 800,
+      "preload": "big-shoulders-display-latin.woff2",
+      "files": [
+        {
+          "family": "Big Shoulders Display",
+          "file": "big-shoulders-display-latin.woff2",
+          "weight": "700 900",
+          "stretch": "100%",
+          "license": "BigShouldersDisplay-OFL.txt"
+        },
+        {
+          "family": "Libre Franklin",
+          "file": "libre-franklin-latin.woff2",
+          "weight": "400 700",
+          "stretch": "100%",
+          "license": "LibreFranklin-OFL.txt"
+        }
+      ],
+      "tokens": {
+        "--heading-stretch": "100%",
+        "--heading-line": "0.98",
+        "--wordmark-weight": "900",
+        "--wordmark-stretch": "100%",
+        "--wordmark-case": "uppercase",
+        "--wordmark-tracking": "0.06em",
+        "--wordmark-size": "1.875rem",
+        "--menu-size": ".9375rem",
+        "--menu-weight": "600",
+        "--menu-case": "none",
+        "--menu-tracking": "0em",
+        "--button-tracking": "0.06em",
+        "--button-weight": "700",
+        "--fs-display": "clamp(2.75rem, 1.6rem + 4.6vw, 5.25rem)",
+        "--fs-h1": "clamp(2.25rem, 1.6rem + 2.8vw, 3.75rem)",
+        "--fs-h2": "clamp(1.875rem, 1.45rem + 1.8vw, 3rem)",
+        "--fs-h3": "clamp(1.125rem, 1rem + .45vw, 1.375rem)",
+        "--fs-h4": "1.0625rem"
+      }
+    },
+    {
+      "value": "familjen-instrument",
+      "label": "Familjen Grotesk and Instrument Sans",
+      "description": "Calm, slightly quirky headings over a clean body. For home, living and design objects.",
+      "heading": "\"Familjen Grotesk\", system-ui, sans-serif",
+      "body": "\"Instrument Sans\", system-ui, sans-serif",
+      "heading_weight": 600,
+      "preload": "familjen-grotesk-latin.woff2",
+      "files": [
+        {
+          "family": "Familjen Grotesk",
+          "file": "familjen-grotesk-latin.woff2",
+          "weight": "500 700",
+          "stretch": "100%",
+          "license": "FamiljenGrotesk-OFL.txt"
+        },
+        {
+          "family": "Instrument Sans",
+          "file": "instrument-sans-latin.woff2",
+          "weight": "400 700",
+          "stretch": "100%",
+          "license": "InstrumentSans-OFL.txt"
+        }
+      ],
+      "tokens": {
+        "--heading-stretch": "100%",
+        "--heading-line": "1.04",
+        "--wordmark-weight": "600",
+        "--wordmark-stretch": "100%",
+        "--wordmark-case": "uppercase",
+        "--wordmark-tracking": "0.32em",
+        "--wordmark-size": "1.375rem",
+        "--menu-size": ".9375rem",
+        "--menu-weight": "500",
+        "--menu-case": "none",
+        "--menu-tracking": "0em",
+        "--button-tracking": "0.02em",
+        "--button-weight": "600",
+        "--fs-display": "clamp(2.5rem, 1.6rem + 3.6vw, 4.5rem)",
+        "--fs-h1": "clamp(2rem, 1.45rem + 2.4vw, 3.25rem)",
+        "--fs-h2": "clamp(1.5rem, 1.2rem + 1.4vw, 2.375rem)",
+        "--fs-h3": "clamp(1.125rem, 1rem + .45vw, 1.375rem)",
+        "--fs-h4": "1.0625rem"
+      }
+    },
+    {
+      "value": "bricolage-hanken",
+      "label": "Bricolage Grotesque and Hanken Grotesk",
+      "description": "Soft, characterful headings over a friendly body. For beauty, skincare and gifts.",
+      "heading": "\"Bricolage Grotesque\", system-ui, sans-serif",
+      "body": "\"Hanken Grotesk\", system-ui, sans-serif",
+      "heading_weight": 600,
+      "preload": "bricolage-grotesque-latin.woff2",
+      "files": [
+        {
+          "family": "Bricolage Grotesque",
+          "file": "bricolage-grotesque-latin.woff2",
+          "weight": "500 800",
+          "stretch": "100%",
+          "license": "BricolageGrotesque-OFL.txt"
+        },
+        {
+          "family": "Hanken Grotesk",
+          "file": "hanken-grotesk-latin.woff2",
+          "weight": "400 700",
+          "stretch": "100%",
+          "license": "HankenGrotesk-OFL.txt"
+        }
+      ],
+      "tokens": {
+        "--heading-stretch": "100%",
+        "--heading-line": "1.04",
+        "--wordmark-weight": "800",
+        "--wordmark-stretch": "100%",
+        "--wordmark-case": "lowercase",
+        "--wordmark-tracking": "-0.04em",
+        "--wordmark-size": "1.75rem",
+        "--menu-size": ".9375rem",
+        "--menu-weight": "500",
+        "--menu-case": "none",
+        "--menu-tracking": "0em",
+        "--button-tracking": "0em",
+        "--button-weight": "600",
+        "--fs-display": "clamp(2.5rem, 1.6rem + 3.8vw, 4.75rem)",
+        "--fs-h1": "clamp(2rem, 1.45rem + 2.4vw, 3.25rem)",
+        "--fs-h2": "clamp(1.5rem, 1.2rem + 1.4vw, 2.375rem)",
+        "--fs-h3": "clamp(1.125rem, 1rem + .45vw, 1.375rem)",
+        "--fs-h4": "1.0625rem"
+      }
+    },
+    {
+      "value": "sofia-condensed",
+      "label": "Sofia Sans Extra Condensed and Sofia Sans",
+      "description": "Very tall, tight headings from the same family as the body. For food, coffee and bold labels.",
+      "heading": "\"Sofia Sans Extra Condensed\", \"Arial Narrow\", sans-serif",
+      "body": "\"Sofia Sans\", system-ui, sans-serif",
+      "heading_weight": 800,
+      "preload": "sofia-sans-extra-condensed-latin.woff2",
+      "files": [
+        {
+          "family": "Sofia Sans Extra Condensed",
+          "file": "sofia-sans-extra-condensed-latin.woff2",
+          "weight": "600 800",
+          "stretch": "100%",
+          "license": "SofiaSansExtraCondensed-OFL.txt"
+        },
+        {
+          "family": "Sofia Sans",
+          "file": "sofia-sans-latin.woff2",
+          "weight": "400 700",
+          "stretch": "100%",
+          "license": "SofiaSans-OFL.txt"
+        }
+      ],
+      "tokens": {
+        "--heading-stretch": "100%",
+        "--heading-line": "0.96",
+        "--wordmark-weight": "800",
+        "--wordmark-stretch": "100%",
+        "--wordmark-case": "uppercase",
+        "--wordmark-tracking": "0.06em",
+        "--wordmark-size": "1.75rem",
+        "--menu-size": ".9375rem",
+        "--menu-weight": "600",
+        "--menu-case": "none",
+        "--menu-tracking": "0em",
+        "--button-tracking": "0.08em",
+        "--button-weight": "700",
+        "--fs-display": "clamp(3.25rem, 2rem + 5.4vw, 6rem)",
+        "--fs-h1": "clamp(2.5rem, 1.7rem + 3.4vw, 4.5rem)",
+        "--fs-h2": "clamp(2.125rem, 1.6rem + 2.2vw, 3.5rem)",
+        "--fs-h3": "clamp(1.5rem, 1.3rem + .8vw, 2rem)",
+        "--fs-h4": "1.375rem"
+      }
+    },
+    {
+      "value": "barlow-semi",
+      "label": "Barlow Semi Condensed and Barlow",
+      "description": "Practical, sign-like headings over a sturdy body. For outdoor, sport and gear.",
+      "heading": "\"Barlow Semi Condensed\", \"Arial Narrow\", sans-serif",
+      "body": "\"Barlow\", system-ui, sans-serif",
+      "heading_weight": 700,
+      "preload": "barlow-semi-condensed-700-latin.woff2",
+      "files": [
+        {
+          "family": "Barlow Semi Condensed",
+          "file": "barlow-semi-condensed-600-latin.woff2",
+          "weight": "600",
+          "stretch": "100%",
+          "license": "BarlowSemiCondensed-OFL.txt"
+        },
+        {
+          "family": "Barlow Semi Condensed",
+          "file": "barlow-semi-condensed-700-latin.woff2",
+          "weight": "700",
+          "stretch": "100%",
+          "license": "BarlowSemiCondensed-OFL.txt"
+        },
+        {
+          "family": "Barlow Semi Condensed",
+          "file": "barlow-semi-condensed-800-latin.woff2",
+          "weight": "800",
+          "stretch": "100%",
+          "license": "BarlowSemiCondensed-OFL.txt"
+        },
+        {
+          "family": "Barlow",
+          "file": "barlow-400-latin.woff2",
+          "weight": "400",
+          "stretch": "100%",
+          "license": "Barlow-OFL.txt"
+        },
+        {
+          "family": "Barlow",
+          "file": "barlow-500-latin.woff2",
+          "weight": "500",
+          "stretch": "100%",
+          "license": "Barlow-OFL.txt"
+        },
+        {
+          "family": "Barlow",
+          "file": "barlow-600-latin.woff2",
+          "weight": "600",
+          "stretch": "100%",
+          "license": "Barlow-OFL.txt"
+        }
+      ],
+      "tokens": {
+        "--heading-stretch": "100%",
+        "--heading-line": "1",
+        "--wordmark-weight": "800",
+        "--wordmark-stretch": "100%",
+        "--wordmark-case": "uppercase",
+        "--wordmark-tracking": "0.08em",
+        "--wordmark-size": "1.625rem",
+        "--menu-size": ".9375rem",
+        "--menu-weight": "600",
+        "--menu-case": "uppercase",
+        "--menu-tracking": "0.04em",
+        "--button-tracking": "0.06em",
+        "--button-weight": "600",
+        "--fs-display": "clamp(2.75rem, 1.6rem + 4.6vw, 5.5rem)",
+        "--fs-h1": "clamp(2rem, 1.45rem + 2.4vw, 3.25rem)",
+        "--fs-h2": "clamp(1.75rem, 1.3rem + 1.8vw, 2.75rem)",
+        "--fs-h3": "clamp(1.125rem, 1rem + .45vw, 1.375rem)",
+        "--fs-h4": "1.0625rem"
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "Xelga",
+  "version": "2.0.0",
+  "author": "VentaVerse",
+  "description": "A storefront theme with its own click-to-edit editor: sections, color schemes, matched fonts and eight starting stores.",
+  "provider": "Themes\\Xelga\\XelgaServiceProvider",
+  "editor": "admin.xelga.editor",
+  "storage": "own",
+  "widgets": false,
+  "regions": {
+    "header_top": {
+      "label": "Above the header"
+    },
+    "content_top": {
+      "label": "Above the page content"
+    },
+    "content_bottom": {
+      "label": "Below the page content"
+    },
+    "footer_top": {
+      "label": "Above the footer"
+    }
+  }
+}

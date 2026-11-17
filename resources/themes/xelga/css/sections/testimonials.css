@@ -1,0 +1,106 @@
+/* ==========================================================================
+   18. Testimonials (grid, carousel, large)
+   ========================================================================== */
+
+.quotes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--grid-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 990px) {
+  .s-quotes[data-variant="grid"] .quotes {
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  }
+}
+
+.quote {
+  display: grid;
+  align-content: space-between;
+  gap: 1.5rem;
+  padding: clamp(1.25rem, 1rem + 1vw, 2rem);
+  background: var(--c-card);
+  border-radius: var(--radius-card);
+}
+
+.quote__rating {
+  display: flex;
+  gap: 2px;
+  color: var(--c-star, var(--c-text));
+}
+
+.quote__rating .icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.s[data-show-rating="false"] .quote__rating {
+  display: none;
+}
+
+.quote__text {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.quote__who {
+  font-size: var(--fs-sm);
+}
+
+.quote__name {
+  font-weight: 650;
+}
+
+.quote__city {
+  color: var(--c-muted);
+}
+
+.s-quotes[data-variant="large"] .quote {
+  justify-items: center;
+  padding: clamp(1.5rem, 4vw, 4rem) clamp(1rem, 8vw, 8rem);
+  text-align: center;
+  background: transparent;
+}
+
+.s-quotes[data-variant="large"] .quote__text {
+  max-width: 34ch;
+  font-family: var(--font-heading);
+  font-stretch: var(--heading-stretch);
+  font-size: var(--fs-h2);
+  font-weight: var(--font-heading-weight);
+  line-height: 1.25;
+  letter-spacing: var(--heading-tracking);
+}
+
+.s-quotes[data-variant="large"] .s-head {
+  justify-content: center;
+  text-align: center;
+}
+
+
+.quote__by {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+
+.quote__photo {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 50%;
+  background: var(--c-bg);
+}
+
+.quote__city:not([hidden])::before {
+  content: ", ";
+  color: var(--c-muted);
+}
+
+.s-quotes[data-variant="large"] .quote__by {
+  justify-content: center;
+}

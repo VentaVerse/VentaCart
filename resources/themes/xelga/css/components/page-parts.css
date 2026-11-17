@@ -1,0 +1,287 @@
+/*
+ * Pieces the content and account pages share: the trail inside a page's
+ * head, page heads, chips, form rows, status notes and empty states. Built
+ * only from the theme's tokens, so every theme setting restyles them.
+ *
+ * The trail here is .page-crumbs (drawn inside a page's own head); the shop
+ * pages' breadcrumbs section is .s-crumbs with its own stylesheet.
+ */
+
+.page-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem .5rem;
+  margin: 0 0 clamp(1.25rem, 1rem + 1vw, 2rem);
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+  color: var(--c-muted);
+}
+
+.page-crumbs li {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.page-crumbs li + li::before {
+  content: "/";
+  color: color-mix(in srgb, var(--c-muted) 60%, transparent);
+}
+
+.page-crumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.page-crumbs a:hover {
+  color: var(--c-text);
+  text-decoration: underline;
+}
+
+.page-crumbs [aria-current] {
+  color: var(--c-text);
+}
+
+.page-head {
+  display: grid;
+  gap: .75rem;
+  max-width: 44rem;
+  margin-block-end: clamp(1.5rem, 1rem + 2vw, 2.75rem);
+}
+
+.page-head__title {
+  font-size: var(--fs-h1);
+}
+
+.page-head__text {
+  margin: 0;
+  font-size: 1.0625rem;
+  color: var(--c-muted);
+  max-width: 60ch;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 40px;
+  padding: .375rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--c-text) 22%, var(--c-border));
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--c-text);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color .2s, border-color .2s, color .2s;
+}
+
+.chip:hover {
+  border-color: var(--c-text);
+}
+
+.chip[aria-current] {
+  color: var(--c-bg);
+  background: var(--c-text);
+  border-color: var(--c-text);
+}
+
+.chip__count {
+  font-variant-numeric: tabular-nums;
+  color: var(--c-muted);
+}
+
+.chip[aria-current] .chip__count {
+  color: color-mix(in srgb, var(--c-bg) 75%, transparent);
+}
+
+.chip--sm {
+  min-height: 34px;
+  padding-inline: .875rem;
+}
+
+.text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--c-text);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: .3em;
+  cursor: pointer;
+}
+
+.text-btn:hover {
+  text-decoration-color: currentColor;
+}
+
+.field__help {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--c-muted);
+}
+
+.field__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.field__row .text-btn {
+  min-height: 0;
+  font-weight: 500;
+}
+
+.textarea {
+  min-height: 8rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 600px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field--full {
+    grid-column: 1 / -1;
+  }
+}
+
+.form-status {
+  display: flex;
+  align-items: flex-start;
+  gap: .5rem;
+  margin: 0;
+  padding: .75rem 1rem;
+  border-radius: var(--radius-input);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.form-status[hidden] {
+  display: none;
+}
+
+.form-status .icon {
+  flex: none;
+  margin-block-start: .125rem;
+}
+
+.form-status--error {
+  color: var(--c-error);
+  background: color-mix(in srgb, var(--c-error) 9%, var(--c-bg));
+}
+
+.form-status--ok {
+  color: var(--c-success);
+  background: color-mix(in srgb, var(--c-success) 9%, var(--c-bg));
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  min-height: 44px;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.check input,
+.choice input,
+.ship__opt input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  flex: none;
+  accent-color: var(--c-text);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .25rem .625rem;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status::before {
+  content: "";
+  width: .4375rem;
+  height: .4375rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status--info {
+  color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 12%, var(--c-bg));
+}
+
+.status--ok {
+  color: var(--c-success);
+  background: color-mix(in srgb, var(--c-success) 11%, var(--c-bg));
+}
+
+.status--lg {
+  padding: .4rem .875rem;
+  font-size: var(--fs-sm);
+}
+
+.pill {
+  display: inline-block;
+  padding: .125rem .5rem;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--c-text);
+  background: var(--c-card);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.empty-note {
+  display: grid;
+  gap: .375rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  border: 1px dashed var(--c-border);
+  border-radius: var(--radius-card);
+}
+
+.empty-note p {
+  margin: 0;
+}
+
+.empty-note__title {
+  font-weight: 600;
+}
+
+
+.select[aria-invalid="true"],
+.textarea[aria-invalid="true"] {
+  border-color: var(--c-error);
+}

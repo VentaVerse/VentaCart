@@ -1,0 +1,159 @@
+{
+  "schema": 1,
+  "order": [
+    "breadcrumbs-1",
+    "product-main-1",
+    "product-details-1",
+    "product-reviews-1",
+    "related-1",
+    "recent-1"
+  ],
+  "sections": {
+    "breadcrumbs-1": {
+      "type": "breadcrumbs",
+      "label": "Breadcrumbs",
+      "disabled": false,
+      "settings": {}
+    },
+    "product-main-1": {
+      "type": "product-main",
+      "label": "Product information",
+      "disabled": false,
+      "settings": {},
+      "block_order": [
+        "product-main-1-gallery",
+        "product-main-1-brand",
+        "product-main-1-title",
+        "product-main-1-rating",
+        "product-main-1-price",
+        "product-main-1-short",
+        "product-main-1-variants",
+        "product-main-1-stock",
+        "product-main-1-volume",
+        "product-main-1-buy",
+        "product-main-1-delivery",
+        "product-main-1-share"
+      ],
+      "blocks": {
+        "product-main-1-gallery": {
+          "type": "gallery",
+          "label": "Photos",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-brand": {
+          "type": "brand",
+          "label": "Brand",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-title": {
+          "type": "title",
+          "label": "Product name",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-rating": {
+          "type": "rating",
+          "label": "Rating",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-price": {
+          "type": "price",
+          "label": "Price",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-short": {
+          "type": "short-description",
+          "label": "Short description",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-variants": {
+          "type": "variants",
+          "label": "Variants",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-stock": {
+          "type": "stock",
+          "label": "Stock note",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-volume": {
+          "type": "volume-pricing",
+          "label": "Volume pricing",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-buy": {
+          "type": "quantity-and-buy",
+          "label": "Quantity and Add to cart",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-delivery": {
+          "type": "delivery-note",
+          "label": "Delivery and payment notes",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-main-1-share": {
+          "type": "share",
+          "label": "Share buttons",
+          "disabled": false,
+          "settings": {}
+        }
+      }
+    },
+    "product-details-1": {
+      "type": "product-details",
+      "label": "Product details",
+      "disabled": false,
+      "settings": {
+        "scheme": "scheme-2"
+      },
+      "block_order": [
+        "product-details-1-description",
+        "product-details-1-specifications"
+      ],
+      "blocks": {
+        "product-details-1-description": {
+          "type": "description",
+          "label": "Description",
+          "disabled": false,
+          "settings": {}
+        },
+        "product-details-1-specifications": {
+          "type": "specifications",
+          "label": "Specifications",
+          "disabled": false,
+          "settings": {}
+        }
+      }
+    },
+    "product-reviews-1": {
+      "type": "product-reviews",
+      "label": "Product reviews",
+      "disabled": false,
+      "settings": {}
+    },
+    "related-1": {
+      "type": "related-products",
+      "label": "Related products",
+      "disabled": false,
+      "settings": {
+        "heading": "You may also like"
+      }
+    },
+    "recent-1": {
+      "type": "recently-viewed",
+      "label": "Recently viewed",
+      "disabled": false,
+      "settings": {}
+    }
+  }
+}

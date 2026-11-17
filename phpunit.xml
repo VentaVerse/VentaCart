@@ -11,6 +11,10 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <!-- The theme that ships with VentaCart keeps its own tests. -->
+        <testsuite name="Xelga">
+            <directory>resources/themes/xelga/tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

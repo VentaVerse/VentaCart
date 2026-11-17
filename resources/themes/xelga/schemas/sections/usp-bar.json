@@ -1,0 +1,375 @@
+{
+  "type": "usp-bar",
+  "label": "Store promises",
+  "group": "template",
+  "templates": [
+    "*"
+  ],
+  "limit": null,
+  "main": false,
+  "class": "s-usp",
+  "variants": [
+    {
+      "value": "strip",
+      "label": "Thin strip"
+    },
+    {
+      "value": "columns",
+      "label": "Columns"
+    },
+    {
+      "value": "centered",
+      "label": "Centered"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "strip",
+      "options": [
+        {
+          "value": "strip",
+          "label": "Thin strip"
+        },
+        {
+          "value": "columns",
+          "label": "Columns"
+        },
+        {
+          "value": "centered",
+          "label": "Centered"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "icon_style",
+      "type": "select",
+      "label": "Icon style",
+      "default": "plain",
+      "options": [
+        {
+          "value": "plain",
+          "label": "Plain"
+        },
+        {
+          "value": "circle",
+          "label": "In a filled circle"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "bg_image",
+      "type": "image",
+      "label": "Background photo",
+      "default": "",
+      "advanced": true
+    },
+    {
+      "key": "bg_overlay",
+      "type": "range",
+      "label": "Darken background photo",
+      "default": 40,
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "advanced": true
+    },
+    {
+      "key": "texture",
+      "type": "select",
+      "label": "Background texture",
+      "default": "none",
+      "advanced": true,
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "dots",
+          "label": "Dots"
+        },
+        {
+          "value": "grid",
+          "label": "Grid lines"
+        },
+        {
+          "value": "lines",
+          "label": "Diagonal lines"
+        },
+        {
+          "value": "grain",
+          "label": "Fine grain"
+        }
+      ]
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "sm",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "blocks": {
+    "min": 2,
+    "max": 4,
+    "types": [
+      {
+        "type": "promise",
+        "label": "Promise",
+        "settings": [
+          {
+            "key": "icon",
+            "type": "select",
+            "label": "Icon",
+            "default": "truck",
+            "options": [
+              {
+                "value": "truck",
+                "label": "Truck"
+              },
+              {
+                "value": "cash",
+                "label": "Cash"
+              },
+              {
+                "value": "shield-check",
+                "label": "Shield"
+              },
+              {
+                "value": "rotate-ccw",
+                "label": "Return arrow"
+              },
+              {
+                "value": "package",
+                "label": "Package"
+              },
+              {
+                "value": "tag",
+                "label": "Tag"
+              },
+              {
+                "value": "bolt",
+                "label": "Lightning"
+              },
+              {
+                "value": "wrench",
+                "label": "Wrench"
+              },
+              {
+                "value": "chat",
+                "label": "Chat"
+              },
+              {
+                "value": "phone",
+                "label": "Phone"
+              },
+              {
+                "value": "clock",
+                "label": "Clock"
+              },
+              {
+                "value": "map-pin",
+                "label": "Map pin"
+              },
+              {
+                "value": "heart",
+                "label": "Heart"
+              },
+              {
+                "value": "star",
+                "label": "Star"
+              },
+              {
+                "value": "check",
+                "label": "Check"
+              },
+              {
+                "value": "info",
+                "label": "Info"
+              }
+            ],
+            "control": "icons",
+            "live": "render"
+          },
+          {
+            "key": "title",
+            "type": "text",
+            "label": "Title",
+            "default": "Ships nationwide",
+            "max": 60
+          },
+          {
+            "key": "text",
+            "type": "text",
+            "label": "Text",
+            "info": "Hidden in the Thin strip layout.",
+            "default": "",
+            "max": 120
+          },
+          {
+            "key": "link",
+            "type": "url",
+            "label": "Link goes to",
+            "default": null
+          }
+        ],
+        "limit": null
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "strip",
+      "label": "Thin strip",
+      "settings": {
+        "variant": "strip",
+        "pad": "sm"
+      },
+      "blocks": [
+        {
+          "type": "promise",
+          "label": "Ships nationwide",
+          "settings": {
+            "icon": "truck",
+            "title": "Ships nationwide",
+            "text": ""
+          }
+        },
+        {
+          "type": "promise",
+          "label": "Cash on delivery",
+          "settings": {
+            "icon": "cash",
+            "title": "Cash on delivery",
+            "text": ""
+          }
+        },
+        {
+          "type": "promise",
+          "label": "Exchanges within 14 days",
+          "settings": {
+            "icon": "rotate-ccw",
+            "title": "Exchanges within 14 days",
+            "text": ""
+          }
+        }
+      ]
+    },
+    {
+      "key": "columns",
+      "label": "Columns with text",
+      "settings": {
+        "variant": "columns",
+        "pad": "md"
+      },
+      "blocks": [
+        {
+          "type": "promise",
+          "label": "Ships nationwide",
+          "settings": {
+            "icon": "truck",
+            "title": "Ships nationwide",
+            "text": "Metro Manila in 1 to 2 days, provinces in 3 to 7."
+          }
+        },
+        {
+          "type": "promise",
+          "label": "Cash on delivery",
+          "settings": {
+            "icon": "cash",
+            "title": "Cash on delivery",
+            "text": "Pay when it arrives, or with a card or e-wallet."
+          }
+        },
+        {
+          "type": "promise",
+          "label": "Easy exchanges",
+          "settings": {
+            "icon": "rotate-ccw",
+            "title": "Easy exchanges",
+            "text": "Wrong size? Exchange it within 14 days."
+          }
+        },
+        {
+          "type": "promise",
+          "label": "Checked before it ships",
+          "settings": {
+            "icon": "shield-check",
+            "title": "Checked before it ships",
+            "text": "Every order is inspected and packed by hand."
+          }
+        }
+      ]
+    },
+    {
+      "key": "centered",
+      "label": "Centered",
+      "settings": {
+        "variant": "centered",
+        "pad": "md",
+        "icon_style": "circle"
+      },
+      "blocks": [
+        {
+          "type": "promise",
+          "label": "Ships nationwide",
+          "settings": {
+            "icon": "truck",
+            "title": "Ships nationwide",
+            "text": "Tracked delivery to every province."
+          }
+        },
+        {
+          "type": "promise",
+          "label": "Cash on delivery",
+          "settings": {
+            "icon": "cash",
+            "title": "Cash on delivery",
+            "text": "Pay the courier when your order arrives."
+          }
+        },
+        {
+          "type": "promise",
+          "label": "Real people answer",
+          "settings": {
+            "icon": "chat",
+            "title": "Real people answer",
+            "text": "Message us and we reply the same day."
+          }
+        }
+      ]
+    }
+  ]
+}

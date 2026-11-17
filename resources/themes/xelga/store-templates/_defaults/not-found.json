@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "order": [
+    "not-found-main-1"
+  ],
+  "sections": {
+    "not-found-main-1": {
+      "type": "not-found-main",
+      "label": "Page not found",
+      "disabled": false,
+      "settings": {
+        "scheme": "scheme-1",
+        "pad": "lg"
+      },
+      "block_order": [
+        "not-found-main-1-heading",
+        "not-found-main-1-search",
+        "not-found-main-1-links"
+      ],
+      "blocks": {
+        "not-found-main-1-heading": {
+          "type": "heading",
+          "label": "Heading and text",
+          "disabled": false,
+          "settings": {}
+        },
+        "not-found-main-1-search": {
+          "type": "search",
+          "label": "Search the shop",
+          "disabled": false,
+          "settings": {}
+        },
+        "not-found-main-1-links": {
+          "type": "links",
+          "label": "Buttons",
+          "disabled": false,
+          "settings": {}
+        }
+      }
+    }
+  }
+}

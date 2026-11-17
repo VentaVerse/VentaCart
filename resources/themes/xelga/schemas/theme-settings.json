@@ -1,0 +1,834 @@
+{
+  "groups": [
+    {
+      "group": "colors",
+      "label": "Colors and schemes",
+      "icon": "palette",
+      "description": "Change a scheme and every section using it follows.",
+      "settings": [
+        {
+          "key": "schemes",
+          "type": "scheme-colors",
+          "label": "Color schemes",
+          "info": "Publish waits until the text in every scheme is easy to read.",
+          "min": 3,
+          "max": 8,
+          "roles": [
+            {
+              "role": "bg",
+              "label": "Background"
+            },
+            {
+              "role": "text",
+              "label": "Text"
+            },
+            {
+              "role": "muted",
+              "label": "Secondary text"
+            },
+            {
+              "role": "accent",
+              "label": "Accent"
+            },
+            {
+              "role": "accent-text",
+              "label": "Text on accent"
+            },
+            {
+              "role": "button",
+              "label": "Button"
+            },
+            {
+              "role": "button-text",
+              "label": "Button text"
+            },
+            {
+              "role": "border",
+              "label": "Lines and borders"
+            },
+            {
+              "role": "card",
+              "label": "Card and photo background"
+            }
+          ],
+          "checks": [
+            {
+              "fg": "text",
+              "bg": "bg",
+              "min": 4.5,
+              "label": "text on background"
+            },
+            {
+              "fg": "muted",
+              "bg": "bg",
+              "min": 3,
+              "label": "secondary text on background"
+            },
+            {
+              "fg": "button-text",
+              "bg": "button",
+              "min": 4.5,
+              "label": "button text on button"
+            },
+            {
+              "fg": "accent-text",
+              "bg": "accent",
+              "min": 4.5,
+              "label": "text on accent"
+            }
+          ],
+          "target": {
+            "type": "scheme-colors"
+          }
+        }
+      ]
+    },
+    {
+      "group": "typography",
+      "label": "Typography",
+      "icon": "type",
+      "settings": [
+        {
+          "key": "font_pair",
+          "type": "select",
+          "label": "Fonts",
+          "default": "anybody-albert",
+          "options_source": "font_pairs",
+          "control": "font-pairs",
+          "target": {
+            "type": "font-pair"
+          }
+        },
+        {
+          "key": "heading_case",
+          "type": "select",
+          "label": "Heading letters",
+          "default": "none",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "none",
+              "label": "As typed"
+            },
+            {
+              "value": "uppercase",
+              "label": "All capitals"
+            }
+          ],
+          "target": {
+            "type": "token",
+            "name": "--heading-case"
+          }
+        },
+        {
+          "key": "body_size",
+          "type": "range",
+          "label": "Body text size",
+          "default": 16,
+          "min": 14,
+          "max": 18,
+          "step": 1,
+          "unit": "px",
+          "target": {
+            "type": "token",
+            "name": "--body-size",
+            "unit": "px"
+          }
+        },
+        {
+          "key": "heading_weight",
+          "type": "select",
+          "label": "Heading weight",
+          "default": "700",
+          "advanced": true,
+          "options": [
+            {
+              "value": "400",
+              "label": "Regular"
+            },
+            {
+              "value": "500",
+              "label": "Medium"
+            },
+            {
+              "value": "600",
+              "label": "Semibold"
+            },
+            {
+              "value": "700",
+              "label": "Bold"
+            },
+            {
+              "value": "800",
+              "label": "Extra bold"
+            }
+          ],
+          "target": {
+            "type": "token",
+            "name": "--font-heading-weight"
+          }
+        },
+        {
+          "key": "heading_tracking",
+          "type": "range",
+          "label": "Heading letter spacing",
+          "default": 0,
+          "min": -3,
+          "max": 10,
+          "step": 1,
+          "unit": "%",
+          "advanced": true,
+          "target": {
+            "type": "token",
+            "name": "--heading-tracking",
+            "map": {
+              "-3": "-0.03em",
+              "-2": "-0.02em",
+              "-1": "-0.01em",
+              "0": "0em",
+              "1": "0.01em",
+              "2": "0.02em",
+              "3": "0.03em",
+              "4": "0.04em",
+              "5": "0.05em",
+              "6": "0.06em",
+              "7": "0.07em",
+              "8": "0.08em",
+              "9": "0.09em",
+              "10": "0.1em"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "buttons",
+      "label": "Buttons",
+      "icon": "button",
+      "settings": [
+        {
+          "key": "button_radius",
+          "type": "range",
+          "label": "Button corners",
+          "default": 6,
+          "min": 0,
+          "max": 28,
+          "step": 2,
+          "unit": "px",
+          "target": {
+            "type": "token",
+            "name": "--radius-button",
+            "unit": "px"
+          }
+        },
+        {
+          "key": "button_fill",
+          "type": "select",
+          "label": "Button style",
+          "default": "solid",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "solid",
+              "label": "Filled"
+            },
+            {
+              "value": "outline",
+              "label": "Outline"
+            }
+          ],
+          "target": {
+            "type": "attr",
+            "name": "data-button-fill"
+          }
+        },
+        {
+          "key": "button_case",
+          "type": "select",
+          "label": "Button letters",
+          "default": "none",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "none",
+              "label": "As typed"
+            },
+            {
+              "value": "uppercase",
+              "label": "All capitals"
+            }
+          ],
+          "target": {
+            "type": "token",
+            "name": "--button-case"
+          }
+        },
+        {
+          "key": "button_size",
+          "type": "select",
+          "label": "Button size",
+          "default": "regular",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "compact",
+              "label": "Compact"
+            },
+            {
+              "value": "regular",
+              "label": "Regular"
+            },
+            {
+              "value": "large",
+              "label": "Large"
+            }
+          ],
+          "target": {
+            "type": "attr",
+            "name": "data-button-size"
+          }
+        }
+      ]
+    },
+    {
+      "group": "product-cards",
+      "label": "Product cards",
+      "icon": "tag",
+      "settings": [
+        {
+          "key": "card_style",
+          "type": "select",
+          "label": "Card style",
+          "default": "plain",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "plain",
+              "label": "Plain"
+            },
+            {
+              "value": "bordered",
+              "label": "With a border"
+            },
+            {
+              "value": "panel",
+              "label": "On a panel"
+            }
+          ],
+          "target": {
+            "type": "attr",
+            "name": "data-card-style"
+          }
+        },
+        {
+          "key": "card_ratio",
+          "type": "select",
+          "label": "Photo shape",
+          "default": "square",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "square",
+              "label": "Square"
+            },
+            {
+              "value": "portrait",
+              "label": "Portrait 4:5"
+            },
+            {
+              "value": "tall",
+              "label": "Tall 3:4"
+            },
+            {
+              "value": "landscape",
+              "label": "Landscape"
+            }
+          ],
+          "target": {
+            "type": "token",
+            "name": "--card-image-ratio",
+            "map": {
+              "square": "1 / 1",
+              "portrait": "4 / 5",
+              "tall": "3 / 4",
+              "landscape": "4 / 3"
+            }
+          }
+        },
+        {
+          "key": "image_fit",
+          "type": "select",
+          "label": "Photo fit",
+          "default": "cover",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "cover",
+              "label": "Fill the shape"
+            },
+            {
+              "value": "contain",
+              "label": "Show the whole photo"
+            }
+          ],
+          "target": {
+            "type": "token",
+            "name": "--card-image-fit"
+          }
+        },
+        {
+          "key": "card_hover",
+          "type": "select",
+          "label": "When pointed at",
+          "default": "swap",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "swap",
+              "label": "Show the second photo"
+            },
+            {
+              "value": "zoom",
+              "label": "Zoom in"
+            },
+            {
+              "value": "none",
+              "label": "Nothing"
+            }
+          ],
+          "target": {
+            "type": "attr",
+            "name": "data-card-hover"
+          }
+        },
+        {
+          "key": "card_align",
+          "type": "select",
+          "label": "Text alignment",
+          "default": "start",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "start",
+              "label": "Left"
+            },
+            {
+              "value": "center",
+              "label": "Center"
+            }
+          ],
+          "target": {
+            "type": "attr",
+            "name": "data-card-align"
+          }
+        },
+        {
+          "key": "quick_add",
+          "type": "select",
+          "label": "Add to cart button",
+          "default": "button",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "button",
+              "label": "Button under the card"
+            },
+            {
+              "value": "icon",
+              "label": "Icon on the photo"
+            },
+            {
+              "value": "hidden",
+              "label": "Hidden"
+            }
+          ],
+          "target": {
+            "type": "attr",
+            "name": "data-quick-add"
+          },
+          "info": "Products with variants open their page so the shopper can choose."
+        },
+        {
+          "key": "show_rating",
+          "type": "toggle",
+          "label": "Show star rating",
+          "default": true,
+          "target": {
+            "type": "attr",
+            "name": "data-card-rating"
+          },
+          "info": "Shown only while the Reviews extension is on and the product has reviews."
+        },
+        {
+          "key": "show_brand",
+          "type": "toggle",
+          "label": "Show the brand",
+          "default": true,
+          "target": {
+            "type": "attr",
+            "name": "data-card-brand"
+          }
+        },
+        {
+          "key": "show_wishlist",
+          "type": "toggle",
+          "label": "Show the wishlist heart",
+          "default": true,
+          "target": {
+            "type": "attr",
+            "name": "data-show-wishlist"
+          }
+        },
+        {
+          "key": "show_swatches",
+          "type": "toggle",
+          "label": "Show color dots",
+          "default": false,
+          "target": {
+            "type": "attr",
+            "name": "data-card-swatches"
+          },
+          "info": "Dots come from the variant groups named Color, Fabric, Finish or Shade."
+        },
+        {
+          "key": "badge_style",
+          "type": "select",
+          "label": "Sale badge",
+          "default": "word",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "word",
+              "label": "Sale"
+            },
+            {
+              "value": "percent",
+              "label": "Percent off"
+            }
+          ],
+          "target": {
+            "type": "attr",
+            "name": "data-badge-style"
+          }
+        },
+        {
+          "key": "card_radius",
+          "type": "range",
+          "label": "Card corners",
+          "default": 8,
+          "min": 0,
+          "max": 24,
+          "step": 2,
+          "unit": "px",
+          "advanced": true,
+          "target": {
+            "type": "token",
+            "name": "--radius-card",
+            "unit": "px"
+          }
+        }
+      ]
+    },
+    {
+      "group": "layout",
+      "label": "Layout and spacing",
+      "icon": "layout",
+      "settings": [
+        {
+          "key": "page_width",
+          "type": "range",
+          "label": "Page width",
+          "default": 1280,
+          "min": 1080,
+          "max": 1600,
+          "step": 40,
+          "unit": "px",
+          "target": {
+            "type": "token",
+            "name": "--page-width",
+            "unit": "px"
+          }
+        },
+        {
+          "key": "density",
+          "type": "select",
+          "label": "Space between sections",
+          "default": "comfortable",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "compact",
+              "label": "Compact"
+            },
+            {
+              "value": "comfortable",
+              "label": "Comfortable"
+            },
+            {
+              "value": "airy",
+              "label": "Airy"
+            }
+          ],
+          "target": {
+            "type": "token",
+            "name": "--space-section",
+            "map": {
+              "compact": "clamp(2.25rem, 1.5rem + 2.5vw, 3.5rem)",
+              "comfortable": "clamp(3rem, 2rem + 4vw, 5.5rem)",
+              "airy": "clamp(4rem, 2.5rem + 6vw, 8rem)"
+            }
+          }
+        },
+        {
+          "key": "grid_gap",
+          "type": "select",
+          "label": "Space between cards",
+          "default": "regular",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "tight",
+              "label": "Tight"
+            },
+            {
+              "value": "regular",
+              "label": "Regular"
+            },
+            {
+              "value": "loose",
+              "label": "Loose"
+            }
+          ],
+          "target": {
+            "type": "token",
+            "name": "--grid-gap",
+            "map": {
+              "tight": "clamp(8px, 1vw, 12px)",
+              "regular": "clamp(12px, 1.6vw, 24px)",
+              "loose": "clamp(16px, 2.4vw, 36px)"
+            }
+          }
+        },
+        {
+          "key": "input_radius",
+          "type": "range",
+          "label": "Field corners",
+          "default": 6,
+          "min": 0,
+          "max": 24,
+          "step": 2,
+          "unit": "px",
+          "advanced": true,
+          "target": {
+            "type": "token",
+            "name": "--radius-input",
+            "unit": "px"
+          }
+        }
+      ]
+    },
+    {
+      "group": "header-behavior",
+      "label": "Header behavior",
+      "icon": "menu",
+      "edited_in": {
+        "section": "header",
+        "after": "show_wishlist"
+      },
+      "settings": [
+        {
+          "key": "cart_icon",
+          "type": "select",
+          "label": "Cart icon",
+          "default": "bag",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "bag",
+              "label": "Bag"
+            },
+            {
+              "value": "cart",
+              "label": "Cart"
+            }
+          ],
+          "target": {
+            "type": "attr",
+            "name": "data-cart-icon"
+          }
+        },
+        {
+          "key": "show_cart_count",
+          "type": "toggle",
+          "label": "Show the number of items on the cart icon",
+          "default": true,
+          "target": {
+            "type": "attr",
+            "name": "data-cart-count"
+          }
+        },
+        {
+          "key": "drawer_side",
+          "type": "select",
+          "label": "Phone menu opens from",
+          "default": "start",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "start",
+              "label": "Left"
+            },
+            {
+              "value": "end",
+              "label": "Right"
+            }
+          ],
+          "target": {
+            "type": "attr",
+            "name": "data-drawer-side"
+          }
+        }
+      ]
+    },
+    {
+      "group": "social-contact",
+      "label": "Social and contact",
+      "icon": "chat",
+      "description": "Phone, email and address are set in VentaCart, Settings, General. These links show as icons in the footer.",
+      "settings": [
+        {
+          "key": "facebook_url",
+          "type": "url",
+          "label": "Facebook page",
+          "default": null,
+          "target": {
+            "type": "render"
+          }
+        },
+        {
+          "key": "instagram_url",
+          "type": "url",
+          "label": "Instagram profile",
+          "default": null,
+          "target": {
+            "type": "render"
+          }
+        },
+        {
+          "key": "tiktok_url",
+          "type": "url",
+          "label": "TikTok profile",
+          "default": null,
+          "target": {
+            "type": "render"
+          }
+        },
+        {
+          "key": "youtube_url",
+          "type": "url",
+          "label": "YouTube channel",
+          "default": null,
+          "target": {
+            "type": "render"
+          }
+        },
+        {
+          "key": "hours",
+          "type": "text",
+          "label": "Opening hours",
+          "max": 120,
+          "default": "",
+          "target": {
+            "type": "render"
+          }
+        }
+      ]
+    },
+    {
+      "group": "cart-checkout",
+      "label": "Cart and checkout display",
+      "icon": "bag",
+      "description": "Payment methods and couriers are set up in VentaCart.",
+      "settings": [
+        {
+          "key": "cart_type",
+          "type": "select",
+          "label": "After adding to the cart",
+          "default": "drawer",
+          "control": "segmented",
+          "options": [
+            {
+              "value": "drawer",
+              "label": "Open the cart drawer"
+            },
+            {
+              "value": "notification",
+              "label": "Show a short message"
+            },
+            {
+              "value": "page",
+              "label": "Go to the cart page"
+            }
+          ],
+          "target": {
+            "type": "attr",
+            "name": "data-cart-type"
+          }
+        },
+        {
+          "key": "drawer_coupon",
+          "type": "toggle",
+          "label": "Coupon field in the cart drawer",
+          "default": true,
+          "info": "Needs the Coupons extension. Shoppers apply a coupon once signed in.",
+          "target": {
+            "type": "attr",
+            "name": "data-drawer-coupon"
+          }
+        },
+        {
+          "key": "drawer_note",
+          "type": "text",
+          "label": "Note in the cart drawer",
+          "default": "Shipping and any discounts are worked out at checkout.",
+          "max": 160,
+          "target": {
+            "type": "render"
+          }
+        },
+        {
+          "key": "free_shipping_message",
+          "type": "text",
+          "label": "Free shipping message",
+          "default": "Add {amount} more for free shipping.",
+          "max": 120,
+          "info": "{amount} becomes what is left to spend. Shown while the cart is below the free shipping minimum.",
+          "target": {
+            "type": "render"
+          }
+        },
+        {
+          "key": "free_shipping_reached",
+          "type": "text",
+          "label": "Free shipping reached message",
+          "default": "Your order qualifies for free shipping.",
+          "max": 120,
+          "target": {
+            "type": "render"
+          }
+        },
+        {
+          "key": "show_payment_icons",
+          "type": "toggle",
+          "label": "Show payment methods in the footer",
+          "default": true,
+          "target": {
+            "type": "attr",
+            "name": "data-payment-icons"
+          },
+          "info": "Shows the payment methods switched on in VentaCart, Extensions."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+/*
+ * The notes the editor preview shows for a section that cannot be drawn.
+ */
+
+.section-note {
+  padding: 1rem var(--gutter);
+  font: 500 .875rem/1.4 system-ui, sans-serif;
+  color: #5c1d12;
+  background: #fdecea;
+  border-block: 1px solid #f4b5ab;
+}
+

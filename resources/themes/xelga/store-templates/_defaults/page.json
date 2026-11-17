@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "order": [
+    "page-main-1",
+    "page-help"
+  ],
+  "sections": {
+    "page-main-1": {
+      "type": "page-main",
+      "label": "Page content",
+      "disabled": false,
+      "settings": {
+        "variant": "sidebar",
+        "scheme": "scheme-1",
+        "pad": "md"
+      },
+      "block_order": [
+        "page-main-1-title",
+        "page-main-1-pages",
+        "page-main-1-body"
+      ],
+      "blocks": {
+        "page-main-1-title": {
+          "type": "title",
+          "label": "Page title",
+          "disabled": false,
+          "settings": {}
+        },
+        "page-main-1-pages": {
+          "type": "pages",
+          "label": "Menu of other pages",
+          "disabled": false,
+          "settings": {
+            "heading": "Help",
+            "menu": ""
+          }
+        },
+        "page-main-1-body": {
+          "type": "body",
+          "label": "Page text",
+          "disabled": false,
+          "settings": {}
+        }
+      }
+    },
+    "page-help": {
+      "type": "rich-text",
+      "label": "Still have a question?",
+      "disabled": false,
+      "settings": {
+        "variant": "center",
+        "heading": "Still have a question?",
+        "text": "<p>Message us and a real person answers, usually within a working day.</p>",
+        "button_label": "Contact us",
+        "button_link": {
+          "type": "contact"
+        },
+        "width": "narrow",
+        "heading_size": "medium",
+        "scheme": "scheme-2",
+        "pad": "md"
+      },
+      "block_order": [],
+      "blocks": {}
+    }
+  }
+}

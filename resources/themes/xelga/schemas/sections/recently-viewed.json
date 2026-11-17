@@ -1,0 +1,161 @@
+{
+  "type": "recently-viewed",
+  "label": "Recently viewed",
+  "description": "Hidden until the shopper has viewed a product.",
+  "group": "template",
+  "templates": [
+    "*"
+  ],
+  "limit": 1,
+  "main": false,
+  "class": "s-products",
+  "render_keys": [
+    "count"
+  ],
+  "settings": [
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "Recently viewed",
+      "max": 60
+    },
+    {
+      "key": "count",
+      "type": "range",
+      "label": "Number of products",
+      "default": 4,
+      "min": 2,
+      "max": 12,
+      "step": 1
+    },
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "grid",
+      "options": [
+        {
+          "value": "grid",
+          "label": "Grid"
+        },
+        {
+          "value": "carousel",
+          "label": "Swipe row"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "cols",
+      "type": "range",
+      "label": "Products per row",
+      "default": 4,
+      "min": 2,
+      "max": 5,
+      "step": 1
+    },
+    {
+      "key": "mobile_cols",
+      "type": "select",
+      "label": "Products per row on phones",
+      "default": "2",
+      "options": [
+        {
+          "value": "1",
+          "label": "One"
+        },
+        {
+          "value": "2",
+          "label": "Two"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "show_rating",
+      "type": "toggle",
+      "label": "Show star rating",
+      "default": true
+    },
+    {
+      "key": "show_quick_add",
+      "type": "toggle",
+      "label": "Show Add to cart button",
+      "default": true
+    },
+    {
+      "key": "show_brand",
+      "type": "toggle",
+      "label": "Show the brand",
+      "default": true,
+      "advanced": true
+    },
+    {
+      "key": "head_align",
+      "type": "select",
+      "label": "Heading alignment",
+      "default": "start",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "variants": [
+    {
+      "value": "grid",
+      "label": "Grid"
+    },
+    {
+      "value": "carousel",
+      "label": "Swipe row"
+    }
+  ],
+  "presets": [
+    {
+      "key": "recent",
+      "label": "Recently viewed",
+      "settings": {}
+    }
+  ]
+}

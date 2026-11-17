@@ -1,0 +1,258 @@
+{
+  "type": "blog-posts",
+  "label": "Blog posts",
+  "group": "template",
+  "templates": [
+    "*"
+  ],
+  "limit": null,
+  "main": false,
+  "class": "s-blog",
+  "variants": [
+    {
+      "value": "grid",
+      "label": "Grid"
+    },
+    {
+      "value": "featured",
+      "label": "One large, two beside"
+    },
+    {
+      "value": "list",
+      "label": "List"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "grid",
+      "options": [
+        {
+          "value": "grid",
+          "label": "Grid"
+        },
+        {
+          "value": "featured",
+          "label": "One large, two beside"
+        },
+        {
+          "value": "list",
+          "label": "List"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "From the blog"
+    },
+    {
+      "key": "link_label",
+      "type": "text",
+      "label": "Link beside the heading",
+      "default": "All posts"
+    },
+    {
+      "key": "link",
+      "type": "url",
+      "label": "Link goes to",
+      "default": {
+        "type": "blog"
+      }
+    },
+    {
+      "key": "source",
+      "type": "select",
+      "label": "Posts to show",
+      "default": "latest",
+      "options": [
+        {
+          "value": "latest",
+          "label": "Latest"
+        },
+        {
+          "value": "category",
+          "label": "From one blog category"
+        }
+      ],
+      "info": "Hidden while the blog is switched off in VentaCart."
+    },
+    {
+      "key": "blog_category",
+      "type": "select",
+      "label": "Blog category",
+      "default": "",
+      "visible_if": {
+        "source": "category"
+      },
+      "options_source": "blog_categories"
+    },
+    {
+      "key": "count",
+      "type": "range",
+      "label": "Number of posts",
+      "info": "The One large, two beside layout always shows three.",
+      "default": 3,
+      "min": 2,
+      "max": 6,
+      "step": 1
+    },
+    {
+      "key": "cols",
+      "type": "range",
+      "label": "Posts per row",
+      "default": 3,
+      "min": 2,
+      "max": 4,
+      "step": 1,
+      "visible_if": {
+        "variant": "grid"
+      }
+    },
+    {
+      "key": "show_date",
+      "type": "toggle",
+      "label": "Show the date",
+      "default": true
+    },
+    {
+      "key": "show_excerpt",
+      "type": "toggle",
+      "label": "Show the summary",
+      "default": true
+    },
+    {
+      "key": "head_align",
+      "type": "select",
+      "label": "Heading alignment",
+      "default": "start",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "bg_image",
+      "type": "image",
+      "label": "Background photo",
+      "default": "",
+      "advanced": true
+    },
+    {
+      "key": "bg_overlay",
+      "type": "range",
+      "label": "Darken background photo",
+      "default": 40,
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "advanced": true
+    },
+    {
+      "key": "texture",
+      "type": "select",
+      "label": "Background texture",
+      "default": "none",
+      "advanced": true,
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "dots",
+          "label": "Dots"
+        },
+        {
+          "value": "grid",
+          "label": "Grid lines"
+        },
+        {
+          "value": "lines",
+          "label": "Diagonal lines"
+        },
+        {
+          "value": "grain",
+          "label": "Fine grain"
+        }
+      ]
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "render_keys": [
+    "source",
+    "blog_category",
+    "count"
+  ],
+  "presets": [
+    {
+      "key": "grid",
+      "label": "Three latest posts",
+      "settings": {
+        "variant": "grid",
+        "count": 3,
+        "cols": 3
+      }
+    },
+    {
+      "key": "featured",
+      "label": "One large, two beside it",
+      "settings": {
+        "variant": "featured",
+        "count": 3
+      }
+    },
+    {
+      "key": "list",
+      "label": "Plain list",
+      "settings": {
+        "variant": "list",
+        "count": 4,
+        "show_excerpt": false
+      }
+    }
+  ]
+}

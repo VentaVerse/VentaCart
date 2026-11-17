@@ -1,0 +1,191 @@
+{
+  "type": "blog-main",
+  "label": "Blog posts",
+  "description": "Posts are written in VentaCart, Blog.",
+  "group": "template",
+  "templates": [
+    "blog"
+  ],
+  "limit": 1,
+  "main": true,
+  "class": "s-mainblog",
+  "variants": [],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout shoppers see first",
+      "default": "grid",
+      "control": "cards",
+      "options": [
+        {
+          "value": "grid",
+          "label": "Grid"
+        },
+        {
+          "value": "list",
+          "label": "List"
+        }
+      ]
+    },
+    {
+      "key": "cols",
+      "type": "select",
+      "label": "Posts per row",
+      "default": "3",
+      "control": "segmented",
+      "options": [
+        {
+          "value": "2",
+          "label": "2"
+        },
+        {
+          "value": "3",
+          "label": "3"
+        },
+        {
+          "value": "4",
+          "label": "4"
+        }
+      ],
+      "visible_if": {
+        "variant": "grid"
+      }
+    },
+    {
+      "key": "show_date",
+      "type": "toggle",
+      "label": "Show the date",
+      "default": true
+    },
+    {
+      "key": "show_category",
+      "type": "toggle",
+      "label": "Show the category",
+      "default": true
+    },
+    {
+      "key": "show_excerpt",
+      "type": "toggle",
+      "label": "Show the summary",
+      "default": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "control": "segmented",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ]
+    }
+  ],
+  "blocks": {
+    "min": 0,
+    "max": 4,
+    "types": [
+      {
+        "type": "heading",
+        "label": "Page heading",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "default": "Blog"
+          },
+          {
+            "key": "text",
+            "type": "textarea",
+            "label": "Text under the heading",
+            "default": ""
+          }
+        ]
+      },
+      {
+        "type": "categories",
+        "label": "Category links",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "show_counts",
+            "type": "toggle",
+            "label": "Show how many posts",
+            "default": true
+          }
+        ]
+      },
+      {
+        "type": "search",
+        "label": "Search the blog",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "placeholder",
+            "type": "text",
+            "label": "Search hint",
+            "default": "Search posts"
+          }
+        ]
+      },
+      {
+        "type": "posts",
+        "label": "Post list",
+        "description": "Posts per page is set in VentaCart, Blog settings.",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "empty_text",
+            "type": "text",
+            "label": "Text when there are no posts yet",
+            "default": "No posts yet. Check back soon."
+          }
+        ]
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "blog",
+      "label": "Blog posts",
+      "settings": {},
+      "blocks": [
+        {
+          "type": "heading"
+        },
+        {
+          "type": "categories"
+        },
+        {
+          "type": "search"
+        },
+        {
+          "type": "posts"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "type": "breadcrumbs",
+  "label": "Breadcrumbs",
+  "group": "template",
+  "templates": ["product", "category", "brand", "brand-list", "search", "cart", "blog", "blog-post", "page", "contact", "not-found", "*custom"],
+  "limit": 1,
+  "main": false,
+  "class": "s-crumbs",
+  "settings": [
+    {
+      "key": "show_current",
+      "type": "toggle",
+      "label": "Show the current page at the end",
+      "default": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    }
+  ],
+  "presets": [
+    { "key": "trail", "label": "Breadcrumbs", "settings": {} }
+  ]
+}

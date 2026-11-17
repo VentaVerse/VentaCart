@@ -1,0 +1,187 @@
+{
+  "type": "announcement-bar",
+  "label": "Announcement bar",
+  "group": "header",
+  "limit": 1,
+  "main": false,
+  "class": "s-announcement",
+  "variants": [
+    {
+      "value": "static",
+      "label": "All messages in one line"
+    },
+    {
+      "value": "rotate",
+      "label": "One message at a time"
+    },
+    {
+      "value": "marquee",
+      "label": "Scrolling line"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "info": "On phones, All messages in one line shows only the first message.",
+      "default": "rotate",
+      "options": [
+        {
+          "value": "static",
+          "label": "All messages in one line"
+        },
+        {
+          "value": "rotate",
+          "label": "One message at a time"
+        },
+        {
+          "value": "marquee",
+          "label": "Scrolling line"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "interval",
+      "type": "range",
+      "label": "Time per message",
+      "default": 5,
+      "min": 3,
+      "max": 10,
+      "step": 1,
+      "unit": "s",
+      "visible_if": {
+        "variant": "rotate"
+      }
+    },
+    {
+      "key": "show_arrows",
+      "type": "toggle",
+      "label": "Show arrows",
+      "default": true,
+      "visible_if": {
+        "variant": "rotate"
+      }
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-3"
+    }
+  ],
+  "blocks": {
+    "min": 1,
+    "max": 3,
+    "types": [
+      {
+        "type": "message",
+        "label": "Message",
+        "settings": [
+          {
+            "key": "text",
+            "type": "text",
+            "label": "Message",
+            "default": "Cash on delivery nationwide",
+            "max": 120
+          },
+          {
+            "key": "link",
+            "type": "url",
+            "label": "Link goes to",
+            "default": null
+          }
+        ],
+        "limit": null
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "rotate",
+      "label": "One message at a time",
+      "settings": {
+        "variant": "rotate",
+        "interval": 5,
+        "show_arrows": true
+      },
+      "blocks": [
+        {
+          "type": "message",
+          "label": "Message 1",
+          "settings": {
+            "text": "Cash on delivery nationwide"
+          }
+        },
+        {
+          "type": "message",
+          "label": "Message 2",
+          "settings": {
+            "text": "Free shipping on orders over ₱3,000"
+          }
+        },
+        {
+          "type": "message",
+          "label": "Message 3",
+          "settings": {
+            "text": "Easy exchanges within 14 days"
+          }
+        }
+      ]
+    },
+    {
+      "key": "static",
+      "label": "All messages in one line",
+      "settings": {
+        "variant": "static"
+      },
+      "blocks": [
+        {
+          "type": "message",
+          "label": "Message 1",
+          "settings": {
+            "text": "Cash on delivery nationwide"
+          }
+        },
+        {
+          "type": "message",
+          "label": "Message 2",
+          "settings": {
+            "text": "Ships in 1 to 2 working days"
+          }
+        }
+      ]
+    },
+    {
+      "key": "marquee",
+      "label": "Scrolling line",
+      "settings": {
+        "variant": "marquee"
+      },
+      "blocks": [
+        {
+          "type": "message",
+          "label": "Message 1",
+          "settings": {
+            "text": "New pieces every Friday"
+          }
+        },
+        {
+          "type": "message",
+          "label": "Message 2",
+          "settings": {
+            "text": "Cash on delivery nationwide"
+          }
+        },
+        {
+          "type": "message",
+          "label": "Message 3",
+          "settings": {
+            "text": "Exchanges within 14 days"
+          }
+        }
+      ]
+    }
+  ]
+}

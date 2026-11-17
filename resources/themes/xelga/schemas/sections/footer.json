@@ -1,0 +1,166 @@
+{
+  "type": "footer",
+  "label": "Footer",
+  "group": "footer",
+  "limit": 1,
+  "main": false,
+  "class": "s-footer",
+  "variants": [
+    {
+      "value": "columns",
+      "label": "Columns"
+    },
+    {
+      "value": "centered",
+      "label": "Centered"
+    },
+    {
+      "value": "compact",
+      "label": "Compact"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "columns",
+      "control": "cards",
+      "options": [
+        {
+          "value": "columns",
+          "label": "Columns"
+        },
+        {
+          "value": "centered",
+          "label": "Centered"
+        },
+        {
+          "value": "compact",
+          "label": "Compact"
+        }
+      ]
+    },
+    {
+      "key": "about",
+      "type": "textarea",
+      "label": "About the store",
+      "max": 500,
+      "default": ""
+    },
+    {
+      "key": "show_socials",
+      "type": "toggle",
+      "label": "Show social links",
+      "info": "Links are set in Theme settings, Social and contact.",
+      "default": true
+    },
+    {
+      "key": "show_payments",
+      "type": "toggle",
+      "label": "Show payment methods",
+      "info": "Shows the payment methods switched on in VentaCart, Extensions.",
+      "default": true
+    },
+    {
+      "key": "legal",
+      "type": "text",
+      "label": "Copyright line",
+      "max": 120,
+      "default": ""
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-3"
+    }
+  ],
+  "blocks": {
+    "min": 0,
+    "max": 5,
+    "types": [
+      {
+        "type": "menu",
+        "label": "Menu",
+        "limit": null,
+        "settings": [
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "max": 60,
+            "default": "Shop"
+          },
+          {
+            "key": "menu",
+            "type": "menu-picker",
+            "label": "Menu",
+            "default": "main",
+            "live": "render"
+          }
+        ]
+      },
+      {
+        "type": "contact",
+        "label": "Contact details",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "max": 60,
+            "default": "Contact"
+          },
+          {
+            "key": "show_phone",
+            "type": "toggle",
+            "label": "Show phone",
+            "default": true
+          },
+          {
+            "key": "show_email",
+            "type": "toggle",
+            "label": "Show email",
+            "default": true
+          },
+          {
+            "key": "show_address",
+            "type": "toggle",
+            "label": "Show address",
+            "default": true
+          },
+          {
+            "key": "show_hours",
+            "type": "toggle",
+            "label": "Show opening hours",
+            "default": true
+          }
+        ],
+        "description": "Phone, email and address come from VentaCart, Settings, General. Opening hours are set in Theme settings, Social and contact."
+      },
+      {
+        "type": "text",
+        "label": "Text",
+        "limit": null,
+        "settings": [
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "max": 60,
+            "default": "About us"
+          },
+          {
+            "key": "text",
+            "type": "richtext",
+            "label": "Text",
+            "default": ""
+          }
+        ]
+      }
+    ]
+  },
+  "presets": []
+}

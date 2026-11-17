@@ -1,0 +1,247 @@
+/* ==========================================================================
+   12. Category tiles (image-cards, circles, text-over-image, chips)
+   ========================================================================== */
+
+.tiles {
+  --tile-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--grid-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.s[data-ratio="portrait"] .tiles { --tile-ratio: 4 / 5; }
+.s[data-ratio="landscape"] .tiles { --tile-ratio: 4 / 3; }
+.s[data-ratio="tall"] .tiles { --tile-ratio: 3 / 4; }
+
+@media (min-width: 750px) {
+  .tiles {
+    grid-template-columns: repeat(auto-fill, minmax(max(140px, (100% - (var(--cols, 4) - 1) * var(--grid-gap)) / var(--cols, 4)), 1fr));
+  }
+}
+
+.tile {
+  min-width: 0;
+}
+
+.tile__link {
+  position: relative;
+  display: grid;
+  gap: .75rem;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.tile__media {
+  position: relative;
+  aspect-ratio: var(--tile-ratio);
+  overflow: hidden;
+  background: var(--c-card);
+  border-radius: var(--radius-card);
+}
+
+.tile__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .7s var(--ease-out);
+}
+
+.tile__link:hover .tile__media img {
+  transform: scale(1.05);
+}
+
+.tile__text {
+  display: grid;
+  gap: .125rem;
+  min-width: 0;
+}
+
+.tile__title {
+  display: flex;
+  align-items: center;
+  gap: .375rem;
+  font-family: var(--font-heading);
+  font-stretch: var(--heading-stretch);
+  font-size: var(--fs-h4);
+  font-weight: var(--font-heading-weight);
+  letter-spacing: var(--heading-tracking);
+  text-transform: var(--heading-case);
+  line-height: 1.2;
+}
+
+.tile__title .icon {
+  width: 1rem;
+  height: 1rem;
+  transition: transform .25s var(--ease-out);
+}
+
+.tile__link:hover .tile__title .icon {
+  transform: translateX(3px);
+}
+
+.tile__note {
+  font-size: var(--fs-sm);
+  color: var(--c-muted);
+}
+
+.s[data-show-note="false"] .tile__note {
+  display: none;
+}
+
+/* Image cards: photo and caption inside one card */
+.s-categories[data-variant="image-cards"] .tile__link {
+  gap: 0;
+  overflow: hidden;
+  background: var(--c-card);
+  border-radius: var(--radius-card);
+  transition: box-shadow .3s var(--ease-out), transform .3s var(--ease-out);
+}
+
+.s-categories[data-variant="image-cards"] .tile__link:hover {
+  box-shadow: var(--shadow-1);
+  transform: translateY(-2px);
+}
+
+.s-categories[data-variant="image-cards"] .tile__media {
+  border-radius: 0;
+}
+
+.s-categories[data-variant="image-cards"] .tile__text {
+  align-content: start;
+  padding: .875rem 1rem 1rem;
+}
+
+/* Circles: round photos, names centered; a swipe row on phones */
+.s-categories[data-variant="circles"] .tiles {
+  --tile-ratio: 1;
+}
+
+.s-categories[data-variant="circles"] .tile__media {
+  border-radius: 50%;
+}
+
+.s-categories[data-variant="circles"] .tile__text {
+  justify-items: center;
+  text-align: center;
+}
+
+.s-categories[data-variant="circles"] .tile__title .icon {
+  display: none;
+}
+
+/* Text over image: tall photos with the name on top */
+.s-categories[data-variant="text-over-image"] .tiles {
+  --tile-ratio: 4 / 5;
+}
+
+.s-categories[data-variant="text-over-image"][data-ratio="square"] .tiles { --tile-ratio: 1; }
+.s-categories[data-variant="text-over-image"][data-ratio="landscape"] .tiles { --tile-ratio: 4 / 3; }
+.s-categories[data-variant="text-over-image"][data-ratio="tall"] .tiles { --tile-ratio: 3 / 4; }
+
+.s-categories[data-variant="text-over-image"] .tile__media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(var(--overlay-rgb) / .72), rgb(var(--overlay-rgb) / 0) 55%);
+}
+
+.s-categories[data-variant="text-over-image"] .tile__text {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  padding: 1.125rem;
+  color: var(--c-on-image);
+}
+
+.s-categories[data-variant="text-over-image"] .tile__note {
+  color: var(--c-on-image-muted);
+}
+
+.s-categories[data-variant="text-over-image"] .tile__title {
+  font-size: var(--fs-h3);
+}
+
+/* Chips: compact bordered rows with a small photo, for deep catalogs */
+.s-categories[data-variant="chips"] .tiles {
+  --tile-ratio: 1;
+  gap: .625rem;
+}
+
+@media (min-width: 750px) {
+  .s-categories[data-variant="chips"] .tiles {
+    grid-template-columns: repeat(auto-fill, minmax(max(220px, (100% - (var(--cols, 4) - 1) * .625rem) / var(--cols, 4)), 1fr));
+  }
+}
+
+.s-categories[data-variant="chips"] .tile__link {
+  grid-template-columns: 56px minmax(0, 1fr);
+  align-items: center;
+  gap: .875rem;
+  padding: .5rem 1rem .5rem .5rem;
+  border: 1px solid var(--c-border);
+  background: var(--c-bg);
+  border-radius: var(--radius-card);
+  transition: border-color .2s;
+}
+
+.s-categories[data-variant="chips"] .tile__link:hover {
+  border-color: var(--c-text);
+}
+
+.s-categories[data-variant="chips"] .tile__media {
+  border-radius: calc(var(--radius-card) * .6);
+}
+
+.s-categories[data-variant="chips"] .tile__title {
+  font-size: .9375rem;
+}
+
+.s-categories[data-variant="chips"] .tile__note {
+  font-size: var(--fs-xs);
+}
+
+@media (max-width: 749px) {
+  .s-categories[data-variant="circles"] .tiles,
+  .s-categories[data-mobile-layout="scroll"] .tiles {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 30%;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    scrollbar-width: none;
+  }
+  .s-categories[data-mobile-layout="scroll"]:not([data-variant="circles"]) .tiles {
+    grid-auto-columns: 44%;
+  }
+  .s-categories[data-mobile-layout="scroll"][data-variant="chips"] .tiles {
+    grid-auto-columns: 72%;
+  }
+  .s-categories .tile {
+    scroll-snap-align: start;
+  }
+  .s-categories[data-variant="chips"]:not([data-mobile-layout="scroll"]) .tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .s-categories[data-variant="image-cards"] .tile__text {
+    padding: .75rem;
+  }
+}
+
+
+/* Phones: an odd last tile takes the whole row as a wide photo, so the grid
+   never ends on an empty cell. */
+@media (max-width: 749px) {
+  .s-categories:is([data-variant="image-cards"], [data-variant="text-over-image"]):not([data-mobile-layout="scroll"]) .tile:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .s-categories:is([data-variant="image-cards"], [data-variant="text-over-image"]):not([data-mobile-layout="scroll"]) .tile:last-child:nth-child(odd) .tile__media {
+    aspect-ratio: 2 / 1;
+  }
+}

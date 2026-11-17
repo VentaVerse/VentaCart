@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "order": [
+    "breadcrumbs-1",
+    "category-main-1",
+    "recent-1"
+  ],
+  "sections": {
+    "breadcrumbs-1": {
+      "type": "breadcrumbs",
+      "label": "Breadcrumbs",
+      "disabled": false,
+      "settings": {
+        "show_current": true,
+        "scheme": "scheme-1"
+      },
+      "block_order": [],
+      "blocks": {}
+    },
+    "category-main-1": {
+      "type": "category-main",
+      "label": "Category products",
+      "disabled": false,
+      "settings": {
+        "show_description": true,
+        "show_image": false,
+        "subcats": "chips",
+        "filters": "sidebar",
+        "cols": "3",
+        "mobile_cols": "2",
+        "view": "grid",
+        "switch_view": true,
+        "pagination": "numbers",
+        "scheme": "scheme-1",
+        "pad": "sm"
+      },
+      "block_order": [],
+      "blocks": {}
+    },
+    "recent-1": {
+      "type": "recently-viewed",
+      "label": "Recently viewed",
+      "disabled": false,
+      "settings": {
+        "heading": "Recently viewed",
+        "count": 4,
+        "show_rating": false,
+        "scheme": "scheme-1",
+        "pad": "md"
+      },
+      "block_order": [],
+      "blocks": {}
+    }
+  }
+}

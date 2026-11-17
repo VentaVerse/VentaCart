@@ -1,0 +1,422 @@
+{
+  "type": "promo-banners",
+  "label": "Promo banners",
+  "group": "template",
+  "templates": [
+    "*"
+  ],
+  "limit": null,
+  "main": false,
+  "class": "s-promos",
+  "variants": [
+    {
+      "value": "overlay",
+      "label": "Text on the photo"
+    },
+    {
+      "value": "stacked",
+      "label": "Text under the photo"
+    },
+    {
+      "value": "mosaic",
+      "label": "One big, others beside"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "overlay",
+      "options": [
+        {
+          "value": "overlay",
+          "label": "Text on the photo"
+        },
+        {
+          "value": "stacked",
+          "label": "Text under the photo"
+        },
+        {
+          "value": "mosaic",
+          "label": "One big, others beside"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "height",
+      "type": "select",
+      "label": "Banner height",
+      "default": "medium",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "text_y",
+      "type": "select",
+      "label": "Text position",
+      "default": "bottom",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "center",
+          "label": "Middle"
+        },
+        {
+          "value": "bottom",
+          "label": "Bottom"
+        }
+      ],
+      "control": "segmented",
+      "visible_if": {
+        "variant": [
+          "overlay",
+          "mosaic"
+        ]
+      }
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "bg_image",
+      "type": "image",
+      "label": "Background photo",
+      "default": "",
+      "advanced": true
+    },
+    {
+      "key": "bg_overlay",
+      "type": "range",
+      "label": "Darken background photo",
+      "default": 40,
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "advanced": true
+    },
+    {
+      "key": "texture",
+      "type": "select",
+      "label": "Background texture",
+      "default": "none",
+      "advanced": true,
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "dots",
+          "label": "Dots"
+        },
+        {
+          "value": "grid",
+          "label": "Grid lines"
+        },
+        {
+          "value": "lines",
+          "label": "Diagonal lines"
+        },
+        {
+          "value": "grain",
+          "label": "Fine grain"
+        }
+      ]
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "blocks": {
+    "min": 1,
+    "max": 3,
+    "types": [
+      {
+        "type": "banner",
+        "label": "Banner",
+        "settings": [
+          {
+            "key": "image",
+            "type": "image",
+            "label": "Photo",
+            "default": ""
+          },
+          {
+            "key": "image_alt",
+            "type": "text",
+            "label": "Photo description for screen readers",
+            "max": 200,
+            "default": "",
+            "advanced": true
+          },
+          {
+            "key": "focal",
+            "type": "select",
+            "label": "Keep when cropped, across",
+            "default": "center",
+            "control": "segmented",
+            "advanced": true,
+            "options": [
+              {
+                "value": "start",
+                "label": "Left"
+              },
+              {
+                "value": "center",
+                "label": "Middle"
+              },
+              {
+                "value": "end",
+                "label": "Right"
+              }
+            ]
+          },
+          {
+            "key": "focal_y",
+            "type": "select",
+            "label": "Keep when cropped, up and down",
+            "default": "center",
+            "control": "segmented",
+            "advanced": true,
+            "options": [
+              {
+                "value": "top",
+                "label": "Top"
+              },
+              {
+                "value": "center",
+                "label": "Middle"
+              },
+              {
+                "value": "bottom",
+                "label": "Bottom"
+              }
+            ]
+          },
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "default": "Banner heading"
+          },
+          {
+            "key": "text",
+            "type": "text",
+            "label": "Text",
+            "default": ""
+          },
+          {
+            "key": "button_label",
+            "type": "text",
+            "label": "Button text",
+            "default": "Shop now"
+          },
+          {
+            "key": "link",
+            "type": "url",
+            "label": "Banner goes to",
+            "default": {
+              "type": "search"
+            }
+          },
+          {
+            "key": "scheme",
+            "type": "color-scheme",
+            "label": "Color scheme for the text area",
+            "info": "Only for the Text under the photo layout.",
+            "default": "scheme-2"
+          }
+        ],
+        "limit": null
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "two",
+      "label": "Two banners side by side",
+      "settings": {
+        "variant": "overlay",
+        "height": "medium"
+      },
+      "blocks": [
+        {
+          "type": "banner",
+          "label": "Tailoring for humid days",
+          "settings": {
+            "heading": "Tailoring for humid days",
+            "image": "media/xelga/clothes/banner-tailoring.jpg",
+            "text": "Unlined jackets and pleated trousers.",
+            "button_label": "Shop now",
+            "link": {
+              "type": "search"
+            },
+            "scheme": "scheme-3"
+          }
+        },
+        {
+          "type": "banner",
+          "label": "End of season sale",
+          "settings": {
+            "heading": "End of season sale",
+            "image": "media/xelga/clothes/banner-sale.jpg",
+            "text": "Up to 40 percent off linen.",
+            "button_label": "Shop now",
+            "link": {
+              "type": "search"
+            },
+            "scheme": "scheme-3"
+          }
+        }
+      ]
+    },
+    {
+      "key": "stacked",
+      "label": "Three banners with text below",
+      "settings": {
+        "variant": "stacked",
+        "height": "small"
+      },
+      "blocks": [
+        {
+          "type": "banner",
+          "label": "Women",
+          "settings": {
+            "heading": "Women",
+            "image": "media/xelga/clothes/cat-women.jpg",
+            "text": "",
+            "button_label": "Shop women",
+            "link": {
+              "type": "search"
+            },
+            "scheme": "scheme-2"
+          }
+        },
+        {
+          "type": "banner",
+          "label": "Men",
+          "settings": {
+            "heading": "Men",
+            "image": "media/xelga/clothes/cat-men.jpg",
+            "text": "",
+            "button_label": "Shop men",
+            "link": {
+              "type": "search"
+            },
+            "scheme": "scheme-2"
+          }
+        },
+        {
+          "type": "banner",
+          "label": "Accessories",
+          "settings": {
+            "heading": "Accessories",
+            "image": "media/xelga/clothes/cat-accessories.jpg",
+            "text": "",
+            "button_label": "Shop accessories",
+            "link": {
+              "type": "search"
+            },
+            "scheme": "scheme-2"
+          }
+        }
+      ]
+    },
+    {
+      "key": "mosaic",
+      "label": "One large, two small",
+      "settings": {
+        "variant": "mosaic",
+        "height": "large"
+      },
+      "blocks": [
+        {
+          "type": "banner",
+          "label": "The night edit",
+          "settings": {
+            "heading": "The night edit",
+            "image": "media/xelga/clothes/look-5-stairwell.jpg",
+            "text": "Satin, velvet and sharp tailoring.",
+            "button_label": "Shop now",
+            "link": {
+              "type": "search"
+            },
+            "scheme": "scheme-3"
+          }
+        },
+        {
+          "type": "banner",
+          "label": "Knitwear",
+          "settings": {
+            "heading": "Knitwear",
+            "image": "media/xelga/clothes/look-2-rooftop.jpg",
+            "text": "",
+            "button_label": "Shop now",
+            "link": {
+              "type": "search"
+            },
+            "scheme": "scheme-3"
+          }
+        },
+        {
+          "type": "banner",
+          "label": "Linen care",
+          "settings": {
+            "heading": "Linen care",
+            "image": "media/xelga/clothes/slide-1-linen.jpg",
+            "text": "",
+            "button_label": "Read the guide",
+            "link": {
+              "type": "search"
+            },
+            "scheme": "scheme-3"
+          }
+        }
+      ]
+    }
+  ]
+}

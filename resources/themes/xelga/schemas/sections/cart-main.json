@@ -1,0 +1,124 @@
+{
+  "type": "cart-main",
+  "label": "Cart",
+  "description": "Prices, stock and shipping come from VentaCart.",
+  "group": "template",
+  "templates": [
+    "cart"
+  ],
+  "limit": 1,
+  "main": true,
+  "class": "s-cart",
+  "settings": [
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "Your cart",
+      "max": 60
+    },
+    {
+      "key": "show_free_shipping",
+      "type": "toggle",
+      "label": "Show how far the cart is from free shipping",
+      "default": true
+    },
+    {
+      "key": "show_coupon",
+      "type": "toggle",
+      "label": "Show the coupon field",
+      "default": true,
+      "info": "Needs the Coupons extension. Shoppers apply a coupon once signed in."
+    },
+    {
+      "key": "show_estimate",
+      "type": "toggle",
+      "label": "Show the shipping estimate",
+      "default": true
+    },
+    {
+      "key": "show_cod_note",
+      "type": "toggle",
+      "label": "Show the cash on delivery note",
+      "default": true,
+      "info": "Shown only while cash on delivery is switched on in VentaCart."
+    },
+    {
+      "key": "cod_note",
+      "type": "text",
+      "label": "Cash on delivery note",
+      "default": "Pay in cash when your order arrives.",
+      "max": 160,
+      "visible_if": {
+        "show_cod_note": true
+      }
+    },
+    {
+      "key": "show_payment_icons",
+      "type": "toggle",
+      "label": "Show payment methods",
+      "default": true,
+      "info": "Shows the payment methods switched on in VentaCart, Extensions."
+    },
+    {
+      "key": "empty_text",
+      "type": "text",
+      "label": "Text when the cart is empty",
+      "default": "Your cart is empty.",
+      "max": 120
+    },
+    {
+      "key": "empty_button",
+      "type": "text",
+      "label": "Button when the cart is empty",
+      "default": "Continue shopping",
+      "max": 40
+    },
+    {
+      "key": "empty_link",
+      "type": "url",
+      "label": "Button goes to",
+      "default": {
+        "type": "home"
+      }
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "sm",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "presets": [
+    {
+      "key": "cart",
+      "label": "Cart",
+      "settings": {}
+    }
+  ]
+}

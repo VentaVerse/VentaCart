@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "order": [
+    "breadcrumbs-1",
+    "brand-list-main-1"
+  ],
+  "sections": {
+    "breadcrumbs-1": {
+      "type": "breadcrumbs",
+      "label": "Breadcrumbs",
+      "disabled": false,
+      "settings": {
+        "show_current": true,
+        "scheme": "scheme-1"
+      },
+      "block_order": [],
+      "blocks": {}
+    },
+    "brand-list-main-1": {
+      "type": "brand-list-main",
+      "label": "All brands",
+      "disabled": false,
+      "settings": {
+        "heading": "Brands",
+        "subheading": "",
+        "cols": "4",
+        "show_logo": true,
+        "show_count": true,
+        "grayscale": false,
+        "scheme": "scheme-1",
+        "pad": "sm"
+      },
+      "block_order": [],
+      "blocks": {}
+    }
+  }
+}

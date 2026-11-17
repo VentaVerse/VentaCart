@@ -1,0 +1,23 @@
+/* Product reviews: score, list and Show more. */
+.reviews { display: grid; gap: 2.5rem; }
+@media (min-width: 990px) { .reviews { grid-template-columns: 19rem minmax(0, 1fr); gap: 5rem; } }
+.reviews__summary { display: grid; gap: .875rem; justify-items: start; align-content: start; }
+.reviews__summary .editor-note { margin: .5rem 0 0; font-size: .8125rem; }
+.reviews__score { display: flex; align-items: center; gap: .875rem; }
+.reviews__avg { font-family: var(--font-heading); font-stretch: var(--heading-stretch); font-size: 3rem; font-weight: var(--font-heading-weight); line-height: 1; font-variant-numeric: tabular-nums; }
+.reviews__score .stars .icon { width: 1.125rem; height: 1.125rem; }
+.reviews__list { margin: 0; padding: 0; list-style: none; }
+.review { padding-block: 1.75rem; border-block-start: 1px solid var(--c-border); }
+.review:first-child { padding-block-start: 0; border: 0; }
+.review article { display: grid; gap: .625rem; max-width: 68ch; }
+.review__title { font-family: var(--font-body); font-size: 1.0625rem; font-weight: 650; letter-spacing: 0; text-transform: none; }
+.review__by { display: flex; flex-wrap: wrap; gap: .25rem .75rem; font-size: var(--fs-sm); }
+.review__name { font-weight: 600; }
+
+
+.reviews__how { font-size: var(--fs-sm); }
+.reviews__more { margin-block-start: 1.5rem; }
+.review__text { white-space: pre-line; }
+.review__photos { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0 0; padding: 0; list-style: none; }
+.review__photos img { width: 64px; height: 64px; object-fit: cover; border-radius: 4px; }
+.review__verified { display: inline-flex; align-items: center; gap: .25rem; font-size: var(--fs-xs); color: var(--c-success); }

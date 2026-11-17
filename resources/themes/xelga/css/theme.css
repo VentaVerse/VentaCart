@@ -1,0 +1,58 @@
+/*
+ * Xelga storefront stylesheet.
+ *
+ * One stylesheet for every store. A store changes its look through the
+ * tokens stylesheet (custom properties from its theme settings) and its
+ * color schemes (.scheme-1 and on). Every section paints from the --c-*
+ * scheme variables, so a section's color scheme is only the class it
+ * carries. Section settings reach CSS as data attributes; numeric ones go
+ * through css/generated/ranges.css, so no CSS is ever printed in a page.
+ */
+
+@import './base/fonts.css';
+@import './base/tokens.css';
+@import './base/base.css';
+@import './base/utilities.css';
+@import './base/section.css';
+@import './components/buttons.css';
+@import './components/pages.css';
+@import './components/card.css';
+@import './components/rail.css';
+@import './components/toast.css';
+@import './components/page-parts.css';
+@import './components/listing.css';
+@import './components/cart-drawer.css';
+@import './sections/announcement-bar.css';
+@import './sections/header.css';
+@import './sections/hero.css';
+@import './sections/usp-bar.css';
+@import './sections/category-tiles.css';
+@import './sections/featured-products.css';
+@import './sections/product-spotlight.css';
+@import './sections/image-with-text.css';
+@import './sections/promo-banners.css';
+@import './sections/shop-the-look.css';
+@import './sections/brand-logos.css';
+@import './sections/testimonials.css';
+@import './sections/rich-text.css';
+@import './sections/blog-posts.css';
+@import './sections/footer.css';
+@import './sections/breadcrumbs.css';
+@import './sections/product-main.css';
+@import './sections/product-details.css';
+@import './sections/product-reviews.css';
+@import './sections/related-products.css';
+@import './sections/recently-viewed.css';
+@import './sections/cart-main.css';
+@import './sections/category-main.css';
+@import './sections/search-main.css';
+@import './sections/brand-main.css';
+@import './sections/brand-list-main.css';
+@import './sections/blog-main.css';
+@import './sections/post-main.css';
+@import './sections/page-main.css';
+@import './sections/contact-main.css';
+@import './sections/not-found-main.css';
+@import './generated/ranges.css';
+@import './generated/swatches.css';
+@import './base/motion.css';

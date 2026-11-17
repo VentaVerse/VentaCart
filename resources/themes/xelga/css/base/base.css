@@ -1,0 +1,112 @@
+/*
+ * Base elements and browser surfaces.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-block-start: calc(var(--header-h) + 1rem);
+  scrollbar-color: color-mix(in srgb, var(--c-text) 32%, transparent) transparent;
+  accent-color: var(--c-accent);
+}
+
+html.is-locked {
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  overflow-x: clip;
+  font-family: var(--font-body);
+  font-weight: var(--font-body-weight);
+  font-size: var(--fs-body);
+  line-height: var(--body-line);
+  color: var(--c-text);
+  background: var(--c-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  color: var(--c-accent-text);
+  background: var(--c-accent);
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+/* The hidden attribute must beat component display rules, which are set by class. */
+[hidden] {
+  display: none !important;
+}
+
+h1, h2, h3, h4, h5,
+.h-display, .h1, .h2, .h3, .h4 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-stretch: var(--heading-stretch);
+  font-weight: var(--font-heading-weight);
+  line-height: var(--heading-line);
+  letter-spacing: var(--heading-tracking);
+  text-transform: var(--heading-case);
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+.h-display { font-size: var(--fs-display); }
+.h1 { font-size: var(--fs-h1); }
+.h2 { font-size: var(--fs-h2); }
+.h3 { font-size: var(--fs-h3); }
+.h4 { font-size: var(--fs-h4); }
+
+p, ul, ol, dl, dd, figure, blockquote {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: .2em;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+input, select, textarea, button {
+  font: inherit;
+  color: inherit;
+  caret-color: var(--c-accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (forced-colors: active) {
+  :focus-visible { outline: 3px solid LinkText; }
+}
+
+.price,
+.countdown,
+.tabular {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+

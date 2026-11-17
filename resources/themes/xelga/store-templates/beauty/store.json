@@ -1,0 +1,808 @@
+{
+  "format": 1,
+  "name": "Beauty",
+  "line": "Skincare for humid days",
+  "position": 4,
+  "documents": {
+    "settings": {
+      "schema": 1,
+      "values": {
+        "font_pair": "bricolage-hanken",
+        "heading_case": "none",
+        "heading_weight": "600",
+        "button_radius": 28,
+        "button_fill": "solid",
+        "button_size": "regular",
+        "card_style": "plain",
+        "card_ratio": "tall",
+        "card_hover": "swap",
+        "card_align": "start",
+        "quick_add": "button",
+        "badge_style": "percent",
+        "show_brand": false,
+        "card_radius": 18,
+        "page_width": 1280,
+        "density": "comfortable",
+        "grid_gap": "regular",
+        "input_radius": 24
+      },
+      "schemes": [
+        {
+          "id": "scheme-1",
+          "label": "Rice paper",
+          "colors": {
+            "bg": "#fcf7f2",
+            "text": "#2b121e",
+            "muted": "#6b5059",
+            "accent": "#b1213f",
+            "accent-text": "#ffffff",
+            "button": "#2b121e",
+            "button-text": "#fcf7f2",
+            "border": "#ecdcd6",
+            "card": "#f5e3df"
+          }
+        },
+        {
+          "id": "scheme-2",
+          "label": "Blush",
+          "colors": {
+            "bg": "#f4dcd8",
+            "text": "#2b121e",
+            "muted": "#5f434d",
+            "accent": "#9c1c39",
+            "accent-text": "#ffffff",
+            "button": "#2b121e",
+            "button-text": "#fcf7f2",
+            "border": "#e2c0bb",
+            "card": "#fbeeeb"
+          }
+        },
+        {
+          "id": "scheme-3",
+          "label": "Plum",
+          "colors": {
+            "bg": "#2b121e",
+            "text": "#fbeef0",
+            "muted": "#d9bcc6",
+            "accent": "#ffadc0",
+            "accent-text": "#2b121e",
+            "button": "#fbeef0",
+            "button-text": "#2b121e",
+            "border": "#4b2a3a",
+            "card": "#3a1b2a"
+          }
+        },
+        {
+          "id": "scheme-4",
+          "label": "Guava",
+          "colors": {
+            "bg": "#a81f3d",
+            "text": "#ffffff",
+            "muted": "#ffe1e7",
+            "accent": "#ffffff",
+            "accent-text": "#8a1731",
+            "button": "#ffffff",
+            "button-text": "#7d142c",
+            "border": "#c84a66",
+            "card": "#961a36"
+          }
+        },
+        {
+          "id": "scheme-5",
+          "label": "Calamansi butter",
+          "colors": {
+            "bg": "#f7e8b4",
+            "text": "#2b121e",
+            "muted": "#5c4630",
+            "accent": "#9c1c39",
+            "accent-text": "#ffffff",
+            "button": "#2b121e",
+            "button-text": "#f7e8b4",
+            "border": "#e5cf86",
+            "card": "#fcf3d6"
+          }
+        }
+      ]
+    },
+    "header": {
+      "schema": 1,
+      "order": [
+        "announcement-1",
+        "header-1"
+      ],
+      "sections": {
+        "announcement-1": {
+          "type": "announcement-bar",
+          "label": "Announcement bar",
+          "disabled": false,
+          "settings": {
+            "variant": "static",
+            "interval": 5,
+            "show_arrows": true,
+            "scheme": "scheme-3"
+          },
+          "block_order": [
+            "announcement-1-b1",
+            "announcement-1-b2",
+            "announcement-1-b3"
+          ],
+          "blocks": {
+            "announcement-1-b1": {
+              "type": "message",
+              "label": "Message 1",
+              "disabled": false,
+              "settings": {
+                "text": "Cash on delivery nationwide"
+              }
+            },
+            "announcement-1-b2": {
+              "type": "message",
+              "label": "Message 2",
+              "disabled": false,
+              "settings": {
+                "text": "Free shipping on orders over ₱1,499"
+              }
+            },
+            "announcement-1-b3": {
+              "type": "message",
+              "label": "Message 3",
+              "disabled": false,
+              "settings": {
+                "text": "Dew Cushion refills are back in all six shades"
+              }
+            }
+          }
+        },
+        "header-1": {
+          "type": "header",
+          "label": "Header",
+          "disabled": false,
+          "settings": {
+            "variant": "centered",
+            "logo_text": "",
+            "logo_width": 150,
+            "menu": "main",
+            "menu_style": "mega",
+            "sticky": true,
+            "show_search": true,
+            "search_placeholder": "Search sunscreen, tints...",
+            "show_account": true,
+            "show_wishlist": true,
+            "scheme": "scheme-1",
+            "logo_image": ""
+          },
+          "block_order": [
+            "header-1-b1"
+          ],
+          "blocks": {
+            "header-1-b1": {
+              "type": "mega-promo",
+              "label": "Photo in the Skincare panel",
+              "disabled": false,
+              "settings": {
+                "menu_item": "Skincare",
+                "image": "images/banner-routine.jpg",
+                "heading": "A morning routine for humid days",
+                "link": {
+                  "type": "search"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "footer": {
+      "schema": 1,
+      "order": [
+        "footer-1"
+      ],
+      "sections": {
+        "footer-1": {
+          "type": "footer",
+          "label": "Footer",
+          "disabled": false,
+          "settings": {
+            "variant": "columns",
+            "about": "Skincare and makeup for hot, humid days in the Philippines: light layers, sunscreen you will reapply and color that lasts the commute.",
+            "show_socials": true,
+            "show_payments": true,
+            "legal": "",
+            "scheme": "scheme-3"
+          },
+          "block_order": [
+            "footer-1-b1",
+            "footer-1-b2",
+            "footer-1-b4"
+          ],
+          "blocks": {
+            "footer-1-b1": {
+              "type": "menu",
+              "label": "Menu: Shop",
+              "disabled": false,
+              "settings": {
+                "heading": "Shop",
+                "menu": "main"
+              }
+            },
+            "footer-1-b2": {
+              "type": "menu",
+              "label": "Menu: Help",
+              "disabled": false,
+              "settings": {
+                "heading": "Help",
+                "menu": "footer"
+              }
+            },
+            "footer-1-b4": {
+              "type": "contact",
+              "label": "Contact details",
+              "disabled": false,
+              "settings": {
+                "heading": "Contact",
+                "show_phone": true,
+                "show_email": true,
+                "show_address": true,
+                "show_hours": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "home": {
+      "schema": 1,
+      "order": [
+        "hero-1",
+        "usp-1",
+        "categories-1",
+        "products-1",
+        "routine-1",
+        "promos-1",
+        "spotlight-1",
+        "quotes-1",
+        "look-1",
+        "blog-1"
+      ],
+      "sections": {
+        "hero-1": {
+          "type": "hero",
+          "label": "Main banner",
+          "disabled": false,
+          "settings": {
+            "variant": "collage",
+            "height": "large",
+            "autoplay": false,
+            "interval": 6,
+            "heading_size": "large",
+            "scheme": "scheme-2"
+          },
+          "block_order": [
+            "hero-1-b1",
+            "hero-1-b2",
+            "hero-1-b3"
+          ],
+          "blocks": {
+            "hero-1-b1": {
+              "type": "slide",
+              "label": "Photo 1: Glass skin",
+              "disabled": false,
+              "settings": {
+                "image": "images/slide-1-glass-skin.jpg",
+                "image_alt": "A woman with dewy skin holding a frosted serum bottle to her cheek",
+                "heading": "Skincare that stays put when it is humid out",
+                "text": "Light serums, gel sunscreen and a cushion that does not slide by lunch. Made for 34 degrees and a long commute.",
+                "button_label": "Shop the routine",
+                "button_link": {
+                  "type": "search"
+                },
+                "button2_label": "Find your shade",
+                "button2_link": {
+                  "type": "search"
+                }
+              }
+            },
+            "hero-1-b2": {
+              "type": "slide",
+              "label": "Photo 2: Lip tint",
+              "disabled": false,
+              "settings": {
+                "image": "images/slide-2-lip-tint.jpg",
+                "image_alt": "A woman dabbing red lip tint on while looking into a small mirror",
+                "heading": "Water Lip Tint in four new shades",
+                "text": "A sheer stain that builds from a flush to a full red.",
+                "button_label": "Shop lip tints",
+                "button_link": {
+                  "type": "search"
+                },
+                "button2_label": ""
+              }
+            },
+            "hero-1-b3": {
+              "type": "slide",
+              "label": "Photo 3: Sunscreen",
+              "disabled": false,
+              "settings": {
+                "image": "images/slide-3-sunscreen.jpg",
+                "image_alt": "A woman in a white shirt applying sunscreen in a sunny garden",
+                "heading": "Sun gel you will actually reapply",
+                "text": "SPF 50+ that sinks in clear, even over makeup.",
+                "button_label": "Shop sunscreen",
+                "button_link": {
+                  "type": "search"
+                },
+                "button2_label": ""
+              }
+            }
+          }
+        },
+        "usp-1": {
+          "type": "usp-bar",
+          "label": "Store promises",
+          "disabled": false,
+          "settings": {
+            "variant": "columns",
+            "icon_style": "circle",
+            "scheme": "scheme-1",
+            "pad": "md"
+          },
+          "block_order": [
+            "usp-1-b1",
+            "usp-1-b2",
+            "usp-1-b3",
+            "usp-1-b4"
+          ],
+          "blocks": {
+            "usp-1-b1": {
+              "type": "promise",
+              "label": "Promise: Cash on delivery",
+              "disabled": false,
+              "settings": {
+                "icon": "cash",
+                "title": "Cash on delivery",
+                "text": "Pay the rider when your order arrives."
+              }
+            },
+            "usp-1-b2": {
+              "type": "promise",
+              "label": "Promise: Free shipping over ₱1,499",
+              "disabled": false,
+              "settings": {
+                "icon": "truck",
+                "title": "Free shipping over ₱1,499",
+                "text": "Luzon, Visayas and Mindanao."
+              }
+            },
+            "usp-1-b3": {
+              "type": "promise",
+              "label": "Promise: Sealed, in-date stock",
+              "disabled": false,
+              "settings": {
+                "icon": "shield-check",
+                "title": "Sealed, in-date stock",
+                "text": "Expiry dates listed on every product."
+              }
+            },
+            "usp-1-b4": {
+              "type": "promise",
+              "label": "Promise: Ask before you buy",
+              "disabled": false,
+              "settings": {
+                "icon": "chat",
+                "title": "Ask before you buy",
+                "text": "Message us your skin type for a routine."
+              }
+            }
+          }
+        },
+        "categories-1": {
+          "type": "category-tiles",
+          "label": "Shop by concern",
+          "disabled": false,
+          "settings": {
+            "variant": "circles",
+            "heading": "Shop by concern",
+            "subheading": "Start with what bothers you most in this weather.",
+            "link_label": "All categories",
+            "link": {
+              "type": "search"
+            },
+            "cols": 6,
+            "ratio": "square",
+            "show_note": true,
+            "mobile_layout": "scroll",
+            "head_align": "center",
+            "scheme": "scheme-1",
+            "pad": "md"
+          },
+          "block_order": [
+            "categories-1-b1",
+            "categories-1-b2",
+            "categories-1-b3",
+            "categories-1-b4",
+            "categories-1-b5",
+            "categories-1-b6"
+          ],
+          "blocks": {
+            "categories-1-b1": {
+              "type": "category",
+              "label": "Oily skin",
+              "disabled": false,
+              "settings": {
+                "category": "oily-skin",
+                "label": "Oily skin",
+                "note": "Toners and light gels",
+                "image": "images/product-toner.jpg"
+              }
+            },
+            "categories-1-b2": {
+              "type": "category",
+              "label": "Dark spots",
+              "disabled": false,
+              "settings": {
+                "category": "dark-spots",
+                "label": "Dark spots",
+                "note": "Niacinamide, vitamin C",
+                "image": "images/product-serum.jpg"
+              }
+            },
+            "categories-1-b3": {
+              "type": "category",
+              "label": "Sun care",
+              "disabled": false,
+              "settings": {
+                "category": "sun-care",
+                "label": "Sun care",
+                "note": "Gels, sticks, cushions",
+                "image": "images/product-sunscreen.jpg"
+              }
+            },
+            "categories-1-b4": {
+              "type": "category",
+              "label": "Lips",
+              "disabled": false,
+              "settings": {
+                "category": "lips",
+                "label": "Lips",
+                "note": "Tints and overnight care",
+                "image": "images/product-lip-tint.jpg"
+              }
+            },
+            "categories-1-b5": {
+              "type": "category",
+              "label": "Brows",
+              "disabled": false,
+              "settings": {
+                "category": "brows",
+                "label": "Brows",
+                "note": "Pencils and gels",
+                "image": "images/product-brow-pencil.jpg"
+              }
+            },
+            "categories-1-b6": {
+              "type": "category",
+              "label": "Frizz and dry ends",
+              "disabled": false,
+              "settings": {
+                "category": "frizz",
+                "label": "Frizz and dry ends",
+                "note": "Oils and leave-ins",
+                "image": "images/product-hair-oil.jpg"
+              }
+            }
+          }
+        },
+        "products-1": {
+          "type": "featured-products",
+          "label": "Best sellers",
+          "disabled": false,
+          "settings": {
+            "variant": "grid",
+            "heading": "Best sellers this month",
+            "subheading": "What customers reorder most, from sun gel to the tint that survives a merienda.",
+            "link_label": "Shop all",
+            "link": {
+              "type": "search"
+            },
+            "source": "best-sellers",
+            "category": null,
+            "products": [],
+            "count": 8,
+            "cols": 4,
+            "rows": 2,
+            "mobile_cols": "2",
+            "show_rating": true,
+            "show_quick_add": true,
+            "show_brand": false,
+            "head_align": "start",
+            "scheme": "scheme-1",
+            "pad": "md"
+          },
+          "block_order": [],
+          "blocks": {}
+        },
+        "routine-1": {
+          "type": "image-with-text",
+          "label": "Morning routine",
+          "disabled": false,
+          "settings": {
+            "variant": "split",
+            "image": "images/banner-routine.jpg",
+            "image_alt": "A woman pressing skincare into her cheeks by a bright bathroom window",
+            "image_pos": "start",
+            "ratio": "landscape",
+            "media_width": 50,
+            "align": "center",
+            "heading": "A morning routine for humid days",
+            "text": "<p>Four light layers that dry down fast, so nothing pills or slides by noon. Skip the heavy cream: in this heat the gel sunscreen is moisture enough.</p>",
+            "button_label": "Shop the four steps",
+            "button_link": {
+              "type": "search"
+            },
+            "scheme": "scheme-5",
+            "pad": "lg"
+          },
+          "block_order": [
+            "routine-1-b1",
+            "routine-1-b2",
+            "routine-1-b3",
+            "routine-1-b4"
+          ],
+          "blocks": {
+            "routine-1-b1": {
+              "type": "step",
+              "label": "Step 1: Toner",
+              "disabled": false,
+              "settings": {
+                "title": "Toner",
+                "text": "Rose Pore Toner on a cotton pad, to take off the night's oil."
+              }
+            },
+            "routine-1-b2": {
+              "type": "step",
+              "label": "Step 2: Serum",
+              "disabled": false,
+              "settings": {
+                "title": "Serum",
+                "text": "Two drops of Niacinamide Glow Serum. Let it dry for a minute."
+              }
+            },
+            "routine-1-b3": {
+              "type": "step",
+              "label": "Step 3: Sunscreen",
+              "disabled": false,
+              "settings": {
+                "title": "Sunscreen",
+                "text": "Two finger-lengths of Airy Sun Gel, face and neck."
+              }
+            },
+            "routine-1-b4": {
+              "type": "step",
+              "label": "Step 4: Cushion",
+              "disabled": false,
+              "settings": {
+                "title": "Cushion",
+                "text": "Press, do not swipe. Reapply over it at lunch."
+              }
+            }
+          }
+        },
+        "promos-1": {
+          "type": "promo-banners",
+          "label": "Sun care, lip trio and travel banners",
+          "disabled": false,
+          "settings": {
+            "variant": "mosaic",
+            "height": "large",
+            "text_y": "bottom",
+            "scheme": "scheme-1",
+            "pad": "md"
+          },
+          "block_order": [
+            "promos-1-b1",
+            "promos-1-b2",
+            "promos-1-b3"
+          ],
+          "blocks": {
+            "promos-1-b1": {
+              "type": "banner",
+              "label": "Banner: Sun care",
+              "disabled": false,
+              "settings": {
+                "image": "images/banner-spf.jpg",
+                "heading": "Reapply without starting over",
+                "text": "SPF 50+ gel and cushion that layer over makeup at noon.",
+                "button_label": "Shop sun care",
+                "link": {
+                  "type": "search"
+                },
+                "scheme": "scheme-2"
+              }
+            },
+            "promos-1-b2": {
+              "type": "banner",
+              "label": "Banner: Lip trio",
+              "disabled": false,
+              "settings": {
+                "image": "images/banner-lip-trio.jpg",
+                "heading": "The lip trio, ₱899",
+                "text": "Guava, Rosas and Mauve water tints in one set.",
+                "button_label": "Get the trio",
+                "link": {
+                  "type": "search"
+                },
+                "scheme": "scheme-2"
+              }
+            },
+            "promos-1-b3": {
+              "type": "banner",
+              "label": "Banner: Travel sizes",
+              "disabled": false,
+              "settings": {
+                "image": "images/ugc-4.jpg",
+                "heading": "Gym bag minis",
+                "text": "Travel sizes of the sun gel, toner and hair oil.",
+                "button_label": "Shop travel sizes",
+                "link": {
+                  "type": "search"
+                },
+                "scheme": "scheme-2"
+              }
+            }
+          }
+        },
+        "spotlight-1": {
+          "type": "product-spotlight",
+          "label": "Cushion week deal",
+          "disabled": false,
+          "settings": {
+            "variant": "split",
+            "heading": "Cushion week",
+            "text": "The compact plus a spare refill, so you are not caught with an empty puff mid-month.",
+            "product": "dew-cushion-spf-40-refill-set",
+            "image": "images/product-cushion.jpg",
+            "image_pos": "end",
+            "show_countdown": true,
+            "show_specs": true,
+            "button_label": "Add set to cart",
+            "scheme": "scheme-3",
+            "pad": "lg"
+          },
+          "block_order": [],
+          "blocks": {}
+        },
+        "quotes-1": {
+          "type": "testimonials",
+          "label": "Customer reviews",
+          "disabled": false,
+          "settings": {
+            "variant": "grid",
+            "heading": "Notes from customers",
+            "cols": 3,
+            "show_rating": true,
+            "head_align": "start",
+            "scheme": "scheme-1",
+            "pad": "md"
+          },
+          "block_order": [
+            "quotes-1-b1",
+            "quotes-1-b2",
+            "quotes-1-b3"
+          ],
+          "blocks": {
+            "quotes-1-b1": {
+              "type": "review",
+              "label": "Review: Maria, Pasig",
+              "disabled": false,
+              "settings": {
+                "text": "My sunscreen used to slide off by the time I got off the MRT. The sun gel stays put and does not leave my face gray.",
+                "name": "Maria",
+                "city": "Pasig",
+                "rating": 5
+              }
+            },
+            "quotes-1-b2": {
+              "type": "review",
+              "label": "Review: Ana, Cebu City",
+              "disabled": false,
+              "settings": {
+                "text": "I matched my cushion shade with the shade guide on the site. First time I bought a base online and did not have to return to the mall for another.",
+                "name": "Ana",
+                "city": "Cebu City",
+                "rating": 5
+              }
+            },
+            "quotes-1-b3": {
+              "type": "review",
+              "label": "Review: Juan, Davao City",
+              "disabled": false,
+              "settings": {
+                "text": "The toner is gentle enough for every morning. I still get shiny by three in the afternoon, just a lot less.",
+                "name": "Juan",
+                "city": "Davao City",
+                "rating": 4
+              }
+            }
+          }
+        },
+        "look-1": {
+          "type": "shop-the-look",
+          "label": "Touch-up kit photo",
+          "disabled": false,
+          "settings": {
+            "variant": "side",
+            "heading": "The traffic touch-up kit",
+            "text": "Sun gel, a tint and a cushion fit in one small pouch. Tap a dot to see what is in this one.",
+            "image": "images/ugc-3.jpg",
+            "image_alt": "Two friends laughing and doing their makeup in a parked car",
+            "image_pos": "end",
+            "show_numbers": true,
+            "scheme": "scheme-2",
+            "pad": "lg"
+          },
+          "block_order": [
+            "look-1-b1",
+            "look-1-b2",
+            "look-1-b3"
+          ],
+          "blocks": {
+            "look-1-b1": {
+              "type": "hotspot",
+              "label": "Dot 1: Airy Sun Gel SPF 50+ PA++++, 50 ml",
+              "disabled": false,
+              "settings": {
+                "product": "airy-sun-gel-spf-50-pa-50-ml",
+                "x": 43,
+                "y": 48
+              }
+            },
+            "look-1-b2": {
+              "type": "hotspot",
+              "label": "Dot 2: Water Lip Tint",
+              "disabled": false,
+              "settings": {
+                "product": "water-lip-tint",
+                "x": 62,
+                "y": 40
+              }
+            },
+            "look-1-b3": {
+              "type": "hotspot",
+              "label": "Dot 3: Dew Cushion SPF 40 with Refill",
+              "disabled": false,
+              "settings": {
+                "product": "dew-cushion-spf-40-with-refill",
+                "x": 74,
+                "y": 47
+              }
+            }
+          }
+        },
+        "blog-1": {
+          "type": "blog-posts",
+          "label": "Skin notes articles",
+          "disabled": false,
+          "settings": {
+            "variant": "grid",
+            "heading": "Skin notes",
+            "link_label": "All articles",
+            "link": {
+              "type": "blog"
+            },
+            "source": "latest",
+            "blog_category": "",
+            "count": 3,
+            "cols": 3,
+            "show_date": true,
+            "show_excerpt": true,
+            "head_align": "start",
+            "scheme": "scheme-1",
+            "pad": "lg"
+          },
+          "block_order": [],
+          "blocks": {}
+        }
+      }
+    }
+  }
+}

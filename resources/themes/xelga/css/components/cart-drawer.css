@@ -1,0 +1,88 @@
+/* Cart drawer, cart lines, free shipping meter and coupon field: shared by the drawer and the cart page. */
+.drawer.cart-drawer { inset: 0 0 0 auto; width: min(92vw, 440px); }
+.drawer.cart-drawer[open] { animation-name: drawer-in-end; }
+.cart-drawer__title { font-size: var(--fs-h4); }
+.cart-drawer__count { font-family: var(--font-body); font-size: var(--fs-sm); font-weight: 500; color: var(--c-muted); text-transform: none; letter-spacing: 0; }
+.cart-drawer__body { padding-block-start: 1rem; }
+.cart-drawer__foot {
+    display: grid; gap: .875rem; padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom));
+    border-block-start: 1px solid var(--c-border); background: var(--c-bg);
+}
+.cart-drawer__actions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.cart-drawer__actions .btn { padding-inline: .75rem; }
+
+.ship-note { display: grid; gap: .5rem; margin-block-end: .5rem; padding: .875rem 1rem; font-size: var(--fs-sm); background: var(--c-card); border-radius: var(--radius-card); }
+.ship-note:empty { display: none; }
+.ship-note__done { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+.ship-note__done .icon { color: var(--c-success); }
+.ship-meter { height: 4px; overflow: hidden; background: color-mix(in srgb, var(--c-text) 12%, transparent); border-radius: 2px; }
+.ship-meter span { display: block; height: 100%; width: var(--p, 0%); background: var(--c-text); transition: width .5s var(--ease-out); }
+
+.lines { margin: 0; padding: 0; list-style: none; }
+.line {
+    display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: .25rem 1rem;
+    padding-block: 1rem; border-block-end: 1px solid var(--c-border);
+}
+.line__media { grid-row: span 2; display: block; aspect-ratio: 3 / 4; overflow: hidden; background: var(--c-card); border-radius: calc(var(--radius-card) * .6); }
+.line__media img { width: 100%; height: 100%; object-fit: cover; }
+.line__body { display: grid; gap: .2rem; align-content: start; min-width: 0; }
+.line__title { font-size: var(--fs-sm); font-weight: 600; text-decoration: none; }
+.line__title:hover { text-decoration: underline; }
+.line__variant { font-size: var(--fs-xs); color: var(--c-muted); }
+.line__body .price { font-size: var(--fs-sm); font-weight: 500; }
+.line__stock { font-size: var(--fs-xs); font-weight: 600; color: var(--c-low); }
+.line__total { font-size: var(--fs-sm); font-weight: 650; text-align: end; font-variant-numeric: tabular-nums; }
+.line__actions { grid-column: 2 / -1; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.qty--sm .qty__btn { width: 40px; height: 40px; }
+.qty--sm .qty__input { width: 2.5rem; height: 40px; font-size: var(--fs-sm); }
+.line__remove {
+    min-height: 44px; padding: 0 .25rem; border: 0; background: none; font-size: var(--fs-xs); color: var(--c-muted);
+    text-decoration: underline; text-underline-offset: .2em; cursor: pointer;
+}
+.line__remove:hover { color: var(--c-text); }
+.line.is-leaving { opacity: 0; transform: translateX(12px); transition: opacity .25s, transform .25s; }
+
+.coupon summary {
+    display: flex; align-items: center; justify-content: space-between; min-height: 44px;
+    font-size: var(--fs-sm); font-weight: 600; list-style: none; cursor: pointer;
+}
+.coupon summary::-webkit-details-marker { display: none; }
+.coupon[open] summary .icon { transform: rotate(180deg); }
+.coupon__form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; padding-block-end: .25rem; }
+.coupon__form .btn { --btn-h: 48px; }
+.coupon__msg { grid-column: 1 / -1; font-size: var(--fs-xs); }
+.coupon__msg:empty { display: none; }
+.coupon__form--page { display: grid; gap: .5rem; grid-template-columns: none; }
+.coupon__row { display: flex; gap: .5rem; }
+.coupon__row .input { flex: 1; min-width: 0; }
+
+.totals { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem 1rem; margin: 0; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.totals dt { color: var(--c-muted); }
+.totals dd { margin: 0; font-weight: 600; text-align: end; }
+.totals .totals__discount { color: var(--c-success); }
+.totals__remove { margin-inline-start: .375rem; padding: 0; border: 0; background: none; font-size: var(--fs-xs); color: var(--c-muted); text-decoration: underline; cursor: pointer; min-height: 24px; }
+.totals--grand { padding-block-start: 1rem; border-block-start: 1px solid var(--c-border); }
+.totals--grand :is(dt, dd) { font-size: 1.125rem; font-weight: 700; color: var(--c-text); }
+.totals--grand dd + dt, .totals--grand .totals__hint { font-size: var(--fs-xs); font-weight: 400; color: var(--c-muted); }
+.cart-note { display: flex; align-items: flex-start; gap: .5rem; font-size: var(--fs-xs); color: var(--c-muted); }
+.cart-note .icon { margin-block-start: .1rem; color: var(--c-text); }
+
+.cart-empty { display: grid; justify-items: center; gap: .875rem; padding: 3rem 1rem; text-align: center; }
+.cart-empty .icon--xl { color: var(--c-muted); }
+.cart-empty__title { font-family: var(--font-heading); font-stretch: var(--heading-stretch); font-weight: var(--font-heading-weight); font-size: var(--fs-h3); text-transform: var(--heading-case); letter-spacing: var(--heading-tracking); }
+.cart-empty--page { padding-block: 4rem 2rem; }
+
+
+/* The free shipping meter is a native progress bar, so its value needs no style in the page. */
+progress.ship-meter { display: block; width: 100%; height: 4px; border: 0; appearance: none; -webkit-appearance: none; background: color-mix(in srgb, var(--c-text) 12%, transparent); border-radius: 2px; }
+progress.ship-meter::-webkit-progress-bar { background: color-mix(in srgb, var(--c-text) 12%, transparent); border-radius: 2px; }
+progress.ship-meter::-webkit-progress-value { background: var(--c-text); border-radius: 2px; transition: width .5s var(--ease-out); }
+progress.ship-meter::-moz-progress-bar { background: var(--c-text); border-radius: 2px; }
+
+.cart-drawer__loading { padding-block: 2rem; text-align: center; }
+.cart-drawer__warning, .cart-page__warning { margin-block-end: .75rem; padding: .75rem 1rem; font-size: var(--fs-sm); color: var(--c-error); background: color-mix(in srgb, var(--c-error) 8%, var(--c-bg)); border-radius: var(--radius-card); }
+.coupon__signin { padding-block-end: .5rem; font-size: var(--fs-sm); }
+.line__flag { font-size: var(--fs-xs); font-weight: 600; color: var(--c-error); }
+.line.is-busy { opacity: .6; pointer-events: none; }
+.line__media--empty { display: grid; place-items: center; color: var(--c-muted); }
+html[data-drawer-coupon=false] [data-show-in-drawer] { display: none; }

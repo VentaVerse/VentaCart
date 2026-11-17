@@ -1,0 +1,375 @@
+{
+  "type": "image-with-text",
+  "label": "Image with text",
+  "group": "template",
+  "templates": [
+    "*"
+  ],
+  "limit": null,
+  "main": false,
+  "class": "s-iwt",
+  "variants": [
+    {
+      "value": "split",
+      "label": "Side by side"
+    },
+    {
+      "value": "overlap",
+      "label": "Text panel over the photo edge"
+    },
+    {
+      "value": "background",
+      "label": "Photo background"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "split",
+      "options": [
+        {
+          "value": "split",
+          "label": "Side by side"
+        },
+        {
+          "value": "overlap",
+          "label": "Text panel over the photo edge"
+        },
+        {
+          "value": "background",
+          "label": "Photo background"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "image",
+      "type": "image",
+      "label": "Photo",
+      "default": ""
+    },
+    {
+      "key": "image_alt",
+      "type": "text",
+      "label": "Photo description for screen readers",
+      "default": "",
+      "advanced": true
+    },
+    {
+      "key": "focal",
+      "type": "select",
+      "label": "Keep when cropped, across",
+      "default": "center",
+      "control": "segmented",
+      "advanced": true,
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Middle"
+        },
+        {
+          "value": "end",
+          "label": "Right"
+        }
+      ]
+    },
+    {
+      "key": "focal_y",
+      "type": "select",
+      "label": "Keep when cropped, up and down",
+      "default": "center",
+      "control": "segmented",
+      "advanced": true,
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "center",
+          "label": "Middle"
+        },
+        {
+          "value": "bottom",
+          "label": "Bottom"
+        }
+      ]
+    },
+    {
+      "key": "image_pos",
+      "type": "select",
+      "label": "Photo side",
+      "default": "start",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "end",
+          "label": "Right"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "ratio",
+      "type": "select",
+      "label": "Photo shape",
+      "default": "landscape",
+      "options": [
+        {
+          "value": "square",
+          "label": "Square"
+        },
+        {
+          "value": "landscape",
+          "label": "Landscape"
+        },
+        {
+          "value": "portrait",
+          "label": "Portrait"
+        },
+        {
+          "value": "wide",
+          "label": "Wide"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "media_width",
+      "type": "range",
+      "label": "Photo width",
+      "default": 50,
+      "min": 35,
+      "max": 65,
+      "step": 5,
+      "unit": "%",
+      "advanced": true
+    },
+    {
+      "key": "align",
+      "type": "select",
+      "label": "Text alignment up and down",
+      "default": "center",
+      "options": [
+        {
+          "value": "top",
+          "label": "Top"
+        },
+        {
+          "value": "center",
+          "label": "Middle"
+        },
+        {
+          "value": "bottom",
+          "label": "Bottom"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    },
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "Heading",
+      "max": 120
+    },
+    {
+      "key": "text",
+      "type": "richtext",
+      "label": "Text",
+      "default": "<p>Tell shoppers what this is about.</p>"
+    },
+    {
+      "key": "button_label",
+      "type": "text",
+      "label": "Button text",
+      "default": "Read more"
+    },
+    {
+      "key": "button_link",
+      "type": "url",
+      "label": "Button goes to",
+      "default": null
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "bg_image",
+      "type": "image",
+      "label": "Background photo",
+      "default": "",
+      "advanced": true
+    },
+    {
+      "key": "bg_overlay",
+      "type": "range",
+      "label": "Darken background photo",
+      "default": 40,
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "advanced": true
+    },
+    {
+      "key": "texture",
+      "type": "select",
+      "label": "Background texture",
+      "default": "none",
+      "advanced": true,
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "dots",
+          "label": "Dots"
+        },
+        {
+          "value": "grid",
+          "label": "Grid lines"
+        },
+        {
+          "value": "lines",
+          "label": "Diagonal lines"
+        },
+        {
+          "value": "grain",
+          "label": "Fine grain"
+        }
+      ]
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "blocks": {
+    "max": 6,
+    "types": [
+      {
+        "type": "step",
+        "label": "Numbered step",
+        "settings": [
+          {
+            "key": "title",
+            "type": "text",
+            "label": "Step title",
+            "default": "Step"
+          },
+          {
+            "key": "text",
+            "type": "text",
+            "label": "Step text",
+            "default": ""
+          }
+        ],
+        "limit": null
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "split",
+      "label": "Photo beside text",
+      "settings": {
+        "variant": "split",
+        "image": "media/xelga/clothes/editorial-workshop.jpg",
+        "heading": "Cut and sewn in our own workroom",
+        "text": "<p>Every piece is cut, sewn and finished by a small team. Tell shoppers what makes yours different.</p>",
+        "button_label": "Read our story",
+        "button_link": {
+          "type": "search"
+        }
+      }
+    },
+    {
+      "key": "overlap",
+      "label": "Text panel over the photo",
+      "settings": {
+        "variant": "overlap",
+        "image": "media/xelga/clothes/editorial-workshop.jpg",
+        "heading": "How an order is packed",
+        "text": "<p>Three steps from our shelves to your door.</p>",
+        "button_label": ""
+      },
+      "blocks": [
+        {
+          "type": "step",
+          "label": "Step 1",
+          "settings": {
+            "title": "Checked",
+            "text": "Every piece is inspected before it is folded."
+          }
+        },
+        {
+          "type": "step",
+          "label": "Step 2",
+          "settings": {
+            "title": "Packed",
+            "text": "Wrapped in paper, never plastic."
+          }
+        },
+        {
+          "type": "step",
+          "label": "Step 3",
+          "settings": {
+            "title": "Shipped",
+            "text": "Handed to the courier the next working day."
+          }
+        }
+      ]
+    },
+    {
+      "key": "background",
+      "label": "Text over a full photo",
+      "settings": {
+        "variant": "background",
+        "image": "media/xelga/clothes/look-2-rooftop.jpg",
+        "heading": "Dressed for the drive home",
+        "text": "<p>Evening pieces that travel well.</p>",
+        "button_label": "Shop evening",
+        "button_link": {
+          "type": "search"
+        },
+        "scheme": "scheme-3"
+      }
+    }
+  ]
+}

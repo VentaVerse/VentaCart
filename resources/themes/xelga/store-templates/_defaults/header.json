@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "order": [
+    "announcement-1",
+    "header-1"
+  ],
+  "sections": {
+    "announcement-1": {
+      "type": "announcement-bar",
+      "label": "Announcement bar",
+      "disabled": false,
+      "settings": {
+        "variant": "rotate",
+        "interval": 5,
+        "show_arrows": true,
+        "scheme": "scheme-3"
+      },
+      "block_order": [
+        "announcement-1-b1",
+        "announcement-1-b2",
+        "announcement-1-b3"
+      ],
+      "blocks": {
+        "announcement-1-b1": {
+          "type": "message",
+          "label": "Message 1",
+          "disabled": false,
+          "settings": {
+            "text": "Cash on delivery anywhere in the Philippines"
+          }
+        },
+        "announcement-1-b2": {
+          "type": "message",
+          "label": "Message 2",
+          "disabled": false,
+          "settings": {
+            "text": "Vireo Buds Pro, now on sale"
+          }
+        },
+        "announcement-1-b3": {
+          "type": "message",
+          "label": "Message 3",
+          "disabled": false,
+          "settings": {
+            "text": "Aurora 15 Pro in Graphite, Blue and Desert, 256GB to 1TB"
+          }
+        }
+      }
+    },
+    "header-1": {
+      "type": "header",
+      "label": "Header",
+      "disabled": false,
+      "settings": {
+        "variant": "search-first",
+        "logo_text": "",
+        "logo_image": "",
+        "logo_width": 150,
+        "menu": "main",
+        "menu_style": "dropdown",
+        "sticky": true,
+        "show_search": true,
+        "search_placeholder": "Search phones, laptops, monitors...",
+        "show_account": true,
+        "show_wishlist": true,
+        "scheme": "scheme-2"
+      },
+      "block_order": [],
+      "blocks": {}
+    }
+  }
+}

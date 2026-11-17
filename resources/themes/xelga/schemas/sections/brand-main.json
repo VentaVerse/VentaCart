@@ -1,0 +1,163 @@
+{
+  "type": "brand-main",
+  "label": "Brand products",
+  "group": "template",
+  "templates": [
+    "brand",
+    "*custom"
+  ],
+  "limit": 1,
+  "main": true,
+  "class": "s-listing",
+  "settings": [
+    {
+      "key": "show_logo",
+      "type": "toggle",
+      "label": "Show the brand logo",
+      "default": true
+    },
+    {
+      "key": "show_description",
+      "type": "toggle",
+      "label": "Show the brand description",
+      "default": true
+    },
+    {
+      "key": "show_count",
+      "type": "toggle",
+      "label": "Show the number of products",
+      "default": true
+    },
+    {
+      "key": "filters",
+      "type": "select",
+      "label": "Filters",
+      "default": "sidebar",
+      "options": [
+        {
+          "value": "sidebar",
+          "label": "Sidebar on large screens"
+        },
+        {
+          "value": "drawer",
+          "label": "Drawer on every screen"
+        }
+      ],
+      "info": "Which filters show is set in VentaCart, Settings, Catalog, Sidebar filters."
+    },
+    {
+      "key": "cols",
+      "type": "select",
+      "label": "Products per row",
+      "default": "3",
+      "options": [
+        {
+          "value": "3",
+          "label": "Three"
+        },
+        {
+          "value": "4",
+          "label": "Four"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "mobile_cols",
+      "type": "select",
+      "label": "Products per row on phones",
+      "default": "2",
+      "options": [
+        {
+          "value": "1",
+          "label": "One"
+        },
+        {
+          "value": "2",
+          "label": "Two"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "view",
+      "type": "select",
+      "label": "Show products as",
+      "default": "grid",
+      "options": [
+        {
+          "value": "grid",
+          "label": "Grid"
+        },
+        {
+          "value": "list",
+          "label": "List"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "switch_view",
+      "type": "toggle",
+      "label": "Let shoppers switch between grid and list",
+      "default": true
+    },
+    {
+      "key": "pagination",
+      "type": "select",
+      "label": "More products",
+      "default": "numbers",
+      "options": [
+        {
+          "value": "numbers",
+          "label": "Page numbers"
+        },
+        {
+          "value": "load-more",
+          "label": "Load more button"
+        }
+      ],
+      "control": "segmented",
+      "info": "How many products a page holds is set in VentaCart, Settings, Catalog."
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "sm",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    }
+  ],
+  "presets": [
+    {
+      "key": "listing",
+      "label": "Brand products",
+      "settings": {}
+    }
+  ]
+}

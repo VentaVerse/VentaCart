@@ -1,0 +1,350 @@
+{
+  "type": "testimonials",
+  "label": "Customer reviews",
+  "description": "Quotes you type in yourself. Product reviews have their own section.",
+  "group": "template",
+  "templates": [
+    "*"
+  ],
+  "limit": null,
+  "main": false,
+  "class": "s-quotes",
+  "variants": [
+    {
+      "value": "grid",
+      "label": "Grid"
+    },
+    {
+      "value": "carousel",
+      "label": "Swipe row"
+    },
+    {
+      "value": "large",
+      "label": "One at a time, large"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "grid",
+      "options": [
+        {
+          "value": "grid",
+          "label": "Grid"
+        },
+        {
+          "value": "carousel",
+          "label": "Swipe row"
+        },
+        {
+          "value": "large",
+          "label": "One at a time, large"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "What our customers say"
+    },
+    {
+      "key": "subheading",
+      "type": "textarea",
+      "label": "Text under the heading",
+      "max": 400,
+      "default": ""
+    },
+    {
+      "key": "cols",
+      "type": "range",
+      "label": "Reviews per row",
+      "default": 3,
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "visible_if": {
+        "variant": [
+          "grid",
+          "carousel"
+        ]
+      }
+    },
+    {
+      "key": "show_rating",
+      "type": "toggle",
+      "label": "Show stars",
+      "default": true
+    },
+    {
+      "key": "head_align",
+      "type": "select",
+      "label": "Heading alignment",
+      "default": "start",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-2"
+    },
+    {
+      "key": "bg_image",
+      "type": "image",
+      "label": "Background photo",
+      "default": "",
+      "advanced": true
+    },
+    {
+      "key": "bg_overlay",
+      "type": "range",
+      "label": "Darken background photo",
+      "default": 40,
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "advanced": true
+    },
+    {
+      "key": "texture",
+      "type": "select",
+      "label": "Background texture",
+      "default": "none",
+      "advanced": true,
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "dots",
+          "label": "Dots"
+        },
+        {
+          "value": "grid",
+          "label": "Grid lines"
+        },
+        {
+          "value": "lines",
+          "label": "Diagonal lines"
+        },
+        {
+          "value": "grain",
+          "label": "Fine grain"
+        }
+      ]
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "blocks": {
+    "min": 1,
+    "max": 9,
+    "types": [
+      {
+        "type": "review",
+        "label": "Review",
+        "settings": [
+          {
+            "key": "text",
+            "type": "textarea",
+            "label": "Review",
+            "default": "",
+            "max": 600
+          },
+          {
+            "key": "name",
+            "type": "text",
+            "label": "First name",
+            "default": "Juan",
+            "max": 40
+          },
+          {
+            "key": "city",
+            "type": "text",
+            "label": "City",
+            "default": "Quezon City",
+            "max": 60
+          },
+          {
+            "key": "rating",
+            "type": "range",
+            "label": "Stars",
+            "default": 5,
+            "min": 1,
+            "max": 5,
+            "step": 1
+          },
+          {
+            "key": "photo",
+            "type": "image",
+            "label": "Customer photo",
+            "default": ""
+          }
+        ],
+        "limit": null
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "grid",
+      "label": "Three reviews side by side",
+      "settings": {
+        "variant": "grid",
+        "cols": 3
+      },
+      "blocks": [
+        {
+          "type": "review",
+          "label": "Maria",
+          "settings": {
+            "text": "Sample review: the linen dress fit as described and arrived two days after I ordered.",
+            "name": "Maria",
+            "city": "Quezon City",
+            "rating": 5
+          }
+        },
+        {
+          "type": "review",
+          "label": "Juan",
+          "settings": {
+            "text": "Sample review: I asked about sizing in chat and got an answer within the hour.",
+            "name": "Juan",
+            "city": "Cebu City",
+            "rating": 5
+          }
+        },
+        {
+          "type": "review",
+          "label": "Ana",
+          "settings": {
+            "text": "Sample review: the exchange was simple, and the new size came the same week.",
+            "name": "Ana",
+            "city": "Davao City",
+            "rating": 5
+          }
+        }
+      ]
+    },
+    {
+      "key": "large",
+      "label": "One large review at a time",
+      "settings": {
+        "variant": "large",
+        "head_align": "center"
+      },
+      "blocks": [
+        {
+          "type": "review",
+          "label": "Maria",
+          "settings": {
+            "text": "Sample review: the linen dress fit as described and arrived two days after I ordered.",
+            "name": "Maria",
+            "city": "Quezon City",
+            "rating": 5
+          }
+        },
+        {
+          "type": "review",
+          "label": "Juan",
+          "settings": {
+            "text": "Sample review: I asked about sizing in chat and got an answer within the hour.",
+            "name": "Juan",
+            "city": "Cebu City",
+            "rating": 5
+          }
+        },
+        {
+          "type": "review",
+          "label": "Ana",
+          "settings": {
+            "text": "Sample review: the exchange was simple, and the new size came the same week.",
+            "name": "Ana",
+            "city": "Davao City",
+            "rating": 5
+          }
+        }
+      ]
+    },
+    {
+      "key": "carousel",
+      "label": "Swipe row",
+      "settings": {
+        "variant": "carousel",
+        "cols": 3
+      },
+      "blocks": [
+        {
+          "type": "review",
+          "label": "Maria",
+          "settings": {
+            "text": "Sample review: the linen dress fit as described and arrived two days after I ordered.",
+            "name": "Maria",
+            "city": "Quezon City",
+            "rating": 5
+          }
+        },
+        {
+          "type": "review",
+          "label": "Juan",
+          "settings": {
+            "text": "Sample review: I asked about sizing in chat and got an answer within the hour.",
+            "name": "Juan",
+            "city": "Cebu City",
+            "rating": 5
+          }
+        },
+        {
+          "type": "review",
+          "label": "Ana",
+          "settings": {
+            "text": "Sample review: the exchange was simple, and the new size came the same week.",
+            "name": "Ana",
+            "city": "Davao City",
+            "rating": 5
+          }
+        }
+      ]
+    }
+  ]
+}

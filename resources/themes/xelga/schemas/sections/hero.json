@@ -1,0 +1,515 @@
+{
+  "type": "hero",
+  "label": "Main banner",
+  "group": "template",
+  "templates": [
+    "*"
+  ],
+  "limit": null,
+  "main": false,
+  "class": "s-hero",
+  "variants": [
+    {
+      "value": "full-image",
+      "label": "Full-width photo"
+    },
+    {
+      "value": "split",
+      "label": "Photo and text side by side"
+    },
+    {
+      "value": "slideshow",
+      "label": "Slideshow"
+    },
+    {
+      "value": "collage",
+      "label": "Collage"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "info": "Collage uses the photos of the first three slides.",
+      "default": "full-image",
+      "control": "cards",
+      "options": [
+        {
+          "value": "full-image",
+          "label": "Full-width photo"
+        },
+        {
+          "value": "split",
+          "label": "Photo and text side by side"
+        },
+        {
+          "value": "slideshow",
+          "label": "Slideshow"
+        },
+        {
+          "value": "collage",
+          "label": "Collage"
+        }
+      ]
+    },
+    {
+      "key": "height",
+      "type": "select",
+      "label": "Banner height",
+      "default": "medium",
+      "control": "segmented",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        },
+        {
+          "value": "full",
+          "label": "Full screen"
+        }
+      ]
+    },
+    {
+      "key": "autoplay",
+      "type": "toggle",
+      "label": "Autoplay",
+      "default": true,
+      "visible_if": {
+        "variant": "slideshow"
+      }
+    },
+    {
+      "key": "interval",
+      "type": "range",
+      "label": "Time per slide",
+      "default": 6,
+      "min": 2,
+      "max": 10,
+      "step": 0.5,
+      "unit": "s",
+      "visible_if": {
+        "variant": "slideshow"
+      }
+    },
+    {
+      "key": "slide_change",
+      "type": "select",
+      "label": "Transition",
+      "default": "fade",
+      "options": [
+        {
+          "value": "fade",
+          "label": "Fade"
+        },
+        {
+          "value": "slide",
+          "label": "Slide"
+        },
+        {
+          "value": "slide-up",
+          "label": "Slide up"
+        },
+        {
+          "value": "zoom",
+          "label": "Zoom"
+        },
+        {
+          "value": "cover",
+          "label": "Cover"
+        },
+        {
+          "value": "slow-zoom",
+          "label": "Slow zoom"
+        }
+      ],
+      "visible_if": {
+        "variant": "slideshow"
+      }
+    },
+    {
+      "key": "heading_size",
+      "type": "select",
+      "label": "Heading size",
+      "default": "large",
+      "control": "segmented",
+      "advanced": true,
+      "options": [
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        }
+      ]
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    }
+  ],
+  "blocks": {
+    "min": 1,
+    "max": 5,
+    "types": [
+      {
+        "type": "slide",
+        "label": "Slide",
+        "limit": null,
+        "settings": [
+          {
+            "key": "image",
+            "type": "image",
+            "label": "Photo",
+            "default": ""
+          },
+          {
+            "key": "image_mobile",
+            "type": "image",
+            "label": "Photo on phones",
+            "default": "",
+            "live": "render"
+          },
+          {
+            "key": "image_alt",
+            "type": "text",
+            "label": "Photo description for screen readers",
+            "max": 200,
+            "default": "",
+            "advanced": true
+          },
+          {
+            "key": "focal",
+            "type": "select",
+            "label": "Keep when cropped, across",
+            "default": "center",
+            "control": "segmented",
+            "advanced": true,
+            "options": [
+              {
+                "value": "start",
+                "label": "Left"
+              },
+              {
+                "value": "center",
+                "label": "Middle"
+              },
+              {
+                "value": "end",
+                "label": "Right"
+              }
+            ]
+          },
+          {
+            "key": "focal_y",
+            "type": "select",
+            "label": "Keep when cropped, up and down",
+            "default": "center",
+            "control": "segmented",
+            "advanced": true,
+            "options": [
+              {
+                "value": "top",
+                "label": "Top"
+              },
+              {
+                "value": "center",
+                "label": "Middle"
+              },
+              {
+                "value": "bottom",
+                "label": "Bottom"
+              }
+            ]
+          },
+          {
+            "key": "overlay",
+            "type": "range",
+            "label": "Darken photo",
+            "default": 35,
+            "min": 0,
+            "max": 80,
+            "step": 5,
+            "unit": "%",
+            "visible_if": {
+              "variant": [
+                "full-image",
+                "slideshow"
+              ]
+            }
+          },
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "max": 120,
+            "default": "Everything for your next build"
+          },
+          {
+            "key": "text",
+            "type": "textarea",
+            "label": "Text",
+            "max": 400,
+            "default": ""
+          },
+          {
+            "key": "button_label",
+            "type": "text",
+            "label": "Button text",
+            "max": 40,
+            "default": "Shop now"
+          },
+          {
+            "key": "button_link",
+            "type": "url",
+            "label": "Button goes to",
+            "default": {
+              "type": "search"
+            }
+          },
+          {
+            "key": "button2_label",
+            "type": "text",
+            "label": "Second button text",
+            "max": 40,
+            "default": ""
+          },
+          {
+            "key": "button2_link",
+            "type": "url",
+            "label": "Second button goes to",
+            "default": null
+          },
+          {
+            "key": "text_x",
+            "type": "select",
+            "label": "Text position across",
+            "default": "start",
+            "control": "segmented",
+            "options": [
+              {
+                "value": "start",
+                "label": "Left"
+              },
+              {
+                "value": "center",
+                "label": "Center"
+              },
+              {
+                "value": "end",
+                "label": "Right"
+              }
+            ],
+            "visible_if": {
+              "variant": [
+                "full-image",
+                "split",
+                "slideshow"
+              ]
+            }
+          },
+          {
+            "key": "text_y",
+            "type": "select",
+            "label": "Text position up and down",
+            "default": "center",
+            "control": "segmented",
+            "options": [
+              {
+                "value": "top",
+                "label": "Top"
+              },
+              {
+                "value": "center",
+                "label": "Middle"
+              },
+              {
+                "value": "bottom",
+                "label": "Bottom"
+              }
+            ]
+          },
+          {
+            "key": "box",
+            "type": "select",
+            "label": "Text background",
+            "default": "none",
+            "control": "segmented",
+            "options": [
+              {
+                "value": "none",
+                "label": "None"
+              },
+              {
+                "value": "panel",
+                "label": "Solid"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "photo",
+      "label": "Full-width photo",
+      "settings": {
+        "variant": "full-image",
+        "height": "large"
+      },
+      "blocks": [
+        {
+          "type": "slide",
+          "label": "Slide 1",
+          "settings": {
+            "image": "media/xelga/clothes/slide-1-linen.jpg",
+            "image_alt": "",
+            "heading": "Your new season starts here",
+            "text": "Say in one line what makes this collection worth a look.",
+            "button_label": "Shop now",
+            "button_link": {
+              "type": "search"
+            },
+            "text_y": "bottom",
+            "overlay": 45
+          }
+        }
+      ]
+    },
+    {
+      "key": "split",
+      "label": "Photo and text side by side",
+      "settings": {
+        "variant": "split",
+        "height": "medium"
+      },
+      "blocks": [
+        {
+          "type": "slide",
+          "label": "Slide 1",
+          "settings": {
+            "image": "media/xelga/clothes/slide-2-tailoring.jpg",
+            "image_alt": "",
+            "heading": "Made to be worn every day",
+            "text": "Tell shoppers what they will find, in a sentence or two.",
+            "button_label": "See what is new",
+            "button_link": {
+              "type": "search"
+            },
+            "overlay": 0
+          }
+        }
+      ]
+    },
+    {
+      "key": "slideshow",
+      "label": "Slideshow with three slides",
+      "settings": {
+        "variant": "slideshow",
+        "height": "large",
+        "autoplay": true,
+        "interval": 6
+      },
+      "blocks": [
+        {
+          "type": "slide",
+          "label": "Slide 1",
+          "settings": {
+            "image": "media/xelga/clothes/slide-1-linen.jpg",
+            "image_alt": "",
+            "heading": "First slide heading",
+            "text": "A short line about this offer.",
+            "button_label": "Shop now",
+            "button_link": {
+              "type": "search"
+            }
+          }
+        },
+        {
+          "type": "slide",
+          "label": "Slide 2",
+          "settings": {
+            "image": "media/xelga/clothes/slide-2-tailoring.jpg",
+            "image_alt": "",
+            "heading": "Second slide heading",
+            "text": "A short line about this offer.",
+            "button_label": "Shop now",
+            "button_link": {
+              "type": "search"
+            }
+          }
+        },
+        {
+          "type": "slide",
+          "label": "Slide 3",
+          "settings": {
+            "image": "media/xelga/clothes/look-5-stairwell.jpg",
+            "image_alt": "",
+            "heading": "Third slide heading",
+            "text": "A short line about this offer.",
+            "button_label": "Shop now",
+            "button_link": {
+              "type": "search"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "key": "collage",
+      "label": "Collage of three photos",
+      "settings": {
+        "variant": "collage",
+        "height": "large"
+      },
+      "blocks": [
+        {
+          "type": "slide",
+          "label": "Slide 1",
+          "settings": {
+            "image": "media/xelga/clothes/look-2-rooftop.jpg",
+            "image_alt": "",
+            "heading": "A look for every plan",
+            "text": "Pieces that work together, from morning to night.",
+            "button_label": "Shop the looks",
+            "button_link": {
+              "type": "search"
+            },
+            "overlay": 0
+          }
+        },
+        {
+          "type": "slide",
+          "label": "Slide 2",
+          "settings": {
+            "image": "media/xelga/clothes/look-3-clutch.jpg",
+            "image_alt": "",
+            "overlay": 0
+          }
+        },
+        {
+          "type": "slide",
+          "label": "Slide 3",
+          "settings": {
+            "image": "media/xelga/clothes/look-5-stairwell.jpg",
+            "image_alt": "",
+            "overlay": 0
+          }
+        }
+      ]
+    }
+  ]
+}

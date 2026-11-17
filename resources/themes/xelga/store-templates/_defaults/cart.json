@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "order": [
+    "breadcrumbs-1",
+    "cart-main-1",
+    "recent-1"
+  ],
+  "sections": {
+    "breadcrumbs-1": {
+      "type": "breadcrumbs",
+      "label": "Breadcrumbs",
+      "disabled": false,
+      "settings": {}
+    },
+    "cart-main-1": {
+      "type": "cart-main",
+      "label": "Cart",
+      "disabled": false,
+      "settings": {}
+    },
+    "recent-1": {
+      "type": "recently-viewed",
+      "label": "Recently viewed",
+      "disabled": false,
+      "settings": {}
+    }
+  }
+}

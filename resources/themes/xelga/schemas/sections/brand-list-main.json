@@ -1,0 +1,111 @@
+{
+  "type": "brand-list-main",
+  "label": "All brands",
+  "description": "Lists every brand that has products.",
+  "group": "template",
+  "templates": [
+    "brand-list"
+  ],
+  "limit": 1,
+  "main": true,
+  "class": "s-brand-list",
+  "settings": [
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "Brands",
+      "max": 160
+    },
+    {
+      "key": "subheading",
+      "type": "textarea",
+      "label": "Text under the heading",
+      "default": "",
+      "max": 400
+    },
+    {
+      "key": "cols",
+      "type": "select",
+      "label": "Brands per row",
+      "default": "4",
+      "options": [
+        {
+          "value": "3",
+          "label": "Three"
+        },
+        {
+          "value": "4",
+          "label": "Four"
+        },
+        {
+          "value": "5",
+          "label": "Five"
+        },
+        {
+          "value": "6",
+          "label": "Six"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "show_logo",
+      "type": "toggle",
+      "label": "Show logos",
+      "default": true
+    },
+    {
+      "key": "show_count",
+      "type": "toggle",
+      "label": "Show the number of products",
+      "default": true
+    },
+    {
+      "key": "grayscale",
+      "type": "toggle",
+      "label": "Gray logos until pointed at",
+      "default": false,
+      "advanced": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "sm",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    }
+  ],
+  "presets": [
+    {
+      "key": "grid",
+      "label": "All brands",
+      "settings": {}
+    }
+  ]
+}

@@ -1,0 +1,197 @@
+/*
+ * The frame every section shares: inner width, padding steps and headings.
+ */
+
+.s {
+  --pad: var(--space-section);
+  position: relative;
+  padding-block: var(--pad);
+  color: var(--c-text);
+  background: var(--c-bg);
+}
+
+.s[data-pad="none"] { --pad: 0px; }
+.s[data-pad="sm"] { --pad: calc(var(--space-section) * .5); }
+.s[data-pad="md"] { --pad: var(--space-section); }
+.s[data-pad="lg"] { --pad: calc(var(--space-section) * 1.5); }
+
+/*
+ * Two neighbours on the same scheme share one gap instead of two. A thin
+ * strip (promises, small or no padding) keeps the full gap after it, or
+ * the next section's heading would sit against the strip's text.
+ */
+.scheme-1:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-1:not(.s-footer, .s-hero, [data-has-bg="true"]),
+.scheme-2:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-2:not(.s-footer, .s-hero, [data-has-bg="true"]),
+.scheme-3:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-3:not(.s-footer, .s-hero, [data-has-bg="true"]),
+.scheme-4:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-4:not(.s-footer, .s-hero, [data-has-bg="true"]),
+.scheme-5:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-5:not(.s-footer, .s-hero, [data-has-bg="true"]) {
+  padding-block-start: 0;
+}
+
+/* Focal point of a cropped photo: which part stays in view. */
+[data-focal="start"] { --focal-x: 20%; }
+[data-focal="center"] { --focal-x: 50%; }
+[data-focal="end"] { --focal-x: 80%; }
+[data-focal-y="top"] { --focal-y: 20%; }
+[data-focal-y="center"] { --focal-y: 50%; }
+[data-focal-y="bottom"] { --focal-y: 80%; }
+
+.tile__media img,
+.promo__media img,
+.iwt__media img,
+.spotlight__media img {
+  object-position: var(--focal-x, 50%) var(--focal-y, 50%);
+}
+
+/* Background photo and texture, behind a section's content. */
+.s[data-has-bg="true"],
+.s:not([data-texture="none"])[data-texture] {
+  isolation: isolate;
+}
+
+.s__bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.s__bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.s__bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--overlay-rgb) / calc(var(--bg-overlay, 40) * 1%));
+}
+
+.s[data-has-bg="true"] {
+  color: var(--c-on-image);
+  --c-text: var(--c-on-image);
+  --c-muted: var(--c-on-image-muted);
+}
+
+.s[data-texture]:not([data-texture="none"])::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  --tex: color-mix(in srgb, var(--c-text) 9%, transparent);
+}
+
+.s[data-texture="dots"]::before {
+  background-image: radial-gradient(var(--tex) 1px, transparent 1.2px);
+  background-size: 14px 14px;
+}
+
+.s[data-texture="grid"]::before {
+  background-image: linear-gradient(var(--tex) 1px, transparent 1px), linear-gradient(90deg, var(--tex) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.s[data-texture="lines"]::before {
+  background-image: repeating-linear-gradient(45deg, var(--tex) 0 1px, transparent 1px 10px);
+}
+
+.s[data-texture="grain"]::before {
+  background-image: radial-gradient(var(--tex) .6px, transparent .8px), radial-gradient(var(--tex) .6px, transparent .8px);
+  background-size: 5px 5px, 7px 7px;
+  background-position: 0 0, 2px 3px;
+}
+
+/* A note only the editor's preview draws, for a section with nothing to show yet. */
+.editor-note {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-block: 1rem;
+  padding: .875rem 1rem;
+  font: 500 .875rem/1.4 system-ui, sans-serif;
+  color: var(--c-text);
+  background: color-mix(in srgb, var(--c-accent) 10%, var(--c-bg));
+  border: 1px dashed color-mix(in srgb, var(--c-accent) 55%, var(--c-border));
+  border-radius: var(--radius-card);
+}
+
+
+.s-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: .75rem 2rem;
+  margin-block-end: clamp(1.5rem, 1rem + 1.5vw, 2.5rem);
+}
+
+.s-head__text {
+  display: grid;
+  gap: .625rem;
+  max-width: 44rem;
+}
+
+.s-head__title {
+  font-size: var(--fs-h2);
+}
+
+.s-head__sub {
+  max-width: 62ch;
+  color: var(--c-muted);
+}
+
+.s-head__aside {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.s[data-head-align="center"] .s-head {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.s[data-head-align="center"] .s-head__text {
+  justify-items: center;
+}
+
+.link-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  min-height: 44px;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: .3em;
+  white-space: nowrap;
+}
+
+.link-arrow .icon {
+  transition: transform .25s var(--ease-out);
+}
+
+.link-arrow:hover {
+  text-decoration-color: currentColor;
+}
+
+.link-arrow:hover .icon {
+  transform: translateX(3px);
+}
+
+/* Rich text from the editor */
+.rte {
+  display: grid;
+  gap: .875em;
+  max-width: 68ch;
+}
+
+.rte a { text-decoration: underline; }
+.rte ul, .rte ol { padding-inline-start: 1.25em; display: grid; gap: .35em; }
+.rte strong { font-weight: 650; }
+

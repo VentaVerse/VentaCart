@@ -1,0 +1,144 @@
+{
+  "type": "product-details",
+  "label": "Product details",
+  "description": "Description and specifications come from VentaCart.",
+  "group": "template",
+  "templates": [
+    "product",
+    "*custom"
+  ],
+  "limit": 1,
+  "main": false,
+  "class": "s-details",
+  "settings": [
+    {
+      "key": "layout",
+      "type": "select",
+      "label": "Shown as",
+      "default": "tabs",
+      "options": [
+        {
+          "value": "tabs",
+          "label": "Tabs"
+        },
+        {
+          "value": "accordion",
+          "label": "Expandable panels"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "first_open",
+      "type": "toggle",
+      "label": "Open the first panel",
+      "default": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-2"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "blocks": {
+    "min": 0,
+    "max": 6,
+    "types": [
+      {
+        "type": "description",
+        "label": "Description",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "title",
+            "type": "text",
+            "label": "Panel title",
+            "default": "Description",
+            "max": 40
+          }
+        ]
+      },
+      {
+        "type": "specifications",
+        "label": "Specifications",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "title",
+            "type": "text",
+            "label": "Panel title",
+            "default": "Specifications",
+            "max": 40
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "label": "Text panel",
+        "limit": null,
+        "settings": [
+          {
+            "key": "title",
+            "type": "text",
+            "label": "Panel title",
+            "default": "Size guide",
+            "max": 40
+          },
+          {
+            "key": "body",
+            "type": "richtext",
+            "label": "Text",
+            "default": "<p>Body measurements in centimeters. Between sizes, take the smaller one.</p>"
+          },
+          {
+            "key": "variant_link",
+            "type": "toggle",
+            "label": "Link to this panel beside the variants",
+            "default": false
+          }
+        ]
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "details",
+      "label": "Description and specifications",
+      "settings": {},
+      "blocks": [
+        {
+          "type": "description"
+        },
+        {
+          "type": "specifications"
+        }
+      ]
+    }
+  ]
+}

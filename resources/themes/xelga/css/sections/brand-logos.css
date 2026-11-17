@@ -1,0 +1,80 @@
+/* ==========================================================================
+   17. Brand logos (row, grid)
+   ========================================================================== */
+
+.brands {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 990px) {
+  .brands {
+    grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr));
+  }
+}
+
+.brand {
+  display: grid;
+  place-items: center;
+  min-height: 96px;
+  padding: 1rem;
+  font-family: var(--font-heading);
+  font-stretch: var(--heading-stretch);
+  font-size: 1.25rem;
+  font-weight: var(--font-heading-weight);
+  letter-spacing: var(--heading-tracking);
+  color: var(--c-muted);
+  text-decoration: none;
+  text-align: center;
+  transition: color .2s;
+}
+
+.brand:hover {
+  color: var(--c-text);
+}
+
+.brand img {
+  max-height: 44px;
+  width: auto;
+  transition: filter .3s, opacity .3s;
+}
+
+.s[data-grayscale="true"] .brand img {
+  filter: grayscale(1);
+  opacity: .7;
+}
+
+.s[data-grayscale="true"] .brand:hover img {
+  filter: none;
+  opacity: 1;
+}
+
+.s-brands[data-variant="grid"] .brands {
+  overflow: hidden;
+  border-radius: var(--radius-card);
+}
+
+/* Lines drawn by each cell, not by the list behind it, so a short last row
+   leaves the section's own background rather than an empty gray cell. */
+.s-brands[data-variant="grid"] .brands > li {
+  outline: 1px solid var(--c-border);
+  outline-offset: -.5px;
+}
+
+.s-brands[data-variant="grid"] .brand {
+  min-height: 120px;
+}
+
+
+/* Phones show two per row; an odd last logo takes the whole row. */
+@media (max-width: 749px) {
+  .brands {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .s-brands[data-odd="true"] .brands > li:last-child {
+    grid-column: 1 / -1;
+  }
+}

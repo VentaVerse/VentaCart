@@ -1,0 +1,282 @@
+{
+  "type": "brand-logos",
+  "label": "Brand logos",
+  "group": "template",
+  "templates": [
+    "*"
+  ],
+  "limit": null,
+  "main": false,
+  "class": "s-brands",
+  "variants": [
+    {
+      "value": "row",
+      "label": "Row"
+    },
+    {
+      "value": "grid",
+      "label": "Grid with lines"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "row",
+      "options": [
+        {
+          "value": "row",
+          "label": "Row"
+        },
+        {
+          "value": "grid",
+          "label": "Grid with lines"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "Brands we carry"
+    },
+    {
+      "key": "source",
+      "type": "select",
+      "label": "Brands shown",
+      "default": "chosen",
+      "control": "segmented",
+      "info": "Every brand follows the brand order set in VentaCart.",
+      "options": [
+        {
+          "value": "chosen",
+          "label": "The ones I choose"
+        },
+        {
+          "value": "all",
+          "label": "Every brand"
+        }
+      ]
+    },
+    {
+      "key": "count",
+      "type": "range",
+      "label": "Most brands shown",
+      "default": 12,
+      "min": 3,
+      "max": 24,
+      "step": 1,
+      "visible_if": {
+        "source": "all"
+      }
+    },
+    {
+      "key": "cols",
+      "type": "range",
+      "label": "Logos per row",
+      "default": 6,
+      "min": 3,
+      "max": 8,
+      "step": 1
+    },
+    {
+      "key": "grayscale",
+      "type": "toggle",
+      "label": "Gray logos until pointed at",
+      "default": true
+    },
+    {
+      "key": "head_align",
+      "type": "select",
+      "label": "Heading alignment",
+      "default": "start",
+      "options": [
+        {
+          "value": "start",
+          "label": "Left"
+        },
+        {
+          "value": "center",
+          "label": "Center"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "bg_image",
+      "type": "image",
+      "label": "Background photo",
+      "default": "",
+      "advanced": true
+    },
+    {
+      "key": "bg_overlay",
+      "type": "range",
+      "label": "Darken background photo",
+      "default": 40,
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "advanced": true
+    },
+    {
+      "key": "texture",
+      "type": "select",
+      "label": "Background texture",
+      "default": "none",
+      "advanced": true,
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "dots",
+          "label": "Dots"
+        },
+        {
+          "value": "grid",
+          "label": "Grid lines"
+        },
+        {
+          "value": "lines",
+          "label": "Diagonal lines"
+        },
+        {
+          "value": "grain",
+          "label": "Fine grain"
+        }
+      ]
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "render_keys": [
+    "source",
+    "count"
+  ],
+  "blocks": {
+    "min": 0,
+    "max": 16,
+    "types": [
+      {
+        "type": "brand",
+        "label": "Brand",
+        "settings": [
+          {
+            "key": "brand",
+            "type": "brand-picker",
+            "label": "Brand",
+            "default": null
+          },
+          {
+            "key": "name",
+            "type": "text",
+            "label": "Custom name",
+            "default": "",
+            "max": 60
+          },
+          {
+            "key": "image",
+            "type": "image",
+            "label": "Custom logo",
+            "default": "",
+            "live": "render"
+          },
+          {
+            "key": "link",
+            "type": "url",
+            "label": "Custom link",
+            "default": null
+          }
+        ],
+        "limit": null
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "all",
+      "label": "Every brand in a row",
+      "settings": {
+        "variant": "row",
+        "source": "all",
+        "count": 12
+      }
+    },
+    {
+      "key": "grid",
+      "label": "Grid with lines",
+      "settings": {
+        "variant": "grid",
+        "source": "all",
+        "count": 8,
+        "cols": 4,
+        "grayscale": false
+      }
+    },
+    {
+      "key": "chosen",
+      "label": "Brands I choose",
+      "settings": {
+        "variant": "row",
+        "source": "chosen"
+      },
+      "blocks": [
+        {
+          "type": "brand",
+          "label": "Brand 1",
+          "settings": {}
+        },
+        {
+          "type": "brand",
+          "label": "Brand 2",
+          "settings": {}
+        },
+        {
+          "type": "brand",
+          "label": "Brand 3",
+          "settings": {}
+        },
+        {
+          "type": "brand",
+          "label": "Brand 4",
+          "settings": {}
+        }
+      ]
+    }
+  ]
+}

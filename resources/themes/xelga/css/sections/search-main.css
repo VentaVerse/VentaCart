@@ -1,0 +1,12 @@
+/* Search results: the large search field and the no-results state. */
+.search-head { max-width: 44rem; }
+.search-field--lg { min-height: 56px; }
+.search-field--lg .search-field__input { font-size: 1.0625rem; }
+.s-search[data-state=empty] .listing { display: none; }
+.no-results { display: grid; gap: 1.5rem; justify-items: start; padding-block: 1rem 2rem; }
+.no-results__text { display: grid; gap: .5rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.no-results__links { display: flex; flex-wrap: wrap; gap: 0 2rem; margin: 0; padding: 0; list-style: none; }
+.search-head__form { display: block; }
+.s-search[data-show-search=false] .search-head__form { display: none; }
+.no-results .chip { min-height: 44px; padding-inline: 1.125rem; }

@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "order": [
+    "breadcrumbs-1",
+    "brand-main-1",
+    "brand-more-1"
+  ],
+  "sections": {
+    "breadcrumbs-1": {
+      "type": "breadcrumbs",
+      "label": "Breadcrumbs",
+      "disabled": false,
+      "settings": {
+        "show_current": true,
+        "scheme": "scheme-1"
+      },
+      "block_order": [],
+      "blocks": {}
+    },
+    "brand-main-1": {
+      "type": "brand-main",
+      "label": "Brand products",
+      "disabled": false,
+      "settings": {
+        "show_logo": true,
+        "show_description": true,
+        "show_count": true,
+        "filters": "sidebar",
+        "cols": "3",
+        "mobile_cols": "2",
+        "view": "grid",
+        "switch_view": true,
+        "pagination": "numbers",
+        "scheme": "scheme-1",
+        "pad": "sm"
+      },
+      "block_order": [],
+      "blocks": {}
+    },
+    "brand-more-1": {
+      "type": "featured-products",
+      "label": "More to discover",
+      "disabled": false,
+      "settings": {
+        "variant": "grid",
+        "heading": "More to discover",
+        "subheading": "",
+        "link_label": "",
+        "link": {
+          "type": "search"
+        },
+        "source": "best-sellers",
+        "count": 4,
+        "cols": 4,
+        "show_rating": false,
+        "show_quick_add": true,
+        "show_brand": true,
+        "scheme": "scheme-1",
+        "pad": "md"
+      },
+      "block_order": [],
+      "blocks": {}
+    }
+  }
+}

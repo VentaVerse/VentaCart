@@ -1,0 +1,225 @@
+{
+  "type": "rich-text",
+  "label": "Text",
+  "group": "template",
+  "templates": [
+    "*"
+  ],
+  "limit": null,
+  "main": false,
+  "class": "s-richtext",
+  "variants": [
+    {
+      "value": "center",
+      "label": "Centered"
+    },
+    {
+      "value": "start",
+      "label": "Left aligned"
+    },
+    {
+      "value": "split",
+      "label": "Heading beside text"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "center",
+      "options": [
+        {
+          "value": "center",
+          "label": "Centered"
+        },
+        {
+          "value": "start",
+          "label": "Left aligned"
+        },
+        {
+          "value": "split",
+          "label": "Heading beside text"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "heading",
+      "type": "text",
+      "label": "Heading",
+      "default": "Heading",
+      "max": 160
+    },
+    {
+      "key": "text",
+      "type": "richtext",
+      "label": "Text",
+      "default": "<p>Share a message with your shoppers.</p>"
+    },
+    {
+      "key": "button_label",
+      "type": "text",
+      "label": "Button text",
+      "default": ""
+    },
+    {
+      "key": "button_link",
+      "type": "url",
+      "label": "Button goes to",
+      "default": null
+    },
+    {
+      "key": "width",
+      "type": "select",
+      "label": "Text width",
+      "default": "medium",
+      "options": [
+        {
+          "value": "narrow",
+          "label": "Narrow"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "wide",
+          "label": "Wide"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "heading_size",
+      "type": "select",
+      "label": "Heading size",
+      "default": "medium",
+      "options": [
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "bg_image",
+      "type": "image",
+      "label": "Background photo",
+      "default": "",
+      "advanced": true
+    },
+    {
+      "key": "bg_overlay",
+      "type": "range",
+      "label": "Darken background photo",
+      "default": 40,
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "advanced": true
+    },
+    {
+      "key": "texture",
+      "type": "select",
+      "label": "Background texture",
+      "default": "none",
+      "advanced": true,
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "dots",
+          "label": "Dots"
+        },
+        {
+          "value": "grid",
+          "label": "Grid lines"
+        },
+        {
+          "value": "lines",
+          "label": "Diagonal lines"
+        },
+        {
+          "value": "grain",
+          "label": "Fine grain"
+        }
+      ]
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    }
+  ],
+  "presets": [
+    {
+      "key": "center",
+      "label": "Centered message",
+      "settings": {
+        "variant": "center",
+        "heading": "Made slowly, worn often",
+        "text": "<p>Say in two or three sentences what your store stands for.</p>",
+        "width": "narrow"
+      }
+    },
+    {
+      "key": "split",
+      "label": "Heading beside text",
+      "settings": {
+        "variant": "split",
+        "heading": "About the shop",
+        "text": "<p>Who you are, what you sell and why. Keep it short; shoppers skim.</p>",
+        "width": "wide"
+      }
+    },
+    {
+      "key": "start",
+      "label": "Text with a button",
+      "settings": {
+        "variant": "start",
+        "heading": "Need a hand choosing?",
+        "text": "<p>Message us with your size and what you have in mind.</p>",
+        "button_label": "Contact us",
+        "button_link": {
+          "type": "contact"
+        }
+      }
+    }
+  ]
+}

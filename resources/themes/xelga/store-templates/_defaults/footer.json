@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "order": [
+    "footer-1"
+  ],
+  "sections": {
+    "footer-1": {
+      "type": "footer",
+      "label": "Footer",
+      "disabled": false,
+      "settings": {
+        "variant": "columns",
+        "about": "Phones, laptops, monitors, tablets and accessories, shipped anywhere in the Philippines. Pay by cash on delivery or online.",
+        "show_socials": true,
+        "show_payments": true,
+        "legal": "",
+        "scheme": "scheme-3"
+      },
+      "block_order": [
+        "footer-1-b1",
+        "footer-1-b2",
+        "footer-1-b3"
+      ],
+      "blocks": {
+        "footer-1-b1": {
+          "type": "menu",
+          "label": "Menu: Shop",
+          "disabled": false,
+          "settings": {
+            "heading": "Shop",
+            "menu": "main"
+          }
+        },
+        "footer-1-b2": {
+          "type": "menu",
+          "label": "Menu: Help",
+          "disabled": false,
+          "settings": {
+            "heading": "Help",
+            "menu": "footer"
+          }
+        },
+        "footer-1-b3": {
+          "type": "contact",
+          "label": "Contact details",
+          "disabled": false,
+          "settings": {
+            "heading": "Contact",
+            "show_phone": true,
+            "show_email": true,
+            "show_address": true,
+            "show_hours": true
+          }
+        }
+      }
+    }
+  }
+}

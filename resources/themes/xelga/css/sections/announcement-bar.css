@@ -1,0 +1,147 @@
+/* ==========================================================================
+   8. Announcement bar
+   ========================================================================== */
+
+.s-announcement {
+  padding-block: 0;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  border-block-end: 1px solid color-mix(in srgb, var(--c-border) 60%, transparent);
+}
+
+.announce {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  min-height: 40px;
+  overflow: hidden;
+}
+
+.announce__track {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.announce__group {
+  display: flex;
+  align-items: center;
+  gap: .5rem 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.announce__msg {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding-block: .5rem;
+  text-align: center;
+}
+
+.announce__msg a {
+  text-underline-offset: .25em;
+}
+
+.announce__btn {
+  display: none;
+  width: 40px;
+  height: 40px;
+}
+
+/* Static: every message in one line, wrapping on small screens */
+.s-announcement[data-variant="static"] .announce__group {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.s-announcement[data-variant="static"] .announce__msg + .announce__msg::before {
+  content: "";
+  width: 1px;
+  height: 1em;
+  margin-inline-end: 1.5rem;
+  background: currentColor;
+  opacity: .35;
+}
+
+@media (max-width: 749px) {
+  .s-announcement[data-variant="static"] .announce__msg:not(:first-child) {
+    display: none;
+  }
+}
+
+/* Rotate: one message at a time with arrows */
+.s-announcement[data-variant="rotate"] .announce {
+  justify-content: space-between;
+}
+
+.s-announcement[data-variant="rotate"]:not([data-show-arrows="false"]) .announce__btn {
+  display: inline-grid;
+}
+
+.s-announcement[data-variant="rotate"] .announce__track {
+  flex: 1;
+  justify-content: center;
+}
+
+.s-announcement[data-variant="rotate"] .announce__group {
+  display: grid;
+}
+
+.s-announcement[data-variant="rotate"] .announce__msg {
+  grid-area: 1 / 1;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(6px);
+  transition: opacity .4s ease, transform .5s var(--ease-out), visibility 0s .4s;
+}
+
+.s-announcement[data-variant="rotate"] .announce__msg.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity .4s ease, transform .5s var(--ease-out), visibility 0s;
+}
+
+/* Marquee: a slow continuous scroll; JS adds a hidden copy for the loop */
+.s-announcement[data-variant="marquee"] .announce {
+  justify-content: flex-start;
+}
+
+.s-announcement[data-variant="marquee"] .announce__track {
+  gap: 2rem;
+  width: max-content;
+  padding-inline-end: 2rem;
+  animation: marquee var(--marquee-duration, 30s) linear infinite;
+}
+
+.s-announcement[data-variant="marquee"] .announce__group {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.s-announcement[data-variant="marquee"] .announce__msg::after {
+  content: "";
+  width: 4px;
+  height: 4px;
+  margin-inline-start: 1.5rem;
+  background: currentColor;
+  border-radius: 50%;
+  opacity: .5;
+}
+
+.s-announcement[data-variant="marquee"] .announce:hover .announce__track,
+.s-announcement[data-variant="marquee"] .announce:focus-within .announce__track {
+  animation-play-state: paused;
+}
+
+.announce__group--clone { display: none; }
+.s-announcement[data-variant="marquee"] .announce__group--clone { display: flex; }
+
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+

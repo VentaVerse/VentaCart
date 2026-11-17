@@ -1,0 +1,33 @@
+/* All brands: a grid of logo tiles with the brand's name and product count. */
+.s-brand-list { --cols: 4; }
+.s-brand-list[data-cols="3"] { --cols: 3; }
+.s-brand-list[data-cols="5"] { --cols: 5; }
+.s-brand-list[data-cols="6"] { --cols: 6; }
+.s-brand-list .listing-head { display: grid; gap: .75rem; max-width: 50rem; margin-block: 1.25rem 2rem; }
+.s-brand-list .listing-head__title { font-size: var(--fs-h1); }
+.s-brand-list .listing-head__text { color: var(--c-muted); }
+.brand-index {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--grid-gap);
+    margin: 0; padding: 0; list-style: none;
+}
+@media (min-width: 750px) { .brand-index { grid-template-columns: repeat(min(var(--cols), 4), minmax(0, 1fr)); } }
+@media (min-width: 990px) { .brand-index { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); } }
+.brand-tile {
+    display: grid; gap: .375rem; height: 100%; padding: 1rem; color: inherit; text-decoration: none;
+    border: 1px solid var(--c-border); border-radius: var(--radius-card); background: var(--c-bg);
+    transition: border-color .2s, background-color .2s;
+}
+a.brand-tile:hover { border-color: var(--c-text); background: var(--c-hover); }
+.brand-tile__logo {
+    position: relative; display: grid; place-items: center; aspect-ratio: 3 / 2; margin-block-end: .5rem; overflow: hidden;
+    border-radius: calc(var(--radius-card) * .6);
+}
+.brand-tile__logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: filter .3s, opacity .3s; }
+.brand-tile__logo:has(.brand-tile__initial) { background: var(--c-card); }
+.brand-tile__initial { font-family: var(--font-heading); font-size: 2.25rem; font-weight: 700; color: var(--c-muted); }
+.brand-tile__name { font-weight: 650; }
+.brand-tile__count { font-size: var(--fs-xs); }
+.s-brand-list[data-show-logo=false] .brand-tile__logo,
+.s-brand-list[data-show-count=false] .brand-tile__count { display: none; }
+.s-brand-list[data-grayscale=true] .brand-tile__logo img { filter: grayscale(1); opacity: .75; }
+.s-brand-list[data-grayscale=true] a.brand-tile:hover img { filter: none; opacity: 1; }

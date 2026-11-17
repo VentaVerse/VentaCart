@@ -1,0 +1,174 @@
+{
+  "type": "contact-main",
+  "label": "Contact form",
+  "group": "template",
+  "templates": [
+    "contact"
+  ],
+  "limit": 1,
+  "main": true,
+  "class": "s-maincontact",
+  "variants": [],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "split",
+      "control": "cards",
+      "options": [
+        {
+          "value": "split",
+          "label": "Details beside the form"
+        },
+        {
+          "value": "stacked",
+          "label": "Details above the form"
+        }
+      ]
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "default": "md",
+      "control": "segmented",
+      "options": [
+        {
+          "value": "none",
+          "label": "None"
+        },
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ]
+    }
+  ],
+  "blocks": {
+    "min": 0,
+    "max": 3,
+    "types": [
+      {
+        "type": "heading",
+        "label": "Heading and text",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "default": "Contact us"
+          },
+          {
+            "key": "text",
+            "type": "textarea",
+            "label": "Text",
+            "default": ""
+          }
+        ]
+      },
+      {
+        "type": "details",
+        "label": "Store details",
+        "description": "Email, phone and address come from VentaCart, Settings, General. Opening hours are set in Theme settings, Social and contact.",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "default": ""
+          },
+          {
+            "key": "show_email",
+            "type": "toggle",
+            "label": "Email",
+            "default": true
+          },
+          {
+            "key": "show_phone",
+            "type": "toggle",
+            "label": "Phone",
+            "default": true
+          },
+          {
+            "key": "show_address",
+            "type": "toggle",
+            "label": "Address",
+            "default": true
+          },
+          {
+            "key": "show_hours",
+            "type": "toggle",
+            "label": "Opening hours",
+            "default": true
+          }
+        ]
+      },
+      {
+        "type": "form",
+        "label": "Message form",
+        "limit": 1,
+        "settings": [
+          {
+            "key": "heading",
+            "type": "text",
+            "label": "Heading",
+            "default": "Send a message"
+          },
+          {
+            "key": "topics",
+            "type": "textarea",
+            "label": "Topics to choose from, one per line",
+            "default": "General question\nOrder question\nProduct question\nSomething else"
+          },
+          {
+            "key": "help",
+            "type": "text",
+            "label": "Help under the message",
+            "default": "For an order, include its number so we can find it quickly."
+          },
+          {
+            "key": "button_label",
+            "type": "text",
+            "label": "Button text",
+            "default": "Send message"
+          }
+        ]
+      }
+    ]
+  },
+  "presets": [
+    {
+      "key": "contact",
+      "label": "Contact form",
+      "settings": {},
+      "blocks": [
+        {
+          "type": "heading"
+        },
+        {
+          "type": "details"
+        },
+        {
+          "type": "form"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,159 @@
+/* ==========================================================================
+   15. Promo banners (overlay, stacked, mosaic)
+   ========================================================================== */
+
+.promos {
+  --promo-h: 360px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--grid-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.s[data-height="small"] .promos { --promo-h: 260px; }
+.s[data-height="large"] .promos { --promo-h: 480px; }
+
+.promo {
+  position: relative;
+  display: grid;
+  min-height: var(--promo-h);
+  overflow: hidden;
+  color: var(--c-text);
+  background: var(--c-card);
+  border-radius: var(--radius-card);
+  isolation: isolate;
+}
+
+.promo__media {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.promo__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .8s var(--ease-out);
+}
+
+.promo:hover .promo__media img {
+  transform: scale(1.035);
+}
+
+.promo__media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgb(var(--overlay-rgb) / .9) 0%, rgb(var(--overlay-rgb) / .72) 45%, rgb(var(--overlay-rgb) / 0) 88%);
+}
+
+.promo__body {
+  display: grid;
+  justify-items: start;
+  align-self: end;
+  gap: .625rem;
+  max-width: 32rem;
+  padding: clamp(1.25rem, 1rem + 1.5vw, 2.25rem);
+  color: var(--c-on-image);
+}
+
+.s[data-text-y="top"] .promo__body { align-self: start; }
+.s[data-text-y="center"] .promo__body { align-self: center; }
+
+.s[data-text-y="top"] .promo__media::after {
+  background: linear-gradient(to bottom, rgb(var(--overlay-rgb) / .72) 0%, rgb(var(--overlay-rgb) / 0) 60%);
+}
+
+.s[data-text-y="center"] .promo__media::after {
+  background: rgb(var(--overlay-rgb) / .45);
+}
+
+.promo__title {
+  font-size: var(--fs-h3);
+}
+
+.promo__text {
+  font-size: var(--fs-sm);
+  color: var(--c-on-image-muted);
+}
+
+.promo .btn {
+  margin-block-start: .375rem;
+}
+
+/* The banner link covers the whole tile */
+.promo__link {
+  text-decoration: none;
+}
+
+.promo:hover .promo__link {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+}
+
+.promo__link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* Stacked: photo on top, text below on the banner's own color scheme */
+.s-promos[data-variant="stacked"] .promo {
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+}
+
+.s-promos[data-variant="stacked"] .promo__media {
+  position: relative;
+  z-index: 0;
+  aspect-ratio: 16 / 10;
+}
+
+.s-promos[data-variant="stacked"] .promo__media::after {
+  display: none;
+}
+
+.s-promos[data-variant="stacked"] .promo__body {
+  align-self: start;
+  color: var(--c-text);
+  background: var(--c-card);
+}
+
+.s-promos[data-variant="stacked"] .promo__text {
+  color: var(--c-muted);
+}
+
+/* Mosaic: first banner large, the others stacked beside it */
+@media (min-width: 990px) {
+  .s-promos[data-variant="mosaic"] .promos {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    grid-auto-rows: minmax(calc(var(--promo-h) * .6), auto);
+  }
+  .s-promos[data-variant="mosaic"] .promo {
+    min-height: calc(var(--promo-h) * .6);
+  }
+  .s-promos[data-variant="mosaic"] .promo:first-child {
+    grid-row: span 2;
+  }
+  .s-promos[data-variant="mosaic"] .promo:first-child .promo__title {
+    font-size: var(--fs-h2);
+  }
+  .s-promos[data-variant="mosaic"] .promo:only-child {
+    grid-column: 1 / -1;
+  }
+}
+
+
+/* Phones: shorter banners, so two or three stacked do not each fill the
+   screen; the text keeps the room it needs. */
+@media (max-width: 749px) {
+  .promos { --promo-h: 300px; }
+  .s[data-height="small"] .promos { --promo-h: 220px; }
+  .s[data-height="large"] .promos { --promo-h: 380px; }
+  .s-promos[data-count="2"] .promos,
+  .s-promos[data-count="3"] .promos { --promo-h: 240px; }
+  .s-promos[data-count="3"][data-variant="mosaic"] .promo:first-child { --promo-h: 320px; }
+}

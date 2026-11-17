@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "order": [
+    "contact-main-1"
+  ],
+  "sections": {
+    "contact-main-1": {
+      "type": "contact-main",
+      "label": "Contact form",
+      "disabled": false,
+      "settings": {
+        "variant": "split",
+        "scheme": "scheme-1",
+        "pad": "md"
+      },
+      "block_order": [
+        "contact-main-1-heading",
+        "contact-main-1-details",
+        "contact-main-1-form"
+      ],
+      "blocks": {
+        "contact-main-1-heading": {
+          "type": "heading",
+          "label": "Heading and text",
+          "disabled": false,
+          "settings": {
+            "heading": "Contact us",
+            "text": "Questions about a product, an order or a delivery? Write to us and we answer, usually within a working day."
+          }
+        },
+        "contact-main-1-details": {
+          "type": "details",
+          "label": "Store details",
+          "disabled": false,
+          "settings": {}
+        },
+        "contact-main-1-form": {
+          "type": "form",
+          "label": "Message form",
+          "disabled": false,
+          "settings": {}
+        }
+      }
+    }
+  }
+}
