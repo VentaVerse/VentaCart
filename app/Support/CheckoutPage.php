@@ -2,7 +2,13 @@
 
 namespace App\Support;
 
+use Illuminate\Http\Request;
+use Illuminate\Pipeline\Pipeline;
+use Illuminate\Routing\Route;
+use Illuminate\Routing\Router;
+use Illuminate\Routing\SortedMiddleware;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Lets one extension draw the checkout page itself (a checkout split by
@@ -15,6 +21,12 @@ use Illuminate\Support\Facades\Log;
  * A controller is an invokable class, or one with a public index() method.
  * When the registered class is missing or is neither, core draws its own
  * checkout and the problem is logged.
+ *
+ * The controller's own middleware (HasMiddleware::middleware(), or the
+ * getMiddleware() of a controller that registers it in its constructor)
+ * runs before it, after the route's, exactly as if the route named that
+ * controller: a throttle or an authorization check an extension declares
+ * there holds.
  */
 final class CheckoutPage
 {
@@ -80,6 +92,34 @@ final class CheckoutPage
         }
 
         return [app($class), $method];
+    }
+
+    /**
+     * The registered controller's answer, through its own middleware, or
+     * null when core draws the checkout.
+     */
+    public static function respond(Request $request): ?Response
+    {
+        $takeover = self::resolve();
+        if ($takeover === null) {
+            return null;
+        }
+        [$controller, $method] = $takeover;
+
+        /** @var Router $router */
+        $router = app('router');
+        // A route naming the controller works out its middleware as the
+        // router would, HasMiddleware and getMiddleware() alike.
+        $route = (new Route(['GET'], $request->path(), ['uses' => $controller::class . '@' . $method, 'controller' => $controller::class . '@' . $method]))
+            ->setRouter($router)
+            ->setContainer(app());
+        $route->controller = $controller;
+        $middleware = (new SortedMiddleware($router->middlewarePriority, $router->resolveMiddleware($route->controllerMiddleware())))->all();
+
+        return (new Pipeline(app()))
+            ->send($request)
+            ->through($middleware)
+            ->then(fn (Request $request) => Router::toResponse($request, app()->call([$controller, $method])));
     }
 
     private static function method(string $class): ?string

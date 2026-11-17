@@ -348,7 +348,9 @@ One extension may draw the checkout page itself (a checkout split by seller, say
 \App\Support\CheckoutPage::use(\Extensions\Marketplace\Http\CheckoutController::class);
 ```
 
-While it is registered, the `checkout.index` route calls that controller: its `__invoke()`, else its public `index()`, with method injection. Only that page changes hands. The route, its middleware (signed-in customers only, not indexed) and every other checkout route (`checkout.place`, `checkout.address.save`, `checkout.shipping-rates`, `checkout.confirmation`, the payment returns) stay core's, so the order is placed, priced and paid through core's checks, CSRF included. The extension's page posts to them as core's page does.
+While it is registered, the `checkout.index` route calls that controller: its `__invoke()`, else its public `index()`, with method injection. The controller's own middleware (from `HasMiddleware::middleware()`, or `getMiddleware()` for one registered in its constructor) runs first, after the route's, as it would on a route of its own; `only` and `except` are read against the method called. Only that page changes hands. The route, its middleware (signed-in customers only, not indexed) and every other checkout route (`checkout.place`, `checkout.address.save`, `checkout.shipping-rates`, `checkout.confirmation`, the payment returns) stay core's, so the order is placed, priced and paid through core's checks, CSRF included. The extension's page posts to them as core's page does.
+
+The controller handles every state the page can be opened in, an empty cart included: core's page sends a shopper with an empty cart back to `cart.index` before anything else, and the extension's page must do the same (or draw its own empty state), since core's check does not run for it.
 
 When the class is missing, or is neither invokable nor has a public `index()`, core draws its own checkout and logs the problem. One registration per store: a second, different one is refused and logged. Unregistered, nothing changes.
 

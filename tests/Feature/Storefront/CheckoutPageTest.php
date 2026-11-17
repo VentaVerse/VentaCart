@@ -122,6 +122,32 @@ class CheckoutPageTest extends TestCase
         Log::shouldHaveReceived('warning')->once();
     }
 
+    public function test_the_controllers_own_middleware_runs_before_it(): void
+    {
+        CheckoutPage::use(GuardedCheckout::class);
+        GuardedCheckout::$called = false;
+
+        $this->actingAs($this->customer, 'customer')->get(route('checkout.index'))->assertForbidden();
+        $this->assertFalse(GuardedCheckout::$called, 'The controller never ran.');
+    }
+
+    public function test_middleware_a_controller_registers_in_its_constructor_runs_too(): void
+    {
+        CheckoutPage::use(ConstructorGuardedCheckout::class);
+
+        $this->actingAs($this->customer, 'customer')->get(route('checkout.index'))
+            ->assertOk()
+            ->assertHeader('X-Checkout-Checked', 'yes')
+            ->assertSee('checked checkout');
+    }
+
+    public function test_middleware_limited_to_another_method_does_not_run(): void
+    {
+        CheckoutPage::use(OnlyElsewhereCheckout::class);
+
+        $this->actingAs($this->customer, 'customer')->get(route('checkout.index'))->assertOk()->assertSee('open checkout');
+    }
+
     public function test_switched_off_core_draws_the_checkout_again(): void
     {
         $this->installSampleExtension();
@@ -144,5 +170,60 @@ class NotACheckout
     public function show(): string
     {
         return 'never';
+    }
+}
+
+class GuardedCheckout implements \Illuminate\Routing\Controllers\HasMiddleware
+{
+    public static bool $called = false;
+
+    public static function middleware(): array
+    {
+        return [fn ($request, $next) => abort(403)];
+    }
+
+    public function __invoke(): string
+    {
+        self::$called = true;
+
+        return 'never';
+    }
+}
+
+class ConstructorGuardedCheckout
+{
+    private array $middleware = [];
+
+    public function __construct()
+    {
+        $this->middleware[] = ['middleware' => function ($request, $next) {
+            $response = $next($request);
+            $response->headers->set('X-Checkout-Checked', 'yes');
+
+            return $response;
+        }, 'options' => []];
+    }
+
+    public function getMiddleware(): array
+    {
+        return $this->middleware;
+    }
+
+    public function index(): string
+    {
+        return 'checked checkout';
+    }
+}
+
+class OnlyElsewhereCheckout implements \Illuminate\Routing\Controllers\HasMiddleware
+{
+    public static function middleware(): array
+    {
+        return [new \Illuminate\Routing\Controllers\Middleware(fn ($request, $next) => abort(403), only: ['store'])];
+    }
+
+    public function __invoke(): string
+    {
+        return 'open checkout';
     }
 }
