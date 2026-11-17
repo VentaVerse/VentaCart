@@ -68,6 +68,24 @@ final class BootPayload
     public const NOT_FOUND_PATH = 'xelga-preview-missing-page';
 
     /**
+     * Every section type of the catalog with its width: `span.min` is the
+     * narrowest column it fits (12 when it declares none) and
+     * `span.variants` the variants that set their own.
+     *
+     * @return array<string, array>
+     */
+    private static function sections(): array
+    {
+        $out = [];
+        foreach (Catalog::sections() as $type => $spec) {
+            $spans = (new \Themes\Xelga\Catalog\SectionSchema($spec))->spans();
+            $out[$type] = ['span' => ['min' => $spans['min'], 'variants' => (object) $spans['variants']]] + $spec;
+        }
+
+        return $out;
+    }
+
+    /**
      * The shell's payload. The preview window is not open yet: the editor
      * opens it with a POST (EditorController::openPreview), so `preview`
      * carries no nonce here.
@@ -107,7 +125,7 @@ final class BootPayload
             ],
             'csrf' => csrf_token(),
             'catalog' => [
-                'sections' => Catalog::sections(),
+                'sections' => self::sections(),
                 'theme_settings' => Catalog::themeSettingGroups(),
                 'font_pairs' => Catalog::fontPairs(),
             ],
@@ -116,6 +134,7 @@ final class BootPayload
                 'font_pairs' => array_map(fn (array $p) => ['value' => $p['value'], 'label' => $p['label']], Catalog::fontPairs()),
                 'blog_categories' => self::blogCategories(),
             ],
+            'layout' => \Themes\Xelga\Documents\Layout::payload(),
             'documents' => $documents,
             // The starting stores for "Start from a store", and whether the
             // store has products yet, for the empty state of product sections.

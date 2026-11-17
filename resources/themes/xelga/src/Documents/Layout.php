@@ -60,18 +60,22 @@ final class Layout
      * What the editor needs to build rows and sides, so the splits, the
      * defaults and the limits have one source.
      *
-     * @return array{splits: array, row_defaults: array, max_rows: int, max_per_column: int, max_per_side: int, side_span: int, sides_on: list<string>}
+     * `sides_on` lists every page type the catalog knows, the pages of
+     * installed extensions included, that may have sides.
+     *
+     * @return array{splits: array, row_defaults: array, row_choices: array, max_rows: int, max_per_column: int, max_per_side: int, side_span: int, sides_on: list<string>}
      */
     public static function payload(): array
     {
         return [
             'splits' => self::SPLITS,
             'row_defaults' => self::ROW_DEFAULTS,
+            'row_choices' => self::ROW_CHOICES,
             'max_rows' => self::MAX_ROWS,
             'max_per_column' => self::MAX_PER_COLUMN,
             'max_per_side' => self::MAX_PER_SIDE,
             'side_span' => self::SIDE_SPAN,
-            'sides_on' => array_values(array_filter(Handles::TEMPLATES, fn (string $type) => self::sidesAllowed($type))),
+            'sides_on' => array_values(array_filter([...Handles::TEMPLATES, ...array_keys(Handles::extensionTemplates())], fn (string $type) => self::sidesAllowed($type))),
         ];
     }
 

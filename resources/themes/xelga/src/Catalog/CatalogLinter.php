@@ -22,6 +22,9 @@ final class CatalogLinter
 {
     private const GROUPS = ['header', 'footer', 'template'];
 
+    /** @var list<int> the widths, in twelfths of a row, a section may ask for */
+    private const SPANS = [3, 4, 6, 8, 12];
+
     private const LIVE = ['text', 'attr', 'css', 'render'];
 
     /** `render`: the setting is read by the views, so a change shows when the page is drawn again. */
@@ -214,6 +217,7 @@ final class CatalogLinter
             $this->section($name, $spec);
         }
 
+        $this->containers();
         $this->themeSettings();
         $this->fontPairs();
         $this->defaults();
@@ -248,6 +252,8 @@ final class CatalogLinter
                 $this->problem("{$where}: lists no templates it may be added to.");
             }
         }
+
+        $this->spans($where, $spec, $part === null);
 
         $settings = (array) ($spec['settings'] ?? []);
         $this->settings($where, $settings, $spec);
@@ -314,6 +320,84 @@ final class CatalogLinter
         if (! is_file(Catalog::root("css/sections/{$name}.css"))) {
             $this->problem("{$where}: css/sections/{$name}.css is missing.");
         }
+    }
+
+    /**
+     * A section's width in columns. Every section, the theme's or an
+     * extension's, may only name the allowed widths, and a main section
+     * (the one that is a page's content) is never narrow. Only the theme's
+     * own sections must also set up their container: how an extension's
+     * section narrows is its stylesheet's business, and that file may be
+     * generated or built elsewhere.
+     */
+    private function spans(string $where, array $spec, bool $own): void
+    {
+        $allowed = 'must be 3, 4, 6, 8 or 12';
+        $values = [];
+        if (array_key_exists('span', $spec)) {
+            $min = is_array($spec['span']) ? ($spec['span']['min'] ?? null) : null;
+            if (! in_array($min, self::SPANS, true)) {
+                $this->problem("{$where}: span.min {$allowed}.");
+            } else {
+                $values[] = $min;
+            }
+        }
+        foreach ((array) ($spec['variants'] ?? []) as $variant) {
+            if (! is_array($variant) || ! array_key_exists('span', $variant)) {
+                continue;
+            }
+            if (! in_array($variant['span'], self::SPANS, true)) {
+                $this->problem("{$where}: variant " . json_encode($variant['value'] ?? null) . " span {$allowed}.");
+            } else {
+                $values[] = $variant['span'];
+            }
+        }
+        $narrow = array_filter($values, fn ($v) => $v < 12) !== [];
+        if (($spec['main'] ?? false) === true && $narrow) {
+            $this->problem("{$where}: a main section is always full width, so no span may be below 12.");
+        }
+
+        if ($own && $narrow) {
+            $class = (string) ($spec['class'] ?? '');
+            $file = Catalog::root('css/sections/' . ($spec['type'] ?? '') . '.css');
+            $css = is_file($file) ? $this->stripComments((string) file_get_contents($file)) : '';
+            if ($class === '' || preg_match('/(?:^|[},\s])\.' . preg_quote($class, '/') . '\s*\{[^{}]*container-type\s*:\s*inline-size/', $css) !== 1) {
+                $this->problem("{$where}: can sit in a narrow column, so css/sections/{$spec['type']}.css must set container-type: inline-size on .{$class} itself.");
+            }
+        }
+    }
+
+    /**
+     * Where a container may not be set. A column, a side, the content
+     * wrapper, `main` and a main section take their width from the page,
+     * and a container there would make the sections inside answer to the
+     * wrong width; a section sets it on itself.
+     */
+    private function containers(): void
+    {
+        $names = ['\.xr__col', '\.xp__side', '\.xp__content'];
+        foreach (Catalog::sections() as $spec) {
+            if (($spec['main'] ?? false) === true && is_string($spec['class'] ?? null) && ($spec['source'] ?? null) === null) {
+                $names[] = '\.' . preg_quote($spec['class'], '/');
+            }
+        }
+        $forbidden = '/(?<![\w.#-])main(?![\w-])|(?:' . implode('|', $names) . ')(?![\w-])/';
+
+        $files = [...(glob(Catalog::root('css/*.css')) ?: []), ...(glob(Catalog::root('css/*/*.css')) ?: [])];
+        foreach ($files as $file) {
+            $css = $this->stripComments((string) file_get_contents($file));
+            preg_match_all('/([^{}]+)\{([^{}]*)\}/', $css, $rules, PREG_SET_ORDER);
+            foreach ($rules as [, $selector, $body]) {
+                if (preg_match('/(?:^|[;\s])container(?:-type)?\s*:/', $body) === 1 && preg_match($forbidden, $selector) === 1) {
+                    $this->problem('css/' . substr($file, strlen(Catalog::root('css/'))) . ': ' . trim((string) preg_replace('/\s+/', ' ', $selector)) . ' sets a container; only a section sets one, on itself.');
+                }
+            }
+        }
+    }
+
+    private function stripComments(string $css): string
+    {
+        return (string) preg_replace('#/\*.*?\*/#s', '', $css);
     }
 
     /** @return list<string> page types extensions registered with core */
