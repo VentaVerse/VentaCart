@@ -239,10 +239,16 @@ final class Catalog
 
         $pairs = json_decode((string) @file_get_contents(self::root('schemas/font-pairs.json')), true);
 
+        $placements = [];
+        foreach (self::extensions()->all() as $part) {
+            $placements = [...$placements, ...\Themes\Xelga\Extensions\Placements::compile($part, $sections)];
+        }
+
         return [
             'version' => self::themeVersion(),
             'sections' => $sections,
             'blocks' => $blocks,
+            'placements' => $placements,
             'theme_settings' => $groups,
             'font_pairs' => array_values((array) ($pairs['pairs'] ?? [])),
         ];

@@ -47,10 +47,11 @@ final class DocumentRepository
         $row = $this->rows[$handle] ?? null;
 
         if (PreviewMode::active() && $row?->draft !== null) {
-            return $row->draft;
+            return \Themes\Xelga\Extensions\Placements::overlay($handle, $row->draft);
         }
 
-        return $row?->published ?? Defaults::content($handle);
+        // Extension placements apply as the page is read: nothing is written.
+        return \Themes\Xelga\Extensions\Placements::overlay($handle, $row?->published ?? Defaults::content($handle));
     }
 
     /** The version of the published theme settings, for the tokens stylesheet address. */

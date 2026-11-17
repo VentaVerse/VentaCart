@@ -38,6 +38,7 @@ final class DocumentWriter
         $document = DB::transaction(function () use ($handle, $kind, $json, $baseVersion, $user) {
             $row = Document::where('handle', $handle)->first();
             $now = now();
+            $json = self::keepPlaced($json, $row);
 
             if ($row === null) {
                 // A special layout is made by TemplateManager, with its name;
@@ -111,6 +112,35 @@ final class DocumentWriter
         $result = (new Shape($context))->normalize($handle, $content);
 
         return $result + ['json' => json_encode($result['content'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)];
+    }
+
+    /**
+     * A template's record of the placements it was given never shrinks: a
+     * save that left one out (an older editor, a restored revision) still
+     * keeps it, so what the merchant removed is never placed again.
+     */
+    private static function keepPlaced(string $json, ?Document $row): string
+    {
+        if ($row === null) {
+            return $json;
+        }
+        // Decoded as objects, so empty maps stay {} when written back.
+        $content = json_decode($json);
+        if (! $content instanceof \stdClass || ! property_exists($content, 'order')) {
+            return $json;
+        }
+        $mine = (array) ($content->placed ?? []);
+        $placed = \Themes\Xelga\Extensions\Placements::placed([
+            ...(array) ($row->draft['placed'] ?? []),
+            ...(array) ($row->published['placed'] ?? []),
+            ...$mine,
+        ]);
+        if ($placed === $mine) {
+            return $json;
+        }
+        $content->placed = $placed;
+
+        return json_encode($content, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 
     /**

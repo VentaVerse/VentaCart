@@ -237,7 +237,14 @@ final class Shape
             $this->mainSections($pageType, $outSections);
         }
 
-        return ['schema' => self::FORMAT, 'order' => array_values(array_filter($order, 'is_string')), 'sections' => (object) $outSections];
+        $clean = ['schema' => self::FORMAT, 'order' => array_values(array_filter($order, 'is_string')), 'sections' => (object) $outSections];
+        // The extension placements this template has been given (Placements).
+        $placed = \Themes\Xelga\Extensions\Placements::placed($content['placed'] ?? []);
+        if ($kind === 'template' && $placed !== []) {
+            $clean['placed'] = $placed;
+        }
+
+        return $clean;
     }
 
     /**

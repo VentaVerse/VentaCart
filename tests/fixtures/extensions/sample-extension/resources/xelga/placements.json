@@ -1,5 +1,6 @@
 {
   "placements": [
-    { "key": "card", "section": "sample-extension.card", "preset": "default", "templates": ["product"], "custom_templates": true, "after": "product-main", "otherwise": "end" }
+    { "key": "card", "section": "sample-extension.card", "preset": "default", "templates": ["product"], "custom_templates": true, "after": "product-main", "otherwise": "end" },
+    { "key": "seller", "block": "sample-extension.seller", "section": "product-main", "after": "title" }
   ]
 }

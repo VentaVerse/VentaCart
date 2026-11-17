@@ -24,7 +24,9 @@ final class DocumentPresenter
             'kind' => Handles::kind($handle),
             'page_type' => Handles::pageType($handle),
             'label' => $row?->label,
-            'content' => self::forClient($draft ?? $published ?? Defaults::content($handle)),
+            // What the editor edits: with any extension placement it has not
+            // been given, so saving keeps both the section and the record.
+            'content' => self::forClient(\Themes\Xelga\Extensions\Placements::overlay($handle, $draft ?? $published ?? Defaults::content($handle))),
             'draft' => $draft === null ? null : self::forClient($draft),
             'published' => $published === null ? null : self::forClient($published),
             'is_default' => $published === null,

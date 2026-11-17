@@ -71,6 +71,7 @@ final class CatalogLinter
         }
 
         $this->extensionTemplates($part);
+        $this->extensionPlacements($part);
 
         foreach ($part->blockFiles() as $file) {
             $name = basename($file, '.json');
@@ -146,6 +147,27 @@ final class CatalogLinter
                 $this->problem("{$where}: holds exactly one main section, and it is one of the extension's own.");
             }
             $this->lintDocument("{$part->name}: templates", $type, $content, ['scheme-1', 'scheme-2', 'scheme-3']);
+        }
+    }
+
+    /** Placements: each well formed, placing the extension's own section or block where it is allowed. */
+    private function extensionPlacements(ExtensionParts $part): void
+    {
+        $where = "{$part->name}: placements.json";
+        $pageTypes = [...Handles::TEMPLATES, ...array_keys(Handles::extensionTemplates())];
+        $compiled = \Themes\Xelga\Extensions\Placements::compile($part, Catalog::sections(), fn (string $reason) => $this->problem("{$where}: {$reason}."));
+        foreach ($compiled as $placement) {
+            if ($placement['kind'] !== 'section') {
+                continue;
+            }
+            $schema = Catalog::section($placement['section']);
+            foreach ($placement['templates'] as $type) {
+                if (! in_array($type, $pageTypes, true)) {
+                    $this->problem("{$where}: placement {$placement['id']} names {$type}, which is not a page template.");
+                } elseif (! $schema->allowedIn($type, 'template', $type)) {
+                    $this->problem("{$where}: placement {$placement['id']} puts {$placement['section']} on {$type}, where it is not allowed.");
+                }
+            }
         }
     }
 

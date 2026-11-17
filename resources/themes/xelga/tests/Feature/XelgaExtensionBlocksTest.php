@@ -98,8 +98,15 @@ class XelgaExtensionBlocksTest extends TestCase
 
     public function test_a_removed_block_is_gone(): void
     {
-        $version = $this->saveAndPublish($this->withSeller());
-        $this->saveAndPublish(Defaults::content('product'), $version + 1);
+        $this->saveAndPublish($this->withSeller());
+
+        // As the editor removes it: from what it loaded, which records the placements given.
+        $this->forgetXelgaState();
+        $state = $this->actingAs($this->admin())->getJson(route('admin.xelga.documents.show', ['handle' => 'product']))->json('data');
+        $content = json_decode(json_encode($state['content']), true);
+        $content['sections'][self::MAIN]['block_order'] = array_values(array_diff($content['sections'][self::MAIN]['block_order'], ['seller-1']));
+        unset($content['sections'][self::MAIN]['blocks']['seller-1']);
+        $this->saveAndPublish($content, (int) $state['draft_version']);
 
         $this->assertArrayNotHasKey('seller-1', $this->storedSection('product', self::MAIN)['blocks']);
         $this->page('/product/linen-shirt')->assertDontSee('data-sample-seller', false);
