@@ -29,12 +29,21 @@ final class SectionSchema
         return is_string($source) && $source !== '' ? $source : null;
     }
 
-    /** The view that draws it: the theme's `xelga::sections.{type}`, or the extension's own. */
+    /** The theme's view that draws one of its own sections. */
     public function view(): string
     {
-        $view = $this->raw['view'] ?? null;
+        return 'xelga::sections.' . $this->type;
+    }
 
-        return $this->source() !== null && is_string($view) ? $view : 'xelga::sections.' . $this->type;
+    /**
+     * The file that draws an extension's section, `views/sections/{type}.blade.php`
+     * in its parts folder, or null while the extension is not registered.
+     */
+    public function viewFile(): ?string
+    {
+        $part = $this->source() === null ? null : \Themes\Xelga\Extensions\Extensions::current()->get($this->source());
+
+        return $part === null ? null : $part->path . '/views/sections/' . $this->type . '.blade.php';
     }
 
     /** Its data provider: named after the type for the theme's own, declared by an extension for its own. */

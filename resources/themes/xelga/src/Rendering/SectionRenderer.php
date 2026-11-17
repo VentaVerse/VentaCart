@@ -95,7 +95,7 @@ final class SectionRenderer
                 $data = app($provider)->resolve($settings, $blocks, $context);
             }
 
-            $html = view($schema->view(), [
+            $html = ($schema->source() === null ? view($schema->view()) : view()->file((string) $schema->viewFile()))->with([
                 'section' => ['id' => $id, 'type' => $type, 'label' => $label, 'disabled' => $disabled, 'class' => $schema->cssClass()],
                 'settings' => $settings,
                 'blocks' => $blocks,

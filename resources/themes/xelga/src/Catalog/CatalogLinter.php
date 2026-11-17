@@ -204,6 +204,9 @@ final class CatalogLinter
             if (! is_file($part->path . "/views/sections/{$name}.blade.php")) {
                 $this->problem("{$where}: views/sections/{$name}.blade.php is missing.");
             }
+            if (is_link($part->path . "/views/sections/{$name}.blade.php")) {
+                $this->problem("{$where}: views/sections/{$name}.blade.php is a link.");
+            }
 
             return;
         }

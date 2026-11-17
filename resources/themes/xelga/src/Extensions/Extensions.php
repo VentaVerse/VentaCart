@@ -47,7 +47,7 @@ final class Extensions
 
         $parts = $registrar->registered();
         foreach ($parts as $part) {
-            View::addNamespace($part->viewNamespace(), $part->path . '/views');
+            View::replaceNamespace($part->viewNamespace(), $part->path . '/views');
         }
 
         // Before every provider has booted, an extension may not have

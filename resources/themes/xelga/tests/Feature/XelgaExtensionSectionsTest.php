@@ -56,7 +56,7 @@ class XelgaExtensionSectionsTest extends TestCase
         $this->assertNotNull($card);
         $this->assertSame('sample-extension', $card['source']);
         $this->assertSame('Sample Extension', $card['source_label']);
-        $this->assertSame('xelga-sample-extension::sections.card', $card['view']);
+        $this->assertSame(realpath(base_path(self::FIXTURE)) . '/views/sections/sample-extension.card.blade.php', Catalog::section('sample-extension.card')->viewFile());
         $this->assertSame('s-sample-extension--card', $card['class']);
         $this->assertSame('Tests\\Fixtures\\Extensions\\SampleExtension\\Xelga\\Sections\\Card', $card['data_class']);
 
@@ -98,13 +98,14 @@ class XelgaExtensionSectionsTest extends TestCase
     public static function badSchemas(): array
     {
         return [
-            'a type not named after the extension' => ['other', ['type' => 'marketplace.other', 'label' => 'X'], 'its type must be'],
-            'a type with a hyphen instead of a dot' => ['other', ['type' => 'sample-extension-other', 'label' => 'X'], 'its type must be'],
-            'a header section' => ['other', ['type' => 'sample-extension.other', 'label' => 'X', 'group' => 'header'], 'page templates only'],
-            'scheme colors' => ['other', ['type' => 'sample-extension.other', 'label' => 'X', 'settings' => [['key' => 'c', 'type' => 'scheme-colors', 'label' => 'C']]], 'cannot use'],
-            'an unknown setting type' => ['other', ['type' => 'sample-extension.other', 'label' => 'X', 'blocks' => ['types' => [['type' => 'b', 'settings' => [['key' => 's', 'type' => 'script', 'label' => 'S']]]]]], 'cannot use'],
-            'a data class of another namespace' => ['other', ['type' => 'sample-extension.other', 'label' => 'X', 'data_class' => 'Themes\\Xelga\\Sections\\Header'], 'own namespace'],
-            'a data class that is not one' => ['other', ['type' => 'sample-extension.other', 'label' => 'X', 'data_class' => 'Tests\\Fixtures\\Extensions\\SampleExtension\\SampleExtensionServiceProvider'], 'implement'],
+            'a type not named after the extension' => ['marketplace.other', ['type' => 'marketplace.other', 'label' => 'X'], 'its type must be'],
+            'a type with a hyphen instead of a dot' => ['sample-extension-other', ['type' => 'sample-extension-other', 'label' => 'X'], 'its type must be'],
+            'a file not named after its type' => ['other', ['type' => 'sample-extension.other', 'label' => 'X'], 'its type must be'],
+            'a header section' => ['sample-extension.other', ['type' => 'sample-extension.other', 'label' => 'X', 'group' => 'header'], 'page templates only'],
+            'scheme colors' => ['sample-extension.other', ['type' => 'sample-extension.other', 'label' => 'X', 'settings' => [['key' => 'c', 'type' => 'scheme-colors', 'label' => 'C']]], 'cannot use'],
+            'an unknown setting type' => ['sample-extension.other', ['type' => 'sample-extension.other', 'label' => 'X', 'blocks' => ['types' => [['type' => 'b', 'settings' => [['key' => 's', 'type' => 'script', 'label' => 'S']]]]]], 'cannot use'],
+            'a data class of another namespace' => ['sample-extension.other', ['type' => 'sample-extension.other', 'label' => 'X', 'data_class' => 'Themes\\Xelga\\Sections\\Header'], 'own namespace'],
+            'a data class that is not one' => ['sample-extension.other', ['type' => 'sample-extension.other', 'label' => 'X', 'data_class' => 'Tests\\Fixtures\\Extensions\\SampleExtension\\SampleExtensionServiceProvider'], 'implement'],
         ];
     }
 
@@ -132,11 +133,11 @@ class XelgaExtensionSectionsTest extends TestCase
         $original = (string) file_get_contents($css);
         try {
             file_put_contents($css, str_replace('[data-size="70"]{--size:70}', '', $original));
-            $this->withSchema('broken', ['type' => 'sample-extension.broken', 'label' => 'Broken', 'templates' => ['nowhere'], 'settings' => []], function () {
+            $this->withSchema('sample-extension.broken', ['type' => 'sample-extension.broken', 'label' => 'Broken', 'templates' => ['nowhere'], 'settings' => []], function () {
                 $problems = CatalogLinter::checkExtension('sample-extension');
 
-                $this->assertContains('sample-extension: section broken: unknown template nowhere.', $problems);
-                $this->assertContains('sample-extension: section broken: views/sections/broken.blade.php is missing.', $problems);
+                $this->assertContains('sample-extension: section sample-extension.broken: unknown template nowhere.', $problems);
+                $this->assertContains('sample-extension: section sample-extension.broken: views/sections/sample-extension.broken.blade.php is missing.', $problems);
                 $this->assertNotEmpty(array_filter($problems, fn ($p) => str_contains($p, 'no rule for size = 70')));
             });
         } finally {

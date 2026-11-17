@@ -63,12 +63,12 @@ class XelgaExtensionRegistrationTest extends TestCase
         $this->assertSame(realpath(base_path('tests/fixtures/extensions/sample-extension/resources/xelga')), $part->path);
         $this->assertSame('Tests\\Fixtures\\Extensions\\SampleExtension\\', $part->namespace);
         $this->assertSame('extensions/sample-extension/resources/css/xelga.css', $part->stylesheet);
-        $this->assertSame(['card.json', 'main.json'], array_map('basename', $part->schemaFiles()));
+        $this->assertSame(['sample-extension.card.json', 'sample-extension.main.json'], array_map('basename', $part->schemaFiles()));
         $this->assertSame(['sample_page'], array_keys($part->templates()));
         $this->assertSame('card', $part->placements()[0]['key']);
         $this->assertSame('sample-extension@1.0.0', $this->fresh()->fingerprint());
         $this->assertSame('xelga-sample-extension', $part->viewNamespace());
-        $this->assertTrue(view()->exists('xelga-sample-extension::sections.card'));
+        $this->assertSame([$part->path . '/views'], app('view')->getFinder()->getHints()['xelga-sample-extension'] ?? null, 'Its views folder is a view namespace for its own partials.');
     }
 
     public function test_the_preview_address_must_be_a_page_of_this_store(): void

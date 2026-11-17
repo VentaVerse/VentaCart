@@ -240,10 +240,10 @@ final class Catalog
      */
     public static function extensionSection(ExtensionParts $part, string $file, ?callable $report = null): ?array
     {
-        $name = basename($file, '.json');
+        $fileType = basename($file, '.json');
         $spec = json_decode((string) file_get_contents($file), true);
-        $refuse = function (string $reason) use ($part, $name, $report): ?array {
-            $report === null ? Registrar::refuse($part->name, "the section {$name}: {$reason}") : $report($reason);
+        $refuse = function (string $reason) use ($part, $fileType, $report): ?array {
+            $report === null ? Registrar::refuse($part->name, "the section {$fileType}: {$reason}") : $report($reason);
 
             return null;
         };
@@ -251,8 +251,8 @@ final class Catalog
         if (! is_array($spec) || array_is_list($spec)) {
             return $refuse('the schema is not a JSON object');
         }
-        if (preg_match(self::EXTENSION_TYPE, (string) ($spec['type'] ?? ''), $m) !== 1 || $m[1] !== $part->name || $m[2] !== $name || strlen($name) > 40) {
-            return $refuse("its type must be {$part->name}.{$name}, named after its file");
+        if (preg_match(self::EXTENSION_TYPE, (string) ($spec['type'] ?? ''), $m) !== 1 || $m[1] !== $part->name || $spec['type'] !== $fileType || strlen($m[2]) > 40) {
+            return $refuse("its type must be {$part->name}.{name}, and its file named after the type");
         }
         if (($spec['group'] ?? 'template') !== 'template') {
             return $refuse('extension sections go in page templates only');
@@ -281,7 +281,6 @@ final class Catalog
         $spec['group'] = 'template';
         $spec['source'] = $part->name;
         $spec['source_label'] = $part->title;
-        $spec['view'] = $part->viewNamespace() . '::sections.' . $name;
         $spec['data_class'] = $class;
         $spec['class'] = self::extensionClass($spec['type']);
 
