@@ -119,7 +119,7 @@ class XelgaPickerGroupTest extends TestCase
         foreach ([
             ['hero', 'image-with-text', 'promo-banners', 'shop-the-look'],
             ['featured-products', 'product-spotlight', 'recently-viewed', 'related-products', 'product-details', 'product-reviews'],
-            ['category-tiles', 'brand-logos', 'breadcrumbs'],
+            ['category-tiles', 'filters', 'category-list', 'brand-logos', 'breadcrumbs'],
             ['rich-text', 'usp-bar', 'testimonials', 'blog-posts'],
         ] as $group) {
             $numbers = $order($group);

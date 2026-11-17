@@ -25,6 +25,8 @@
     main[data-content="6"] .s-listing[data-cols] { --cols: 2; }
     /* Beside one side, a narrower column leaves the products room for two cards a line. */
     main[data-content="9"] .s-listing[data-filters=sidebar] .listing { grid-template-columns: 13.5rem minmax(0, 1fr); gap: 2rem; }
+    /* A Filters section in a side stands beside the products, so the listing needs no button to reach it. */
+    .xp:has(> .xp__side .s-filters:not([hidden])) .s-listing[data-filters=elsewhere] .toolbar__filter { display: none; }
 }
 .filters__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block-end: .5rem; border-block-end: 1px solid var(--c-border); }
 .filters__title { font-size: var(--fs-h4); }
@@ -42,10 +44,10 @@
 .facet[open] .facet__summary .icon { transform: rotate(180deg); }
 .facet__body { margin: 0; padding: 0 0 1rem; border: 0; min-width: 0; }
 .facet__list { display: grid; gap: .125rem; margin: 0; padding: 0; list-style: none; }
-.s-listing .check { display: flex; align-items: center; gap: .625rem; min-height: 40px; font-size: var(--fs-sm); cursor: pointer; }
-.s-listing .check input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--c-text); }
-.s-listing .check .swatch { width: 16px; height: 16px; }
-.s-listing .check__count { margin-inline-start: auto; font-size: var(--fs-xs); color: var(--c-muted); font-variant-numeric: tabular-nums; }
+:is(.s-listing, .s-filters) .check { display: flex; align-items: center; gap: .625rem; min-height: 40px; font-size: var(--fs-sm); cursor: pointer; }
+:is(.s-listing, .s-filters) .check input { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--c-text); }
+:is(.s-listing, .s-filters) .check .swatch { width: 16px; height: 16px; }
+:is(.s-listing, .s-filters) .check__count { margin-inline-start: auto; font-size: var(--fs-xs); color: var(--c-muted); font-variant-numeric: tabular-nums; }
 .price-range { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .price-range .field__label { font-weight: 500; font-size: var(--fs-xs); color: var(--c-muted); }
 .price-range .input { min-height: 44px; padding: .5rem .625rem; font-variant-numeric: tabular-nums; }

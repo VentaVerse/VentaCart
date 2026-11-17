@@ -1,0 +1,33 @@
+{
+  "type": "filters",
+  "label": "Filters",
+  "group": "template",
+  "picker_group": "categories",
+  "picker_order": 35,
+  "templates": [
+    "category",
+    "*custom"
+  ],
+  "limit": 1,
+  "main": false,
+  "span": {
+    "min": 3
+  },
+  "class": "s-filters",
+  "settings": [
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1",
+      "info": "Which filters show is set in VentaCart, Settings, Catalog, Sidebar filters."
+    }
+  ],
+  "presets": [
+    {
+      "key": "filters",
+      "label": "Filters",
+      "settings": {}
+    }
+  ]
+}

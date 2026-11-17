@@ -21,6 +21,7 @@ final class RenderContext
      * @param  int  $span  how wide the section is drawn, in twelfths of the page (1 to 12)
      * @param  list<string>  $types  the section types the document draws
      * @param  bool  $inSide  whether the section is drawn in a page side
+     * @param  array<string, string>  $ids  the id of the first drawn section of each type the document draws
      */
     public function __construct(
         public readonly string $pageType,
@@ -32,18 +33,19 @@ final class RenderContext
         public readonly int $span = 12,
         public readonly array $types = [],
         public readonly bool $inSide = false,
+        public readonly array $ids = [],
     ) {
     }
 
     public function withGroup(string $group): self
     {
-        return new self($this->pageType, $this->handle, $group, $this->preview, $this->subject, $this->page, $this->span, $this->types, $this->inSide);
+        return new self($this->pageType, $this->handle, $group, $this->preview, $this->subject, $this->page, $this->span, $this->types, $this->inSide, $this->ids);
     }
 
     /** The same page, for a section drawn $span twelfths wide (kept within 1 to 12). */
     public function withSpan(int $span): self
     {
-        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, max(1, min(12, $span)), $this->types, $this->inSide);
+        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, max(1, min(12, $span)), $this->types, $this->inSide, $this->ids);
     }
 
     /**
@@ -53,7 +55,7 @@ final class RenderContext
      */
     public function inSide(): self
     {
-        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, \Themes\Xelga\Documents\Layout::SIDE_SPAN, $this->types, true);
+        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, \Themes\Xelga\Documents\Layout::SIDE_SPAN, $this->types, true, $this->ids);
     }
 
     /**
@@ -68,16 +70,30 @@ final class RenderContext
         return $this->span >= 12 ? $wanted : max(1, min($wanted, intdiv($this->span, 3)));
     }
 
-    /** @param  list<string>  $types  the section types the document draws */
-    public function withTypes(array $types): self
+    /**
+     * @param  list<string>  $types  the section types the document draws
+     * @param  array<string, string>  $ids  type => the id of the first drawn section of that type
+     */
+    public function withTypes(array $types, array $ids = []): self
     {
-        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, $this->span, array_values(array_unique(array_filter($types, 'is_string'))), $this->inSide);
+        $types = array_values(array_unique(array_filter($types, 'is_string')));
+
+        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, $this->span, $types, $this->inSide, array_intersect_key(array_filter($ids, 'is_string'), array_flip($types)));
     }
 
     /** Whether the document draws a section of this type (a hidden one does not count). */
     public function has(string $type): bool
     {
         return in_array($type, $this->types, true);
+    }
+
+    /**
+     * The id of the first section of this type the document draws, or null
+     * when it draws none, so a section can point the shopper to another.
+     */
+    public function idOf(string $type): ?string
+    {
+        return $this->ids[$type] ?? null;
     }
 
     /** One value core handed the page, or the fallback. */

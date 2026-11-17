@@ -1,0 +1,48 @@
+/*
+ * Filters: the category page's filter form in a section of its own. The
+ * form itself (facets, price, checkboxes) is styled with the listing in
+ * components/listing.css. Below 990px, where page sides stack, the form
+ * sits in a box with a Filter bar that opens it; from 990px the open box
+ * shows the form's own head, and a change sends itself.
+ */
+.s-filters {
+  container-type: inline-size;
+  /* A compact part of the page, so it takes half a section's space above and below. */
+  --pad: calc(var(--space-section) * .5);
+}
+
+.filters-box__summary {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  min-height: 52px;
+  padding-inline: 1rem;
+  border: 1px solid color-mix(in srgb, var(--c-text) 22%, var(--c-border));
+  border-radius: var(--radius-button);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  list-style: none;
+  cursor: pointer;
+}
+
+.filters-box__summary::-webkit-details-marker { display: none; }
+.filters-box__label { display: inline-flex; align-items: center; gap: .5rem; margin-inline-end: auto; }
+.filters-box__chevron { transition: transform .25s var(--ease-out); }
+.filters-box[open] .filters-box__chevron { transform: rotate(180deg); }
+.filters-box[open] > .filters-box__summary { margin-block-end: .5rem; }
+
+/* In the box the bar already says Filter; the form's head keeps only Clear all. */
+.s-filters .filters__title { display: none; }
+.s-filters .filters__head { justify-content: flex-end; }
+.s-filters .filters__head:not(:has(.filters__clear)) { display: none; }
+.filters-box__note { font-size: var(--fs-sm); }
+
+@media (min-width: 990px) {
+  /* Open beside the page: the form's own head stands in for the bar. */
+  .filters-box[open] > .filters-box__summary { display: none; }
+  .s-filters .filters__title { display: block; }
+  .s-filters .filters__head { justify-content: space-between; }
+  .s-filters .filters__head:not(:has(.filters__clear)) { display: flex; }
+  /* A change sends itself here, so the form's button goes once the script runs. */
+  .s-filters[data-live-filters="true"] .filters__foot { display: none; }
+}

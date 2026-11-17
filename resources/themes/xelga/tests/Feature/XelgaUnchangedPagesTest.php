@@ -9,6 +9,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
+use Themes\Xelga\Documents\Defaults;
+use Themes\Xelga\Documents\Document;
 use Themes\Xelga\Rendering\Storefront;
 use Themes\Xelga\Tests\XelgaTestHelpers;
 
@@ -41,7 +43,8 @@ class XelgaUnchangedPagesTest extends TestCase
         URL::forceRootUrl('http://example.test');
     }
 
-    public function test_existing_pages_render_the_same_main_content(): void
+    /** A small store: one category of three laptops. */
+    private function seedLaptops(): void
     {
         $store = Store::firstOrCreate(['code' => 'demo'], ['name' => 'Demo Store']);
         $laptops = Category::create(['store_id' => $store->id, 'name' => 'Laptops', 'slug' => 'laptops', 'is_active' => true]);
@@ -53,6 +56,11 @@ class XelgaUnchangedPagesTest extends TestCase
             ]);
             $product->categories()->attach($laptops->id);
         }
+    }
+
+    public function test_existing_pages_render_the_same_main_content(): void
+    {
+        $this->seedLaptops();
 
         $pages = ['home' => '/', 'category' => '/category/laptops', 'product' => '/product/demo-001'];
         $write = (bool) getenv('XELGA_WRITE_GOLDEN');
@@ -71,6 +79,28 @@ class XelgaUnchangedPagesTest extends TestCase
         if ($write) {
             $this->fail('Golden files written; run again without XELGA_WRITE_GOLDEN');
         }
+    }
+
+    public function test_a_category_page_without_filters_section_is_unchanged(): void
+    {
+        $this->seedLaptops();
+
+        $this->assertSame(file_get_contents(self::DIR . '/category.html'), $this->mainContent('/category/laptops'));
+    }
+
+    public function test_a_category_page_with_a_hidden_filters_section_keeps_its_filter_column(): void
+    {
+        $this->seedLaptops();
+        $content = Defaults::content('category');
+        $content['sections']['filters-1'] = ['type' => 'filters', 'label' => '', 'disabled' => true, 'settings' => [], 'block_order' => [], 'blocks' => []];
+        $content['order'] = ['filters-1', ...$content['order']];
+        $content['sides'] = ['left' => ['filters-1']];
+        $document = new Document(['handle' => 'category', 'kind' => 'template', 'page_type' => 'category']);
+        $document->forceFill(['published' => $content, 'published_version' => 1])->save();
+
+        $html = $this->mainContent('/category/laptops');
+
+        $this->assertSame(file_get_contents(self::DIR . '/category.html'), $html);
     }
 
     /**
