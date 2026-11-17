@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * The demo catalog a fresh install opens on: Philippine peso prices a local
- * shop would ask, US spelling in every seeded word, and slugs that themes
+ * The demo catalog a fresh install opens on: prices a shop would ask in the
+ * default currency, US dollars, US spelling in every seeded word, and slugs that themes
  * point at by name, so they must never drift.
  */
 class DemoCatalogSeederTest extends TestCase
@@ -92,7 +92,7 @@ class DemoCatalogSeederTest extends TestCase
         $this->assertEqualsCanonicalizing(self::BRAND_SLUGS, Brand::query()->pluck('slug')->all());
     }
 
-    public function test_prices_are_peso_sized_and_look_like_shop_prices(): void
+    public function test_prices_are_dollar_sized_and_look_like_shop_prices(): void
     {
         $this->seedFresh();
 
@@ -102,14 +102,18 @@ class DemoCatalogSeederTest extends TestCase
         foreach ($products as $product) {
             $price = (float) $product->price;
 
-            // The cheapest item is a USB-C hub; nothing in a gadget shop of
-            // phones, laptops and monitors is priced like a dollar store.
-            $this->assertGreaterThanOrEqual(1000, $price, "{$product->slug} is not peso-sized");
-            $this->assertSame(90, (int) $price % 100, "{$product->slug} does not end in 90");
+            // Priced in the default currency, US dollars: a hub costs tens,
+            // nothing costs thousands of dollars.
+            $this->assertGreaterThanOrEqual(20, $price, "{$product->slug} is too cheap to be a dollar price");
+            $this->assertLessThan(2000, $price, "{$product->slug} is not dollar-sized");
+            $this->assertSame(9, (int) $price % 10, "{$product->slug} does not end in 9");
         }
 
-        $this->assertSame(67990.0, (float) $products->firstWhere('slug', 'aurora-15-pro')->price);
-        $this->assertSame(2490.0, (float) $products->firstWhere('slug', 'vireo-usb-c-hub')->price);
+        $phone = (float) $products->firstWhere('slug', 'aurora-15-pro')->price;
+        $this->assertGreaterThanOrEqual(500, $phone, 'a flagship phone is a few hundred dollars or more');
+        $this->assertLessThanOrEqual(2000, $phone);
+        $this->assertSame(1199.0, $phone);
+        $this->assertSame(69.0, (float) $products->firstWhere('slug', 'vireo-usb-c-hub')->price);
 
         $specials = DB::table('product_specials')->get();
         $this->assertCount(4, $specials);
@@ -119,7 +123,7 @@ class DemoCatalogSeederTest extends TestCase
 
             $this->assertLessThan($base, (float) $special->price);
             $this->assertGreaterThan($base * 0.8, (float) $special->price, 'a demo special is a modest discount');
-            $this->assertSame(90, (int) $special->price % 100);
+            $this->assertSame(9, (int) $special->price % 10);
         }
     }
 
@@ -131,11 +135,11 @@ class DemoCatalogSeederTest extends TestCase
         $variants = DB::table('product_variants')->where('product_id', $phone->id)->get();
 
         $this->assertCount(9, $variants);
-        $this->assertEqualsCanonicalizing([0.0, 10000.0, 22000.0], $variants->pluck('price_modifier')->map(fn ($m) => (float) $m)->unique()->values()->all());
+        $this->assertEqualsCanonicalizing([0.0, 100.0, 300.0], $variants->pluck('price_modifier')->map(fn ($m) => (float) $m)->unique()->values()->all());
 
         foreach ($variants as $variant) {
             $this->assertSame((float) $phone->price + (float) $variant->price_modifier, (float) $variant->price);
-            $this->assertSame(90, (int) $variant->price % 100);
+            $this->assertSame(9, (int) $variant->price % 10);
         }
 
         $this->assertSame(

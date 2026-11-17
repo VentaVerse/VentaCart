@@ -187,7 +187,7 @@ class XelgaStoreTemplatesTest extends TestCase
         foreach (['Phones', 'Computers', 'Laptops', 'Monitors', 'Tablets', 'Accessories'] as $name) {
             $categories[$name] = Category::create(['store_id' => 1, 'name' => $name, 'slug' => strtolower($name), 'is_active' => true]);
         }
-        $pro = Product::create(['store_id' => 1, 'name' => 'Aurora 15 Pro', 'slug' => 'aurora-15-pro', 'sku' => 'DEMO-001', 'price' => 67990, 'is_active' => true]);
+        $pro = Product::create(['store_id' => 1, 'name' => 'Aurora 15 Pro', 'slug' => 'aurora-15-pro', 'sku' => 'DEMO-001', 'price' => 1199, 'is_active' => true]);
 
         $response = $this->apply('gadgets')->assertOk();
         foreach (self::HANDLES as $handle) {

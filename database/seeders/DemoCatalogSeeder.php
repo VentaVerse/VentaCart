@@ -16,8 +16,9 @@ use Illuminate\Support\Facades\DB;
  * small electronics catalog with its own photography, and the merchant deletes
  * it from the admin when they are ready to put their own goods in.
  *
- * Prices are in Philippine pesos at the level a local shop would ask for each
- * kind of item, so a fresh store's cards, cart and checkout read as real.
+ * Prices are in a fresh install's default currency, US dollars, at the level
+ * a shop would ask for each kind of item, so a fresh store's cards, cart and
+ * checkout read as real.
  *
  * The names are invented. Nothing here borrows a real maker's name or mark,
  * and the photographs carry no logo or lettering, so the demo can be shipped
@@ -226,7 +227,7 @@ class DemoCatalogSeeder extends Seeder
         $rows = [
             [
                 'name' => 'Aurora 15 Pro', 'brand' => 'Aurora', 'cats' => ['Phones'],
-                'price' => 67990, 'cost' => 55800, 'quantity' => 40, 'weight' => 0.221,
+                'price' => 1199, 'cost' => 980, 'quantity' => 40, 'weight' => 0.221,
                 'image' => 'phone-pro-graphite.jpg',
                 'gallery' => ['phone-pro-blue.jpg', 'phone-pro-desert.jpg'],
                 'views' => 1840,
@@ -234,67 +235,67 @@ class DemoCatalogSeeder extends Seeder
             ],
             [
                 'name' => 'Aurora 15', 'brand' => 'Aurora', 'cats' => ['Phones'],
-                'price' => 32990, 'cost' => 26400, 'sale' => 29990, 'quantity' => 65, 'weight' => 0.171,
+                'price' => 899, 'cost' => 719, 'sale' => 799, 'quantity' => 65, 'weight' => 0.171,
                 'image' => 'phone-compact-pink.jpg', 'views' => 1320,
                 'description' => "The same processor and the same main camera as the Pro, in a 6.1 inch body that still fits a pocket properly.\n\nThe Pro adds a telephoto lens and a larger battery.",
             ],
             [
                 'name' => 'Northwind Air 13', 'brand' => 'Northwind', 'cats' => ['Laptops', 'Computers'],
-                'price' => 54990, 'cost' => 46200, 'quantity' => 30, 'weight' => 1.24,
+                'price' => 949, 'cost' => 795, 'quantity' => 30, 'weight' => 1.24,
                 'image' => 'laptop-air-13.jpg', 'views' => 1560,
                 'description' => "Fanless, so it makes no noise at all, and thin enough that you stop noticing it in a bag. A battery made for a full day of work or classes.\n\nA comfortable keyboard with proper travel, and a lid that opens with one finger.",
             ],
             [
                 'name' => 'Northwind Studio 14', 'brand' => 'Northwind', 'cats' => ['Laptops', 'Computers'],
-                'price' => 94990, 'cost' => 76500, 'sale' => 84990, 'quantity' => 18, 'weight' => 1.55,
+                'price' => 1599, 'cost' => 1285, 'sale' => 1439, 'quantity' => 18, 'weight' => 1.55,
                 'image' => 'laptop-pro-14.jpg', 'gallery' => ['laptop-closed-stack.jpg'], 'views' => 2100,
                 'description' => "For work that renders, compiles or exports, with cooling sized to keep it fast through long jobs rather than a short burst.\n\nThree USB-C ports, a card reader and a headphone jack, so most of what you plug in needs no adapter.",
             ],
             [
                 'name' => 'Lumen 27 inch 4K Display', 'brand' => 'Lumen', 'cats' => ['Monitors', 'Computers'],
-                'price' => 24990, 'cost' => 18700, 'quantity' => 44, 'weight' => 6.1,
+                'price' => 449, 'cost' => 335, 'quantity' => 44, 'weight' => 6.1,
                 'image' => 'monitor-27-4k.jpg', 'views' => 980,
                 'description' => "A sharp 27 inch 4K panel with wide color coverage, for photo editing, design and everyday work.\n\nOne USB-C cable carries picture, data and power, so a laptop needs nothing else on the desk.",
             ],
             [
                 'name' => 'Lumen 34 inch Ultrawide', 'brand' => 'Lumen', 'cats' => ['Monitors', 'Computers'],
-                'price' => 32990, 'cost' => 25400, 'quantity' => 22, 'weight' => 8.4,
+                'price' => 699, 'cost' => 539, 'quantity' => 22, 'weight' => 8.4,
                 'image' => 'monitor-34-ultrawide.jpg', 'views' => 1240,
                 'description' => "The width of two monitors without the bezel down the middle. Gently curved, so the far edges are the same distance from you as the center.\n\nSplits into two independent inputs side by side when you need a second machine on screen.",
             ],
             [
                 'name' => 'Lumen Go 15 inch Portable', 'brand' => 'Lumen', 'cats' => ['Monitors', 'Computers'],
-                'price' => 11990, 'cost' => 8200, 'sale' => 9990, 'quantity' => 50, 'weight' => 0.79,
+                'price' => 229, 'cost' => 157, 'sale' => 189, 'quantity' => 50, 'weight' => 0.79,
                 'image' => 'monitor-portable.jpg', 'views' => 640,
                 'description' => "A second screen that lives in a laptop sleeve. One cable, no power brick, and a cover that folds into a stand.\n\nBright enough for a hotel desk, and it turns to portrait for reading long documents.",
             ],
             [
                 'name' => 'Kestrel Tab 11 Pro', 'brand' => 'Kestrel', 'cats' => ['Tablets'],
-                'price' => 52990, 'cost' => 43900, 'quantity' => 26, 'weight' => 0.466,
+                'price' => 799, 'cost' => 659, 'quantity' => 26, 'weight' => 0.466,
                 'image' => 'tablet-pro-11.jpg', 'gallery' => ['tablet-keyboard-case.jpg'], 'views' => 1450,
                 'description' => "A 120Hz screen that makes a stylus feel like it is leaving ink rather than reporting a position. Laminated, so the nib meets the line.\n\nTakes the keyboard case and becomes a small laptop when you need to answer email properly.",
             ],
             [
                 'name' => 'Kestrel Tab Air', 'brand' => 'Kestrel', 'cats' => ['Tablets'],
-                'price' => 34990, 'cost' => 28600, 'quantity' => 38, 'weight' => 0.462,
+                'price' => 499, 'cost' => 409, 'quantity' => 38, 'weight' => 0.462,
                 'image' => 'tablet-stylus.jpg', 'views' => 870,
                 'description' => "The tablet most households actually want: light, fast enough for everything except professional video, and happy to be handed to a child.\n\nSupports the same stylus as the Pro.",
             ],
             [
                 'name' => 'Vireo Buds Pro', 'brand' => 'Vireo', 'cats' => ['Accessories'],
-                'price' => 7990, 'cost' => 4300, 'sale' => 6490, 'quantity' => 120, 'weight' => 0.061,
+                'price' => 159, 'cost' => 85, 'sale' => 129, 'quantity' => 120, 'weight' => 0.061,
                 'image' => 'earbuds-case.jpg', 'views' => 2260,
                 'description' => "Noise canceling you can turn down rather than only off, and a transparency mode for hearing the room around you.\n\nThe charging case tops the buds up between listens, so they last through a day out.",
             ],
             [
                 'name' => 'Vireo USB-C Hub', 'brand' => 'Vireo', 'cats' => ['Accessories'],
-                'price' => 2490, 'cost' => 1150, 'quantity' => 200, 'weight' => 0.098,
+                'price' => 69, 'cost' => 32, 'quantity' => 200, 'weight' => 0.098,
                 'image' => 'hub-usbc.jpg', 'views' => 1130,
                 'description' => "HDMI, two USB-A, a card reader and pass-through charging, in a machined aluminum body.\n\nThe cable is short on purpose, so the hub sits next to the laptop rather than hanging off it.",
             ],
             [
                 'name' => 'Vireo Keys and Mouse', 'brand' => 'Vireo', 'cats' => ['Accessories'],
-                'price' => 3990, 'cost' => 1950, 'quantity' => 85, 'weight' => 0.62,
+                'price' => 99, 'cost' => 48, 'quantity' => 85, 'weight' => 0.62,
                 'image' => 'keyboard-mouse-set.jpg', 'views' => 720,
                 'description' => "A low profile keyboard and a slim mouse that pair to three machines at once and switch between them with one key.\n\nBoth are rechargeable, so there are no batteries to replace.",
             ],
@@ -372,9 +373,9 @@ class DemoCatalogSeeder extends Seeder
             'Desert' => 'phone-pro-desert.jpg',
         ];
         // Capacity is what costs money; the color is free.
-        $storage = ['256GB' => 0, '512GB' => 10000, '1TB' => 22000];
+        $storage = ['256GB' => 0, '512GB' => 100, '1TB' => 300];
         // What each capacity adds to the store's cost, below what it adds to the price.
-        $storageCost = ['256GB' => 0, '512GB' => 8200, '1TB' => 18000];
+        $storageCost = ['256GB' => 0, '512GB' => 80, '1TB' => 245];
 
         $colorType = DB::table('variant_types')->insertGetId([
             'product_id' => $product->id, 'name' => 'Color', 'sort_order' => 0,
