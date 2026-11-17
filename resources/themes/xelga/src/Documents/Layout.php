@@ -130,7 +130,8 @@ final class Layout
      * - Sides on a page that cannot have them go to rows at the end.
      * - Ids that name no section are dropped, a one-column row holds one
      *   section, an empty one-column row goes; an empty multi-column row
-     *   stays, since the merchant made it to fill.
+     *   stays, since the merchant made it to fill, unless the page would
+     *   then have more than MAX_ROWS rows (see fitRowLimit()).
      * - Empty sides are dropped, and rows that say no more than `order`
      *   does (all plain full-width rows with the ids rows() would give)
      *   are dropped, so a document only keeps `rows` when it needs them.
@@ -205,6 +206,7 @@ final class Layout
         }
 
         $rows = [];
+        $emptied = [];
         foreach ($given as $i => $row) {
             $split = is_string($row['split'] ?? null) || is_int($row['split'] ?? null) ? (string) $row['split'] : '';
             $columns = [];
@@ -254,6 +256,9 @@ final class Layout
                 $columns[$c] = $keep;
             }
             $rows[] = self::row($id, $split, $columns, $settings);
+            if ($misfits !== [] && array_merge(...$columns) === []) {
+                $emptied[$id] = true;
+            }
             foreach ($misfits as [$sid, $reason]) {
                 $rows[] = $plain = self::plainRow($sid, $taken);
                 $moved[] = self::moved($sid, $reason, $plain['id']);
@@ -293,6 +298,8 @@ final class Layout
             $placed[$sid] = true;
         }
 
+        $rows = self::fitRowLimit($rows, $emptied);
+
         $order = $sides['left'];
         foreach ($rows as $row) {
             foreach ($row['columns'] as $column) {
@@ -314,6 +321,42 @@ final class Layout
         }
 
         return ['content' => $out, 'moved' => $moved];
+    }
+
+    /**
+     * At most MAX_ROWS rows, so what this method stores is never refused by
+     * the next save. The rows it adds (a moved or unplaced section's own
+     * row) can push a page at the limit over it; then empty rows go: first
+     * those this run emptied by moving their sections out, then other
+     * empty rows from the end. Each row left holds a section, and a page
+     * holds at most Shape::MAX_SECTIONS (equal to MAX_ROWS), so for any
+     * page Shape accepts this always gets back within the limit.
+     *
+     * @param  list<array>  $rows
+     * @param  array<string, true>  $emptied  ids of rows this run emptied
+     * @return list<array>
+     */
+    private static function fitRowLimit(array $rows, array $emptied): array
+    {
+        $isEmpty = fn (array $row) => array_merge(...$row['columns']) === [];
+        $drop = [];
+        foreach ($rows as $index => $row) {
+            if (isset($emptied[$row['id']]) && $isEmpty($row)) {
+                $drop[] = $index;
+            }
+        }
+        for ($index = count($rows) - 1; $index >= 0; $index--) {
+            if (! isset($emptied[$rows[$index]['id']]) && $isEmpty($rows[$index])) {
+                $drop[] = $index;
+            }
+        }
+
+        $over = count($rows) - self::MAX_ROWS;
+        foreach (array_slice($drop, 0, max(0, $over)) as $index) {
+            unset($rows[$index]);
+        }
+
+        return array_values($rows);
     }
 
     /** Why a section cannot sit in a column or side this wide, or null when it can. */
@@ -432,19 +475,23 @@ final class Layout
      * rowIdFor() against a set of taken ids, which it adds the new id to.
      * Section and row ids share one namespace (both mark the page's HTML),
      * so the set holds both. At most 40 characters, the longest id a
-     * document allows.
+     * document allows. When every length of the seed's hash is taken (many
+     * empty rows share the seed `row`), the seed gets a number (`row`
+     * becomes `row-2`, then `row-3`, ...) and that is hashed the same way.
      *
      * @param  array<string, true>  $taken
      */
     private static function freshId(string $sectionId, array &$taken): string
     {
-        $hash = sha1($sectionId);
-        for ($length = 8; $length <= 36; $length += 2) {
-            $id = 'row-' . substr($hash, 0, $length);
-            if (! isset($taken[$id])) {
-                $taken[$id] = true;
+        for ($n = 1; $n <= 1000; $n++) {
+            $hash = sha1($n === 1 ? $sectionId : "{$sectionId}-{$n}");
+            for ($length = 8; $length <= 36; $length += 2) {
+                $id = 'row-' . substr($hash, 0, $length);
+                if (! isset($taken[$id])) {
+                    $taken[$id] = true;
 
-                return $id;
+                    return $id;
+                }
             }
         }
 

@@ -1,0 +1,399 @@
+{
+    "name": "many-empty-rows-get-ids",
+    "rules": {
+        "min": {
+            "tile": 3
+        },
+        "main": [],
+        "sides": true
+    },
+    "input": {
+        "schema": 1,
+        "order": [
+            "t1"
+        ],
+        "sections": {
+            "t1": {
+                "type": "tile"
+            }
+        },
+        "rows": [
+            {
+                "split": "12",
+                "columns": [
+                    [
+                        "t1"
+                    ]
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            },
+            {
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ]
+            }
+        ]
+    },
+    "expected": {
+        "schema": 1,
+        "order": [
+            "t1"
+        ],
+        "sections": {
+            "t1": {
+                "type": "tile"
+            }
+        },
+        "rows": [
+            {
+                "id": "row-e5353879",
+                "split": "12",
+                "columns": [
+                    [
+                        "t1"
+                    ]
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b34",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346a",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4a9",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4a91a",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4a91a2b",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4a91a2bf6",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4a91a2bf6d7",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4a91a2bf6d7c6",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4a91a2bf6d7c6a0",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4a91a2bf6d7c6a094",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4a91a2bf6d7c6a0941a",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-e8cdc05b346aa0d4a91a2bf6d7c6a0941a65",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-3e090df4",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-3e090df481",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    []
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            }
+        ]
+    },
+    "moved": []
+}
