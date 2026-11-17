@@ -21,6 +21,13 @@ class CheckoutController extends Controller
 
     public function index()
     {
+        // An extension may draw this page itself (CheckoutPage::use). The
+        // route and its middleware are still this one's, and every other
+        // checkout step stays below.
+        if (($takeover = \App\Support\CheckoutPage::resolve()) !== null) {
+            return app()->call($takeover);
+        }
+
         $customer = Auth::guard('customer')->user();
         $items = $this->cartService->getItems();
 

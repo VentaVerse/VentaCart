@@ -339,3 +339,21 @@ An extension adds links to the customer's account menu from its provider's `boot
 A link is a route name, never an address. `AccountMenu::links()` returns, by position (then in the order added), the links whose route exists and needs no parameters: `[{url, label, icon, match, current}]`. `label` is plain text up to 40 characters, to be printed with `{{ }}`. `icon` is one of `file`, `wallet`, `return`, `store`, `star`, `gift`; a theme draws one it lacks as `file`. `match` is the route name pattern (`{route}*` by default) and `current` is true on a route it matches, for `aria-current`.
 
 Core's own links (dashboard, orders, addresses, wishlist, profile) are not in the list: a theme keeps drawing them, then draws these after them.
+
+### 9.4 Checkout page
+
+One extension may draw the checkout page itself (a checkout split by seller, say), from its provider's `boot()`:
+
+```php
+\App\Support\CheckoutPage::use(\Extensions\Marketplace\Http\CheckoutController::class);
+```
+
+While it is registered, the `checkout.index` route calls that controller: its `__invoke()`, else its public `index()`, with method injection. Only that page changes hands. The route, its middleware (signed-in customers only, not indexed) and every other checkout route (`checkout.place`, `checkout.address.save`, `checkout.shipping-rates`, `checkout.confirmation`, the payment returns) stay core's, so the order is placed, priced and paid through core's checks, CSRF included. The extension's page posts to them as core's page does.
+
+When the class is missing, or is neither invokable nor has a public `index()`, core draws its own checkout and logs the problem. One registration per store: a second, different one is refused and logged. Unregistered, nothing changes.
+
+The extension's view draws inside the live theme's page frame when the theme has one (section 9.6):
+
+```blade
+@extends(view()->exists('extension.page') ? 'extension.page' : 'marketplace::layouts.plain')
+```
