@@ -11,6 +11,9 @@ Route::prefix('content')->group(function () {
     // The store's menus, which every theme draws. The route names are
     // read by themes (behind Route::has), so they stay as they are.
     Route::get('/menus', [MenuController::class, 'index'])->name('menus');
+    Route::post('/menus', [MenuController::class, 'store'])->name('menus.store');
+    Route::put('/menus/{menu}', [MenuController::class, 'update'])->whereNumber('menu')->name('menus.update');
+    Route::delete('/menus/{menu}', [MenuController::class, 'destroy'])->whereNumber('menu')->name('menus.destroy');
     Route::post('/menus/{menu}/arrange', [MenuController::class, 'arrange'])->name('menus.arrange');
     Route::post('/menus/{menu}/items', [MenuController::class, 'storeItem'])->name('menus.items.store');
     Route::get('/menus/items/{item}/edit', [MenuController::class, 'editItem'])->name('menus.items.edit');

@@ -4,7 +4,19 @@
     <x-admin.form :action="route('admin.menus.arrange', $menu)">
         <div x-data="vMenuTree(@js($tree))">
             <input type="hidden" name="payload" :value="payload()">
-            <x-admin.panel :title="$menu->name">
+            <x-admin.panel :title="$menu->name" :note="'Themes find this menu by its key, ' . $menu->key . '. Renaming the menu keeps the key.'">
+                @canany(['menus.edit', 'menus.delete'])
+                    <x-slot:acts>
+                        @can('menus.edit')
+                            <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="$dispatch('v-menu-form', 'rename')">Rename</button>
+                        @endcan
+                        @if (! $menu->isRequired())
+                            @can('menus.delete')
+                                <button type="button" class="v-btn v-btn--ghost v-btn--sm v-btn--danger" @click="$dispatch('v-confirm', 'delete-menu')">Delete menu</button>
+                            @endcan
+                        @endif
+                    </x-slot:acts>
+                @endcanany
                 <p class="v-mtree__said" role="status" aria-live="polite" x-text="announcement"></p>
 
                 <ol class="v-mtree" x-show="items.length" @if (! count($tree)) x-cloak @endif>
@@ -41,7 +53,7 @@
 
                 <div class="v-empty" x-show="!items.length" @if (count($tree)) x-cloak @endif>
                     <p class="v-empty__title">No items in this menu yet</p>
-                    <p class="v-empty__line">Add the first one with Add an item. It shows in the store header.</p>
+                    <p class="v-empty__line">Add the first one with Add an item. {{ $menu->key === \App\Models\NavMenu::MAIN ? 'It shows in the store header.' : 'It shows wherever the theme is set to show this menu.' }}</p>
                 </div>
             </x-admin.panel>
         </div>

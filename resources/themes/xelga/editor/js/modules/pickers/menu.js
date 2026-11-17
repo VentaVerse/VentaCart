@@ -33,10 +33,28 @@ function loadMenus() {
   return loading;
 }
 
+/* The menus screen opens on the menu named by ?menu=<key>, or on the main
+ * menu when none is named. */
+export function menuEditHref(base, key) {
+  if (!base) return null;
+  if (!key) return base;
+  const url = new URL(base, window.location.href);
+  url.searchParams.set('menu', String(key));
+  return url.toString();
+}
+
 export function menuPicker(value, change, id) {
-  const select = h('select', { class: 'select', id, onchange: (e) => change(e.target.value) });
-  const note = h('p', { class: 'field__help field__help--after', hidden: true });
   const editUrl = ctx.boot.user?.can?.menus_edit === false ? null : ctx.boot.routes?.menus_edit || ctx.boot.routes?.menus || null;
+  const edit = editUrl ? h('a', { class: 'link-btn', href: menuEditHref(editUrl, value), target: '_blank', rel: 'noopener' }, 'Edit menus') : null;
+  const select = h('select', {
+    class: 'select',
+    id,
+    onchange: (e) => {
+      if (edit) edit.href = menuEditHref(editUrl, e.target.value);
+      change(e.target.value);
+    },
+  });
+  const note = h('p', { class: 'field__help field__help--after', hidden: true });
   const fill = (list, busy = false) => {
     const options = [...list];
     if (value && !options.some((o) => o.value === String(value))) options.unshift({ value: String(value), label: humanize(value) });
@@ -53,6 +71,5 @@ export function menuPicker(value, change, id) {
       note.hidden = false;
     });
   return h('div', { class: 'menu-pick' }, select, note,
-    editUrl ? h('p', { class: 'field__help field__help--after' },
-      h('a', { class: 'link-btn', href: editUrl, target: '_blank', rel: 'noopener' }, 'Edit menus')) : null);
+    edit ? h('p', { class: 'field__help field__help--after' }, edit) : null);
 }

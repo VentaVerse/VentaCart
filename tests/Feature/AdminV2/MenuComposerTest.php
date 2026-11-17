@@ -42,20 +42,147 @@ class MenuComposerTest extends TestCase
             ->assertSee('Guitars', false)->assertSee('Used', false)->assertSee('Add an item');
     }
 
-    /**
-     * One menu, because the header draws that one and nothing can change it.
-     * A second could only ever surface as a placed widget, so offering to
-     * create one promised a choice the storefront does not have. Menus that
-     * do more than this are a theme's to bring.
-     */
-    public function test_a_second_menu_cannot_be_created_or_removed(): void
+    public function test_the_page_lists_every_menu_and_edits_the_one_chosen(): void
     {
-        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.menus.store'));
-        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.menus.destroy'));
+        $footer = NavMenu::create(['key' => 'footer', 'name' => 'Footer menu']);
+        NavMenuItem::create(['menu_id' => $footer->id, 'type' => 'custom', 'label' => 'Returns policy', 'url' => '/returns', 'sort_order' => 1, 'is_enabled' => true]);
+        $this->item(['label' => 'Guitars']);
 
-        $view = file_get_contents(base_path('resources/views/admin/menus/tree.blade.php'));
-        $this->assertStringNotContainsString('New menu', $view);
-        $this->assertStringNotContainsString('Delete this menu', $view);
+        // Without a choice the page edits the main menu, and lists both.
+        $this->get(route('admin.menus'))->assertOk()
+            ->assertSee('Guitars')->assertDontSee('Returns policy')
+            ->assertSee('href="' . route('admin.menus', ['menu' => 'footer']) . '"', false)
+            ->assertSee(route('admin.menus.arrange', $this->main), false);
+
+        $this->get(route('admin.menus', ['menu' => 'footer']))->assertOk()
+            ->assertSee('Returns policy')->assertDontSee('Guitars')
+            ->assertSee(route('admin.menus.arrange', $footer), false)
+            ->assertSee(route('admin.menus.items.store', $footer), false)
+            ->assertSee('Delete menu');
+
+        // A key that matches no menu falls back to the main menu.
+        $this->get(route('admin.menus', ['menu' => 'nope']))->assertOk()->assertSee('Guitars');
+        $this->get(route('admin.menus', ['menu' => ['x']]))->assertOk()->assertSee('Guitars');
+    }
+
+    public function test_item_changes_return_to_the_menu_they_were_made_in(): void
+    {
+        $footer = NavMenu::create(['key' => 'footer', 'name' => 'Footer menu']);
+        $back = route('admin.menus', ['menu' => 'footer']);
+
+        $this->post(route('admin.menus.items.store', $footer), ['type' => 'custom', 'label' => 'Returns', 'url' => '/returns'])->assertRedirect($back);
+        $item = NavMenuItem::where('label', 'Returns')->sole();
+        $this->assertSame($footer->id, $item->menu_id);
+
+        $this->get(route('admin.menus.items.edit', $item))->assertOk()->assertSee('href="' . $back . '"', false);
+        $this->put(route('admin.menus.items.update', $item), ['type' => 'custom', 'label' => 'Returns', 'url' => '/returns', 'is_enabled' => '1'])->assertRedirect($back);
+        $this->delete(route('admin.menus.items.destroy', $item))->assertRedirect($back);
+    }
+
+    public function test_a_menu_is_added_with_a_key_made_from_its_name(): void
+    {
+        $this->post(route('admin.menus.store'), ['name' => '  Footer   menu '])
+            ->assertRedirect(route('admin.menus', ['menu' => 'footer-menu']))->assertSessionHas('success');
+        $this->assertDatabaseHas('nav_menus', ['key' => 'footer-menu', 'name' => 'Footer menu']);
+
+        // A taken key gets a number; a name with nothing to slug becomes "menu".
+        NavMenu::create(['key' => 'mobile', 'name' => 'Mobile']);
+        $this->post(route('admin.menus.store'), ['name' => 'Mobile!'])->assertRedirect(route('admin.menus', ['menu' => 'mobile-2']));
+        $this->post(route('admin.menus.store'), ['name' => '***'])->assertRedirect(route('admin.menus', ['menu' => 'menu']));
+        $this->post(route('admin.menus.store'), ['name' => '!!!'])->assertRedirect(route('admin.menus', ['menu' => 'menu-2']));
+
+        // The key is never taken from the request.
+        $this->post(route('admin.menus.store'), ['name' => 'Sidebar', 'key' => 'main']);
+        $this->assertDatabaseHas('nav_menus', ['key' => 'sidebar', 'name' => 'Sidebar']);
+        $this->assertSame(1, NavMenu::where('key', 'main')->count());
+    }
+
+    public function test_a_menu_name_is_required_and_unique(): void
+    {
+        $this->from(route('admin.menus'))->post(route('admin.menus.store'), ['name' => ''])
+            ->assertRedirect(route('admin.menus'))->assertSessionHasErrors('name', null, 'addMenu');
+        $this->post(route('admin.menus.store'), ['name' => 'Main menu'])->assertSessionHasErrors('name', null, 'addMenu');
+        $this->post(route('admin.menus.store'), ['name' => str_repeat('a', 121)])->assertSessionHasErrors('name', null, 'addMenu');
+        $this->assertSame(1, NavMenu::count());
+
+        // The add form opens again with the error in it.
+        $this->withSession(['errors' => (new \Illuminate\Support\ViewErrorBag)->put('addMenu', new \Illuminate\Support\MessageBag(['name' => 'Give the menu a name.']))])
+            ->get(route('admin.menus'))->assertOk()->assertSee('Give the menu a name.');
+    }
+
+    public function test_a_menu_is_renamed_and_keeps_its_key(): void
+    {
+        $footer = NavMenu::create(['key' => 'footer', 'name' => 'Footer menu']);
+
+        $this->put(route('admin.menus.update', $footer), ['name' => 'Help links'])
+            ->assertRedirect(route('admin.menus', ['menu' => 'footer']))->assertSessionHas('success');
+        $this->assertDatabaseHas('nav_menus', ['id' => $footer->id, 'key' => 'footer', 'name' => 'Help links']);
+
+        // Keeping its own name is fine; taking another menu's is not.
+        $this->put(route('admin.menus.update', $footer), ['name' => 'Help links'])->assertSessionHasNoErrors();
+        $this->put(route('admin.menus.update', $footer), ['name' => 'Main menu'])->assertSessionHasErrors('name', null, 'renameMenu');
+
+        $this->put(route('admin.menus.update', $this->main), ['name' => 'Header'])->assertRedirect(route('admin.menus'));
+        $this->assertDatabaseHas('nav_menus', ['key' => 'main', 'name' => 'Header']);
+    }
+
+    public function test_a_menu_is_deleted_with_its_items_and_leaves_the_storefront(): void
+    {
+        $footer = NavMenu::create(['key' => 'footer', 'name' => 'Footer menu']);
+        $top = NavMenuItem::create(['menu_id' => $footer->id, 'type' => 'custom', 'label' => 'Help', 'url' => '/help', 'sort_order' => 1, 'is_enabled' => true]);
+        NavMenuItem::create(['menu_id' => $footer->id, 'parent_id' => $top->id, 'type' => 'custom', 'label' => 'Returns', 'url' => '/returns', 'sort_order' => 2, 'is_enabled' => true]);
+        $kept = $this->item(['label' => 'Guitars']);
+        $this->assertCount(1, NavTree::for('footer'));
+
+        $this->delete(route('admin.menus.destroy', $footer))->assertRedirect(route('admin.menus'))->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('nav_menus', ['id' => $footer->id]);
+        $this->assertSame(0, NavMenuItem::where('menu_id', $footer->id)->count());
+        $this->assertTrue($kept->fresh()->exists);
+        $this->assertSame([], NavTree::for('footer'));
+    }
+
+    public function test_the_main_menu_cannot_be_deleted(): void
+    {
+        $this->item(['label' => 'Guitars']);
+
+        $this->delete(route('admin.menus.destroy', $this->main))->assertRedirect(route('admin.menus'))->assertSessionHas('error');
+        $this->assertDatabaseHas('nav_menus', ['key' => 'main']);
+        $this->assertSame(1, NavMenuItem::count());
+
+        $this->get(route('admin.menus'))->assertOk()->assertDontSee('Delete menu')->assertSee('Rename');
+    }
+
+    /** Each menu write follows its own menus.* permission. */
+    public function test_menu_writes_follow_the_menus_permissions(): void
+    {
+        $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+        $footer = NavMenu::create(['key' => 'footer', 'name' => 'Footer menu']);
+        $role = \App\Models\Role::create(['name' => 'Menu viewer', 'slug' => 'menu-viewer']);
+        $role->permissions()->sync(\App\Models\Permission::whereIn('slug', ['dashboard.view', 'menus.view'])->pluck('id'));
+        $viewer = User::factory()->role('menu-viewer')->create();
+        $this->actingAs($viewer);
+
+        $this->get(route('admin.menus', ['menu' => 'footer']))->assertOk()
+            ->assertDontSee('Add a menu')->assertDontSee('Delete menu')->assertDontSee('>Rename<', false);
+        $this->post(route('admin.menus.store'), ['name' => 'Mobile'])->assertForbidden();
+        $this->put(route('admin.menus.update', $footer), ['name' => 'Help'])->assertForbidden();
+        $this->delete(route('admin.menus.destroy', $footer))->assertForbidden();
+        $this->assertSame(['footer', 'main'], NavMenu::orderBy('key')->pluck('key')->all());
+        $this->assertSame('Footer menu', $footer->fresh()->name);
+
+        // Each permission opens only its own write.
+        $role->permissions()->syncWithoutDetaching(\App\Models\Permission::whereIn('slug', ['menus.create', 'menus.edit'])->pluck('id'));
+        $this->actingAs($viewer->fresh());
+        $this->post(route('admin.menus.store'), ['name' => 'Mobile'])->assertRedirect();
+        $this->put(route('admin.menus.update', $footer), ['name' => 'Help'])->assertRedirect();
+        $this->delete(route('admin.menus.destroy', $footer))->assertForbidden();
+        $this->get(route('admin.menus', ['menu' => 'footer']))->assertOk()->assertSee('Add a menu')->assertDontSee('Delete menu');
+
+        $role->permissions()->syncWithoutDetaching(\App\Models\Permission::where('slug', 'menus.delete')->pluck('id'));
+        $this->actingAs($viewer->fresh());
+        $this->delete(route('admin.menus.destroy', $footer))->assertRedirect();
+        $this->assertDatabaseMissing('nav_menus', ['key' => 'footer']);
     }
 
     public function test_every_kind_of_item_is_added_with_the_fields_it_needs(): void

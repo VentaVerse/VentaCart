@@ -6,6 +6,8 @@
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.menus') }}">Menus</a>
                 <span aria-hidden="true">/</span>
+                <a href="{{ \App\Http\Controllers\Admin\Content\MenuController::urlFor($menu) }}">{{ $menu->name }}</a>
+                <span aria-hidden="true">/</span>
                 <span>{{ $item->label ?: $types[$item->type] }}</span>
             </div>
             <h1 class="v-head__title">{{ $item->label ?: $types[$item->type] }}</h1>

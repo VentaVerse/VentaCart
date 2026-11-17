@@ -3,14 +3,19 @@
 namespace App\Http\Controllers\Admin\Content;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Content\NavMenuRequest;
 use App\Models\Brand;
 use App\Models\NavMenu;
 use App\Models\NavMenuItem;
 use App\Models\Page;
 use App\Services\ThemeService;
 use App\Support\AdminPermissions;
+use App\Support\NavTree;
 use App\Support\SafeInput;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -19,26 +24,33 @@ use Illuminate\Validation\Rule;
 /**
  * Content > Menus: the store's menus as trees the merchant arranges.
  *
- * Menus are store data the active theme draws. The arrangement (order and
+ * Menus are store data the active theme draws. A store has the main menu
+ * and any others the merchant adds (a footer menu, a mobile one); the page
+ * edits one at a time, chosen with ?menu=<key>. The arrangement (order and
  * nesting) is the page's save scope; an item is its own record with its
  * own form.
  */
 class MenuController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return view('admin.menus.index', $this->screen());
+        return view('admin.menus.index', $this->screen($request->query('menu')));
     }
 
-    /** What the page draws: the main menu, the one every theme's header draws. */
-    public function screen(): array
+    /** What the page draws: the chosen menu, or the main menu. */
+    public function screen(mixed $key = null): array
     {
-        $menu = NavMenu::main();
+        NavMenu::main();
+        // The main menu first, then the rest by name.
+        $menus = NavMenu::query()->orderBy('name')->get()
+            ->sortBy(fn (NavMenu $m) => $m->key === NavMenu::MAIN ? 0 : 1)->values();
+        $menu = (is_string($key) ? $menus->firstWhere('key', $key) : null) ?? $menus->firstWhere('key', NavMenu::MAIN);
 
         $items = $menu->items()->with(['category', 'page'])->get();
 
         return [
             'menu' => $menu,
+            'menus' => $menus,
             'tree' => $this->tree($items),
             'types' => NavMenuItem::TYPES,
             'system' => NavMenuItem::SYSTEM,
@@ -86,13 +98,74 @@ class MenuController extends Controller
         };
     }
 
+    /** The page with $menu chosen; the main menu needs no query. */
+    public static function urlFor(NavMenu $menu): string
+    {
+        return $menu->key === NavMenu::MAIN ? route('admin.menus') : route('admin.menus', ['menu' => $menu->key]);
+    }
+
+    /** Add a menu. Its key comes from its name and stays when it is renamed. */
+    public function store(NavMenuRequest $request): RedirectResponse
+    {
+        $name = $request->validated('name');
+
+        // Two menus added at the same moment can both pick the same free
+        // key; the unique index stops the second, which then picks again.
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                $menu = NavMenu::create(['key' => NavMenu::keyFor($name), 'name' => $name]);
+                break;
+            } catch (UniqueConstraintViolationException $e) {
+                if ($attempt >= 3) {
+                    report($e);
+
+                    return back()->withInput()->withErrors(['name' => 'The menu could not be added. Try again.'], 'addMenu');
+                }
+            }
+        }
+        app(ThemeService::class)->clearCache();
+
+        return redirect()->to(self::urlFor($menu))->with('success', $menu->name . ' added.');
+    }
+
+    /** Rename a menu. The key stays, so themes showing it keep finding it. */
+    public function update(NavMenuRequest $request, NavMenu $menu): RedirectResponse
+    {
+        $menu->update(['name' => $request->validated('name')]);
+        app(ThemeService::class)->clearCache();
+
+        return redirect()->to(self::urlFor($menu))->with('success', 'Menu renamed to ' . $menu->name . '.');
+    }
+
+    /** Delete a menu and its items. A required menu stays. */
+    public function destroy(NavMenu $menu): RedirectResponse
+    {
+        if ($menu->isRequired()) {
+            return redirect()->to(self::urlFor($menu))->with('error', $menu->name . ' cannot be deleted: the store\'s header draws it.');
+        }
+
+        $name = $menu->name;
+        $key = $menu->key;
+        DB::transaction(function () use ($menu) {
+            // Items first, children before the items they sit under, so the
+            // delete never leans on a cascade through the items' own parent
+            // link, which some databases refuse within one statement.
+            NavMenuItem::where('menu_id', $menu->id)->update(['parent_id' => null]);
+            NavMenuItem::where('menu_id', $menu->id)->delete();
+            $menu->delete();
+        });
+        app(ThemeService::class)->clearCache();
+        // The clear above forgets the trees of the menus that remain.
+        Cache::forget(NavTree::CACHE_PREFIX . $key);
+
+        return redirect()->route('admin.menus')->with('success', $name . ' deleted.');
+    }
+
     /** Every active category with its depth, for one select. */
     private function categoryChoices(): array
     {
         return array_map(fn (array $o) => ['id' => $o['id'], 'label' => $o['name']], \App\Support\CategoryTree::options(activeOnly: true));
     }
-
-
 
     /** The arrangement: order and nesting for one menu, written as one save. */
     public function arrange(Request $request, NavMenu $menu)
@@ -129,7 +202,7 @@ class MenuController extends Controller
         NavMenuItem::create($data);
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.menus')->with('success', ($data['label'] ?: NavMenuItem::TYPES[$data['type']]) . ' added.');
+        return redirect()->to(self::urlFor($menu))->with('success', ($data['label'] ?: NavMenuItem::TYPES[$data['type']]) . ' added.');
     }
 
     public function editItem(NavMenuItem $item)
@@ -152,7 +225,7 @@ class MenuController extends Controller
         $item->update($data);
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.menus')->with('success', ($item->label ?: NavMenuItem::TYPES[$item->type]) . ' updated.');
+        return redirect()->to(self::urlFor($item->menu))->with('success', ($item->label ?: NavMenuItem::TYPES[$item->type]) . ' updated.');
     }
 
     public function destroyItem(NavMenuItem $item)
@@ -161,7 +234,7 @@ class MenuController extends Controller
         $item->delete();
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.menus')->with('success', 'Menu item deleted.');
+        return redirect()->to(self::urlFor($menu))->with('success', 'Menu item deleted.');
     }
 
     /** One set of rules for adding and editing: a type says which fields count. */
