@@ -44,14 +44,16 @@ class ModulesPageTest extends TestCase
         $this->seed(\Database\Seeders\ExtensionSeeder::class);
 
         // Not installed: the row is Install-only — no uninstall endpoint
-        // rendered for it. (Theme is one of the fresh-install essentials, so
+        // rendered for it. (Blog is one of the fresh-install essentials, so
         // the page as a whole legitimately carries that row's Uninstall; the
-        // pin is per-row.)
+        // pin is per-row.) The theme directory is required: no Uninstall.
         $this->get(route('admin.extensions.index'))
             ->assertOk()
             ->assertSee(route('admin.extensions.install', 'stock-alerts'), false)
             ->assertDontSee(route('admin.extensions.uninstall', 'stock-alerts'), false)
-            ->assertSee(route('admin.extensions.uninstall', 'theme'), false);
+            ->assertSee(route('admin.extensions.uninstall', 'blog'), false)
+            ->assertDontSee(route('admin.extensions.uninstall', 'theme'), false)
+            ->assertDontSee(route('admin.extensions.disable', 'theme'), false);
 
         app(\App\Services\ExtensionManager::class)->install('stock-alerts');
         app(\App\Services\ExtensionManager::class)->bootEnabled();

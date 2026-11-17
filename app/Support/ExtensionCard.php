@@ -55,14 +55,17 @@ class ExtensionCard
             'state' => $state,
             'state_label' => $stateMeta['label'],
             'state_tone' => $stateMeta['tone'],
-            'actions' => self::actionsForState($state),
+            // A package the store cannot run without keeps its Configure only.
+            'actions' => ($manifest['required'] ?? false) === true
+                ? array_values(array_diff(self::actionsForState($state), ['disable', 'uninstall']))
+                : self::actionsForState($state),
             // An extension awaiting its update keeps running, so its settings stay reachable.
             'configure' => $state === 'enabled' || ($state === 'needs_migration' && $registryRow?->enabled)
                 ? self::configureUrl($manifest, $name)
                 : null,
             // Where its own pages sit in the sidebar, so Configure is not a
             // jump into the unknown. Themes, and the extension that manages
-            // them, live in Storefront > Themes.
+            // them, live in Themes.
             'home' => $state === 'enabled' ? AdminNav::homeOf(self::isTheme($manifest) ? 'theme' : $name) : null,
         ];
     }

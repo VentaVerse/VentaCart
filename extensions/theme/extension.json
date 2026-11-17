@@ -1,11 +1,12 @@
 {
     "name": "theme",
-    "title": "Theme",
+    "title": "Themes",
     "version": "1.0.0",
     "description": "Storefront themes: install them and choose the one the store runs.",
     "provider": "Extensions\\Theme\\ThemeExtensionServiceProvider",
     "icon": "tags",
     "type": "theme",
     "configure_route": "admin.theme.index",
-    "default_enabled": true
+    "default_enabled": true,
+    "required": true
 }

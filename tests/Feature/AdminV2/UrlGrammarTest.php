@@ -507,8 +507,8 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/extensions/theme');
 
         $response->assertOk();
-        // The theme directory's entry sits in Storefront, so its pages trail from there.
-        $this->assertBreadcrumbTrail($response->getContent(), ['Storefront', 'Themes']);
+        // The theme directory's entry sits outside every group, so its trail is its own.
+        $this->assertBreadcrumbTrail($response->getContent(), ['Themes']);
     }
 
     /** Task 2: the Fulfillment sidebar item (admin-nav) supplies the queue's crumb. */

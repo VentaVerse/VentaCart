@@ -337,7 +337,9 @@ class AdminNav
      * lives. With several entries (Blog Posts, Blog Categories) the one whose
      * own address the path continues wins. Null when there is none.
      *
-     * @return array{group: string, key: string, label: string, route: string}|null
+     * An ungrouped entry (Themes) counts too; its group is null.
+     *
+     * @return array{group: ?string, key: string, label: string, route: string}|null
      */
     public static function extensionHome(string $path): ?array
     {
@@ -351,7 +353,7 @@ class AdminNav
         $bestLength = -1;
 
         foreach (static::registry() as $group) {
-            if ($group['label'] === null || ($group['segment'] ?? null) === 'extensions') {
+            if (($group['segment'] ?? null) === 'extensions') {
                 continue;
             }
             foreach ($group['items'] as $item) {
@@ -366,6 +368,12 @@ class AdminNav
                     // A route that is not registered (extension switched off)
                     // still names its group; it just cannot win on address.
                 }
+                // An entry core itself puts outside every group (Themes)
+                // claims the pages under its own address; an extension's
+                // ungrouped shortcut leaves them to the Extensions group.
+                if ($group['label'] === null && ($length === 0 || ! in_array($item['key'] ?? null, self::ungroupedCoreKeys(), true))) {
+                    continue;
+                }
                 if ($length > $bestLength) {
                     $best = $item + ['group' => $group['label']];
                     $bestLength = $length;
@@ -376,19 +384,30 @@ class AdminNav
         return $best;
     }
 
+    /** @return list<string> the keys of the entries config/admin-nav.php puts outside every group */
+    private static function ungroupedCoreKeys(): array
+    {
+        return collect(config('admin-nav', []))->where('label', null)
+            ->flatMap(fn (array $group) => array_column($group['items'] ?? [], 'key'))->values()->all();
+    }
+
     /**
-     * Where an extension lives in the sidebar, as "Group > Item", when it put
-     * an entry in a work group (Marketing > Coupons). Null otherwise.
+     * Where an extension lives in the sidebar, as "Group > Item" when it put
+     * an entry in a work group (Marketing > Coupons), or the entry's own
+     * label when the entry has no group (Themes). Null otherwise.
      */
     public static function homeOf(string $extension): ?string
     {
         foreach (static::registry() as $group) {
-            if ($group['label'] === null || ($group['segment'] ?? null) === 'extensions') {
+            if (($group['segment'] ?? null) === 'extensions') {
                 continue;
             }
             foreach ($group['items'] as $item) {
+                if ($group['label'] === null && ! in_array($item['key'] ?? null, self::ungroupedCoreKeys(), true)) {
+                    continue;
+                }
                 if (($item['extension'] ?? null) === $extension) {
-                    return $group['label'] . ' > ' . $item['label'];
+                    return $group['label'] === null ? $item['label'] : $group['label'] . ' > ' . $item['label'];
                 }
             }
         }

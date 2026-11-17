@@ -148,10 +148,11 @@ class Breadcrumbs
             return [];
         }
 
-        // An extension whose entry sits in a work group trails from there.
+        // An extension whose entry sits in a work group, or alone, trails from there.
         $path = implode('/', $segments);
         if (($home = AdminNav::extensionHome($path)) && \Illuminate\Support\Facades\Route::has($home['route'])) {
-            $crumbs = [['label' => $home['group']], ['label' => $home['label'], 'url' => route($home['route'])]];
+            $crumbs = $home['group'] === null ? [] : [['label' => $home['group']]];
+            $crumbs[] = ['label' => $home['label'], 'url' => route($home['route'])];
             if (count($segments) > 2 && $title && $title !== $home['label']) {
                 $crumbs[] = ['label' => $title];
             }

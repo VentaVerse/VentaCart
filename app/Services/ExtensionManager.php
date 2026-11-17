@@ -130,6 +130,24 @@ class ExtensionManager
         return $this->discoveredCache = $manifests->concat($owned)->concat($themes)->keyBy('name');
     }
 
+    /**
+     * Whether a package the store cannot run without (`"required": true` in
+     * its manifest, such as the theme directory): it is installed with the
+     * store and can be neither switched off nor uninstalled.
+     */
+    public function isRequired(string $name): bool
+    {
+        return ($this->discovered()->get($name)['required'] ?? false) === true;
+    }
+
+    private function refuseIfRequired(string $name, string $what): void
+    {
+        if ($this->isRequired($name)) {
+            $title = (string) ($this->discovered()->get($name)['title'] ?? $name);
+            throw new \RuntimeException("{$title} is part of the store and cannot be {$what}.");
+        }
+    }
+
     /** Forget what discovered() found, so the next call reads the disk again. */
     public function rescan(): void
     {
@@ -395,6 +413,7 @@ class ExtensionManager
 
     public function disable(string $name): void
     {
+        $this->refuseIfRequired($name, 'switched off');
         $extension = Extension::where('name', $name)->firstOrFail();
         $extension->update(['enabled' => false]);
 
@@ -414,6 +433,7 @@ class ExtensionManager
      */
     public function uninstall(string $name): void
     {
+        $this->refuseIfRequired($name, 'uninstalled');
         $manifest = $this->discovered()->get($name);
 
         // A theme's own extensions live in its folder and are part of it, so

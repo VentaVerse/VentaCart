@@ -73,15 +73,13 @@ return [
         ],
     ],
     [
-        // How the store looks: one area for the storefront, each item one
-        // kind of thing.
-        'label' => 'Storefront',
-        'icon' => 'layers',
-        'segment' => 'storefront',
+        // The theme directory: choose and install themes, and open the live
+        // theme's own editor. One entry, no group: a theme draws and edits
+        // the whole storefront, so there is nothing to put beside it. Its
+        // pages live under extensions/theme and light this entry.
+        'label' => null,
         'items' => [
-            // The theme extension's directory: choose and install themes. Its
-            // pages live under extensions/theme and light this entry.
-            ['key' => 'themes', 'label' => 'Themes', 'route' => 'admin.theme.index', 'icon' => 'tags', 'permission' => null, 'extension' => 'theme', 'keywords' => ['theme', 'design', 'look', 'skin', 'template']],
+            ['key' => 'themes', 'label' => 'Themes', 'route' => 'admin.theme.index', 'icon' => 'layers', 'permission' => null, 'extension' => 'theme', 'keywords' => ['theme', 'design', 'look', 'skin', 'template', 'storefront', 'header', 'footer', 'announcement']],
         ],
     ],
     [

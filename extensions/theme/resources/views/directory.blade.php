@@ -6,8 +6,6 @@
     <div class="v-head">
         <div class="v-head__body">
             <div class="v-head__trail">
-                <span>Storefront</span>
-                <span aria-hidden="true">/</span>
                 <span>Themes</span>
             </div>
             <h1 class="v-head__title">Themes</h1>
@@ -16,7 +14,6 @@
             @if (auth()->user()?->isSuperAdmin() && \Illuminate\Support\Facades\Route::has('admin.extensions.upload'))
                 <a href="{{ route('admin.extensions.upload') }}" class="v-btn">Upload a theme</a>
             @endif
-            <x-admin.extension-switch name="theme" />
         </div>
     </div>
 

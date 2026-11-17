@@ -68,17 +68,39 @@ class ThemeExtensionTest extends TestCase
         $this->assertNotSame('', $service->getActiveTheme());
     }
 
-    public function test_themes_appears_in_the_storefront_group_only_while_enabled(): void
+    public function test_themes_is_one_entry_outside_every_group_while_installed(): void
     {
         $user = User::factory()->create();
 
         $labels = fn () => collect(\App\Support\AdminNav::groups($user))
-            ->firstWhere('label', 'Storefront')['items'] ?? [];
+            ->where('label', null)->flatMap(fn ($group) => $group['items'])->all();
 
         $this->assertNotContains('Themes', collect($labels())->pluck('label')->all());
 
         $this->installAndBoot();
 
         $this->assertContains('Themes', collect($labels())->pluck('label')->all());
+    }
+
+    /** The store always needs a theme, so the directory cannot be switched off or removed. */
+    public function test_the_theme_directory_is_required(): void
+    {
+        $this->installAndBoot();
+        $manager = app(\App\Services\ExtensionManager::class);
+
+        $this->assertTrue($manager->isRequired('theme'));
+        foreach (['disable', 'uninstall'] as $action) {
+            try {
+                $manager->{$action}('theme');
+                $this->fail("The theme directory was {$action}d.");
+            } catch (\RuntimeException $e) {
+                $this->assertStringContainsString('part of the store', $e->getMessage());
+            }
+        }
+        $this->assertSame('enabled', $manager->state('theme'));
+        $this->assertNull(collect(\App\Support\AdminNav::groups(User::factory()->create()))->firstWhere('label', 'Storefront'));
+        $this->assertSame('Themes', \App\Support\AdminNav::homeOf('theme'));
+        $this->assertSame(['group' => null, 'item' => 'themes'], \App\Support\AdminNav::activeItemKey('/admin/extensions/theme/xelga/editor'));
+        $this->assertSame(['Themes'], array_column(\App\Support\Breadcrumbs::forPath('/admin/extensions/theme'), 'label'));
     }
 }
