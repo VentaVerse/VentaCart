@@ -61,6 +61,7 @@ class XelgaSpanCatalogTest extends TestCase
         });
         $this->withOwnSection(['span' => ['min' => 6]], '.s-zz-probe { container-type: inline-size; }', function (array $problems) {
             $this->assertNotContains('Section zz-probe: span.min must be 3, 4, 6, 8 or 12.', $problems);
+            $this->assertContains('Section zz-probe: variant "a" span must be 3, 4, 6, 8 or 12.', $problems);
         }, ['variants' => [['value' => 'a', 'label' => 'A', 'span' => 7]]]);
     }
 
@@ -70,6 +71,8 @@ class XelgaSpanCatalogTest extends TestCase
         $this->withOwnSection(['span' => ['min' => 4]], null, fn (array $problems) => $this->assertContains($message, $problems));
         $this->withOwnSection(['span' => ['min' => 4]], '.s-zz-probe .inner { container-type: inline-size; }', fn (array $problems) => $this->assertContains($message, $problems));
         $this->withOwnSection(['span' => ['min' => 4]], '.s-zz-probe { container-type: inline-size; }', fn (array $problems) => $this->assertNotContains($message, $problems));
+        $this->withOwnSection(['span' => ['min' => 4]], ".wrap .s-zz-probe { container-type: inline-size; }\n.a > .s-zz-probe { container-type: inline-size; }", fn (array $problems) => $this->assertContains($message, $problems));
+        $this->withOwnSection(['span' => ['min' => 4]], "@media (min-width: 750px) { .s-zz-probe { container-type: inline-size; } }", fn (array $problems) => $this->assertNotContains($message, $problems));
         $this->withOwnSection(['span' => ['min' => 12]], null, fn (array $problems) => $this->assertNotContains($message, $problems));
     }
 
