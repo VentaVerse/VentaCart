@@ -52,6 +52,13 @@ class DocumentController extends Controller
             return $this->fail('There is no such page.', 'not_found', 404);
         }
 
+        // An editor that knows no rows would send the page without them and
+        // flatten it. Once the page has rows or sides, only an editor that
+        // says it keeps them may save; the other is told to reload.
+        if (! $request->boolean('with_rows') && self::hasLayout(Document::where('handle', $handle)->first())) {
+            return $this->fail('This page was changed with a newer editor. Reload the editor to keep editing.', 'editor-outdated', 409);
+        }
+
         return $this->attempt(function () use ($request, $handle) {
             $result = $this->writer->saveDraft($handle, $request->input('content'), (int) $request->validated('draft_version'), $request->user());
 
@@ -153,6 +160,18 @@ class DocumentController extends Controller
                 'warnings' => $result['warnings'],
             ], 'Restored into the draft. Publish to put it live.');
         });
+    }
+
+    /** Whether the stored draft or published content has rows or sides. */
+    private static function hasLayout(?Document $row): bool
+    {
+        foreach ([$row?->draft, $row?->published] as $content) {
+            if (is_array($content) && (isset($content['rows']) || isset($content['sides']))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** Runs a write and turns the documents' refusals into answers. */

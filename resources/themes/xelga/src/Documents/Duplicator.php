@@ -94,6 +94,7 @@ final class Duplicator
         $newId = $this->freshId($schema->type, $used);
         $content['sections'][$newId] = $copy;
         array_splice($content['order'], array_search($sectionId, $content['order'], true) + 1, 0, [$newId]);
+        self::placeUnder($content, $sectionId, $newId);
 
         return $newId;
     }
@@ -132,6 +133,42 @@ final class Duplicator
         $content['sections'][$sectionId] = $section;
 
         return $newId;
+    }
+
+    /**
+     * The copy goes right under its original: in the same column or side
+     * while that has room. Otherwise (a one-column row, a full column or
+     * side) it is left out of the rows, and Layout::normalize gives it a
+     * full-width row of its own after the row of the section before it in
+     * the order, which is the original.
+     */
+    private static function placeUnder(array &$content, string $original, string $copy): void
+    {
+        foreach (Layout::SIDES as $which) {
+            $ids = $content['sides'][$which] ?? null;
+            if (is_array($ids) && ($at = array_search($original, $ids, true)) !== false) {
+                if (count($ids) < Layout::MAX_PER_SIDE) {
+                    array_splice($ids, $at + 1, 0, [$copy]);
+                    $content['sides'][$which] = $ids;
+                }
+
+                return;
+            }
+        }
+
+        foreach (is_array($content['rows'] ?? null) ? $content['rows'] : [] as $r => $row) {
+            foreach (is_array($row['columns'] ?? null) ? $row['columns'] : [] as $c => $column) {
+                if (! is_array($column) || ($at = array_search($original, $column, true)) === false) {
+                    continue;
+                }
+                if ((string) ($row['split'] ?? '12') !== '12' && count($column) < Layout::MAX_PER_COLUMN) {
+                    array_splice($column, $at + 1, 0, [$copy]);
+                    $content['rows'][$r]['columns'][$c] = $column;
+                }
+
+                return;
+            }
+        }
     }
 
     private static function copyLabel(string $label): string

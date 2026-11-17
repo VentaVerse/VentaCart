@@ -398,6 +398,13 @@ final class TemplateManager
         }
 
         $copy = ['schema' => Shape::FORMAT, 'order' => $keep, 'sections' => array_intersect_key($sections, array_flip($keep)), 'placed' => $content['placed'] ?? []];
+        // Rows and sides go along; ids of sections left out name nothing
+        // any more and are dropped when Shape normalizes the layout.
+        foreach (['rows', 'sides'] as $key) {
+            if (isset($content[$key])) {
+                $copy[$key] = $content[$key];
+            }
+        }
         $clean = (new Shape(SanitizeContext::forStore(DocumentWriter::schemeIds())))->normalize($handle, $copy, [$content])['content'];
 
         return [json_decode(json_encode($clean, JSON_THROW_ON_ERROR), true), $leftOut];
