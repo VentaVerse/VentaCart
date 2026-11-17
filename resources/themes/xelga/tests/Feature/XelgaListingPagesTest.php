@@ -230,6 +230,34 @@ class XelgaListingPagesTest extends TestCase
         $this->assertStringNotContainsString('javascript:', $main);
     }
 
+    public function test_a_category_description_prints_as_html_however_it_was_stored(): void
+    {
+        $bass = $this->category('Bass Guitars', ['description' => '<p>Four and five strings.</p>']);
+        $this->product('Demo Bass')->categories()->attach($bass->id);
+
+        $html = $this->page('/category/bass-guitars')->getContent();
+        $main = $this->between($html, '<!--xelga:category-main-1-->', '<!--/xelga:category-main-1-->');
+        $this->assertStringContainsString('<p>Four and five strings.</p>', $main);
+        $this->assertStringNotContainsString('&lt;p&gt;', $main);
+
+        // Escaped tags, as an import may have written them, still print as a paragraph.
+        \Illuminate\Support\Facades\DB::table('categories')->where('id', $bass->id)->update(['description' => '&lt;p&gt;Bass Guitars&lt;/p&gt;&lt;script&gt;alert(1)&lt;/script&gt;']);
+        $html = $this->page('/category/bass-guitars')->getContent();
+        $main = $this->between($html, '<!--xelga:category-main-1-->', '<!--/xelga:category-main-1-->');
+        $this->assertStringContainsString('<p>Bass Guitars</p>', $main);
+        $this->assertStringNotContainsString('&lt;p&gt;', $main);
+        $this->assertStringNotContainsString('alert(1)', $main);
+    }
+
+    public function test_a_brand_description_stored_with_escaped_tags_prints_as_html(): void
+    {
+        $brand = Brand::create(['store_id' => $this->store->id, 'name' => 'Northwind', 'slug' => 'northwind', 'is_active' => true]);
+        \Illuminate\Support\Facades\DB::table('brands')->where('id', $brand->id)->update(['description' => '&lt;p&gt;Laptops for the road.&lt;/p&gt;']);
+        $this->product('Northwind Air 13', ['brand_id' => $brand->id]);
+
+        $this->page('/brand/northwind')->assertSee('<p>Laptops for the road.</p>', false)->assertDontSee('&lt;p&gt;', false);
+    }
+
     public function test_a_brand_page_draws_the_brand_and_its_products(): void
     {
         $brand = Brand::create(['store_id' => $this->store->id, 'name' => 'Northwind', 'slug' => 'northwind', 'is_active' => true,

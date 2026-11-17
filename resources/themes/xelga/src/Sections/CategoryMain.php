@@ -33,7 +33,7 @@ final class CategoryMain implements SectionData
         return [
             'title' => (string) ($category?->name ?? ''),
             // Category text is printed as HTML, so it is cleaned again here rather than trusted as stored.
-            'description' => (string) (RichText::sanitize((string) ($category?->description ?? '')) ?? ''),
+            'description' => RichText::forDisplay($category?->description),
             'picture' => $category?->image ? Picture::of($category->image) : null,
             'subcategories' => $subcategories,
             'list' => Listing::page($context->get('products'), $context),

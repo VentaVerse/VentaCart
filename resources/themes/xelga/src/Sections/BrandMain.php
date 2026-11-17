@@ -21,7 +21,7 @@ final class BrandMain implements SectionData
         return [
             'title' => (string) ($brand?->name ?? ''),
             // Core does not clean brand text on save, so it is cleaned here before it is printed.
-            'description' => (string) (RichText::sanitize((string) ($brand?->description ?? '')) ?? ''),
+            'description' => RichText::forDisplay($brand?->description),
             'picture' => $brand?->image ? Picture::of($brand->image) : null,
             'list' => Listing::page($context->get('products'), $context),
             'sorts' => Listing::sorts(Listing::SORTS, (string) $context->get('sort', 'date_added')),

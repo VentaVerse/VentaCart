@@ -56,6 +56,34 @@ final class RichText
     }
 
     /**
+     * Rich text ready to print as HTML. Some imports store every tag
+     * escaped (&lt;p&gt; for <p>), which would show the markup as text;
+     * such a value is decoded once before it is cleaned. A value holding a
+     * real tag is left as written, so text that only mentions a tag is not
+     * turned into one.
+     */
+    public static function forDisplay(?string $html): string
+    {
+        $html = (string) $html;
+        if (trim($html) === '') {
+            return '';
+        }
+
+        if (self::isEscapedHtml($html)) {
+            $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        return (string) self::sanitize($html);
+    }
+
+    /** True when the text has no tag of its own but carries escaped ones. */
+    public static function isEscapedHtml(string $text): bool
+    {
+        return preg_match('/<[a-z!\/]/i', $text) !== 1
+            && preg_match('/&lt;\/?[a-z][a-z0-9]*(?:\s.*?)?\/?&gt;/is', $text) === 1;
+    }
+
+    /**
      * True when whoever is saving may keep raw HTML: nobody signed in
      * outside a web request (a command, a job), or an admin holding
      * storefront.code.

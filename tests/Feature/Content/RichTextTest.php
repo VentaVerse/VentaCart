@@ -119,4 +119,22 @@ class RichTextTest extends TestCase
         $this->assertStringNotContainsString('evil.example', $clean);
         $this->assertStringNotContainsString('embed/2', $clean);
     }
+
+    public function test_escaped_html_is_decoded_once_and_cleaned_for_display(): void
+    {
+        // Every tag escaped, as some imports store it: printed as HTML, not as text.
+        $this->assertSame('<p>Bass Guitars</p>', RichText::forDisplay('&lt;p&gt;Bass Guitars&lt;/p&gt;'));
+        $this->assertSame('<p><a href="https://example.com">Strings</a></p>', RichText::forDisplay('&lt;p&gt;&lt;a href=&quot;https://example.com&quot;&gt;Strings&lt;/a&gt;&lt;/p&gt;'));
+
+        // Decoded markup is cleaned like any other.
+        $this->assertSame('<p>Hi</p>', RichText::forDisplay('&lt;p&gt;Hi&lt;/p&gt;&lt;script&gt;alert(1)&lt;/script&gt;'));
+
+        // Real HTML that only mentions a tag keeps the mention as text.
+        $this->assertSame('<p>Write &lt;br&gt; for a line break.</p>', RichText::forDisplay('<p>Write &lt;br&gt; for a line break.</p>'));
+
+        // Plain text and nothing at all stay as they are.
+        $this->assertSame('Fuzz &amp; delay', RichText::forDisplay('Fuzz &amp; delay'));
+        $this->assertSame('', RichText::forDisplay(null));
+        $this->assertSame('', RichText::forDisplay('  '));
+    }
 }
