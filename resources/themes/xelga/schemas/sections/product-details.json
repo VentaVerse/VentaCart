@@ -9,6 +9,9 @@
   ],
   "limit": 1,
   "main": false,
+  "span": {
+    "min": 8
+  },
   "class": "s-details",
   "settings": [
     {

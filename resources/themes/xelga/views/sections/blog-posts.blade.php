@@ -6,7 +6,7 @@
 @php $posts = $data['posts']; @endphp
 @if ($posts !== [] || $context->preview)
     <section class="s {{ $section['class'] }} {{ $settings['scheme'] }}" @include('xelga::snippets.section-attrs')
-             data-cols="{{ $settings['cols'] }}" data-show-date="{{ $settings['show_date'] ? 'true' : 'false' }}"
+             data-cols="{{ $data['cols'] }}" data-show-date="{{ $settings['show_date'] ? 'true' : 'false' }}"
              data-show-excerpt="{{ $settings['show_excerpt'] ? 'true' : 'false' }}" data-head-align="{{ $settings['head_align'] }}"
              aria-labelledby="{{ $section['id'] }}-title">
         @include('xelga::snippets.section-bg')
@@ -21,7 +21,7 @@
                     @foreach ($posts as $post)
                         <li class="post">
                             @if ($post['picture'])
-                                <div class="post__media"><img src="{{ $post['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($post['picture'], '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw') }} @if ($post['picture']['width']) width="{{ $post['picture']['width'] }}" height="{{ $post['picture']['height'] }}" @endif></div>
+                                <div class="post__media"><img src="{{ $post['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($post['picture'], \Themes\Xelga\Rendering\Picture::gridSizes($context->span, '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw', 1, $data['cols'])) }} @if ($post['picture']['width']) width="{{ $post['picture']['width'] }}" height="{{ $post['picture']['height'] }}" @endif></div>
                             @endif
                             <div class="post__body">
                                 @if ($post['date'] || $post['category'])

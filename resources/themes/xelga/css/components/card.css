@@ -326,13 +326,29 @@ html[data-card-align="center"] .price {
   }
 }
 
+/*
+ * A product list in a section answers to the section's own width (each
+ * product section is a size container), so it reads the same in a column as
+ * on a page of that width.
+ */
+.s-products .product-grid {
+  grid-template-columns: repeat(var(--cols-mobile), minmax(0, 1fr));
+  gap: clamp(1.75rem, 1.2rem + 1.5cqi, 2.75rem) var(--grid-gap);
+}
+
+@container (min-width: 750px) {
+  .s-products .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(max(200px, (100% - (var(--cols, 4) - 1) * var(--grid-gap)) / var(--cols, 4)), 1fr));
+  }
+}
+
 /* Compact list of products: rows with a small photo, for parts and spares */
 .s[data-variant="list"] .product-grid {
   grid-template-columns: minmax(0, 1fr);
   gap: 0 3rem;
 }
 
-@media (min-width: 990px) {
+@container (min-width: 990px) {
   .s[data-variant="list"] .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -375,7 +391,7 @@ html[data-card-align="center"] .price {
   box-shadow: none;
 }
 
-@media (max-width: 499px) {
+@container (max-width: 499px) {
   .s[data-variant="list"] .card {
     grid-template-columns: 68px minmax(0, 1fr) auto;
   }

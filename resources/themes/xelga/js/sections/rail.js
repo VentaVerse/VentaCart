@@ -36,17 +36,14 @@ function copyOf(item) {
 }
 
 /**
- * Whether the section is wide enough for its columns. A section that
- * answers to its own width (it is a size container) is measured, so it
- * agrees with its styles in a column; the others follow the window.
+ * Whether the section is wide enough for its columns. The section's own
+ * width is measured (the styles answer to it too), so a list in a column
+ * and a list on a page of that width agree.
  */
 function isWide(section) {
-  if (getComputedStyle(section).containerType === 'inline-size') {
-    const style = getComputedStyle(section);
-    const room = section.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    return room >= 750;
-  }
-  return window.matchMedia('(min-width: 750px)').matches;
+  const style = getComputedStyle(section);
+  const room = section.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  return room >= 750;
 }
 
 /** Grid variant only: show columns x rows products, hide the rest. */

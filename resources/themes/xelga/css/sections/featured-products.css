@@ -4,6 +4,16 @@
  * Only what is particular to this section lives here.
  */
 
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-products {
+  container-type: inline-size;
+}
+
+/* A column holds fewer cards than the settings offer; the setting's own range stops at two. */
+.s-products[data-cols="1"] { --cols: 1; }
+
 .s-products .editor-note {
   margin-block-start: 0;
 }

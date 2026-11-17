@@ -8,6 +8,9 @@
   ],
   "limit": null,
   "main": false,
+  "span": {
+    "min": 8
+  },
   "class": "s-look",
   "variants": [
     {
@@ -16,6 +19,7 @@
     },
     {
       "value": "full",
+      "span": 12,
       "label": "Wide photo, list below"
     }
   ],

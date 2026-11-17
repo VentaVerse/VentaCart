@@ -21,7 +21,7 @@ final class RelatedProducts implements SectionData
         $product = $context->get('product', $context->subject);
         $count = max(2, min(12, (int) ($settings['count'] ?? 4)));
         if (! $product instanceof Product) {
-            return ['cards' => [], 'empty' => 'Shown on product pages.'];
+            return ['cols' => $context->fitColumns($settings['cols'] ?? 4), 'cards' => [], 'empty' => 'Shown on product pages.'];
         }
 
         $products = ($settings['source'] ?? 'related') === 'brand'
@@ -29,6 +29,7 @@ final class RelatedProducts implements SectionData
             : self::related($product, $context, $count);
 
         return [
+            'cols' => $context->fitColumns($settings['cols'] ?? 4),
             'cards' => ProductCards::for($products, Swatches::wanted($context), CardLines::wanted($context)),
             'empty' => ($settings['source'] ?? '') === 'brand'
                 ? 'This product has no brand, or no other product of its brand, so shoppers do not see this section.'

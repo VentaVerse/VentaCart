@@ -34,6 +34,7 @@ final class RecentlyViewed implements SectionData
         $products = $ids === [] ? collect() : ProductFeed::get(['ids' => array_slice($ids, 0, self::KEEP), 'limit' => $count]);
 
         return [
+            'cols' => $context->fitColumns($settings['cols'] ?? 4),
             'cards' => ProductCards::for($products, Swatches::wanted($context), CardLines::wanted($context)),
             'empty' => 'Shoppers see the products they opened last here. It stays hidden until they have opened one.',
         ];

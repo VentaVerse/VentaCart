@@ -36,6 +36,7 @@ final class CategoryTiles implements SectionData
         }
 
         return [
+            'cols' => $context->fitColumns($settings['cols'] ?? 4),
             'tiles' => $tiles,
             'link' => LinkValue::resolve($settings['link'] ?? null),
         ];

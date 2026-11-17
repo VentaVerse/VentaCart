@@ -7,6 +7,9 @@
   ],
   "limit": null,
   "main": false,
+  "span": {
+    "min": 6
+  },
   "class": "s-blog",
   "variants": [
     {
@@ -15,6 +18,7 @@
     },
     {
       "value": "featured",
+      "span": 8,
       "label": "One large, two beside"
     },
     {

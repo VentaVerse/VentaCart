@@ -1,1 +1,8 @@
 /* Recently viewed: drawn like the home page product rows (featured-products.css). */
+
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-products {
+  container-type: inline-size;
+}

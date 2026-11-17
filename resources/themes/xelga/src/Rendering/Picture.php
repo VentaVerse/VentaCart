@@ -119,6 +119,17 @@ final class Picture
     }
 
     /**
+     * The sizes of a photo in a grid of $cols to a line (one to a line on a
+     * phone when $mobileCols is 1): $fullWidth (written for a section the
+     * whole page wide) on a full-width row, and the column's own share of
+     * the grid when the section sits in a column.
+     */
+    public static function gridSizes(int $span, string $fullWidth, mixed $mobileCols, mixed $cols): string
+    {
+        return $span >= 12 ? $fullWidth : self::cardSizes($mobileCols, $cols, $span);
+    }
+
+    /**
      * The width a shared product card's photo is drawn at: the card grid's
      * share of the page (at most PAGE_WIDTH wide) for its columns, inside a
      * section $span twelfths wide.
@@ -126,7 +137,7 @@ final class Picture
     public static function cardSizes(mixed $mobileCols = 2, mixed $cols = 4, int $span = 12): string
     {
         $phone = (int) $mobileCols === 1 ? '100vw' : '50vw';
-        $cols = max(2, min(6, (int) $cols ?: 4));
+        $cols = max(1, min(6, (int) $cols ?: 4));
         $span = max(1, min(12, $span));
         $wide = (int) ceil(self::PAGE_WIDTH * $span / 12 / $cols);
         $vw = (int) ceil(100 * $span / 12 / $cols);

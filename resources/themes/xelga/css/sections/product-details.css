@@ -1,7 +1,11 @@
 /* Product details: tabs or accordion, specifications and size tables. */
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-details { container-type: inline-size; }
 .s-details[data-layout=tabs] [data-accs], .s-details[data-layout=accordion] [data-tabs] { display: none; }
 .tabs__list {
-    display: flex; gap: clamp(1.25rem, 3vw, 2.5rem);
+    display: flex; gap: clamp(1.25rem, 3cqi, 2.5rem);
     border-block-end: 1px solid var(--c-border); overflow-x: auto; scrollbar-width: none;
 }
 .tabs__tab {
@@ -20,7 +24,7 @@
 .tabs__panel { padding-block-start: 2rem; }
 .tabs__panel:focus-visible { outline-offset: 6px; }
 .spec-groups { display: grid; gap: 2rem; max-width: 56rem; }
-@media (min-width: 750px) { .spec-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3rem; } }
+@container (min-width: 750px) { .spec-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3rem; } }
 .spec-group__title { margin-block-end: .5rem; font-family: var(--font-body); font-size: var(--fs-sm); font-weight: 700; letter-spacing: 0; text-transform: none; }
 .size-table-wrap { max-width: 36rem; margin-block-start: 1.25rem; overflow-x: auto; }
 .size-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }

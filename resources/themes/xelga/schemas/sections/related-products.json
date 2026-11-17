@@ -8,6 +8,9 @@
   ],
   "limit": 2,
   "main": false,
+  "span": {
+    "min": 6
+  },
   "class": "s-products",
   "render_keys": [
     "source",
