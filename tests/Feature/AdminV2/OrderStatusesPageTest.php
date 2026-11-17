@@ -378,9 +378,7 @@ class OrderStatusesPageTest extends TestCase
             ->assertSee('Order statuses')
             ->assertDontSee('Order Status<', false);
 
-        foreach (['admin-settings-nav', 'settings-nav'] as $file) {
-            $items = collect(config($file))->flatMap(fn ($group) => $group['items'] ?? [])->keyBy('key');
-            $this->assertSame('Order statuses', $items['order-statuses']['label'] ?? null, $file);
-        }
+        $items = collect(config('admin-settings-nav'))->flatMap(fn ($group) => $group['items'] ?? [])->keyBy('key');
+        $this->assertSame('Order statuses', $items['order-statuses']['label'] ?? null);
     }
 }

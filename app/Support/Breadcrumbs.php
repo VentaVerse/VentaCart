@@ -6,32 +6,25 @@ use App\Services\ExtensionManager;
 use Illuminate\Support\Str;
 
 /**
- * URL segments -> ancestor breadcrumb trail, via the admin-nav / settings-nav
- * registries (config/admin-nav.php, config/settings-nav.php). Task 7 of the
- * admin-v2 IA & extension-kernel plan — see the spec's "Navigation derives
- * from the path" section:
- * docs/superpowers/specs/2026-08-07-admin-ia-and-extension-kernel-design.md
+ * URL segments -> ancestor breadcrumb trail, from the admin navigation
+ * registries (config/admin-nav.php and config/admin-settings-nav.php).
  *
- * The trail returned is ANCESTORS ONLY (never the current page itself) —
+ * The trail returned is ancestors only (never the current page itself):
  * x-admin.page renders the page's own $title separately as the <h1> below
  * the trail. Segment mapping:
  *   - section segment (segments[0])  -> the owning group's label
  *   - entity segment  (segments[1])  -> the registry item's label, linked
  *     to its own index URL
  *   - deeper segments (anything past the entity) -> a single trailing
- *     unlinked crumb built from the page's own $title, EXCEPT under
+ *     unlinked crumb built from the page's own $title, except under
  *     extensions/{name}/... where {name} always gets its own linked
- *     crumb first (registry item if one exists — e.g. abandoned-carts, seo —
- *     else the extension's manifest title via ExtensionManager::discovered())
- *     before any further $title crumb.
+ *     crumb first (a registry item if one exists, else the extension's
+ *     manifest title via ExtensionManager::discovered()) before any
+ *     further $title crumb.
  *
- * Longest-registered-URL-prefix matching (the Bagisto lesson the spec cites)
- * is handled structurally here rather than by literal string comparison:
- * every settings-nav item's *matching* prefix is truncated to
- * settings/modules/{key} when it lives under a modules/ mount, even though
- * its own resolved URL (the crumb's link target) is deeper — see
- * SettingsNav::activeKeyForPath(), which shares this convention for the
- * settings-shell sub-sidebar's active state.
+ * Settings items match by their URL segment (settings/{key}), the same
+ * convention SettingsNav::activeKeyForPath() uses for the settings
+ * sub-menu's active state.
  */
 class Breadcrumbs
 {
@@ -184,7 +177,7 @@ class Breadcrumbs
 
     protected static function findSettingsItemByKey(string $key): ?array
     {
-        foreach (config('settings-nav') as $group) {
+        foreach (config('admin-settings-nav') as $group) {
             foreach ($group['items'] as $item) {
                 if ($item['key'] === $key) {
                     return $item;

@@ -23,7 +23,7 @@ class SettingsNav
     {
         $permissions = app(AdminPermissions::class);
 
-        return collect(config('settings-nav'))
+        return collect(config('admin-settings-nav'))
             ->map(function (array $group) use ($user, $permissions) {
                 $group['items'] = array_values(array_filter(
                     $group['items'],
@@ -41,7 +41,7 @@ class SettingsNav
     /** Item by key, with its group label attached. */
     public static function find(string $key): ?array
     {
-        foreach (config('settings-nav') as $group) {
+        foreach (config('admin-settings-nav') as $group) {
             foreach ($group['items'] as $item) {
                 if ($item['key'] === $key) {
                     return $item + ['group' => $group['label']];
@@ -61,12 +61,10 @@ class SettingsNav
     }
 
     /**
-     * The settings-nav item key that should highlight as active for a given
-     * request path, by longest-URL-prefix match (Task 7). Item keys equal
-     * their URL segment (settings/{key}). The old settings/modules/{key}
-     * convention retired with the Extensions area (wave 0): extension
-     * pages live at extensions/{name} and answer to the main nav's
-     * Extensions group, not this space.
+     * The settings item key that should highlight as active for a given
+     * request path. Item keys equal their URL segment (settings/{key}).
+     * Extension pages live at extensions/{name} and answer to the main
+     * nav's Extensions group, not this space.
      */
     public static function activeKeyForPath(string $path): ?string
     {

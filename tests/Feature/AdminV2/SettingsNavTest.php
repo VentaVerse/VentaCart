@@ -3,16 +3,42 @@
 namespace Tests\Feature\AdminV2;
 
 use App\Support\SettingsNav;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class SettingsNavTest extends TestCase
 {
-    public function test_groups_returns_all_three_categories(): void
+    use RefreshDatabase;
+
+    public function test_groups_are_the_settings_hub_groups(): void
     {
-        // Wave 0 repin: Sales channels retired — payments, shipping, and
-        // fulfillment settings all live in the Extensions area now.
+        // Payments, shipping and fulfillment settings live in the Extensions area.
         $labels = collect(SettingsNav::groups(null))->pluck('label')->all();
-        $this->assertSame(['Store', 'Operations', 'Access & system'], $labels);
+        $this->assertSame(['Store', 'Commerce', 'Communication', 'System'], $labels);
+    }
+
+    /** One list drives the hub, the sub-menu, the palette and the section pages. */
+    public function test_there_is_one_settings_registry(): void
+    {
+        $this->assertFileDoesNotExist(config_path('settings-nav.php'));
+        $this->assertNull(config('settings-nav'));
+    }
+
+    /** Every section page has a card, and every card wears its page's title. */
+    public function test_every_section_page_has_an_item_named_as_its_title(): void
+    {
+        $this->actingAs(\App\Models\User::factory()->create());
+
+        foreach (['general', 'currencies', 'catalog', 'checkout', 'mail', 'security', 'automations'] as $section) {
+            $item = SettingsNav::find($section);
+            $this->assertNotNull($item, "No settings item for {$section}");
+            $html = $this->get(SettingsNav::url($item))->assertOk()->getContent();
+            $this->assertStringContainsString('<h1 class="v-head__title">' . $item['label'] . '</h1>', html_entity_decode($html));
+        }
+
+        $this->get(route('admin.settings.index'))->assertOk()
+            ->assertSee('href="' . route('admin.settings.section', 'catalog') . '"', false)
+            ->assertSee('Products per page, sorting, filters, and badges.');
     }
 
     public function test_every_item_resolves_to_a_real_route(): void
@@ -31,7 +57,8 @@ class SettingsNavTest extends TestCase
     {
         $item = SettingsNav::find('mail');
         $this->assertNotNull($item);
-        $this->assertSame('Store', $item['group']);
+        $this->assertSame('Communication', $item['group']);
+        $this->assertSame('Notifications', $item['label']);
         $this->assertSame('mail', $item['section']);
         $this->assertNull(SettingsNav::find('nonexistent'));
     }

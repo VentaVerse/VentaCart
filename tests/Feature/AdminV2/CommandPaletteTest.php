@@ -35,7 +35,9 @@ class CommandPaletteTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $this->blade('<x-admin.command-palette />')
-            ->assertSee('Settings: Mail')
-            ->assertSee('smtp', false);
+            ->assertSee('Settings: Notifications')
+            ->assertSee('smtp', false)
+            ->assertSee('Settings: Catalog')
+            ->assertDontSee('Settings: Mail');
     }
 }

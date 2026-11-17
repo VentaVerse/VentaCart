@@ -20,12 +20,9 @@ class SettingsSectionTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        // 'payments' exists in the settings-nav registry but points at an
-        // external page (PaymentSettingController), not
-        // Wave 0 repin: payments left Settings for the Extensions area, so
-        // the literal registered before the {section} catch-all is now a
-        // 301 to the category's new home — still proving the literal wins
-        // over the wildcard, which is the property under test.
+        // Payments left Settings for the Extensions area, so the literal
+        // route registered before the {section} catch-all is a 301 to its
+        // new home, proving the literal wins over the wildcard.
         $this->get(route('admin.settings.section', 'payments'))
             ->assertStatus(301)
             ->assertRedirect(route('admin.payment-settings.index'));
