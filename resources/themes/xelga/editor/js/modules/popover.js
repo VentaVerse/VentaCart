@@ -8,6 +8,10 @@ import { $, $$, h, icon } from './dom.js';
 
 let popover = null;
 
+// The anchor of the open popover when the pointer went down on it, so the
+// click that follows closes the popover instead of opening it again.
+let pressedAnchor = null;
+
 export const isPopoverOpen = () => Boolean(popover);
 
 export function closePopover({ restoreFocus = true } = {}) {
@@ -44,6 +48,13 @@ function place(el, anchor, align) {
 }
 
 export function openPopover(anchor, content, { wide = false, align = 'start', label = null, onClose = null, focus = true } = {}) {
+  // Pressing the button of the open popover again closes it, as a toggle.
+  const toggled = pressedAnchor && pressedAnchor === anchor && popover?.anchor === anchor;
+  pressedAnchor = null;
+  if (toggled) {
+    closePopover();
+    return null;
+  }
   closePopover({ restoreFocus: false });
   const el = h('div', { class: `popover${wide ? ' popover--wide' : ''}`, role: 'dialog', 'aria-label': label }, content);
   $('#popover-layer').append(el);
@@ -168,6 +179,7 @@ export function choose({ title, body, actions, iconName = 'alert', required = fa
 }
 
 document.addEventListener('pointerdown', (e) => {
+  pressedAnchor = popover?.anchor?.contains(e.target) ? popover.anchor : null;
   if (popover && !popover.el.contains(e.target) && !popover.anchor?.contains(e.target)) closePopover({ restoreFocus: false });
 });
 
