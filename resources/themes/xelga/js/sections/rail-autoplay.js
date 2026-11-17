@@ -1,7 +1,8 @@
 /**
  * Featured products, swipe row layout: moves one product at a time by itself
- * when autoplay is on, going back to the start after the last, and lets a
- * mouse or pen drag the row (fingers already swipe it natively).
+ * when autoplay is on, always forward (the row loops, so after the last
+ * product comes the first again), and lets a mouse or pen drag the row
+ * (fingers already swipe it natively).
  *
  * Autoplay pauses while a shopper points at or focuses the row, holds after
  * the shopper presses pause, and does not start with reduced motion. In the
@@ -11,6 +12,7 @@
  */
 import { $, icon, reduceMotion, inEditorPreview, EDITOR_SELECT } from '../util.js';
 import { dragGesture, dragPassed } from '../drag.js';
+import { moveRail } from './rail.js';
 
 export function initRailAutoplay(section) {
   const ac = new AbortController();
@@ -47,10 +49,8 @@ export function initRailAutoplay(section) {
   const behavior = () => (reduceMotion.matches ? 'auto' : 'smooth');
 
   const advance = () => {
-    const max = maxScroll();
-    if (max <= 2) return;
-    if (track.scrollLeft >= max - 2) track.scrollTo({ left: 0, behavior: behavior() });
-    else track.scrollTo({ left: Math.min(max, (Math.round(track.scrollLeft / unit()) + 1) * unit()), behavior: behavior() });
+    if (maxScroll() <= 2) return;
+    moveRail(track, unit());
   };
 
   const stop = () => { window.clearInterval(timer); timer = null; };
