@@ -149,7 +149,7 @@ function selectControl(setting, value, change, id, fctx) {
   if (control === 'cards') {
     const type = fctx.sid ? sec(fctx.sid)?.type : null;
     const isVariant = setting.key === 'variant' && type;
-    const drawingOf = (v) => (isVariant ? variantDrawing(type, v) : SCHEMATICS[`theme:${setting.key}`]?.[v]) || null;
+    const drawingOf = (v) => (isVariant ? variantDrawing(type, v) : SCHEMATICS[`${type || 'theme'}:${setting.key}`]?.[v]) || null;
     const hasDrawings = options.some((o) => drawingOf(o.value));
     const wrap = h('div', null);
     const group = h('div', { class: `cards${hasDrawings ? '' : ' cards--list'}`, role: 'radiogroup', 'aria-labelledby': `${id}-label` });

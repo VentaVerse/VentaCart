@@ -221,6 +221,15 @@ export const SCHEMATICS = {
     centered: 'm0,0,64,40 h24,8,16,3 t14,16,7,2 t23,16,7,2 t32,16,7,2 t41,16,7,2 t25,22,4,3 t30,22,4,3 t35,22,4,3 t22,32,20,2',
     compact: 'm0,0,64,40 h4,18,10,3 t20,19,6,2 t28,19,6,2 t36,19,6,2 t48,18,4,3 t54,18,4,3 t58,18,4,3',
   },
+  // A section setting's cards: `{section type}:{setting key}`. Each shape is
+  // a frame with the photo inside it: whole with a margin, or filling the
+  // frame's width with its sides cropped away.
+  'product-main:photo_shape': {
+    fit: 'i16,4,32,32 h18,13,28,14',
+    square: 'i16,4,32,32 h16,11,32,18',
+    portrait: 'i19,4,26,32 h19,12,26,16',
+    landscape: 'i12,5,40,30 h12,11,40,18',
+  },
   'theme:card_style': {
     plain: 'i14,4,36,24 h14,31,22,2 t14,35,12,2',
     bordered: 'o12,2,40,37 i14,4,36,24 h14,30,22,2 t14,34,12,2',
