@@ -3,6 +3,7 @@
 namespace Extensions\StoreCredit;
 
 use App\Services\OrderTotals\OrderTotals;
+use App\Support\AccountMenu;
 use Extensions\StoreCredit\Console\ImportOpenCartCredit;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -29,6 +30,9 @@ class StoreCreditServiceProvider extends ServiceProvider
                 $view->with('creditBalance', CreditService::balance($customer->id));
             }
         });
+
+        // The customer's own page, in their account menu while this is on.
+        AccountMenu::add('store-credit.account', 'Store credit', 'wallet');
 
         if ($this->app->runningInConsole()) {
             $this->commands([ImportOpenCartCredit::class]);

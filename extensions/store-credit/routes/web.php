@@ -1,5 +1,6 @@
 <?php
 
+use Extensions\StoreCredit\Http\Controllers\AccountCreditController;
 use Extensions\StoreCredit\Http\Controllers\StoreCreditController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,3 +18,8 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::get('/ledger', [StoreCreditController::class, 'ledger'])->name('ledger');
         Route::post('/adjust', [StoreCreditController::class, 'adjust'])->name('adjust');
     });
+
+// The customer's own balance and history, in their account.
+Route::middleware(['web', 'customer.auth', 'noindex'])
+    ->get('/account/store-credit', AccountCreditController::class)
+    ->name('store-credit.account');

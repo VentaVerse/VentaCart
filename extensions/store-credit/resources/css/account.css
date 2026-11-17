@@ -1,0 +1,81 @@
+/*
+ * The customer's store credit page. Colors come from the live theme's
+ * tokens when it publishes them, with plain fallbacks otherwise.
+ */
+.store-credit__card {
+  display: grid;
+  gap: .25rem;
+}
+
+.store-credit__balance {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.store-credit__ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .9375rem;
+}
+
+.store-credit__ledger th,
+.store-credit__ledger td {
+  padding: .75rem;
+  text-align: start;
+  border-bottom: 1px solid var(--c-border, #e5e7eb);
+}
+
+.store-credit__ledger thead th {
+  font-weight: 600;
+  color: var(--c-muted, #6b7280);
+}
+
+.store-credit__ledger .store-credit__num {
+  text-align: end;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.store-credit__in {
+  color: var(--c-success, #166534);
+}
+
+.store-credit__empty {
+  margin: 0;
+}
+
+@media (max-width: 749px) {
+  .store-credit__ledger thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .store-credit__ledger,
+  .store-credit__ledger tbody {
+    display: block;
+  }
+
+  .store-credit__ledger tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .25rem 1rem;
+    padding-block: .875rem;
+    border-bottom: 1px solid var(--c-border, #e5e7eb);
+  }
+
+  .store-credit__ledger td {
+    padding: 0;
+    border: 0;
+  }
+
+  .store-credit__ledger td[data-label="Description"] { grid-area: 1 / 1; overflow-wrap: anywhere; }
+  .store-credit__ledger td[data-label="Amount"] { grid-area: 1 / 2; }
+  .store-credit__ledger td[data-label="Date"] { grid-area: 2 / 1; color: var(--c-muted, #6b7280); }
+  .store-credit__ledger td[data-label="Balance after"] { grid-area: 2 / 2; color: var(--c-muted, #6b7280); }
+  .store-credit__ledger td[data-label="Balance after"]::before { content: "Balance "; }
+}

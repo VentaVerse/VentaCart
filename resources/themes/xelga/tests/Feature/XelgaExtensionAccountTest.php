@@ -50,6 +50,23 @@ class XelgaExtensionAccountTest extends TestCase
         ]);
     }
 
+    public function test_the_store_credit_page_draws_in_the_account_frame_with_the_wallet_link(): void
+    {
+        $this->setUpXelgaWithExtension(install: false);
+        $manager = app(\App\Services\ExtensionManager::class);
+        $manager->install('store-credit');
+        $manager->bootEnabled();
+        $this->signIn();
+        \Extensions\StoreCredit\CreditService::add($this->customer->id, 250, 'Welcome credit');
+
+        $this->page('/account/store-credit')
+            ->assertSee('data-fixed-page="extension-account"', false)
+            ->assertSee('<h1 class="acct__title">Store credit</h1>', false)
+            ->assertSee('<use href="#i-wallet"></use></svg><span>Store credit</span>', false)
+            ->assertSee('<symbol id="i-wallet"', false)
+            ->assertSee('Welcome credit');
+    }
+
     public function test_the_account_page_draws_in_the_account_frame_with_its_menu_link(): void
     {
         $this->setUpXelgaWithExtension();

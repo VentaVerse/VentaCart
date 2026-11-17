@@ -425,6 +425,27 @@ The bundled theme (Xelga) publishes these classes for API 1; renaming one is a n
 | text | `muted` |
 | color tokens | `--c-bg`, `--c-text`, `--c-muted`, `--c-accent`, `--c-accent-text`, `--c-button`, `--c-button-text`, `--c-border`, `--c-card`, `--c-error`, `--c-success` (each color scheme sets them, so extension CSS that uses them stays readable) |
 
+### 9.8 The store credit page (bundled extension)
+
+The `store-credit` extension gives the signed-in customer **Account > Store credit** (`GET /account/store-credit`, route `store-credit.account`, behind `customer.auth`): their balance, then their own ledger, newest first, 20 lines a page (Newer / Older): date, description, amount (+ or −) and the balance after it. It exists only while the extension is switched on, as does its account menu link (`AccountMenu`, icon `wallet`). It draws inside `extension.account` (section 9.6) when the theme has it, else in a plain page of its own, and every value is printed as text.
+
+Other extensions may name ledger entries and fold runs of them into one line. They register from a listener of `store-credit.history`, which the page fires the first time it draws a history, so the order extensions boot in does not matter and no class is needed while store credit is off:
+
+```php
+use Extensions\StoreCredit\Models\CustomerTransaction;
+use Extensions\StoreCredit\StoreCreditHistory;
+
+Event::listen('store-credit.history', function (): void {
+    StoreCreditHistory::describe(fn (CustomerTransaction $entry): ?string => $entry->order_id ? "Order {$entry->order_id}" : null);
+    StoreCreditHistory::group(fn (CustomerTransaction $entry): ?string => $entry->order_id ? "order-{$entry->order_id}" : null);
+});
+```
+
+- `describe($fn)`: `$fn(CustomerTransaction)` returns the line's text, or null for the entry's own description. Plain text, up to 200 characters.
+- `group($fn)`: `$fn(CustomerTransaction)` returns a group key, or null. Consecutive entries with the same key become one line: the amounts added up, the text `describe` gives the first (oldest) entry, the date of the last (newest) one and the balance after it.
+- With several registrations, the first that answers wins; one that throws is reported and skipped.
+- Paging: lines are built from the newest entry on every page, so a folded line always sits whole on one page and pages never shift.
+
 ### 9.7 The bundled theme's own hooks (Xelga, API 1)
 
 Xelga also lets an extension add section types, blocks, page templates and default placements to its editor. Core knows nothing of these: they are Xelga's, reached without any Xelga class, and absent in any other theme. The full guide is `resources/themes/xelga/docs/ARCHITECTURE.md`, section 14; in short:
