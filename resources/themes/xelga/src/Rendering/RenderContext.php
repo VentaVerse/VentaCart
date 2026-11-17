@@ -20,6 +20,7 @@ final class RenderContext
      * @param  array<string, mixed>  $page  the view data core's controller passed to the page
      * @param  int  $span  how wide the section is drawn, in twelfths of the page (1 to 12)
      * @param  list<string>  $types  the section types the document draws
+     * @param  bool  $inSide  whether the section is drawn in a page side
      */
     public function __construct(
         public readonly string $pageType,
@@ -30,18 +31,29 @@ final class RenderContext
         public readonly array $page = [],
         public readonly int $span = 12,
         public readonly array $types = [],
+        public readonly bool $inSide = false,
     ) {
     }
 
     public function withGroup(string $group): self
     {
-        return new self($this->pageType, $this->handle, $group, $this->preview, $this->subject, $this->page, $this->span, $this->types);
+        return new self($this->pageType, $this->handle, $group, $this->preview, $this->subject, $this->page, $this->span, $this->types, $this->inSide);
     }
 
     /** The same page, for a section drawn $span twelfths wide (kept within 1 to 12). */
     public function withSpan(int $span): self
     {
-        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, max(1, min(12, $span)), $this->types);
+        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, max(1, min(12, $span)), $this->types, $this->inSide);
+    }
+
+    /**
+     * The same page, for a section in a page side: three twelfths wide from
+     * 990 pixels, where sides stand beside the content, and the whole page
+     * wide below, where they stack above and below it.
+     */
+    public function inSide(): self
+    {
+        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, \Themes\Xelga\Documents\Layout::SIDE_SPAN, $this->types, true);
     }
 
     /**
@@ -59,7 +71,7 @@ final class RenderContext
     /** @param  list<string>  $types  the section types the document draws */
     public function withTypes(array $types): self
     {
-        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, $this->span, array_values(array_unique(array_filter($types, 'is_string'))));
+        return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, $this->span, array_values(array_unique(array_filter($types, 'is_string'))), $this->inSide);
     }
 
     /** Whether the document draws a section of this type (a hidden one does not count). */
