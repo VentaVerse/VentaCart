@@ -1,8 +1,8 @@
 /*
  * Start from a store: the starting stores, offered from the first row
  * of Theme settings. Choosing a card asks, in the same panel, whether to
- * bring the look only (colors, fonts, buttons) or the look and the home page
- * (header, footer and home page sections). Applying writes the draft only,
+ * bring the look only (colors, fonts, buttons, product cards and spacing) or
+ * the look and the home page (header, footer and home page sections). Applying writes the draft only,
  * with the version of every document it replaces; nothing goes live until
  * Publish. A quiet notice over the preview offers one-step Undo, which puts
  * the exact drafts back; it goes away at the next change.
@@ -124,7 +124,7 @@ export function cancelStoreChoice() {
 function applySentence(store) {
   const of = possessive(store.name);
   if (picker.bring === 'look') {
-    return `Replaces your draft's colors, fonts and buttons with ${of}. Your sections, products, prices and live store do not change until you Publish.`;
+    return `Replaces your draft's colors, fonts, buttons, product cards and spacing with ${of}. Your sections, products, prices and live store do not change until you Publish.`;
   }
   return `Replaces your draft's look and home page sections with ${of}. Your products, prices and live store do not change until you Publish.`;
 }
@@ -146,8 +146,8 @@ function applyConfirm(store) {
         h('p', { class: 'apply__line', text: store.line }))),
     h('fieldset', { class: 'apply__bring' },
       h('legend', { text: 'What to bring' }),
-      option('all', 'Look and home page', 'Colors, fonts, buttons, header, footer and home page sections'),
-      option('look', 'Look only', 'Colors, fonts and buttons')),
+      option('all', 'Look and home page', 'The look, plus header, footer and home page sections'),
+      option('look', 'Look only', 'Colors, fonts, buttons, product cards and spacing')),
     sentence,
     h('div', { class: 'apply__actions' },
       h('button', { type: 'button', class: 'btn btn--secondary', onclick: cancelChoice }, 'Cancel'),

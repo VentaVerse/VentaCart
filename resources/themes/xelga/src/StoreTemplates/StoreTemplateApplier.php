@@ -24,7 +24,8 @@ use Themes\Xelga\Documents\ShapeException;
  * Applying writes drafts only, through DocumentWriter like any editor save,
  * with the draft_version the editor last saw: nothing goes live until
  * Publish, and a draft someone else saved meanwhile stops the whole apply.
- * "Look only" replaces the look groups of the theme settings; "Look and
+ * "Look only" replaces the look groups of the theme settings (colors,
+ * fonts, buttons, product cards, layout and spacing); "Look and
  * home page" also replaces the header, footer and home page.
  *
  * Undo puts back the exact drafts from before, once, for the admin who
