@@ -39,11 +39,18 @@
                             @endif
                         </div>
                     @endif
-                    <ul class="lines lines--page" aria-label="Items in your cart">
-                        @foreach ($d['lines'] as $line)
-                            @include('xelga::snippets.cart-line', ['line' => $line])
+                    @if ($d['groups'] === null)
+                        <ul class="lines lines--page" aria-label="Items in your cart">
+                            @foreach ($d['lines'] as $line)
+                                @include('xelga::snippets.cart-line', ['line' => $line])
+                            @endforeach
+                        </ul>
+                    @else
+                        {{-- Lines an extension grouped (one group per seller, say); totals stay the cart's. --}}
+                        @foreach ($d['groups'] as $group)
+                            @include('xelga::snippets.cart-group', ['group' => $group, 'listClass' => 'lines lines--page', 'headingLevel' => 2])
                         @endforeach
-                    </ul>
+                    @endif
                     <a class="link-arrow cart-page__back" href="{{ $d['empty_link'] }}"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-left"></use></svg><span>Continue shopping</span></a>
                 </div>
                 <aside class="summary scheme-2" aria-labelledby="{{ $section['id'] }}-summary">

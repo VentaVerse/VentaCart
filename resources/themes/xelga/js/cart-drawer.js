@@ -5,7 +5,8 @@
  * this script only writes them out. Core's cart.mini does not carry the
  * coupon, so a discount is shown only while it is the one core last worked
  * out (at page load or on apply); after the cart changes only the code
- * stays, and checkout shows the amount. The drawer is a native dialog, so focus
+ * stays, and checkout shows the amount. When an extension grouped the lines
+ * (cart.mini `groups`), each group is drawn under its header. The drawer is a native dialog, so focus
  * stays inside it and Escape closes it.
  */
 import { $, $$, root, inEditorPreview } from './util.js';
@@ -146,12 +147,54 @@ function renderTotals(subtotal) {
   }
 }
 
+/*
+ * A group's header in the list (cart.mini `groups`, which core checked:
+ * one group per seller, say). Text goes in as text; the address is one core
+ * already accepted as a link.
+ */
+function groupHead(group) {
+  const li = el('li', 'cart-group__head');
+  li.dataset.cartGroup = group.key;
+  const title = el('h3', 'cart-group__title');
+  if (group.url) {
+    const a = el('a', '', group.label);
+    a.href = group.url;
+    title.append(a);
+  } else {
+    title.textContent = group.label;
+  }
+  li.append(title);
+  const ship = group.shipping;
+  if (ship) {
+    const p = el('p', 'cart-group__ship');
+    if (ship.label) p.append(el('span', '', ship.label));
+    if (ship.amount !== null && ship.amount !== undefined) p.append(el('strong', '', money(ship.amount)));
+    if (ship.note) p.append(el('span', 'muted', ship.note));
+    li.append(p);
+  }
+  return li;
+}
+
+/* The lines in cart order, or under their groups' headers when an extension grouped them. */
+function lineNodes(items, groups) {
+  if (!Array.isArray(groups) || !groups.length) return items.map(lineNode);
+  const byId = new Map(items.map((item) => [Number(item.id), item]));
+  const nodes = [];
+  groups.forEach((group) => {
+    const lines = (group.lines || []).map((id) => byId.get(Number(id))).filter(Boolean);
+    if (!lines.length) return;
+    if (group.label) nodes.push(groupHead(group));
+    lines.forEach((item) => nodes.push(lineNode(item)));
+  });
+  return nodes;
+}
+
 function render(cart) {
   const items = Array.isArray(cart.items) ? cart.items : [];
   const count = Number(cart.count) || 0;
   const subtotal = Number(cart.subtotal) || 0;
   $('[data-cart-loading]', drawer).hidden = true;
-  $('[data-cart-lines]', drawer).replaceChildren(...items.map(lineNode));
+  $('[data-cart-lines]', drawer).replaceChildren(...lineNodes(items, cart.groups));
   $('[data-cart-empty]', drawer).hidden = items.length > 0;
   $('[data-cart-foot]', drawer).hidden = items.length === 0;
   $$('[data-cart-count-text]', drawer).forEach((n) => { n.textContent = count ? `(${count})` : ''; });

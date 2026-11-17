@@ -28,6 +28,7 @@ final class CartMain implements SectionData
 
         return [
             'lines' => $lines,
+            'groups' => self::groups($context, $items, $lines),
             'count' => (int) $items->sum('quantity'),
             'subtotal' => $subtotal,
             'blocked' => $outOfStock !== [] || $unavailable !== [],
@@ -45,6 +46,48 @@ final class CartMain implements SectionData
             'empty_link' => LinkValue::resolve($settings['empty_link'] ?? null) ?? route('home'),
             'endpoints' => CartSummary::endpoints(),
         ];
+    }
+
+    /**
+     * The lines under the groups an extension made of them (one per
+     * seller, say), as core checked them, or null for one plain list.
+     *
+     * @param  \Illuminate\Support\Collection<int, CartItem>  $items
+     * @param  list<array>  $lines
+     * @return list<array{key: string, label: string, url: ?string, shipping: ?array, lines: list<array>}>|null
+     */
+    private static function groups(RenderContext $context, $items, array $lines): ?array
+    {
+        if (! class_exists(\App\Support\CartGroups::class)) {
+            return null;
+        }
+        $groups = array_key_exists('cartGroups', $context->page) ? $context->get('cartGroups') : \App\Support\CartGroups::for($items);
+        if (! is_array($groups) || $groups === []) {
+            return null;
+        }
+
+        $byId = array_column($lines, null, 'id');
+        $out = [];
+        foreach ($groups as $group) {
+            $groupLines = array_values(array_filter(array_map(fn (int $id) => $byId[$id] ?? null, (array) $group['lines'])));
+            if ($groupLines === []) {
+                continue;
+            }
+            $shipping = $group['shipping'] ?? null;
+            $out[] = [
+                'key' => (string) $group['key'],
+                'label' => (string) $group['label'],
+                'url' => $group['url'] ?? null,
+                'shipping' => is_array($shipping) ? [
+                    'label' => (string) $shipping['label'],
+                    'amount' => $shipping['amount'] === null ? null : money((float) $shipping['amount']),
+                    'note' => $shipping['note'] ?? null,
+                ] : null,
+                'lines' => $groupLines,
+            ];
+        }
+
+        return $out === [] ? null : $out;
     }
 
     /** One line as the page draws it. */
