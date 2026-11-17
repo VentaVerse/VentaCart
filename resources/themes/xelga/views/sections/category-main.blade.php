@@ -6,12 +6,12 @@
     $list = $data['list'];
     $filtersOn = $data['filters']['facets'] !== [] || $data['filters']['price'] !== null;
     $hasActive = $data['filters']['active'] > 0;
-    // As many cards to a line as the content area holds (the setting on a page without sides).
-    $cols = $context->fitColumns($settings['cols'], 3);
+    // Cards a line from 990px: the setting, or fewer where sides narrow the content area (the styles cap it too).
+    $fitCols = $context->fitColumns($settings['cols'], 3);
 @endphp
 <section class="s {{ $section['class'] }} {{ $settings['scheme'] }}" id="{{ $section['id'] }}" @include('xelga::snippets.section-attrs')
          data-variant="{{ $settings['view'] }}" data-default-view="{{ $settings['view'] }}" data-switch-view="{{ $settings['switch_view'] ? 'true' : 'false' }}"
-         data-cols="{{ $cols }}" data-mobile-cols="{{ $settings['mobile_cols'] }}" data-subcats="{{ $settings['subcats'] }}"
+         data-cols="{{ $settings['cols'] }}" data-mobile-cols="{{ $settings['mobile_cols'] }}" data-subcats="{{ $settings['subcats'] }}"
          data-filters="{{ $filtersOn ? $settings['filters'] : 'none' }}" data-show-description="{{ $settings['show_description'] ? 'true' : 'false' }}"
          data-show-image="{{ $settings['show_image'] ? 'true' : 'false' }}" data-pagination="{{ $settings['pagination'] }}"
          aria-labelledby="{{ $section['id'] }}-title">
@@ -63,7 +63,7 @@
                         @endif
                     </div>
                 @else
-                    @include('xelga::blocks.listing.grid', ['label' => $data['title'], 'cols' => $cols])
+                    @include('xelga::blocks.listing.grid', ['label' => $data['title'], 'cols' => $fitCols])
                 @endif
                 @include('xelga::blocks.listing.pagination')
             </div>

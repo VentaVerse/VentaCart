@@ -2,8 +2,9 @@
 @php
     $total = $data['total'];
     $filtered = $data['search'] !== null || $data['category'] !== null || $data['tag'] !== null;
-    // In a grid, a share of the content area for each post a line holds there.
-    $photoSizes = \Themes\Xelga\Rendering\Picture::contentSizes($context->span, '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw', $data['variant'] === 'grid' ? 1 / $context->fitColumns($settings['cols'], 3) : .4);
+    // A share of the content area: one post's in a grid, the photo beside the text in a list, the whole width where a list stacks (beside two sides).
+    $photoShare = $data['variant'] === 'grid' ? 1 / $context->fitColumns($settings['cols'], 3) : ($context->span <= 6 ? 1 : .4);
+    $photoSizes = \Themes\Xelga\Rendering\Picture::contentSizes($context->span, '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw', $photoShare);
 @endphp
 <div class="blog-list" data-block-id="{{ $block['id'] }}" data-block-type="posts" @if ($block['disabled']) hidden @endif>
     <div class="blog-list__bar">

@@ -137,8 +137,20 @@
   }
 }
 
-/* Beside two sides (a content area of six twelfths) a post in the list keeps its photo above its text. */
+/*
+ * Beside sides the content area holds fewer posts a line (three beside
+ * one side, two beside two), and beside two a post in the list keeps
+ * its photo above its text.
+ */
 @media (min-width: 990px) {
+  main[data-content="9"] .s-mainblog[data-cols="4"] {
+    --cols: 3;
+  }
+
+  main[data-content="6"] .s-mainblog[data-cols] {
+    --cols: 2;
+  }
+
   main[data-content="6"] .s-mainblog[data-variant="list"] .post {
     grid-template-columns: minmax(0, 1fr);
     gap: .875rem;
