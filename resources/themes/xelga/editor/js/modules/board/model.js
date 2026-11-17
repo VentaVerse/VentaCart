@@ -508,6 +508,48 @@ export function fits(content, sid, target, rules) {
 }
 
 /**
+ * Whether a new section may be added at a spot of the board, checked
+ * against the page as it is now: the board can change while the section
+ * picker is open (an undo, a save from another tab). Answers `{ok: true}`,
+ * or `{ok: false, reason}` with reason 'gone' (the spot is no longer on the
+ * page), 'full' (its column or side holds as many as it can) or 'narrow'
+ * (the section needs a wider spot). A spot that is gone is refused, never
+ * swapped for another place.
+ */
+export function checkAddSpot(content, target, section, rules) {
+  const layout = layoutOf(rules.layout);
+  const rows = rowsOf(content, layout);
+  const span = rules.minSpan(section);
+  const no = (reason) => ({ ok: false, reason });
+  if (target?.drop === 'gap') {
+    return target.before === 'end' || rows.some((r) => r.id === target.before) ? { ok: true } : no('gone');
+  }
+  if (target?.drop === 'column') {
+    const r = rows.find((x) => x.id === target.rowId);
+    const parts = r ? partsOf(layout, r.split) : null;
+    if (!parts || parts.length < 2 || !Number.isInteger(target.column) || target.column < 0 || target.column >= parts.length) return no('gone');
+    const column = r.columns[target.column] || [];
+    if ((target.before ?? null) !== null && !column.includes(target.before)) return no('gone');
+    if (column.length >= layout.max_per_column) return no('full');
+    return span <= parts[target.column] ? { ok: true } : no('narrow');
+  }
+  if (target?.drop === 'beside') {
+    const r = rows.find((x) => x.id === target.rowId);
+    const other = r?.split === '12' && r.columns[0]?.length === 1 ? sectionMap(content).get(r.columns[0][0]) : null;
+    if (!other || rules.isMain(other) || !SIDES.includes(target.side)) return no('gone');
+    return span <= 6 && rules.minSpan(other) <= 6 ? { ok: true } : no('narrow');
+  }
+  if (target?.drop === 'side') {
+    if (!sidesAllowedBy(rules) || !SIDES.includes(target.side)) return no('gone');
+    const list = sidesOf(content)[target.side];
+    if ((target.before ?? null) !== null && !list.includes(target.before)) return no('gone');
+    if (list.length >= layout.max_per_side) return no('full');
+    return span <= layout.side_span ? { ok: true } : no('narrow');
+  }
+  return no('gone');
+}
+
+/**
  * Moves a section to the target. Answers the document unchanged when the
  * section does not fit there, and the ids of the rows the move made.
  */

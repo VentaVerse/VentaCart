@@ -5,7 +5,7 @@
  * quantity only picks the matching row; nothing is calculated here. Adding
  * to the cart posts the chosen variant to core's cart.add.
  */
-import { $, $$, reduceMotion, finePointer, inEditorPreview } from '../util.js';
+import { $, $$, reduceMotion, finePointer } from '../util.js';
 import { addItem, send, messageOf, toast } from '../cart.js';
 
 const scroll = () => (reduceMotion.matches ? 'auto' : 'smooth');
@@ -301,7 +301,7 @@ function initLightbox(box, { openers, current, closed }, signal) {
   const go = (i) => glide(i + offset);
 
   const show = (start, from) => {
-    if (inEditorPreview() || box.open) return;
+    if (box.open) return;
     opener = from;
     // Photos off to the side are never in view until they slide in, so a lazy
     // photo would arrive blank; load them all once the viewer is opened.
@@ -586,7 +586,7 @@ function initBuying(section, data, gallery, signal) {
   };
 
   const add = async () => {
-    if (inEditorPreview() || !buy || buy.disabled) return;
+    if (!buy || buy.disabled) return;
     const unit = currentUnit();
     if (data.has_variants && !unit) {
       const missing = groups.find((g) => !selected[g.dataset.opts]);
@@ -613,7 +613,6 @@ function initBuying(section, data, gallery, signal) {
   const form = $('[data-notify-form]', section);
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (inEditorPreview()) return;
     const out = $('[data-notify-msg]', form);
     const name = form.elements.name.value.trim();
     const email = form.elements.email.value.trim();

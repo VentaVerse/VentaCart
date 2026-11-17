@@ -18,7 +18,7 @@ globalThis.document = globalThis.document || { addEventListener: noop, removeEve
 globalThis.window = globalThis.window || { addEventListener: noop, removeEventListener: noop, setTimeout, clearTimeout, location: { href: 'http://example.test/' } };
 
 const { useLayout } = await import('../../editor/js/modules/board/model.js');
-const { targetsFor, keyTarget } = await import('../../editor/js/modules/board/drag.js');
+const { targetsFor, keyTarget, keyMoves, rowKeyMoves } = await import('../../editor/js/modules/board/drag.js');
 const { addableTypes } = await import('../../editor/js/modules/board/choices.js');
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -124,6 +124,27 @@ test('keyTarget moves within a column, out of it past its end, and to the next c
   assert.deepEqual(keyTarget(c, 'a', 'ArrowDown', RULES), { drop: 'gap', before: 'end' });
   assert.equal(keyTarget(c, 'a', 'ArrowUp', RULES), null);
   assert.equal(keyTarget(c, 'a', 'ArrowLeft', RULES), null);
+});
+
+test('keyMoves lists only the arrows a section can really move by', () => {
+  const c = page({ a: 'text', b: 'text', w: 'wide', t: 'text' }, {
+    rows: [row('ra', '12', [['a']]), row('r1', '8-4', [['b', 'w'], ['t']])],
+  });
+  c.order = ['a', 'b', 'w', 't'];
+  // A full-width section never offers Left or Right, and the first one not Up.
+  assert.deepEqual(keyMoves(c, 'a', RULES), ['ArrowDown']);
+  assert.deepEqual(keyMoves(c, 'b', RULES), ['ArrowUp', 'ArrowDown', 'ArrowRight']);
+  // Too wide for the column on its right.
+  assert.deepEqual(keyMoves(c, 'w', RULES), ['ArrowUp', 'ArrowDown']);
+  assert.deepEqual(keyMoves(c, 't', RULES), ['ArrowUp', 'ArrowDown', 'ArrowLeft']);
+});
+
+test('rowKeyMoves offers up only below the first row and down only above the last', () => {
+  const rows = [row('r1', '6-6', [[], []]), row('r2', '6-6', [[], []]), row('r3', '6-6', [[], []])];
+  assert.deepEqual(rowKeyMoves(rows, 'r1'), ['ArrowDown']);
+  assert.deepEqual(rowKeyMoves(rows, 'r2'), ['ArrowUp', 'ArrowDown']);
+  assert.deepEqual(rowKeyMoves(rows, 'r3'), ['ArrowUp']);
+  assert.deepEqual(rowKeyMoves(rows.slice(0, 1), 'r1'), []);
 });
 
 const CATALOG = {

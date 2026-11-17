@@ -3,8 +3,8 @@
  *
  * Plain JavaScript, no framework. Every section type with behavior has one
  * initializer that receives the section element and returns a cleanup
- * function, so the editor preview can run it again after a live change
- * without leaking listeners or timers.
+ * function, so a section can be started again (one added to the page after
+ * it loaded) without leaking listeners or timers.
  */
 import { $$ } from './util.js';
 import { bindBuying } from './cart.js';
@@ -72,7 +72,7 @@ function boot() {
 bindBuying();
 bindCartDrawer();
 
-// The editor frame re-runs initializers after a live change.
+// A section added to the page after it loaded is started (and stopped) through these.
 window.XelgaTheme = Object.freeze({ initSection, cleanupSection });
 
 if (document.readyState === 'loading') {

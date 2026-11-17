@@ -20,6 +20,12 @@ import { formatTime, plural, readability, clone } from './util.js';
 const autosaveMs = () => Number(ctx.boot?.limits?.autosave_ms) || 1500;
 const RETRY_MAX_MS = 30000;
 let timer = 0;
+const savedListeners = new Set();
+
+/** Calls `fn(handle)` after each document is saved. */
+export function onSaved(fn) {
+  savedListeners.add(fn);
+}
 
 /* ------------------------------------------------------------------------
    Saving
@@ -73,6 +79,7 @@ async function saveDoc(d, { keepalive = false } = {}) {
         ui.refreshFieldErrors();
       }
       if (res.adjusted.length || res.content) adopt(d, res, json);
+      savedListeners.forEach((fn) => fn(d.handle));
       return true;
     } catch (error) {
       return failed(d, error);
@@ -103,7 +110,7 @@ function setPath(target, parts, value) {
 
 /**
  * The server corrected some values (clamped, defaulted, stripped). Take its
- * values into the document, the saved copy and the preview.
+ * values into the document and the saved copy, and draw them on the board.
  */
 function adopt(d, res, savedJson) {
   const untouched = JSON.stringify(d.content) === savedJson;
@@ -129,16 +136,9 @@ function adopt(d, res, savedJson) {
       d.savedJson = JSON.stringify(saved);
     }
   }
-  const sections = new Set();
-  res.adjusted.forEach((item) => {
-    const parts = pathParts(item.path);
-    if (parts[0] === 'sections' && parts[1]) sections.add(parts[1]);
-  });
-  ui.renderOutline();
   ui.renderInspector();
-  ui.runEffects?.([...sections].map((sid) => ({ render: 'replace', handle: d.handle, sectionId: sid })), { saved: true });
-  // Columns and sides are drawn by the server, so a moved section shows after the preview loads again.
-  if (d.handle === 'settings' || res.adjusted.some((item) => item.moved)) ui.reloadPreview?.();
+  // The pictures show what the server keeps.
+  ui.redrawPictures?.();
   const first = res.adjusted.find((a) => a.message)?.message;
   if (res.adjusted.length) {
     toast(first
@@ -163,7 +163,7 @@ function failed(d, error) {
     d.fieldErrors = error.fields || {};
     d.error = { kind, message: error.message };
     ui.refreshFieldErrors();
-    ui.renderOutline();
+    ui.renderBoard();
     toast(`${docLabel(d.handle)} was not saved: ${firstFieldMessage(d.fieldErrors) || error.message}`, { tone: 'error', timeout: 8000 });
     return false;
   }
@@ -244,11 +244,9 @@ export async function resolveConflict(d) {
 
   const unsaved = detachDocument(d.handle, d.savedSeq);
   addDocument(theirs);
-  ui.renderOutline();
-  ui.renderThemeNav();
   ui.renderInspector();
   ui.updateToolbar();
-  ui.reloadPreview?.();
+  ui.redrawPictures?.();
   if (!unsaved.length) {
     toast(`Their changes to ${label} are loaded.`, { tone: 'success' });
     return;
@@ -258,8 +256,7 @@ export async function resolveConflict(d) {
     action: {
       label: 'Apply mine again',
       run: async () => {
-        await ui.whenPreviewReady?.();
-        const count = reapply(unsaved);
+          const count = reapply(unsaved);
         toast(count ? `${plural(count, 'change')} applied again. Undo works for each one.` : 'Your changes no longer fit their version, so none were applied.');
       },
     },
@@ -340,7 +337,7 @@ export async function publish() {
     S.templates.forEach((t) => { if (versions[t.handle] !== undefined) t.isPublished = true; });
     S.publishedFlash = Date.now();
     ui.updateToolbar();
-    ui.reloadPreview?.();
+    ui.redrawPictures?.();
     return { ok: true };
   } catch (error) {
     if (error.kind === 'conflict') {
@@ -385,21 +382,19 @@ export async function discard() {
       await ui.refreshLayouts?.();
       await reloadDocuments(Object.keys(S.docs)).catch(() => {});
       resetHistory();
-      ui.renderOutline();
+      ui.renderBoard();
       ui.renderInspector();
       ui.updateToolbar();
-      ui.reloadPreview?.();
+      ui.redrawPictures?.();
       toast('Someone else saved changes just now, so nothing was thrown away. Their changes are loaded; look, then throw away again if you still want to.', { tone: 'error', timeout: 10000 });
     } else toast(`The draft was not thrown away. ${error.message}`, { tone: 'error', timeout: 8000 });
     return false;
   }
   resetHistory();
   S.sel = null;
-  ui.renderOutline();
-  ui.renderThemeNav();
   ui.renderInspector();
   ui.updateToolbar();
-  ui.reloadPreview?.();
+  ui.redrawPictures?.();
   toast(deleted.length
     ? `Draft thrown away. ${plural(deleted.length, 'special layout')} that ${deleted.length === 1 ? 'was' : 'were'} never published ${deleted.length === 1 ? 'was' : 'were'} deleted with it.`
     : 'Draft thrown away. The editor shows the published store again.', { tone: 'success', timeout: deleted.length ? 8000 : 4200 });
@@ -426,11 +421,9 @@ export async function restoreRevision(handle, revision) {
   addDocument(fresh.document);
   if (fresh.adjusted.length) toast(`Restored with ${plural(fresh.adjusted.length, 'correction')} to fit the theme as it is now.`);
   if (S.sel?.kind === 'section') S.sel = null;
-  ui.renderOutline();
-  ui.renderThemeNav();
   ui.renderInspector();
   ui.updateToolbar();
-  ui.reloadPreview?.();
+  ui.redrawPictures?.();
   toast(`The version from ${formatTime(revision.createdAt)} is now the draft of ${docLabel(handle)}. Publish to make it live.`, { tone: 'success', timeout: 7000 });
   return true;
 }

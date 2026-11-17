@@ -2,11 +2,11 @@
  * Sections that wait for something to be picked. A starting store names its
  * categories and products; those this catalog does not have are left empty,
  * and so is a picker nobody has filled yet. Such a section keeps its place
- * and settings: the section list marks it ("Pick a category"), and the
- * preview shows its empty state until something is picked.
+ * and settings, and the board and its blocks list mark it ("Pick a
+ * category") until something is picked.
  */
 
-import { S, ctx, GROUPS, groupList, blockList, valueOf, labelOf, isFixed } from './state.js';
+import { S, ctx, GROUPS, groupList, blockList, valueOf, isFixed } from './state.js';
 
 const LABELS = {
   category: 'Pick a category',
@@ -14,13 +14,6 @@ const LABELS = {
   product: 'Pick a product',
   brand: 'Pick a brand',
   none: 'No products yet',
-};
-
-const WHAT = {
-  category: 'categories this section shows are',
-  products: 'products this section shows are',
-  product: 'product this section shows is',
-  brand: 'brand this section shows is',
 };
 
 const isEmpty = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
@@ -85,40 +78,7 @@ export function needTag(sid, bid = null) {
   return { text: LABELS[found.need], quiet: found.need === 'none' };
 }
 
-/** What the preview's empty state says for one section. */
-function emptyState(sid, need) {
-  const label = labelOf(sid);
-  if (need === 'none') {
-    return {
-      sectionId: sid,
-      title: `${label}: no products to show yet`,
-      text: 'Your catalog has no products yet. This section fills in once it does.',
-      pick: null,
-    };
-  }
-  return {
-    sectionId: sid,
-    title: `${label}: nothing picked yet`,
-    text: `The ${WHAT[need]} not in your catalog.`,
-    pick: LABELS[need],
-  };
-}
-
-let lastSent = '';
-
-/** Works the list out again and tells the preview, when it changed or the preview loaded again. */
-export function refreshNeeds({ force = false } = {}) {
+/** Works out again which sections of the page wait for a pick. */
+export function refreshNeeds() {
   S.needs = computeNeeds();
-  if (!S.frameReady || !ctx.bridge || !(S.supports || []).includes('empty')) return;
-  const sections = [...S.needs.entries()].filter(([, f]) => f.need).map(([sid, f]) => emptyState(sid, f.need));
-  const key = `${S.frameEpoch}:${JSON.stringify(sections)}`;
-  if (!force && key === lastSent) return;
-  lastSent = key;
-  ctx.bridge.post('empty', { sections });
-}
-
-/** Keeps the preview's empty states in step: after it loads, and after it draws a section again. */
-export function initNeeds() {
-  ctx.bridge.on('ready', () => refreshNeeds({ force: true }));
-  ctx.bridge.on('page-data', () => refreshNeeds({ force: true }));
 }

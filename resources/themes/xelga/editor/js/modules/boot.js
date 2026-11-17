@@ -4,8 +4,7 @@
  * filled with safe defaults where a key is optional.
  *
  * Shape (keys marked * are optional):
- *   protocol   the bridge protocol version (1)
- *   store      { name, url, origin }           url: the published store, for "Preview store"
+ *   store      { name, url, origin }           url: the published store
  *   user       { id, name, can: { publish, media_view, media_upload, menus_edit } }
  *   csrf       the CSRF token
  *   catalog    { sections: {type: schema}, theme_settings: [groups], font_pairs: [pairs] }
@@ -24,7 +23,7 @@
  *   products_exist*  whether the store has products yet, for the empty
  *              state of product sections
  *   page*      the handle to open first (default: the first page)
- *   preview    { url, param, section_param, nonce, until, origin }   nonce is empty until the
+ *   preview    { url, param, section_param, nonce, until }   nonce is empty until the
  *              editor opens the window (POST preview_open), which fills nonce, until and url
  *   routes     { documents_show, documents_draft, documents_discard, publish, revisions_index,
  *                revisions_restore, presence, pick, preview_open, preview_close, media_browse, media_upload,
@@ -98,7 +97,6 @@ export function normalizeBoot(raw) {
   if (!boot.routes || typeof boot.routes !== 'object') throw new BootError('The editor was started without its routes.');
   boot.store = { name: '', url: '/', ...(boot.store || {}) };
   boot.preview = { url: boot.store.url || '/', nonce: '', param: 'xelga_preview', ...(boot.preview || {}) };
-  if (!boot.preview.origin) boot.preview.origin = new URL(boot.preview.url, window.location.href).origin;
   const can = boot.user?.can || {};
   boot.media = {
     storage_url: '/storage/',
@@ -109,9 +107,6 @@ export function normalizeBoot(raw) {
   };
   boot.option_sources = boot.option_sources || boot.options || {};
   boot.limits = { autosave_ms: 1500, heartbeat_seconds: 30, ...(boot.limits || {}) };
-  if (boot.protocol !== undefined && Number(boot.protocol) !== 1) {
-    throw new BootError(`The preview speaks bridge version ${boot.protocol}; this editor speaks version 1. Rebuild the theme's editor files.`);
-  }
   const pages = Array.isArray(boot.pages) && boot.pages.length ? boot.pages : [{ handle: 'home', label: 'Home page', type: 'home', url: boot.preview.url }];
   boot.pages = pages.map(normalizePage);
   boot.templates = (Array.isArray(boot.templates) ? boot.templates : []).map(normalizeTemplate).filter(Boolean);

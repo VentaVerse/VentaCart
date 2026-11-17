@@ -1,24 +1,31 @@
 /*
- * The inspector: the settings of what is selected. Nothing selected teaches
- * the interface; a section shows its settings and its blocks; a block shows
- * its own; a theme settings group shows the group.
+ * The inspector: the settings of what is selected, drawn in the drawer
+ * beside the board. A section shows its settings and its blocks; a block
+ * shows its own; a theme settings group shows the group. With nothing
+ * selected the drawer shows a row's settings or the theme list (drawer.js),
+ * or closes.
  *
  * A section's panel may also hold theme settings that belong with it (the
  * header's cart icon, `edited_in` in the theme settings schema). Those fields
- * read and save the theme settings document, as under Theme settings.
+ * read and save the theme settings document, as under Theme.
  */
 
-import { $, h, icon, emptyArt, helpTip } from './dom.js';
-import { S, ctx, ui, sec, blk, locate, valueOf, labelOf, themeValue, settingsDoc, isBusy, isFixed } from './state.js';
-import { sectionDef, sectionIcon, blockDef, themeGroups, ownThemeGroups, themeGroupsIn, isFormSetting, extensionOf, absentName } from './catalog.js';
+import { $, h, icon, helpTip } from './dom.js';
+import { S, ctx, ui, sec, blk, locate, valueOf, labelOf, themeValue, settingsDoc, blockList } from './state.js';
+import { sectionDef, sectionIcon, blockDef, blockIcon, themeGroups, themeGroupsIn, isFormSetting, extensionOf, absentName, absentLabel } from './catalog.js';
 import { commit, layoutPayload } from './operations.js';
 import { typeLine, placeWords } from './board/labels.js';
 import { same, humanize } from './util.js';
-import { select, deselect, showPanel } from './selection.js';
+import { select } from './selection.js';
+import { openMenu } from './popover.js';
+import { needTag } from './needs.js';
 import { buildForm, dependsOn, refreshVisibility, refreshFieldErrors } from './forms/form.js';
-import { toggleVisible, removeSection, removeBlock, canRemoveBlock, duplicateSection, canDuplicate, duplicateBlock, canDuplicateBlock } from './actions.js';
+import {
+  toggleVisible, startRename, rename, removeSection, removeBlock, canRemoveBlock, duplicateSection, canDuplicate, duplicateBlock, canDuplicateBlock,
+  addableBlocks, addBlock, moveBlockBy, moveBlockTo,
+} from './actions.js';
 
-const body = () => $('#inspector-body');
+const body = () => $('#drawer-body');
 
 const selKey = (sel) => {
   if (sel.kind === 'theme') return `theme:${sel.group}:${sel.scheme || ''}`;
@@ -30,95 +37,70 @@ let shownKey = null;
 
 export function renderInspector() {
   if (!S.loaded) return;
-  // Beside the board, settings show in the drawer; the panel stays empty
-  // so no element is drawn twice.
-  const drawer = ui.inDrawer?.() ? $('#drawer-body') : null;
-  const el = drawer || body();
-  (drawer ? body() : $('#drawer-body'))?.replaceChildren();
-  if (drawer && !S.sel) {
+  const el = body();
+  if (!el) return;
+  // Nothing selected: the drawer shows a row or the theme list, or closes.
+  if (!S.sel) {
     shownKey = null;
     ui.renderDrawer();
-    ui.updateDock();
     return;
   }
   const scroll = $('.insp-body', el)?.scrollTop || 0;
-  const key = S.sel ? selKey(S.sel) : null;
-  const sameTarget = key && key === shownKey;
+  const key = selKey(S.sel);
+  const sameTarget = key === shownKey;
   // Keep focus where it was when the same form is drawn again (undo, redo).
   const focusedField = sameTarget ? document.activeElement?.closest?.('[data-field]')?.dataset.field : null;
-  if (!S.sel) {
-    el.replaceChildren(emptyInspector());
-  } else if (S.sel.kind === 'theme') {
-    el.replaceChildren(themeInspector(S.sel.group));
+  let view = null;
+  if (S.sel.kind === 'theme') {
+    view = themeInspector(S.sel.group);
   } else if (S.sel.kind === 'stores') {
-    el.replaceChildren(ui.storesInspector?.(inspectorHead) || emptyInspector());
+    view = ui.storesInspector?.(inspectorHead) || null;
   } else if (S.sel.kind === 'layout') {
-    const layout = ui.layoutInspector?.(inspectorHead);
-    if (!layout) S.sel = null;
-    el.replaceChildren(layout || emptyInspector());
-  } else {
-    const s = sec(S.sel.sid);
-    if (!s || (S.sel.bid && !blk(S.sel.sid, S.sel.bid))) {
-      S.sel = null;
-      el.replaceChildren(emptyInspector());
-    } else {
-      el.replaceChildren(sectionInspector(S.sel.sid, S.sel.bid));
-    }
+    view = ui.layoutInspector?.(inspectorHead) || null;
+  } else if (sec(S.sel.sid) && (!S.sel.bid || blk(S.sel.sid, S.sel.bid))) {
+    view = sectionInspector(S.sel.sid, S.sel.bid);
   }
-  shownKey = S.sel ? selKey(S.sel) : null;
+  if (!view) {
+    S.sel = null;
+    shownKey = null;
+    ui.renderDrawer();
+    return;
+  }
+  el.replaceChildren(view);
+  shownKey = selKey(S.sel);
   if (sameTarget) {
     const b = $('.insp-body', el);
     if (b) b.scrollTop = scroll;
     if (focusedField) el.querySelector(`[data-field="${CSS.escape(focusedField)}"] input, [data-field="${CSS.escape(focusedField)}"] textarea, [data-field="${CSS.escape(focusedField)}"] select`)?.focus({ preventScroll: true });
   }
-  ui.syncDrawer?.();
-  ui.updateDock();
-}
-
-function emptyInspector() {
-  // Checkout, sign in and account keep a fixed layout: there are no
-  // sections to click, drag or hide, so the general tips would mislead.
-  if (isFixed()) {
-    return h('div', { class: 'empty', dataset: { empty: 'fixed' } },
-      h('span', { class: 'empty__lock' }, icon('lock')),
-      h('h2', { text: 'Nothing on this page to rearrange' }),
-      h('p', { text: 'This page keeps a fixed layout, and Theme settings still apply to it. Pick one on the left to change how it looks; the preview follows straight away.' }));
+  if (S.renaming) {
+    const input = $('.insp-rename', el);
+    input?.focus();
+    input?.select();
   }
-  return h('div', { class: 'empty' },
-    emptyArt(),
-    h('h2', { text: 'Click anything on your store to edit it' }),
-    h('p', { text: 'The settings for what you click open here. Changes show on the preview straight away and stay private until you publish.' }),
-    h('ul', { class: 'tips', role: 'list' },
-      h('li', null, h('span', { class: 'tips__icon' }, icon('layers')), h('span', null, h('strong', { text: 'Sections list on the left' }), 'Hover a row to find it on the page. Drag rows to change the order.')),
-      h('li', null, h('span', { class: 'tips__icon' }, icon('eye')), h('span', null, h('strong', { text: 'Hide instead of delete' }), 'The eye button hides a section and keeps its settings.')),
-      h('li', null, h('span', { class: 'tips__icon' }, icon('palette')), h('span', null, h('strong', { text: 'Theme settings' }), 'Colors, fonts and buttons for the whole store.')),
-      h('li', null, h('span', { class: 'tips__icon' }, icon('undo')), h('span', null, h('strong', { text: 'Nothing is final' }), 'Undo with Ctrl+Z. Your work saves itself as a draft until you publish.')),
-      h('li', null, h('span', { class: 'tips__icon' }, icon('external')), h('span', null, h('strong', { text: 'Visit another page' }), 'Hold Alt and click a link in the preview to follow it.'))),
-    h('div', { class: 'legend' },
-      h('span', null, h('i', null), 'Section outline'),
-      h('span', null, h('i', { class: 'is-block' }), 'Block outline')));
+  ui.syncDrawer?.();
 }
 
-export function inspectorHead({ title, help = null, kind, kindBlock = false, type = null, actions = [] }) {
+/* The drawer's head: back (from a block to its section, from a theme group or a starting store to Theme), the title, its actions and Close. */
+export function inspectorHead({ title, help = null, kind, kindBlock = false, type = null, actions = [], renames = null }) {
   const head = h('div', { class: 'insp-head' });
-  const drawer = Boolean(ui.inDrawer?.());
-  // In the drawer, back goes from a block to its section and from a theme group to the theme list.
-  const backTo = S.sel?.kind === 'section' && S.sel.bid ? 'section' : S.sel?.kind === 'theme' && drawer ? 'theme' : null;
+  const back = S.sel?.kind === 'section' && S.sel.bid
+    ? { label: `Back to ${labelOf(S.sel.sid)}`, go: () => select(S.sel.sid) }
+    : S.sel?.kind === 'theme' || S.sel?.kind === 'stores'
+      ? { label: 'Back to Theme', go: () => ui.openDrawer({ type: 'theme' }) }
+      : null;
+  const editing = renames && S.renaming && S.renaming.sid === renames.sid && (S.renaming.bid || null) === (renames.bid || null);
   const top = h('div', { class: 'insp-head__row' },
-    h('button', {
-      type: 'button', class: 'icon-btn insp-back', dataset: { back: backTo || '' },
-      'aria-label': backTo === 'section' ? `Back to ${labelOf(S.sel.sid)}` : backTo === 'theme' ? 'Back to Theme' : 'Back',
-      onclick: () => {
-        if (S.sel?.kind === 'section' && S.sel.bid) select(S.sel.sid);
-        else if (backTo === 'theme') ui.openDrawer({ type: 'theme' });
-        else showPanel('nav');
-      },
-    }, icon('arrow-left')),
-    h('h2', { class: 'insp-title' }, h('span', { text: title }), helpTip(help)),
+    back ? h('button', { type: 'button', class: 'icon-btn insp-back', 'aria-label': back.label, 'data-tip': back.label, onclick: back.go }, icon('arrow-left')) : null,
+    editing ? renameInput(renames.sid, renames.bid, title) : h('h2', { class: 'insp-title', tabindex: -1 }, h('span', { text: title }), helpTip(help)),
+    renames && !editing ? h('button', {
+      type: 'button', class: 'icon-btn', 'aria-label': `Rename ${title}`, 'data-tip': 'Rename',
+      onclick: () => startRename(renames.sid, renames.bid),
+    }, icon('type')) : null,
     ...actions,
     h('button', {
-      type: 'button', class: 'icon-btn', 'aria-label': 'Close settings', 'data-tip': drawer ? 'Close (Esc)' : 'Close',
-      onclick: () => (drawer ? ui.closeDrawer() : deselect()),
+      type: 'button', class: 'icon-btn', 'aria-label': 'Close settings', 'data-tip': 'Close (Esc)',
+      onclick: () => ui.closeDrawer(),
     }, icon('close')));
   head.append(top);
   if (kind) head.append(h('p', { class: 'insp-kind' }, h('span', { class: `insp-kind__dot${kindBlock ? ' insp-kind__dot--block' : ''}`, 'aria-hidden': 'true' }), kind));
@@ -129,6 +111,35 @@ export function inspectorHead({ title, help = null, kind, kindBlock = false, typ
       type.where ? h('span', { class: `insp-type__where${type.type ? '' : ' insp-type__where--alone'}`, text: type.where }) : null));
   }
   return head;
+}
+
+/* The name of a section or block, edited in place of the title: Enter or leaving keeps it, Escape does not. */
+function renameInput(sid, bid, current) {
+  let done = false;
+  const finish = (save) => {
+    if (done) return;
+    done = true;
+    const value = input.value.trim();
+    S.renaming = null;
+    if (save && value && value !== current) rename(sid, bid, value);
+    ui.renderInspector();
+    window.requestAnimationFrame(() => $('#drawer .insp-head [aria-label^="Rename"]')?.focus({ preventScroll: true }));
+  };
+  const input = h('input', {
+    class: 'input insp-rename', type: 'text', value: current, 'aria-label': 'Name', maxlength: 60,
+    onkeydown: (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        finish(true);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        finish(false);
+      }
+    },
+    onblur: () => finish(true),
+  });
+  return input;
 }
 
 /** Field messages from a refused save, for one section or block, and the theme fields it shows. */
@@ -172,13 +183,13 @@ function sectionInspector(sid, bid) {
     type: bid ? null : sectionType(sid, def),
     kindBlock: Boolean(bid),
     actions: [eye],
+    renames: { sid, bid },
   });
 
   const content = h('div', { class: 'insp-body' });
   if (hidden) {
     content.append(h('p', { class: 'notice notice--warn' }, icon('eye-off'), `Hidden on the store. Shoppers do not see this ${bid ? 'block' : 'section'}.`));
   }
-  content.append(h('p', { class: 'notice notice--busy', id: 'insp-busy', role: 'status', hidden: !isBusy(sid) || null }, icon('rotate-ccw'), 'Updating the preview with the store\'s data.'));
 
   const read = (key) => (themeKeys.has(key) ? themeValue(key) : valueOf(sid, bid, key));
   const form = buildForm(settings, { kind: bid ? 'block' : 'section', sid, bid }, read, (setting, value, opts) => {
@@ -199,6 +210,10 @@ function sectionInspector(sid, bid) {
     if (dependsOn(settings, setting.key)) refreshVisibility();
   }, errorsFor(sid, bid, themeKeys));
   content.append(form);
+  if (!bid) {
+    const blocks = blocksField(sid);
+    if (blocks) content.append(blocks);
+  }
 
   if (!bid && at.group === 'template' && !main) {
     content.append(h('div', { class: 'insp-foot' },
@@ -223,6 +238,104 @@ function sectionInspector(sid, bid) {
       }, icon('trash', 'icon--sm'), 'Remove block')));
   }
   return h('div', { class: 'inspector' }, head, content);
+}
+
+/* ------------------------------------------------------------------------
+   A section's blocks: each opens its own settings; the grip moves it (drag,
+   or the up and down arrow keys); Add puts a new one at the end.
+   ------------------------------------------------------------------------ */
+
+function blocksField(sid) {
+  const s = { id: sid, ...sec(sid) };
+  const def = sectionDef(s.type);
+  const blocks = blockList(sid);
+  if (!def || (!def.blocks?.types?.length && !blocks.length)) return null;
+  const list = h('ul', { class: 'blist', role: 'list', dataset: { sid } });
+  blocks.forEach((b, i) => list.append(blockItem(s, b, i, blocks.length)));
+  const field = h('div', { class: 'field', role: 'group', 'aria-labelledby': 'blist-label' },
+    h('div', { class: 'field__label', id: 'blist-label' }, h('span', { text: 'Blocks' }),
+      def.blocks?.max ? h('span', { class: 'field__value', text: `${blocks.filter((b) => blockDef(s.type, b.type)).length} of ${def.blocks.max}` }) : null),
+    blocks.length ? list : h('p', { class: 'field__help', text: 'No blocks yet.' }));
+  const { types, full, max } = addableBlocks(sid);
+  if (types.length) {
+    const one = types.length === 1;
+    field.append(h('button', {
+      type: 'button', class: 'btn btn--secondary btn--sm blist__add', 'aria-haspopup': one ? null : 'true',
+      onclick: (e) => (one ? addBlock(sid, types[0].type) : openMenu(e.currentTarget, blockMenu(s, types))),
+    }, icon('plus', 'icon--sm'), one ? `Add ${String(types[0].label || humanize(types[0].type)).toLowerCase()}` : 'Add block'));
+  } else if (full) {
+    field.append(h('p', { class: 'field__help', text: `Holds up to ${max}. Remove one to add another.` }));
+  }
+  return field;
+}
+
+/* The theme's own blocks first, then each extension's under its name. */
+function blockMenu(s, types) {
+  const item = (t) => ({ label: t.label || humanize(t.type), iconName: blockIcon(s.type, t.type), hint: t.description || null, run: () => addBlock(s.id, t.type) });
+  const items = [{ heading: 'Add to this section' }, ...types.filter((t) => !t.source).map(item)];
+  const groups = new Map();
+  types.filter((t) => t.source).forEach((t) => {
+    const name = t.source_label || t.source;
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(t);
+  });
+  groups.forEach((list, name) => items.push({ heading: name }, ...list.map(item)));
+  return items;
+}
+
+function blockItem(s, b, index, count) {
+  const def = blockDef(s.type, b.type);
+  const name = labelOf(s.id, b.id) || (def ? humanize(b.type) : absentLabel(b, ctx.boot?.extensions) || 'No longer available');
+  const tag = def ? needTag(s.id, b.id) : null;
+  const li = h('li', { class: `blist__item${b.disabled ? ' is-hidden' : ''}${def ? '' : ' is-missing'}`, dataset: { bid: b.id } });
+  if (count > 1) {
+    li.append(h('button', {
+      type: 'button', class: 'blist__grip', 'aria-label': `Move ${name}. Use the up and down arrow keys.`,
+      onkeydown: (e) => {
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+        e.preventDefault();
+        if (moveBlockBy(s.id, b.id, e.key === 'ArrowUp' ? -1 : 1)) {
+          window.requestAnimationFrame(() => $(`#drawer .blist__item[data-bid="${CSS.escape(b.id)}"] .blist__grip`)?.focus());
+        }
+      },
+      onpointerdown: () => { li.draggable = true; },
+    }, icon('grip', 'icon--sm')));
+  }
+  li.append(h('button', {
+    type: 'button', class: 'blist__main', onclick: () => select(s.id, b.id),
+  },
+  icon(def ? blockIcon(s.type, b.type) : 'alert', 'icon--sm blist__icon'),
+  h('span', { class: 'blist__text' },
+    h('span', { class: 'blist__name', text: name }),
+    b.disabled ? h('span', { class: 'blist__sub', text: 'Hidden' }) : null,
+    tag ? h('span', { class: `blist__sub blist__sub--need${tag.quiet ? ' is-quiet' : ''}`, text: tag.text }) : null),
+  icon('chevron-right', 'icon--sm')));
+  if (count > 1) dragBlock(li, s.id, b.id, index);
+  return li;
+}
+
+/* Dragging a block by its grip, within its section's list. */
+function dragBlock(li, sid, bid, index) {
+  li.addEventListener('dragstart', (e) => {
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', bid); } catch { /* some browsers refuse custom data */ }
+    li.classList.add('is-dragging');
+  });
+  li.addEventListener('dragend', () => {
+    li.draggable = false;
+    li.classList.remove('is-dragging');
+  });
+  li.addEventListener('pointerup', () => { li.draggable = false; });
+  li.addEventListener('dragover', (e) => {
+    if (!li.parentElement?.querySelector('.is-dragging')) return;
+    e.preventDefault();
+  });
+  li.addEventListener('drop', (e) => {
+    const from = li.parentElement?.querySelector('.is-dragging')?.dataset.bid;
+    if (!from || from === bid) return;
+    e.preventDefault();
+    moveBlockTo(sid, from, index);
+  });
 }
 
 /** What a section is and, in a row of columns or a side, where it sits. */
@@ -301,7 +414,7 @@ function missingSection(sid) {
 
 function themeInspector(groupKey) {
   const group = themeGroups().find((g) => g.group === groupKey);
-  if (!group || !settingsDoc()) return emptyInspector();
+  if (!group || !settingsDoc()) return null;
   const head = inspectorHead({
     title: group.label,
     help: group.description,
@@ -319,40 +432,8 @@ function themeInspector(groupKey) {
   return h('div', { class: 'inspector' }, head, content);
 }
 
-/* ------------------------------------------------------------------------
-   Theme settings list (left panel)
-   ------------------------------------------------------------------------ */
-
-function summarize(group) {
-  return (group.settings || []).filter((s) => !s.advanced).slice(0, 3).map((s) => s.label).join(', ');
-}
-
-export function renderThemeNav() {
-  if (!S.loaded) return;
-  const list = h('ul', { class: 't-list', role: 'list' }, ...ownThemeGroups().map((group) => {
-    const selected = S.sel?.kind === 'theme' && S.sel.group === group.group;
-    return h('li', null, h('button', {
-      type: 'button', class: `t-item${selected ? ' is-selected' : ''}`, 'aria-current': selected ? 'true' : null,
-      onclick: () => ui.openThemeGroup(group.group),
-    }, h('span', { class: 't-item__icon' }, icon(group.icon || 'settings')),
-    h('span', { class: 't-item__text' }, h('span', { class: 't-item__title', text: group.label }),
-      h('span', { class: 't-item__desc', text: group.description || summarize(group) })),
-    icon('chevron-right')));
-  }));
-  // The first row: the starting store the draft is based on, and the door to the others.
-  $('#nav-theme').replaceChildren(...[ui.storeStartRow?.(), list].filter(Boolean));
-}
-
-/** Shows or hides the "updating the preview" note without redrawing the form. */
-export function updateBusy() {
-  const note = $('#insp-busy');
-  if (note) note.hidden = !(S.sel?.kind === 'section' && isBusy(S.sel.sid));
-}
-
 export function initInspector() {
   ui.renderInspector = renderInspector;
-  ui.updateBusy = updateBusy;
-  ui.renderThemeNav = renderThemeNav;
   ui.refreshVisibility = refreshVisibility;
   ui.refreshFieldErrors = refreshFieldErrors;
 }

@@ -1,10 +1,9 @@
 /*
- * Pages and special layouts: the page picker in the top bar (with Header and
- * footer as its first entry, see setScope), the note on the layout board
- * about a layout many records share, the Layout row
- * at the top of the section list, the layout settings (name, what uses it,
- * delete), making a new layout, and the pages with a fixed layout that are
- * only styled by theme settings.
+ * Pages and special layouts: the page picker in the top bar, the note on
+ * the layout board about a layout many records share, the board's Layout
+ * settings button and the settings it opens in the drawer (name, what uses
+ * it, delete), making a new layout, and the pages with a fixed layout that
+ * are only styled by theme settings.
  *
  * A special layout is a custom template of one page type (handle
  * `product.gift-guide`). Its sections are edited like any page's; its name
@@ -16,13 +15,12 @@
 import { $, h, icon, toast, announce, helpTip } from './dom.js';
 import {
   S, ctx, ui, doc, pageDef, templateOf, layoutsOf, currentLayout, pageTitle, isFixed, noteDraft, addDocument,
-  locate, isShared, scopeOfHandle, SHARED_LABEL,
 } from './state.js';
 import { themeGroups } from './catalog.js';
 import { normalizeTemplate } from './boot.js';
 import { flush, setFatal } from './drafts.js';
 import { openMenu, openPopover, closePopover, confirmBox } from './popover.js';
-import { showPanel, openSheet, isPhone, setNav, openThemeGroup, post } from './selection.js';
+import { openThemeGroup } from './selection.js';
 import { openList, row as pickRow, describe, fetchNames, remember, isGone } from './pickers/entity.js';
 import { plural } from './util.js';
 
@@ -83,13 +81,13 @@ export function forgetLayouts(handles) {
 
 function redraw() {
   updatePageButton();
-  ui.renderOutline();
+  ui.renderBoard();
   if (S.sel?.kind === 'layout') ui.renderInspector();
   ui.updateToolbar();
 }
 
 export function updatePageButton() {
-  const text = isShared() ? SHARED_LABEL : pageTitle();
+  const text = pageTitle();
   const el = $('#page-name');
   if (el) el.textContent = text;
   document.title = `${text}: theme editor${S.store?.name ? ` | ${S.store.name}` : ''}`;
@@ -104,18 +102,13 @@ export function pageMenu(anchor) {
   const editable = S.pages.filter((p) => p.kind !== 'fixed' && !p.extension);
   const extensionPages = S.pages.filter((p) => p.kind !== 'fixed' && p.extension);
   const fixed = S.pages.filter((p) => p.kind === 'fixed');
-  const shared = isShared();
-  const items = [
-    { label: SHARED_LABEL, iconName: 'layout', checked: shared, run: openShared },
-    { sep: true },
-    { heading: 'Pages' },
-  ];
+  const items = [{ heading: 'Pages' }];
   editable.forEach((p) => {
     const words = subjectWords(p.subjectType);
     const users = words ? defaultUsers(p) : 0;
     items.push({
       label: p.subjectType ? `${p.label}: Default` : p.label,
-      checked: !shared && S.page?.type === p.type && !S.page?.layout,
+      checked: S.page?.type === p.type && !S.page?.layout,
       disabled: p.ready === false,
       hint: p.ready === false ? 'Coming in a later update' : words && users ? `Used by ${plural(users, words.one, words.many)}` : null,
       run: () => ui.openPage({ type: p.type }),
@@ -124,7 +117,7 @@ export function pageMenu(anchor) {
     layoutsOf(p.type).forEach((l) => items.push({
       label: `${p.label}: ${l.label}`,
       iconName: 'sparkle',
-      checked: !shared && Boolean(S.page?.layout) && S.page.handle === l.handle,
+      checked: Boolean(S.page?.layout) && S.page.handle === l.handle,
       hint: l.count ? plural(l.count, words.one, words.many) : `Not used by any ${words.one} yet`,
       run: () => ui.openPage({ type: p.type, layout: l.handle }),
     }));
@@ -141,7 +134,7 @@ export function pageMenu(anchor) {
     group = p.group;
     items.push({
       label: p.label,
-      checked: !shared && S.page?.type === p.type,
+      checked: S.page?.type === p.type,
       hint: p.url ? null : 'Nothing to preview yet',
       run: () => ui.openPage({ type: p.type }),
     });
@@ -204,95 +197,24 @@ export function boardSource() {
 }
 
 /* ------------------------------------------------------------------------
-   Header and footer
-
-   The header and footer are one design on every page, so they have one
-   place in the section list, the first entry of the page picker, and a
-   page's list holds only that page's own sections. Switching between the
-   two lists never reloads the preview and keeps undo history; only opening
-   another page does.
+   Layout settings: the board's button and the drawer it opens
    ------------------------------------------------------------------------ */
 
-/**
- * Shows the other list, 'page' or 'shared', without reloading the preview.
- * Answers true when the list changed.
- */
-export function setScope(scope) {
-  const next = isFixed() ? 'page' : scope;
-  if (S.scope === next) return false;
-  S.scope = next;
-  ui.rememberPage?.();
-  if (S.sel?.kind === 'section' && scopeOfHandle(locate(S.sel.sid)?.handle) !== next) {
-    S.sel = null;
-    post('select', { sectionId: null, blockId: null });
-  }
-  if (S.sel?.kind === 'layout' && next === 'shared') S.sel = null;
-  S.addAt = null;
-  S.renaming = null;
-  if (S.nav === 'add') setNav('sections');
-  updatePageButton();
-  ui.renderOutline();
-  ui.renderInspector();
-  ui.updateDock();
-  announce(next === 'shared' ? 'Editing the header and footer, shown on every page.' : `Editing the sections of ${pageTitle()}.`);
-  return true;
-}
-
-/** The scope a section is edited in: its own page's, or the header and footer. */
-export const scopeOf = (sid) => scopeOfHandle(locate(sid)?.handle);
-
-/* A short tint on the page picker, so a switch made from the preview is seen. */
-export function flashPicker() {
-  const btn = $('#page-btn');
-  if (!btn) return;
-  btn.classList.remove('is-changed');
-  void btn.offsetWidth; // restarts the animation
-  btn.classList.add('is-changed');
-}
-
-/** Header and footer, from the page picker: shown on the home page. */
-function openShared() {
-  if (S.page?.type === 'home' && !S.page.layout) setScope('shared');
-  else ui.openPage({ type: 'home' }, { scope: 'shared' });
-}
-
-/* ------------------------------------------------------------------------
-   The Layout row at the top of the section list
-   ------------------------------------------------------------------------ */
-
-export function layoutRow() {
-  const page = S.page;
-  const words = subjectWords(page?.subjectType);
-  if (!words || isFixed()) return null;
-  const layout = currentLayout();
+/** The board's Layout settings button, on pages drawn from a layout records share; null elsewhere. */
+export function layoutButton() {
+  if (!subjectWords(S.page?.subjectType) || isFixed()) return null;
   const selected = S.sel?.kind === 'layout';
-  const n = layout?.count || 0;
-  const title = layout ? layout.label : `Default ${page.label.toLowerCase()} layout`;
-  const meta = layout
-    ? (n ? `Used by ${plural(n, words.one, words.many)}` : `Not used by any ${words.one} yet`)
-    : `Every ${words.one} without a special layout`;
-  return h('div', { class: 'o-group o-group--layout' },
-    h('h2', { class: 'o-group__title' }, h('span', { text: 'Layout' })),
-    h('button', {
-      type: 'button',
-      class: `layout-row${selected ? ' is-selected' : ''}${layout && !n ? ' is-unused' : ''}`,
-      'aria-current': selected ? 'true' : null,
-      onclick: () => selectLayout(),
-    }, h('span', { class: 'layout-row__icon' }, icon(layout ? 'sparkle' : 'file')),
-    h('span', { class: 'layout-row__text' }, h('span', { class: 'layout-row__name', text: title }), h('span', { class: 'layout-row__meta', text: meta })),
-    icon('chevron-right')));
+  return h('button', {
+    type: 'button', class: 'btn btn--secondary btn--sm', id: 'layout-btn', 'aria-pressed': String(selected),
+    onclick: () => (selected ? ui.closeDrawer() : selectLayout()),
+  }, icon(currentLayout() ? 'sparkle' : 'file', 'icon--sm'), 'Layout settings');
 }
 
 export function selectLayout({ choose = false } = {}) {
   if (!subjectWords(S.page?.subjectType)) return;
   S.sel = { kind: 'layout' };
-  post('select', { sectionId: null, blockId: null });
-  if (S.nav !== 'sections') setNav('sections', { keepSelection: true });
-  ui.renderOutline();
+  ui.renderBoard();
   ui.renderInspector();
-  showPanel('inspector');
-  if (isPhone()) openSheet('inspector');
-  ui.updateDock();
   if (choose) window.setTimeout(() => $('#layout-choose')?.click(), 80);
 }
 
@@ -300,21 +222,19 @@ export function selectLayout({ choose = false } = {}) {
    Pages with a fixed layout
    ------------------------------------------------------------------------ */
 
+/** What the board shows in place of rows on a page with a fixed layout: why, and the theme settings that style it. */
 export function fixedPanel() {
   const page = S.page;
   const groups = themeGroups().filter((g) => (page.groups || []).includes(g.group));
-  return h('div', { class: 'fixed-note' },
-    h('div', { class: 'fixed-note__head' }, h('span', { class: 'fixed-note__icon' }, icon('lock')),
-      h('h2', { text: `${page.label}: fixed layout` })),
-    h('p', { text: page.note || 'This page keeps a fixed layout. Theme settings change how it looks.' }),
-    h('h3', { class: 'fixed-note__sub', text: 'What changes how it looks' }),
-    h('ul', { class: 't-list', role: 'list' }, ...groups.map((g) => h('li', null, h('button', {
-      type: 'button', class: `t-item${S.sel?.kind === 'theme' && S.sel.group === g.group ? ' is-selected' : ''}`,
+  return h('div', { class: 'fixed-page' },
+    h('div', { class: 'fixed-page__head' }, icon('lock'), h('p', { text: page.note || 'This page keeps a fixed layout. Theme settings change how it looks.' })),
+    groups.length ? h('h2', { class: 'fixed-page__sub', text: 'What changes how it looks' }) : null,
+    groups.length ? h('ul', { class: 'tlist', role: 'list' }, ...groups.map((g) => h('li', null, h('button', {
+      type: 'button', class: 'tlist__item', 'aria-pressed': String(S.sel?.kind === 'theme' && S.sel.group === g.group),
       onclick: () => openThemeGroup(g.group),
-    }, h('span', { class: 't-item__icon' }, icon(g.icon || 'settings')),
-    h('span', { class: 't-item__text' }, h('span', { class: 't-item__title', text: g.label })),
-    icon('chevron-right'))))),
-    h('p', { class: 'fixed-note__foot', text: 'Other pages: hold Alt and click a link in the preview, or use the page menu at the top.' }));
+    }, h('span', { class: 'tlist__icon' }, icon(g.icon || 'settings', 'icon--sm')),
+    h('span', { class: 'tlist__text' }, h('span', { class: 'tlist__title', text: g.label })),
+    icon('chevron-right', 'icon--sm'))))) : null);
 }
 
 /* ------------------------------------------------------------------------
@@ -344,7 +264,7 @@ export function layoutInspector(inspectorHead) {
 
   const head = inspectorHead({
     title: layout.label,
-    help: `Shoppers see this layout on the ${words.many} chosen below, once it is published. Every other ${words.one} keeps the default layout. Sections and their settings are edited in the section list, as on any page.`,
+    help: `Shoppers see this layout on the ${words.many} chosen below, once it is published. Every other ${words.one} keeps the default layout. Sections and their settings are edited on the board, as on any page.`,
     kind: `Special ${page.label.toLowerCase()} layout`,
   });
   const body = h('div', { class: 'insp-body' });
@@ -438,7 +358,7 @@ async function renameLayout(layout, input, error) {
   try {
     applyLayouts(await ctx.api.renameTemplate(live.handle, label));
     updatePageButton();
-    ui.renderOutline();
+    ui.renderBoard();
     // The heading and the delete question name it too.
     if (S.sel?.kind === 'layout') ui.renderInspector();
     announce(`Renamed to ${label}`);
@@ -503,7 +423,7 @@ function toggleSubject(handle, id, name, onChange) {
     }
   }
   onChange?.();
-  ui.renderOutline();
+  ui.renderBoard();
 
   ctx.api.assign(layout.subjectType, [id], on ? null : handle).then((res) => {
     applyLayouts(res);
@@ -514,7 +434,7 @@ function toggleSubject(handle, id, name, onChange) {
       announce(on ? `${name} uses the default layout again` : `${name} uses ${layout.label}`);
     }
     onChange?.();
-    ui.renderOutline();
+    ui.renderBoard();
   }).catch((error) => {
     if (error.kind === 'unauthenticated' || error.kind === 'forbidden') {
       setFatal(error);
@@ -686,13 +606,8 @@ export function initLayouts() {
   ui.refreshLayouts = refreshLayouts;
   ui.forgetLayouts = forgetLayouts;
   ui.selectLayout = selectLayout;
-  ui.layoutRow = layoutRow;
-  ui.fixedPanel = fixedPanel;
   ui.layoutInspector = layoutInspector;
   ui.updatePageButton = updatePageButton;
-  ui.setScope = setScope;
-  ui.scopeOf = scopeOf;
-  ui.flashPicker = flashPicker;
   ui.layoutGone = (handle) => {
     const layout = templateOf(handle);
     if (layout) layoutGone(layout);

@@ -1,11 +1,9 @@
 /*
  * The settings drawer: what is selected on the layout board (a section, a
- * block, a row of columns) or the theme, at the right of the board. The
- * board narrows beside it and keeps its shape. On a phone it comes up from
- * the bottom over the board.
- *
- * While the board is shown, the settings panel beside the section list
- * gives way to the drawer; the store preview keeps that panel.
+ * block, a row of columns), the theme, the page's layout settings or
+ * earlier versions, at the right of the board. The board narrows beside it
+ * and keeps its shape. On a phone it is a sheet from the bottom, over the
+ * board.
  */
 
 .app {
@@ -22,18 +20,12 @@
   border-inline-start: 1px solid var(--line);
 }
 
-.app[data-canvas="board"][data-drawer="open"] .drawer:not([hidden]) {
+.app[data-drawer="open"] {
+  grid-template-columns: minmax(0, 1fr) var(--drawer-w);
+}
+
+.app[data-drawer="open"] .drawer:not([hidden]) {
   display: flex;
-}
-
-/* Doubled class: this file loads before the phone rules that show the panel. */
-.app.app[data-canvas="board"] .panel--inspector {
-  display: none;
-}
-
-/* The Theme door opens the drawer, so it only shows beside the board. */
-.app:not([data-canvas="board"]) .btn--theme {
-  display: none;
 }
 
 .btn--theme[aria-pressed="true"] {
@@ -47,66 +39,41 @@
   }
 }
 
-@media (min-width: 1180px) {
-  .app[data-canvas="board"] {
-    grid-template-columns: var(--nav-w) minmax(0, 1fr) 0;
-    grid-template-areas:
-      "top top top"
-      "nav canvas drawer";
-  }
-
-  .app[data-canvas="board"][data-drawer="open"] {
-    grid-template-columns: var(--nav-w) minmax(0, 1fr) var(--drawer-w);
-  }
-}
-
-/* Tablet: the section list and the drawer take turns beside the board. */
-@media (min-width: 720px) and (max-width: 1179px) {
-  .app[data-canvas="board"] {
-    grid-template-columns: var(--inspector-w) minmax(0, 1fr) 0;
-    grid-template-areas:
-      "top top top"
-      "side canvas drawer";
-  }
-
-  .app[data-canvas="board"][data-panel] .panel--nav {
-    display: flex;
-  }
-
-  .app[data-canvas="board"][data-drawer="open"] {
-    grid-template-columns: 0 minmax(0, 1fr) var(--drawer-w);
-  }
-
-  .app[data-canvas="board"][data-drawer="open"][data-panel] .panel--nav {
-    display: none;
-  }
-}
-
-/* Phone: a sheet from the bottom, over the board. */
+/* Phone: a sheet from the bottom, over the board, which keeps its full width. */
 @media (max-width: 719px) {
-  .app[data-canvas="board"][data-drawer="open"] .drawer:not([hidden]) {
+  .app[data-drawer="open"] {
+    grid-template-columns: minmax(0, 1fr) 0;
+  }
+
+  .app[data-drawer="open"] .drawer:not([hidden]) {
     position: fixed;
     inset-inline: 0;
     inset-block-end: 0;
     z-index: 40;
-    height: min(72vh, 640px);
+    height: min(86dvh, 720px);
     border: 0;
     border-radius: 14px 14px 0 0;
-    box-shadow: 0 -8px 30px rgb(16 20 28 / .18);
+    box-shadow: 0 -8px 30px rgb(16 20 28 / .22);
+  }
+
+  .drawer .sheet-handle {
+    display: block;
+    flex: none;
+    width: 36px;
+    height: 4px;
+    margin: 8px auto 0;
+    background: #c9ced6;
+    border-radius: 4px;
   }
 
   .btn--theme span {
     display: none;
   }
-}
 
-/* Back only where there is somewhere to go back to: a block to its section, a theme group to Theme. */
-.drawer .insp-back:not([data-back="section"]):not([data-back="theme"]) {
-  display: none;
-}
-
-.drawer .insp-back[data-back] {
-  display: inline-grid;
+  .btn--theme {
+    width: 34px;
+    padding: 0;
+  }
 }
 
 /* ------------------------------------------------------------------ Theme list */
@@ -167,6 +134,130 @@
 
 .tlist__item > .icon:last-child {
   color: var(--text-3);
+}
+
+/* Start from a store: the picture of the store the draft is based on. */
+.tlist__thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: var(--radius);
+}
+
+/* -------------------------------------------------------------- A section's blocks */
+
+.blist {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blist__item {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.blist__item.is-dragging {
+  opacity: .5;
+}
+
+.blist__grip {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  color: var(--text-3);
+  background: none;
+  border: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  cursor: grab;
+}
+
+.blist__grip:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.blist__main {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 6px 8px;
+  text-align: start;
+  color: var(--text);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+}
+
+.blist__item:has(.blist__grip) .blist__main {
+  padding-inline-start: 2px;
+}
+
+.blist__main:hover {
+  background: var(--hover);
+}
+
+.blist__icon,
+.blist__main > .icon:last-child {
+  flex: none;
+  color: var(--text-3);
+}
+
+.blist__text {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.blist__name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.blist__sub {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.blist__sub--need {
+  color: var(--warn);
+}
+
+.blist__sub--need.is-quiet {
+  color: var(--text-3);
+}
+
+.blist__item.is-hidden .blist__name,
+.blist__item.is-missing .blist__name {
+  color: var(--text-3);
+}
+
+.blist__add {
+  justify-self: start;
+  margin-block-start: 6px;
+}
+
+/* The name of a section or block, edited in place of the drawer's title. */
+.insp-rename {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+}
+
+.insp-title:focus {
+  outline: none;
 }
 
 /* ---------------------------------------------------------------- Row settings */

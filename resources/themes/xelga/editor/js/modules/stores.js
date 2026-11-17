@@ -1,10 +1,10 @@
 /*
  * Start from a store: the starting stores, offered from the first row
- * of Theme settings. Choosing a card asks, in the same panel, whether to
+ * of the Theme list in the drawer. Choosing a card asks, in the same panel, whether to
  * bring the look only (colors, fonts, buttons, product cards and spacing) or
  * the look and the home page (header, footer and home page sections). Applying writes the draft only,
  * with the version of every document it replaces; nothing goes live until
- * Publish. A quiet notice over the preview offers one-step Undo, which puts
+ * Publish. A quiet notice over the board offers one-step Undo, which puts
  * the exact drafts back; it goes away at the next change.
  */
 
@@ -12,8 +12,6 @@ import { $, h, icon, toast, announce } from './dom.js';
 import { S, ctx, ui, doc, addDocument, settingsDoc } from './state.js';
 import { flush, setFatal } from './drafts.js';
 import { detachDocument } from './operations.js';
-import { post, setNav, showPanel, isPhone, openSheet, closeSheet } from './selection.js';
-import { loadFrame } from './preview.js';
 
 /* The cards' pictures, built with the editor so they are served like its other files. */
 const THUMBS = import.meta.glob('../../../store-templates/*/thumbnail.jpg', { eager: true, query: '?url', import: 'default' });
@@ -40,35 +38,28 @@ const theStore = (name) => `the ${name} store`;
 const possessive = (name) => `${theStore(name)}'s`;
 
 /* ------------------------------------------------------------------------
-   The door: first row of Theme settings
+   The door: first row of the Theme list
    ------------------------------------------------------------------------ */
 
 export function startRow() {
   if (!stores().length || !settingsDoc()) return null;
   const based = basedOn();
   const look = storeBy(based.look);
-  const selected = S.sel?.kind === 'stores';
-  return h('div', { class: 't-start' }, h('button', {
-    type: 'button', class: `t-item t-item--store${selected ? ' is-selected' : ''}`, id: 'stores-row',
-    'aria-current': selected ? 'true' : null, onclick: openStores,
-  }, h('img', { class: 't-item__thumb', src: thumbOf(look), alt: '' }),
-  h('span', { class: 't-item__text' }, h('span', { class: 't-item__title', text: 'Start from a store' }),
-    h('span', { class: 't-item__desc', text: based.look === based.sections ? `Based on ${theStore(look.name)}` : `Look from ${theStore(look.name)}` })),
-  icon('chevron-right')));
+  return h('button', {
+    type: 'button', class: 'tlist__item tlist__item--store', id: 'stores-row', onclick: openStores,
+  }, h('img', { class: 'tlist__thumb', src: thumbOf(look), alt: '' }),
+  h('span', { class: 'tlist__text' }, h('span', { class: 'tlist__title', text: 'Start from a store' }),
+    h('span', { class: 'tlist__desc', text: based.look === based.sections ? `Based on ${theStore(look.name)}` : `Look from ${theStore(look.name)}` })),
+  icon('chevron-right', 'icon--sm'));
 }
 
 export function openStores() {
   picker.choice = null;
+  S.view = { type: 'theme' };
   S.sel = { kind: 'stores' };
-  post('select', { sectionId: null, blockId: null });
-  if (S.nav !== 'theme') setNav('theme', { keepSelection: true });
-  ui.renderThemeNav();
-  ui.renderOutline();
+  ui.renderBoard();
   ui.renderInspector();
-  showPanel('inspector');
-  if (isPhone()) openSheet('inspector');
-  ui.updateDock();
-  window.setTimeout(() => $('.store-card[aria-current="true"], .store-card', $('#inspector-body'))?.focus({ preventScroll: true }), 30);
+  window.setTimeout(() => $('.store-card[aria-current="true"], .store-card', $('#drawer-body'))?.focus({ preventScroll: true }), 30);
 }
 
 /* ------------------------------------------------------------------------
@@ -103,14 +94,14 @@ function chooseStore(slug) {
   picker.choice = slug;
   picker.bring = 'all';
   ui.renderInspector();
-  window.setTimeout(() => $('#apply-title', $('#inspector-body'))?.focus({ preventScroll: true }), 10);
+  window.setTimeout(() => $('#apply-title', $('#drawer-body'))?.focus({ preventScroll: true }), 10);
 }
 
 function cancelChoice() {
   const slug = picker.choice;
   picker.choice = null;
   ui.renderInspector();
-  window.setTimeout(() => $(`.store-card[data-store="${CSS.escape(slug || '')}"]`, $('#inspector-body'))?.focus(), 10);
+  window.setTimeout(() => $(`.store-card[data-store="${CSS.escape(slug || '')}"]`, $('#drawer-body'))?.focus(), 10);
 }
 
 /** Escape on the confirmation goes back to the cards. Answers whether it did. */
@@ -206,9 +197,8 @@ async function applyStore(store) {
       if (error.kind === 'conflict') {
         // Someone else saved one of these drafts: show theirs, and let the merchant decide again.
         adopt(Object.fromEntries((await Promise.all(handles.map((handle) => ctx.api.getDocument(handle).catch(() => null)))).filter(Boolean).map((d) => [d.handle, d])));
-        ui.renderOutline();
-        ui.renderThemeNav();
-        ui.reloadPreview?.();
+        ui.renderInspector();
+        ui.redrawPictures?.();
         toast(`${error.message} Their changes are loaded; apply again if you still want ${theStore(store.name)}.`, { tone: 'error', timeout: 10000 });
         return;
       }
@@ -220,28 +210,19 @@ async function applyStore(store) {
     lastApply = res.undo ? { token: res.undo, name: store.name } : null;
     picker.choice = null;
 
-    // Back to the section list and the preview: missing categories and products are picked from there.
+    // Back to the board of the home page: missing categories and products are picked from there.
     S.sel = null;
-    S.open.clear();
-    setNav('sections');
-    showPanel('nav');
-    if (isPhone()) closeSheet();
+    S.view = { type: 'board' };
     showApplyNote(`Applied ${theStore(store.name)} to your draft.`);
     if (S.page?.type !== 'home' || S.page?.layout) {
       await ui.openPage({ type: 'home' }, { saved: true });
     } else {
-      S.scope = 'page';
-      ui.rememberPage();
-      ui.updatePageButton();
-      ui.renderOutline();
-      ui.renderThemeNav();
       ui.renderInspector();
-      loadFrame();
+      ui.redrawPictures?.();
     }
     ui.updateToolbar();
-    ui.updateDock();
     announce(`Applied ${theStore(store.name)} to your draft.`);
-    $('#tab-sections').focus({ preventScroll: true });
+    $('#apply-undo').focus({ preventScroll: true });
   } catch (error) {
     failed(error, `The ${store.name} store was not applied.`);
   } finally {
@@ -274,13 +255,10 @@ async function undoApply() {
   }
   adopt(res.documents);
   S.sel = null;
-  ui.renderOutline();
-  ui.renderThemeNav();
   ui.renderInspector();
   ui.updateToolbar();
-  ui.updateDock();
-  loadFrame();
-  $('#tab-sections').focus({ preventScroll: true });
+  ui.redrawPictures?.();
+  $('#theme-btn').focus({ preventScroll: true });
   toast(res.message || `The ${name} store is taken off your draft. Your draft is back as it was.`, { tone: 'success' });
 }
 
@@ -292,6 +270,6 @@ export function initStores() {
   $('#apply-undo').addEventListener('click', undoApply);
   $('#apply-close').addEventListener('click', () => {
     endApplyNote();
-    $('#tab-sections').focus({ preventScroll: true });
+    $('#theme-btn').focus({ preventScroll: true });
   });
 }

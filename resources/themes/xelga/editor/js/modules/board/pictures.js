@@ -3,7 +3,7 @@
  * draws it from the draft, scaled down and cropped.
  *
  * One request draws the whole page: the draft page is fetched once, parsed
- * inertly and cleaned with the same allowlists as the preview frame. Each
+ * inertly and cleaned with allowlists (clean-html.js). Each
  * section is then shown in its own shadow root, inside an inert box with
  * no storefront scripts, so nothing in it runs, takes focus or is read out.
  * The theme's stylesheets are fetched once and shared by every shadow root.

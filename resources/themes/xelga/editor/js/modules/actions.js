@@ -1,14 +1,14 @@
 /*
- * Edits the outline and the inspector both offer: hide, rename, move,
- * duplicate, remove, and the same for blocks. Each one is a single
- * operation, so each one is a single undo step.
+ * Edits of sections and blocks from the board and the drawer: hide,
+ * rename, add, replace, duplicate, remove, and the same for blocks. Each
+ * one is a single operation, so each one is a single undo step.
  */
 
 import { announce, toast } from './dom.js';
-import { S, ctx, ui, sec, blk, doc, locate, groupList, groupIndex, blockList, usedIds, labelOf, valueOf, ensureShape, openOnly } from './state.js';
+import { S, ctx, ui, sec, blk, doc, locate, groupList, blockList, usedIds, labelOf, valueOf, ensureShape } from './state.js';
 import { sectionDef, blockDef, blockTypes } from './catalog.js';
 import { commit, undo, hasLayout, layoutPayload, rulesFor } from './operations.js';
-import { rowsOf, fits, spanAt, freshRowId, replaceIn, locate as locateIn } from './board/model.js';
+import { rowsOf, checkAddSpot, freshRowId, replaceIn } from './board/model.js';
 import { schemeSetting } from './board/choices.js';
 import { clone, humanize } from './util.js';
 import { select } from './selection.js';
@@ -26,11 +26,10 @@ export function toggleVisible(sid, bid = null) {
   ui.renderInspector();
 }
 
+/** Turns the name in the drawer's head into a field; Enter or leaving it keeps the new name. */
 export function startRename(sid, bid = null) {
   S.renaming = { sid, bid };
-  if (bid) openOnly(sid);
-  if (S.nav !== 'sections') ui.setNav?.('sections', { keepSelection: true });
-  ui.renderOutline();
+  ui.renderInspector();
 }
 
 export function rename(sid, bid, value) {
@@ -41,115 +40,6 @@ export function rename(sid, bid, value) {
   if (!to || to === labelOf(sid, bid)) return;
   commit({ t: 'rename', doc: at.handle, sid, bid, from: target.label, to });
   announce(`Renamed to ${to}`);
-}
-
-export function moveBy(sid, delta) {
-  const at = locate(sid);
-  if (!at) return false;
-  if (hasLayout(at.doc.content)) return moveInLayout(at, sid, delta);
-  const from = groupIndex(sid);
-  const count = groupList(at.group).length;
-  const to = from + delta;
-  if (to < 0 || to >= count) return false;
-  commit({ t: 'move', doc: at.handle, sid, from, to });
-  announce(`${labelOf(sid)} moved to position ${to + 1} of ${count}`);
-  return true;
-}
-
-export function moveTo(sid, to) {
-  const at = locate(sid);
-  const from = groupIndex(sid);
-  if (!at || from === to) return;
-  if (hasLayout(at.doc.content)) {
-    const target = layoutTargetAt(at.doc.content, sid, to);
-    if (target) commitPlace(at, sid, target);
-    return;
-  }
-  commit({ t: 'move', doc: at.handle, sid, from, to });
-  announce(`${labelOf(sid)} moved to position ${to + 1}`);
-}
-
-/*
- * On a page with rows the list shows the reading order, and a move goes
- * through the row model: a section alone in its row moves the row; one in
- * a column or a side moves within it, and past its end into a row of its own.
- */
-function moveInLayout(at, sid, delta) {
-  const c = at.doc.content;
-  const layout = layoutPayload();
-  const where = locateIn(c, sid, layout);
-  if (!where) return false;
-  const rows = rowsOf(c, layout);
-  if (where.where === 'row') {
-    const index = rows.findIndex((r) => r.id === where.rowId);
-    const row = rows[index];
-    if (row.split === '12') {
-      if (index + delta < 0 || index + delta >= rows.length) return false;
-      const before = delta < 0 ? rows[index - 1].id : rows[index + 2]?.id ?? 'end';
-      commit({ t: 'row-move', doc: at.handle, rowId: row.id, before, name: labelOf(sid) });
-      announceMove(sid);
-      return true;
-    }
-    const column = row.columns[where.column];
-    const inside = where.index + delta;
-    if (inside >= 0 && inside < column.length) {
-      const before = delta < 0 ? column[inside] : column[inside + 1] ?? null;
-      return commitPlace(at, sid, { drop: 'column', rowId: row.id, column: where.column, before });
-    }
-    return commitPlace(at, sid, { drop: 'gap', before: delta < 0 ? row.id : rows[index + 1]?.id ?? 'end' });
-  }
-  const list = c.sides?.[where.side] || [];
-  const inside = where.index + delta;
-  if (inside >= 0 && inside < list.length) {
-    const before = delta < 0 ? list[inside] : list[inside + 1] ?? null;
-    return commitPlace(at, sid, { drop: 'side', side: where.side, before });
-  }
-  // Out of the left side downwards, or out of the right side upwards, into the rows.
-  if (where.side === 'left' && delta > 0) return commitPlace(at, sid, { drop: 'gap', before: rows[0]?.id ?? 'end' });
-  if (where.side === 'right' && delta < 0) return commitPlace(at, sid, { drop: 'gap', before: 'end' });
-  return false;
-}
-
-/**
- * The row model's target for putting a section at a position of the
- * reading order: into the column or side it lands in the middle of, else
- * a row of its own in the gap before the next section's row.
- */
-function layoutTargetAt(c, sid, to) {
-  const layout = layoutPayload();
-  const order = c.order.filter((id) => id !== sid);
-  const prev = order[to - 1] ?? null;
-  const next = order[to] ?? null;
-  const rows = rowsOf(c, layout);
-  if (next === null) return { drop: 'gap', before: 'end' };
-  const n = locateIn(c, next, layout);
-  const p = prev === null ? null : locateIn(c, prev, layout);
-  if (!n) return null;
-  if (n.where === 'side') {
-    if (p?.where === 'side' && p.side === n.side) return { drop: 'side', side: n.side, before: next };
-    return n.side === 'left' ? { drop: 'side', side: 'left', before: next } : { drop: 'gap', before: 'end' };
-  }
-  if (p?.where === 'row' && p.rowId === n.rowId) {
-    const row = rows.find((r) => r.id === n.rowId);
-    if (row && row.split !== '12') {
-      return p.column === n.column
-        ? { drop: 'column', rowId: n.rowId, column: n.column, before: next }
-        : { drop: 'column', rowId: n.rowId, column: p.column, before: null };
-    }
-  }
-  return { drop: 'gap', before: n.rowId };
-}
-
-function commitPlace(at, sid, target) {
-  if (!fits(at.doc.content, sid, target, rulesFor(at.handle))) return false;
-  commit({ t: 'place', doc: at.handle, sid, target });
-  announceMove(sid);
-  return true;
-}
-
-function announceMove(sid) {
-  const count = groupList(locate(sid)?.group).length;
-  announce(`${labelOf(sid)} moved to position ${groupIndex(sid) + 1} of ${count}`);
 }
 
 /** How many sections of a type a document already has, for the schema's limit. */
@@ -234,7 +124,6 @@ export async function duplicateBlock(sid, bid) {
   const index = copy ? copy.content.sections[sid].block_order.indexOf(newBid) : at.data.block_order.indexOf(bid) + 1;
   commit({ t: 'block-add', doc: at.handle, sid, bid: newBid, index, snapshot, name: snapshot.label });
   copy?.settle();
-  openOnly(sid);
   toast(`${labelOf(sid, bid)} copied.`, { action: { label: 'Undo', run: undo } });
   select(sid, newBid);
 }
@@ -246,9 +135,6 @@ export async function duplicateBlock(sid, bid) {
  */
 async function copyOnServer(handle, sid, bid) {
   copying = true;
-  S.copying = sid;
-  ui.renderOutline();
-  ui.updateBusy?.();
   try {
     const saved = await flush({ handles: [handle] });
     const d = doc(handle);
@@ -284,9 +170,6 @@ async function copyOnServer(handle, sid, bid) {
     return null;
   } finally {
     copying = false;
-    S.copying = null;
-    ui.renderOutline();
-    ui.updateBusy?.();
   }
 }
 
@@ -328,40 +211,40 @@ export function removeSection(sid) {
   toast(`${name} removed.`, { action: { label: 'Undo', run: undo } });
 }
 
+/* What a refused spot of the board is told, by checkAddSpot's reason. */
+const SPOT_WORDS = {
+  gone: 'The page changed while you were choosing, and that spot is no longer on it. Nothing was added; choose where it goes again.',
+  full: 'That column holds as many sections as it can. Nothing was added.',
+};
+
 /**
- * Adds a section from the section picker or the add panel: a preset (settings and blocks) or a
- * variant with the schema's defaults. It goes at a place in the page's
- * order (`index`), or at a spot of the board (`target`, a row model
- * target), refused when the section is too wide for it.
+ * Adds a section from the section picker at a spot of the board
+ * (`target`, a row model target): a preset (settings and blocks) or a
+ * variant with the schema's defaults. The spot is checked against the page
+ * as it is now; one that is gone, full or too narrow is refused with the
+ * reason, and nothing is added somewhere else instead.
  */
-export function addSection(type, { variant = null, preset = null, index = null, target = null } = {}) {
+export function addSection(type, { variant = null, preset = null, target = null } = {}) {
   const def = sectionDef(type);
   const handle = S.page?.handle;
-  if (!def || !handle) return null;
+  const c = doc(handle)?.content;
+  if (!def || !handle || !c || !target) return null;
   if (def.limit && countOfType(handle, type) >= def.limit) {
     toast(`This page already has ${def.limit === 1 ? 'a' : def.limit} ${def.label}${def.limit === 1 ? '' : ' sections'}, the most it can have.`, { tone: 'error' });
     return null;
   }
   const { sid, snapshot } = buildSection(type, def, { variant, preset }, usedIds());
-  const count = groupList('template').length;
-  let at = Math.max(0, Math.min(index ?? count, count));
-  let spot = null;
-  const c = doc(handle)?.content;
-  if (target && c) {
-    if (!hasLayout(c) && target.drop === 'gap') {
-      // A page of full-width sections only: the gap is a place in its order.
-      at = orderIndexOfGap(c, target);
-    } else {
-      const rules = rulesFor(handle);
-      if (rules.minSpan(snapshot) > spanAt(c, target, rules)) {
-        toast(`${def.label} needs a wider spot than that one.`, { tone: 'error' });
-        return null;
-      }
-      spot = target;
-      at = count;
-    }
+  const rules = rulesFor(handle);
+  const spot = checkAddSpot(c, target, snapshot, rules);
+  if (!spot.ok) {
+    toast(SPOT_WORDS[spot.reason] || `${def.label} needs a wider spot than that one.`, { tone: 'error', timeout: 8000 });
+    return null;
   }
-  commit({ t: 'insert', kind: 'add', doc: handle, sid, group: 'template', index: at, snapshot, name: def.label, target: spot });
+  const count = groupList('template').length;
+  // A page of full-width sections only: the gap is a place in its order.
+  const plain = !hasLayout(c) && target.drop === 'gap';
+  const index = plain ? orderIndexOfGap(c, target) : count;
+  commit({ t: 'insert', kind: 'add', doc: handle, sid, group: 'template', index, snapshot, name: def.label, target: plain ? null : target });
   return sid;
 }
 
@@ -433,11 +316,16 @@ export function addRowAt(split, target) {
   const c = doc(handle)?.content;
   const layout = layoutPayload();
   if (!c || !layout?.splits?.[split]) return null;
+  const before = target?.before ?? 'end';
+  if (before !== 'end' && !rowsOf(c, layout).some((r) => r.id === before)) {
+    toast(SPOT_WORDS.gone, { tone: 'error', timeout: 8000 });
+    return null;
+  }
   if (rowsOf(c, layout).length >= layout.max_rows) {
     toast(`This page has ${layout.max_rows} rows, the most it can have.`, { tone: 'error' });
     return null;
   }
-  const op = { t: 'row-add', doc: handle, split, before: target?.before ?? 'end', rowId: freshRowId(c, layout) };
+  const op = { t: 'row-add', doc: handle, split, before, rowId: freshRowId(c, layout) };
   commit(op);
   if (!op.prior) return null;
   const text = `Row added: ${layout.splits[split].label.toLowerCase()}. Add sections to its columns.`;
@@ -511,7 +399,6 @@ export function addBlock(sid, type) {
   const snapshot = { type, label: `${def.label || humanize(type)} ${same + 1}`, disabled: false, settings: {} };
   const index = at.data.block_order.length;
   commit({ t: 'block-add', doc: at.handle, sid, bid, index, snapshot, name: snapshot.label });
-  openOnly(sid);
   announce(`${snapshot.label} added to ${labelOf(sid)}`);
   select(sid, bid);
 }

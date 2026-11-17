@@ -5,12 +5,11 @@
  * (fingers already swipe it natively).
  *
  * Autoplay pauses while a shopper points at or focuses the row, holds after
- * the shopper presses pause, and does not start with reduced motion. In the
- * editor preview it keeps moving under the pointer and holds only while this
- * section (or a product in it) is selected. The arrows and the row's own
- * scrolling live in rail.js, shared with other sections.
+ * the shopper presses pause, and does not start with reduced motion. The
+ * arrows and the row's own scrolling live in rail.js, shared with other
+ * sections.
  */
-import { $, icon, reduceMotion, inEditorPreview, EDITOR_SELECT } from '../util.js';
+import { $, icon, reduceMotion } from '../util.js';
 import { dragGesture, dragPassed } from '../drag.js';
 import { moveRail } from './rail.js';
 
@@ -56,8 +55,7 @@ export function initRailAutoplay(section) {
   const stop = () => { window.clearInterval(timer); timer = null; };
   const start = () => {
     stop();
-    const held = section.hasAttribute('data-editor-selected');
-    if (userPaused || held || pressing || focused || (hovering && !inEditorPreview())) return;
+    if (userPaused || pressing || focused || hovering) return;
     timer = window.setInterval(advance, interval);
   };
   const syncPauseButton = () => {
@@ -75,9 +73,8 @@ export function initRailAutoplay(section) {
 
   section.addEventListener('mouseenter', () => { hovering = true; start(); }, { signal });
   section.addEventListener('mouseleave', () => { hovering = false; start(); }, { signal });
-  section.addEventListener('focusin', (event) => {
-    // In the preview a click focuses whatever it lands on; only keyboard focus pauses there.
-    focused = !inEditorPreview() || event.target.matches(':focus-visible');
+  section.addEventListener('focusin', () => {
+    focused = true;
     start();
   }, { signal });
   section.addEventListener('focusout', (event) => {
@@ -85,7 +82,6 @@ export function initRailAutoplay(section) {
     focused = false;
     start();
   }, { signal });
-  section.addEventListener(EDITOR_SELECT, start, { signal });
 
   // A finger swiping the row starts the wait for the next move again.
   track.addEventListener('pointerdown', () => { pressing = true; stop(); }, { signal });

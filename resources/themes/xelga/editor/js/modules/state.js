@@ -6,32 +6,24 @@
  *
  * The page being edited is drawn from three documents: the header group,
  * the page's template and the footer group. Section ids are unique across
- * those three, because the preview addresses a section by id alone.
- *
- * The section list shows one of two scopes. A page's own scope lists its
- * template only. The header and footer are one design on every page, so
- * they are edited in their own scope, "Header and footer", while the preview
- * keeps showing whichever page is open.
+ * those three, because a section is found by its id alone (the board, the
+ * drawer, the store's section-only answer).
  */
 
 import { clone } from './util.js';
 import { sectionDef, blockDef, themeSetting } from './catalog.js';
 
-/** Shared services, set once at start: api, bridge, boot payload. */
-export const ctx = { api: null, bridge: null, boot: null };
+/** Shared services, set once at start: api, boot payload. */
+export const ctx = { api: null, boot: null };
 
 /**
  * Render hooks. Each UI module registers its own, so modules can ask for a
  * redraw without importing each other.
  */
 export const ui = {
-  renderOutline() {},
+  renderBoard() {},
   renderInspector() {},
-  renderThemeNav() {},
-  renderAdd() {},
-  renderRevisions() {},
   updateToolbar() {},
-  updateDock() {},
   refreshVisibility() {},
   refreshFieldErrors() {},
 };
@@ -41,32 +33,21 @@ export const S = {
   user: null,
   pages: [], // page types the picker lists (boot.js normalizePage)
   page: null, // the page open now: a page from `pages`, or a special layout of one ({ ..., handle, layout })
-  scope: 'page', // what the section list edits: 'page' (the page's own sections) or 'shared' (header and footer)
   templates: [], // special layouts (boot.js normalizeTemplate)
   draftVersions: {}, // handle -> draft_version of every document with a draft, loaded or not
   docs: {}, // handle -> document record (see addDocument)
   loaded: false, // documents for the current page are in memory
-  frameReady: false, // the preview answered `ready`
-  frameEpoch: 0, // counts the preview's `ready` answers, so a slow redraw can tell the page loaded again
-  supports: null, // the bridge messages the preview said it can apply
-  pageData: null, // the preview's own list of sections, for cross-checks
   history: [], // operations made in this visit
   pointer: 0, // how many of history are applied
   seq: 0, // increasing number given to each operation
-  sel: null, // { kind: 'section', sid, bid } | { kind: 'theme', group, scheme? }
-  // What the layout board shows beside the page: {type: 'board'} (nothing
-  // more), {type: 'section', sid}, {type: 'row', rowId},
-  // {type: 'theme'} or {type: 'schemes'}.
+  // What is selected: { kind: 'section', sid, bid } | { kind: 'theme', group, scheme? }
+  // | { kind: 'layout' } | { kind: 'stores' }; its settings show in the drawer.
+  sel: null,
+  // What the board marks and the drawer shows: {type: 'board'} (nothing),
+  // {type: 'section', sid} (follows the selection), {type: 'row', rowId},
+  // {type: 'theme'} or {type: 'revisions'}.
   view: { type: 'board' },
-  canvas: 'board', // what the canvas shows: 'board' (the layout board) or 'preview' (the store preview)
-  open: new Set(), // sections expanded in the outline
-  nav: 'sections', // sections | theme | add | revisions
-  addAt: null, // { index, open, query } while the add section panel is open
-  device: 'desktop',
-  renaming: null, // { sid, bid } while a name is being edited
-  sheetOpen: false,
-  rendering: new Set(), // section ids waiting for a server re-render
-  copying: null, // the section id the server is copying (or copying a block of)
+  renaming: null, // { sid, bid } while a name is being edited in the drawer
   presence: [], // other admins in the editor
   online: true,
   fatal: null, // { kind, message } when the editor cannot continue
@@ -82,15 +63,6 @@ export const GROUPS = [
 /* ------------------------------------------------------------------------
    Documents
    ------------------------------------------------------------------------ */
-
-/**
- * One section shows its blocks in the outline at a time: opening a section
- * closes the one that was open, so the list stays short enough to scan.
- */
-export function openOnly(sid) {
-  S.open.clear();
-  S.open.add(sid);
-}
 
 export function emptyContent(kind) {
   return kind === 'settings'
@@ -202,19 +174,6 @@ export function groupHandle(group) {
 /** A page with a fixed layout (checkout, sign in, account): only theme settings change it. */
 export const isFixed = () => S.page?.kind === 'fixed';
 
-/** The section list edits the header and footer. A fixed page has no list, so never. */
-export const isShared = () => S.scope === 'shared' && !isFixed();
-
-/** The scope a document's sections are edited in. */
-export const scopeOfHandle = (handle) => (handle === 'header' || handle === 'footer' ? 'shared' : 'page');
-
-/** The groups the section list shows now. */
-export const groupsInScope = () => GROUPS.filter((g) => (g.key === 'template') !== isShared());
-
-/** What the page picker and the address call the header and footer scope. */
-export const SHARED_LABEL = 'Header and footer';
-export const SHARED_PARAM = 'header-footer';
-
 /** The documents that draw the current page, in page order. */
 export const pageHandles = () => (isFixed() ? ['header', 'footer'] : ['header', groupHandle('template'), 'footer']);
 
@@ -262,8 +221,6 @@ export function locate(sid) {
 
 export const sec = (sid) => locate(sid)?.data || null;
 
-/** The section is waiting for the server: a redraw or a copy. */
-export const isBusy = (sid) => S.rendering.has(sid) || S.copying === sid;
 export const blk = (sid, bid) => sec(sid)?.blocks?.[bid] || null;
 
 /** Sections of one group in order, each as { id, ...data }. */
@@ -271,11 +228,6 @@ export function groupList(group) {
   const d = doc(groupHandle(group));
   if (!d?.content?.order) return [];
   return d.content.order.map((id) => ({ id, ...d.content.sections[id] })).filter((s) => s.type);
-}
-
-export function groupIndex(sid) {
-  const at = locate(sid);
-  return at ? at.doc.content.order.indexOf(sid) : -1;
 }
 
 export function blockList(sid) {

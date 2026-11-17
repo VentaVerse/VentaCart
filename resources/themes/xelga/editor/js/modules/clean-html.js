@@ -1,7 +1,6 @@
 /*
- * Cleans markup from the server before the editor shows it: the preview
- * frame puts a redrawn section into the store page, and the layout board
- * draws each section's picture from a draft page.
+ * Cleans markup from the server before the editor shows it: the layout
+ * board draws each section's picture from a draft page.
  *
  * The markup is the store's own preview answer, fetched from this origin,
  * and is parsed inertly (a template element or DOMParser). It is still
@@ -9,9 +8,6 @@
  * past every other check cannot run: elements that can run or load code
  * are removed, every inline handler is dropped, and an address is kept only
  * when its scheme is one a storefront link or image needs.
- *
- * Shared by the preview frame (frame.js) and the editor, so both clean
- * alike.
  */
 
 export const MAX_HTML = 2000000;
@@ -94,13 +90,3 @@ export function cleanFragment(html) {
   return cleanTree(tpl.content);
 }
 
-/**
- * The one top-level element of the markup that matches `selector` and whose
- * `attr` is `id`, cleaned and ready to join this document, or null.
- */
-export function pickOne(html, selector, id, attr) {
-  if (typeof html !== 'string' || html === '' || html.length > MAX_HTML) return null;
-  const fragment = cleanFragment(html);
-  const el = Array.from(fragment.children).find((node) => node.matches(selector) && node.getAttribute(attr) === id);
-  return el ? globalThis.document.importNode(el, true) : null;
-}

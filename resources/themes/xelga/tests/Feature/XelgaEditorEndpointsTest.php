@@ -75,6 +75,31 @@ class XelgaEditorEndpointsTest extends TestCase
     }
 
     /* --------------------------------------------------------------------
+       The editor page
+       -------------------------------------------------------------------- */
+
+    public function test_the_editor_shell_has_no_preview_frame(): void
+    {
+        $html = $this->actingAs($this->admin())->get(route('admin.xelga.editor'))->assertOk()->getContent();
+
+        // The layout board is the whole editor: the store is only seen in a tab of its own.
+        $this->assertStringNotContainsString('<iframe', $html);
+        $this->assertStringNotContainsString('frame.js', $html);
+        $this->assertStringContainsString('id="xelga-editor"', $html);
+
+        // No frame, so no message protocol to agree on with one.
+        preg_match('#<script type="application/json" id="xelga-boot">(.*?)</script>#s', $html, $m);
+        $boot = json_decode($m[1] ?? '', true);
+        $this->assertIsArray($boot);
+        $this->assertArrayNotHasKey('protocol', $boot);
+        $this->assertArrayNotHasKey('origin', $boot['preview']);
+
+        // The page shown before the editor's files are built links to the store instead of framing it.
+        $shell = (string) file_get_contents(dirname(__DIR__, 2) . '/views/editor/shell.blade.php');
+        $this->assertStringNotContainsString('<iframe', $shell);
+    }
+
+    /* --------------------------------------------------------------------
        One section on its own
        -------------------------------------------------------------------- */
 

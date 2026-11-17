@@ -1,15 +1,11 @@
 /*
  * Inspector forms, generated from catalog settings. Basic settings come
  * first; settings marked `advanced` sit behind the Advanced disclosure.
- * Pointing at a field (hover or focus) outlines in the preview the part of
- * the store it changes. Every change goes straight to the preview.
  */
 
 import { h, icon, helpTip } from '../dom.js';
-import { S, pageHandles } from '../state.js';
-import { THEME_GROUP_TARGETS, isFormSetting } from '../catalog.js';
+import { isFormSetting } from '../catalog.js';
 import { humanize } from '../util.js';
-import { pointField, unpointField, highlight } from '../preview.js';
 import { buildControl } from './controls.js';
 
 /** The form currently shown, for visible_if refreshes and error marks. */
@@ -112,40 +108,6 @@ function fieldRow(setting, fctx, read, onChange) {
     focusable?.setAttribute('aria-describedby', `${id}-help`);
   }
 
-  // Pointing at a field outlines the part of the store it changes.
-  const point = () => {
-    row.classList.add('is-pointed');
-    if (fctx.kind === 'theme') {
-      const type = THEME_GROUP_TARGETS[fctx.group];
-      const target = type && findSectionOfType(type);
-      if (target) highlight(target);
-    } else {
-      pointField(fctx.sid, fctx.bid, setting.key);
-    }
-  };
-  const unpoint = () => {
-    row.classList.remove('is-pointed');
-    unpointField();
-  };
-  row.addEventListener('mouseenter', point);
-  row.addEventListener('mouseleave', () => {
-    if (!row.contains(document.activeElement)) unpoint();
-  });
-  row.addEventListener('focusin', point);
-  row.addEventListener('focusout', (e) => {
-    if (!row.contains(e.relatedTarget)) unpoint();
-  });
-
   if (!visibleIf(setting, read)) row.hidden = true;
   return row;
-}
-
-function findSectionOfType(type) {
-  for (const handle of pageHandles()) {
-    const c = S.docs[handle]?.content;
-    if (!c?.order) continue;
-    const id = c.order.find((sid) => c.sections[sid]?.type === type && !c.sections[sid].disabled);
-    if (id) return id;
-  }
-  return null;
 }

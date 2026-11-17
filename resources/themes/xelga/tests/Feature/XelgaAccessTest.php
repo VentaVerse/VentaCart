@@ -99,7 +99,6 @@ class XelgaAccessTest extends TestCase
         preg_match('#<script type="application/json" id="xelga-boot">(.*?)</script>#s', $response->getContent(), $m);
         $boot = json_decode(html_entity_decode($m[1] ?? '', ENT_QUOTES), true) ?? json_decode($m[1] ?? '', true);
 
-        $this->assertSame(1, $boot['protocol']);
         $this->assertSame(array_keys(\Themes\Xelga\Catalog\Catalog::sections()), array_keys($boot['catalog']['sections']));
         $this->assertArrayHasKey('hero', $boot['catalog']['sections']);
         $this->assertSame('Main banner', $boot['catalog']['sections']['hero']['label']);

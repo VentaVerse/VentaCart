@@ -5,7 +5,7 @@
  * is core's. The shipping estimate asks core's estimate route with the same
  * address lookups core's checkout uses.
  */
-import { $, $$, inEditorPreview } from '../util.js';
+import { $, $$ } from '../util.js';
 import { send, messageOf, money, cartChanged } from '../cart.js';
 
 const el = (tag, className, text) => {
@@ -177,7 +177,6 @@ function bindEstimate(section, endpoints, signal) {
 }
 
 export function initCartPage(section) {
-  if (inEditorPreview()) return null;
   let endpoints = {};
   try {
     endpoints = JSON.parse(section.dataset.endpoints || '{}');

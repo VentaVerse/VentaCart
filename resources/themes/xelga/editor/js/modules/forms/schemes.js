@@ -7,17 +7,17 @@
  * Publish.
  *
  * Where each scheme is used comes from the server (every page, read from
- * the saved drafts), so it is asked for once the draft is saved, and again
- * after a change while a count is on screen.
+ * the saved drafts), so it is asked for when a count first shows, and again
+ * only after a saved change that can move a use.
  */
 
 import { $$, h, icon, helpTip } from '../dom.js';
-import { S, ctx, ui, schemes, templateOf } from '../state.js';
-import { themeGroups } from '../catalog.js';
+import { S, ctx, ui, schemes, templateOf, sec } from '../state.js';
+import { themeGroups, sectionDef, blockDef } from '../catalog.js';
 import { readability, isHex, humanize } from '../util.js';
 import { commit, onChange } from '../operations.js';
 import { radioItems, radioKeys, openThemeGroup } from '../selection.js';
-import { flush } from '../drafts.js';
+import { flush, onSaved } from '../drafts.js';
 
 /** The schemes a picker offers: id and colors, never a stored name. */
 export function schemeChoices(list) {
@@ -67,13 +67,43 @@ function loadUsage() {
 /** Counts and places on screen, so the server is only asked when one shows. */
 const usageShown = () => $$('[data-uses-of], [data-places-of], .scheme-swatch[data-value]').length > 0;
 
-// A change may move a scheme's uses: ask again a moment later, if any are on screen.
+/* The changes that can add, drop or move a use of a color scheme. */
+const SCHEME_OPS = new Set(['insert', 'remove', 'replace', 'block-add', 'block-remove', 'row-split', 'row-remove']);
+
+/**
+ * Whether a change can change where a color scheme is used: a section or
+ * block setting that holds a scheme (`isSchemeSetting(op)`), a row's
+ * background, a section or block added or removed, a row removed or turned
+ * into one column (a one-column row's background is its section's). Moves,
+ * names, visibility and colors leave every use where it was.
+ */
+export function changesSchemeUse(op, isSchemeSetting) {
+  if (!op) return false;
+  if (op.t === 'set') return Boolean(isSchemeSetting(op));
+  if (op.t === 'row-set') return op.key === 'scheme';
+  return SCHEME_OPS.has(op.t);
+}
+
+/* A section or block setting that holds a color scheme. */
+function isSchemeSetting(op) {
+  const s = sec(op.sid);
+  if (!s) return false;
+  const settings = op.bid ? blockDef(s.type, s.blocks?.[op.bid]?.type)?.settings : sectionDef(s.type)?.settings;
+  return (settings || []).some((d) => d.key === op.key && d.type === 'color-scheme');
+}
+
+// Uses are counted from the saved drafts, so a change that can move one is
+// asked about again once it is saved, and only if a count is on screen.
 onChange((op) => {
-  if (op.t === 'rename') return;
+  if (!changesSchemeUse(op, isSchemeSetting)) return;
   usage.stale = true;
   usage.changes += 1;
+});
+
+onSaved(() => {
+  if (!usage.stale || usage.loading) return;
   window.clearTimeout(usage.timer);
-  usage.timer = window.setTimeout(() => { if (usageShown()) loadUsage(); }, USAGE_WAIT_MS);
+  usage.timer = window.setTimeout(() => { if (usageShown()) loadUsage(); }, 0);
 });
 
 /** Writes the counts and places into whatever shows them now. */

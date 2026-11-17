@@ -1,16 +1,14 @@
 /*
- * The editor's page structure: top bar, the two side panels, the canvas
- * (the layout board, or the store preview) and the phone dock. The server's shell only provides the boot data
- * and a mount point; everything inside is drawn here, so the markup and the
- * code that drives it change together.
+ * The editor's page structure: the top bar, the layout board and the
+ * settings drawer beside it (a sheet from the bottom on a phone). The
+ * server's shell only provides the boot data and a mount point; everything
+ * inside is drawn here, so the markup and the code that drives it change
+ * together. The store itself is only seen in a tab of its own, through
+ * Open store preview.
  */
 
-import { h, icon, dotsIcon } from './dom.js';
-
-const deviceButton = (device, label, iconName, checked) => h('button', {
-  type: 'button', role: 'radio', 'aria-checked': String(checked), tabindex: checked ? 0 : -1,
-  dataset: { device }, 'aria-label': label, 'data-tip': label,
-}, icon(iconName));
+import { $, h, icon, dotsIcon } from './dom.js';
+import { S, ctx } from './state.js';
 
 export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/' } = {}) {
   const topbar = h('header', { class: 'topbar' },
@@ -24,11 +22,6 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
         h('span', { class: 'picker-btn__label', text: 'Page' }),
         h('span', { class: 'picker-btn__value', id: 'page-name', text: 'Home page' }),
         icon('chevron-down', 'icon--sm'))),
-    h('div', { class: 'topbar__center' },
-      h('div', { class: 'seg seg--icons', role: 'radiogroup', 'aria-label': 'Preview size', id: 'device-toggle' },
-        deviceButton('desktop', 'Desktop', 'monitor', true),
-        deviceButton('tablet', 'Tablet', 'tablet', false),
-        deviceButton('phone', 'Phone', 'smartphone', false))),
     h('div', { class: 'topbar__end' },
       h('div', { class: 'btn-pair' },
         h('button', { type: 'button', class: 'icon-btn', id: 'undo-btn', 'aria-label': 'Undo', 'data-tip': 'Undo (Ctrl+Z)', disabled: true }, icon('undo')),
@@ -37,7 +30,7 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
         icon('user', 'icon--sm'), h('span', { class: 'presence__text' })),
       h('p', { class: 'status', id: 'status', role: 'status', 'aria-live': 'polite' },
         h('span', { class: 'status__dot', 'aria-hidden': 'true' }), h('span', { class: 'status__text', text: 'Loading store' })),
-      h('button', { type: 'button', class: 'btn btn--ghost btn--theme', id: 'theme-btn', 'aria-pressed': 'false', 'data-tip': 'Colors, fonts and buttons for the whole store' },
+      h('button', { type: 'button', class: 'btn btn--ghost btn--theme', id: 'theme-btn', 'aria-pressed': 'false', 'aria-label': 'Theme', 'data-tip': 'Colors, fonts and buttons for the whole store' },
         icon('palette', 'icon--sm'), h('span', { text: 'Theme' })),
       h('a', {
         class: 'btn btn--ghost btn--preview', id: 'preview-link', href: storeUrl, target: '_blank', rel: 'noopener',
@@ -47,21 +40,6 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
       h('button', { type: 'button', class: 'btn btn--secondary', id: 'save-btn', disabled: true }, h('span', { class: 'btn__label', text: 'Save draft' })),
       h('button', { type: 'button', class: 'btn btn--primary', id: 'publish-btn', disabled: true }, h('span', { class: 'btn__label', text: 'Publish' }))));
 
-  const nav = h('aside', { class: 'panel panel--nav', id: 'nav-panel', 'aria-label': 'Page sections and theme settings' },
-    h('div', { class: 'sheet-handle', 'aria-hidden': 'true' }),
-    h('div', { class: 'panel__tabs', role: 'tablist', 'aria-label': 'Edit' },
-      h('button', { type: 'button', role: 'tab', id: 'tab-sections', 'aria-selected': 'true', 'aria-controls': 'nav-sections' }, 'Sections'),
-      h('button', { type: 'button', role: 'tab', id: 'tab-theme', 'aria-selected': 'false', 'aria-controls': 'nav-theme', tabindex: -1 }, 'Theme settings'),
-      h('button', { type: 'button', class: 'icon-btn sheet-close', 'data-sheet-close': true, 'aria-label': 'Close panel' }, icon('close'))),
-    h('div', { class: 'panel__body', id: 'nav-sections', role: 'tabpanel', 'aria-labelledby': 'tab-sections' }),
-    h('div', { class: 'panel__body', id: 'nav-theme', role: 'tabpanel', 'aria-labelledby': 'tab-theme', hidden: true }),
-    h('div', { class: 'panel__body', id: 'nav-add', hidden: true }),
-    h('div', { class: 'panel__body', id: 'nav-revisions', hidden: true }));
-
-  const skeleton = h('div', { class: 'frame-skeleton', id: 'frame-skeleton', 'aria-hidden': 'true' },
-    h('div', { class: 'sk sk--bar' }), h('div', { class: 'sk sk--nav' }), h('div', { class: 'sk sk--hero' }),
-    h('div', { class: 'sk-row' }, h('div', { class: 'sk sk--card' }), h('div', { class: 'sk sk--card' }), h('div', { class: 'sk sk--card' }), h('div', { class: 'sk sk--card' })));
-
   // After a starting store is applied: what was applied, with its one-step undo.
   const applyNote = h('div', { class: 'apply-note', id: 'apply-note', role: 'status', hidden: true },
     icon('check', 'icon--sm'),
@@ -69,39 +47,20 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
     h('button', { type: 'button', class: 'apply-note__undo', id: 'apply-undo' }, 'Undo'),
     h('button', { type: 'button', class: 'icon-btn icon-btn--sm apply-note__close', id: 'apply-close', 'aria-label': 'Dismiss' }, icon('close', 'icon--sm')));
 
-  // The layout board, and the store preview beside it until the board does everything the preview did.
-  const canvasSwitch = h('div', { class: 'seg canvas-switch', id: 'canvas-switch', role: 'radiogroup', 'aria-label': 'Show' },
-    h('button', { type: 'button', role: 'radio', 'aria-checked': 'true', tabindex: 0, dataset: { canvas: 'board' } }, icon('layout', 'icon--sm'), h('span', { text: 'Board' })),
-    h('button', { type: 'button', role: 'radio', 'aria-checked': 'false', tabindex: -1, dataset: { canvas: 'preview' } }, icon('monitor', 'icon--sm'), h('span', { text: 'Preview' })));
-
   const canvas = h('main', { class: 'canvas', id: 'canvas' },
-    canvasSwitch,
     h('div', { class: 'board', id: 'board', role: 'region', 'aria-label': 'Page layout' }),
     applyNote,
-    h('div', { class: 'frame-wrap', id: 'frame-wrap' },
-      h('iframe', { id: 'frame', title: 'Store preview', src: 'about:blank' }),
-      skeleton,
-      h('div', { class: 'canvas-state', id: 'canvas-state', hidden: true })),
-    h('p', { class: 'frame-size', id: 'frame-size', 'aria-live': 'polite' }));
+    h('div', { class: 'canvas-state', id: 'canvas-state', hidden: true }));
 
-  const inspector = h('aside', { class: 'panel panel--inspector', id: 'inspector', 'aria-label': 'Settings' },
-    h('div', { class: 'sheet-handle', 'aria-hidden': 'true' }),
-    h('div', { class: 'inspector', id: 'inspector-body' }));
-
-  // Beside the board, the settings of what is selected open here instead of in the panel.
+  // The settings of what is selected. On a phone it comes up as a sheet over the board.
   const drawer = h('aside', { class: 'drawer', id: 'drawer', 'aria-label': 'Settings', hidden: true },
+    h('div', { class: 'sheet-handle', 'aria-hidden': 'true' }),
     h('div', { class: 'inspector', id: 'drawer-body' }));
-
-  const dock = h('nav', { class: 'dock', 'aria-label': 'Editor panels' },
-    h('button', { type: 'button', class: 'dock__btn', dataset: { dock: 'sections' } }, icon('layers'), h('span', { text: 'Sections' })),
-    h('button', { type: 'button', class: 'dock__btn', dataset: { dock: 'theme' } }, icon('palette'), h('span', { text: 'Theme' })),
-    h('button', { type: 'button', class: 'dock__btn', dataset: { dock: 'selected' }, id: 'dock-selected', disabled: true },
-      icon('settings'), h('span', { id: 'dock-selected-label', text: 'Tap the store to edit' })));
 
   const app = h('div', {
     class: 'app', id: 'app',
-    dataset: { device: 'desktop', nav: 'sections', panel: 'nav', state: 'loading', sheet: 'closed', canvas: 'board', loaded: 'false', drawer: 'closed' },
-  }, topbar, nav, canvas, inspector, drawer, dock);
+    dataset: { state: 'loading', loaded: 'false', drawer: 'closed' },
+  }, topbar, canvas, drawer);
 
   mount.replaceChildren(app,
     h('div', { class: 'popover-layer', id: 'popover-layer' }),
@@ -110,9 +69,45 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
   return app;
 }
 
-/** Skeleton rows in both panels while the documents load. */
-export function panelsLoading() {
-  const rows = () => h('div', { class: 'sk-rows', 'aria-hidden': 'true' }, ...Array.from({ length: 9 }, () => h('div', { class: 'sk' })));
-  document.getElementById('nav-sections').replaceChildren(rows());
-  document.getElementById('inspector-body').replaceChildren(rows());
+/* ------------------------------------------------------------------------
+   The editor's state, and what shows instead of the board when it cannot
+   be drawn: the documents did not load, or the editor cannot go on.
+   ------------------------------------------------------------------------ */
+
+/** 'loading', 'ready', 'error' (the documents did not load) or 'fatal'. */
+export function setAppState(state) {
+  $('#app').dataset.state = state;
+}
+
+export function canvasState({ iconName, title, text, actions = [] }) {
+  const box = $('#canvas-state');
+  box.replaceChildren(h('div', { class: 'canvas-state__inner' },
+    h('div', { class: 'canvas-state__icon' }, icon(iconName)),
+    h('h2', { text: title }),
+    h('p', { text }),
+    actions.length ? h('div', { class: 'canvas-state__actions' }, ...actions) : null));
+  box.hidden = false;
+}
+
+export function hideCanvasState() {
+  $('#canvas-state').hidden = true;
+}
+
+/** Signed out, or no access: the editor stops and says what to do. */
+export function showFatal() {
+  const f = S.fatal;
+  if (!f) return;
+  setAppState('fatal');
+  const signedOut = f.kind === 'unauthenticated';
+  canvasState({
+    iconName: signedOut ? 'user' : 'shield-check',
+    title: signedOut ? 'Your session has ended' : 'You do not have access to the theme editor',
+    text: signedOut
+      ? 'Sign in again to keep editing. Changes that were not saved yet are kept in this tab until you leave it.'
+      : 'Your account cannot change themes. Ask an admin to give your user group the Themes edit permission.',
+    actions: signedOut
+      ? [h('a', { class: 'btn btn--primary', href: ctx.boot.routes?.login || window.location.href, target: '_blank', rel: 'noopener' }, 'Sign in again'),
+        h('button', { type: 'button', class: 'btn btn--secondary', onclick: () => window.location.reload() }, 'Reload the editor')]
+      : [h('a', { class: 'btn btn--secondary', href: ctx.boot.routes?.exit || '/' }, 'Back to admin')],
+  });
 }

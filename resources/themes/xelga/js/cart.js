@@ -156,8 +156,6 @@ async function toggleWishlist(button) {
 
 export function bindBuying() {
   document.addEventListener('click', (event) => {
-    if (root.classList.contains('in-editor')) return;
-
     const add = event.target.closest('[data-add-to-cart]');
     if (add) {
       event.preventDefault();

@@ -9,7 +9,7 @@
  * (cart.mini `groups`), each group is drawn under its header. The drawer is a native dialog, so focus
  * stays inside it and Escape closes it.
  */
-import { $, $$, root, inEditorPreview } from './util.js';
+import { $, $$, root } from './util.js';
 import { send, messageOf, money, setCartCount, toast, cartChanged } from './cart.js';
 
 let drawer = null;
@@ -330,7 +330,7 @@ export function bindCartDrawer() {
     const open = event.target.closest('[data-cart-open]');
     if (open) {
       // The cart page setting sends the icon to the cart page, as a plain link.
-      if (inEditorPreview() || root.dataset.cartType === 'page') return;
+      if (root.dataset.cartType === 'page') return;
       event.preventDefault();
       openCartDrawer(open);
     }

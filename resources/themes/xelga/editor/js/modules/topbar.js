@@ -1,21 +1,19 @@
 /*
- * The top bar and the controls around the panels: undo and redo, the save
- * status, Open store preview, Save draft, Publish (with its confirmation and
- * refusal), the More menu (the published store, earlier versions, throw away
- * draft), the page picker, the
- * presence line, the panel tabs, the phone dock and keyboard shortcuts.
+ * The top bar: undo and redo, the save status, Theme (its button is wired
+ * in the drawer), Open store preview, Save draft, Publish (with its
+ * confirmation and refusal), the More menu (the published store, earlier
+ * versions, throw away draft), the page picker, the presence line, and the
+ * editor's keyboard shortcuts.
  */
 
-import { $, $$, h, icon, toast, announce } from './dom.js';
+import { $, h, icon, toast, announce } from './dom.js';
 import {
-  S, ctx, ui, anyDirty, anySaving, publishable, docLabel, isDirty, sec, blk, labelOf,
+  S, ctx, ui, anyDirty, anySaving, publishable, docLabel, isDirty,
 } from './state.js';
-import { themeGroups, ownThemeGroups } from './catalog.js';
 import { undo, redo, canUndo, canRedo, describe } from './operations.js';
 import { flush, publish, discard, retryNow } from './drafts.js';
 import { openPopover, openMenu, confirmBox, confirmFrom, closePopover, isPopoverOpen } from './popover.js';
-import { setNav, openSheet, closeSheet, deselect, isNarrow, openThemeGroup, radioKeys, showPanel } from './selection.js';
-import { reloadPreview } from './preview.js';
+import { openThemeGroup } from './selection.js';
 import { openRevisions } from './revisions.js';
 import { pageMenu } from './layouts.js';
 import { duplicateSection, duplicateBlock, canDuplicate, canDuplicateBlock } from './actions.js';
@@ -207,7 +205,6 @@ function moreMenu(anchor) {
   const anyDraft = Object.values(S.docs).some((d) => d.hasDraft || isDirty(d));
   openMenu(anchor, [
     { label: 'Open the published store', iconName: 'external', hint: 'Shows what shoppers see now', run: () => window.open(S.store?.url || '/', '_blank', 'noopener') },
-    { label: 'Reload preview', iconName: 'rotate-ccw', run: () => reloadPreview() },
     { label: 'Earlier versions', iconName: 'clock', hint: 'Go back to something you published', run: () => openRevisions() },
     { sep: true },
     {
@@ -225,30 +222,8 @@ function moreMenu(anchor) {
 }
 
 /* ------------------------------------------------------------------------
-   Dock, tabs and keyboard
+   Keyboard
    ------------------------------------------------------------------------ */
-
-export function updateDock() {
-  const btn = $('#dock-selected');
-  const label = $('#dock-selected-label');
-  if (S.sel?.kind === 'section') {
-    const exists = S.sel.bid ? blk(S.sel.sid, S.sel.bid) : sec(S.sel.sid);
-    label.textContent = exists ? `Edit ${labelOf(S.sel.sid, S.sel.bid)}` : 'Tap the store to edit';
-    btn.disabled = !exists;
-  } else if (S.sel?.kind === 'theme') {
-    label.textContent = themeGroups().find((g) => g.group === S.sel.group)?.label || 'Theme settings';
-    btn.disabled = false;
-  } else if (S.sel?.kind === 'layout') {
-    label.textContent = 'Layout';
-    btn.disabled = false;
-  } else if (S.sel?.kind === 'stores') {
-    label.textContent = 'Start from a store';
-    btn.disabled = false;
-  } else {
-    label.textContent = 'Tap the store to edit';
-    btn.disabled = true;
-  }
-}
 
 function doUndo() {
   const op = undo();
@@ -296,7 +271,7 @@ export function onKeydown(e) {
     else if (ui.isDrawerOpen?.()) {
       e.preventDefault();
       ui.closeDrawer();
-    } else if (S.sheetOpen) closeSheet();
+    }
   }
 }
 
@@ -321,44 +296,9 @@ export function initTopbar() {
     }
   });
   $('#page-btn').addEventListener('click', (e) => pageMenu(e.currentTarget));
-  radioKeys($('#device-toggle'));
-
-  $('#tab-sections').addEventListener('click', () => {
-    setNav('sections');
-    if (S.sel?.kind === 'theme') deselect();
-  });
-  $('#tab-theme').addEventListener('click', () => {
-    setNav('theme');
-    if (!isNarrow() && S.loaded && S.sel?.kind !== 'theme') openThemeGroup(ownThemeGroups()[0]?.group);
-  });
-  $$('[role="tab"]').forEach((tab) => tab.addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    const other = tab.id === 'tab-sections' ? $('#tab-theme') : $('#tab-sections');
-    other.focus();
-    other.click();
-  }));
-
-  $$('[data-sheet-close]').forEach((b) => b.addEventListener('click', closeSheet));
-  $$('.dock__btn').forEach((b) => b.addEventListener('click', () => {
-    const which = b.dataset.dock;
-    if (which === 'sections') {
-      setNav('sections', { keepSelection: true });
-      openSheet('nav');
-    } else if (which === 'theme') {
-      setNav('theme', { keepSelection: true });
-      openSheet('nav');
-    } else {
-      openSheet('inspector');
-    }
-  }));
 
   document.addEventListener('keydown', onKeydown);
 
   ui.updateToolbar = updateToolbar;
   ui.updatePreviewLink = updatePreviewLink;
-  ui.updateDock = updateDock;
-  ui.onKeydown = onKeydown;
-  ui.setNav = setNav;
-  ui.showPanel = showPanel;
-  ui.openThemeGroup = openThemeGroup;
 }

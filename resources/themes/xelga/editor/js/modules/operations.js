@@ -3,10 +3,10 @@
  * operations is the undo history for this visit; the documents themselves
  * are what gets saved, so history never has to be replayed on load.
  *
- * Applying an operation changes the document in memory and answers the
- * effects the preview needs: bridge messages it can apply at once, or a
- * server re-render (insert, duplicate, replace, block-insert) that the
- * preview module runs after the draft is saved.
+ * Applying an operation changes the document in memory and answers its
+ * effects: what the layout board draws again ({board, rows, sections})
+ * when rows or sides changed, else nothing; the board then redraws the
+ * picture of the section the operation names.
  *
  * Operations are applied defensively: a target that no longer exists (after
  * loading someone else's changes, say) makes the step a no-op, never an error.
@@ -18,7 +18,7 @@
  */
 
 import { S, doc, sec, ctx, labelOf } from './state.js';
-import { sectionDef, blockDef, liveMode, themeSetting } from './catalog.js';
+import { sectionDef } from './catalog.js';
 import { clone, same } from './util.js';
 import { place, locate, rowsOf, addRow, moveRow, removeRow, changeSplit, setRow, effectsOf, tidy, catalogRules, replaceIn } from './board/model.js';
 
@@ -52,25 +52,6 @@ function moveInList(list, id, to) {
   list.splice(from, 1);
   list.splice(clampIndex(to, list.length), 0, id);
   return true;
-}
-
-/** The message that applies one section or block setting in the preview. */
-function settingEffect(handle, sid, bid, key, value) {
-  const s = sectionIn(handle, sid);
-  if (!s) return [];
-  const def = sectionDef(s.type);
-  const list = bid ? blockDef(s.type, s.blocks[bid]?.type)?.settings || [] : def?.settings || [];
-  const setting = list.find((d) => d.key === key);
-  // A link to a product, category or page becomes an address only on the
-  // server, so the preview draws the section again to get it right.
-  const recordLink = setting?.type === 'url' && value && typeof value === 'object' && value.type !== 'url';
-  if (setting && (liveMode(setting, def) === 'render' || recordLink)) {
-    return [{ render: 'replace', handle, sectionId: sid }];
-  }
-  const message = { type: 'setting', sectionId: sid, blockId: bid || null, key, value };
-  // An image is stored as a storage path; the preview also gets its address.
-  if (setting?.type === 'image') message.url = value ? mediaUrl(value) : '';
-  return [message];
 }
 
 /* ------------------------------------------------------------------------
@@ -221,7 +202,7 @@ const TYPES = {
       const value = fwd ? op.to : op.from;
       if (value === undefined) delete target.settings[op.key];
       else target.settings[op.key] = clone(value);
-      return settingEffect(op.doc, op.sid, op.bid, op.key, value);
+      return [];
     },
     describe: (op) => `change ${op.name || 'a setting'}`,
   },
@@ -232,9 +213,8 @@ const TYPES = {
       const s = sectionIn(op.doc, op.sid);
       const target = op.bid ? s?.blocks?.[op.bid] : s;
       if (!target) return [];
-      const shown = fwd ? op.to : op.from;
-      target.disabled = !shown;
-      return [{ type: 'setting', sectionId: op.sid, blockId: op.bid || null, key: 'disabled', value: !shown }];
+      target.disabled = !(fwd ? op.to : op.from);
+      return [];
     },
     describe: (op) => `${op.to ? 'show' : 'hide'} ${op.name || 'section'}`,
   },
@@ -247,8 +227,7 @@ const TYPES = {
       const value = fwd ? op.to : op.from;
       if (value === undefined) delete c.values[op.key];
       else c.values[op.key] = clone(value);
-      // Undoing back to "never set" shows the default, not the word undefined.
-      return [{ type: 'theme-setting', key: op.key, value: value === undefined ? clone(themeSetting(op.key)?.default) : value }];
+      return [];
     },
     describe: () => 'change theme settings',
   },
@@ -258,9 +237,8 @@ const TYPES = {
     apply(op, fwd) {
       const scheme = contentOf('settings')?.schemes?.find((s) => s.id === op.scheme);
       if (!scheme) return [];
-      const color = fwd ? op.to : op.from;
-      scheme.colors[op.role] = color;
-      return [{ type: 'theme-setting', key: 'schemes', value: { scheme: op.scheme, role: op.role, color } }];
+      scheme.colors[op.role] = fwd ? op.to : op.from;
+      return [];
     },
     describe: () => 'change scheme colors',
   },
@@ -269,8 +247,8 @@ const TYPES = {
   move: {
     apply(op, fwd) {
       const c = contentOf(op.doc);
-      if (!c || !moveInList(c.order, op.sid, fwd ? op.to : op.from)) return [];
-      return [{ type: 'move', sectionId: op.sid, toIndex: c.order.indexOf(op.sid) }];
+      if (c) moveInList(c.order, op.sid, fwd ? op.to : op.from);
+      return [];
     },
     describe: (op) => `move ${op.name || 'section'}`,
   },
@@ -282,7 +260,7 @@ const TYPES = {
       const target = op.bid ? s?.blocks?.[op.bid] : s;
       if (!target) return [];
       target.label = fwd ? op.to : op.from;
-      return [{ type: 'rename', sectionId: op.sid, blockId: op.bid || null, label: target.label }];
+      return [];
     },
     describe: (op) => `rename to ${op.to}`,
   },
@@ -301,18 +279,17 @@ const TYPES = {
         delete c.sections[op.sid];
         c.order = c.order.filter((id) => id !== op.sid);
         tidyLayout(c);
-        return [{ type: 'remove', sectionId: op.sid }, ...(was ? [effectsOf(was, c, layoutPayload())] : [])];
+        return was ? [effectsOf(was, c, layoutPayload())] : [];
       }
       if (c.sections[op.sid] || !op.snapshot) return [];
       c.sections[op.sid] = clone(op.snapshot);
       if (op.layout) {
         const was = layoutView(c);
         writeLayout(c, op.layout.keys, op.layout.values);
-        // Columns and sides are drawn by the server, so the preview loads again.
         return [effectsOf(was, c, layoutPayload())];
       }
       c.order.splice(clampIndex(op.index, c.order.length), 0, op.sid);
-      return [{ type: 'restore', sectionId: op.sid, toIndex: c.order.indexOf(op.sid) }];
+      return [];
     },
     describe: (op) => `remove ${op.name || 'section'}`,
   },
@@ -320,8 +297,6 @@ const TYPES = {
   /*
    * { doc, sid, group, index, snapshot, kind: 'add' | 'duplicate', source, target }
    * `target`, on a page with rows, is the spot of the board it is added at.
-   * The first time forward asks the server for the new section's markup;
-   * after an undo the preview still holds it, so redo restores it.
    */
   insert: {
     apply(op, fwd) {
@@ -334,15 +309,12 @@ const TYPES = {
         c.sections[op.sid] = clone(op.snapshot);
         c.order.splice(clampIndex(op.index, c.order.length), 0, op.sid);
         // On a page with rows the new section gets its own row after the
-        // row of the section before it; the preview loads again to draw it.
-        if (was) {
-          tidyLayout(c);
-          if (op.kind === 'duplicate' && op.source) placeUnder(op.doc, c, op.source, op.sid);
-          if (op.target) placeAt(op.doc, c, op.sid, op.target);
-          return [effectsOf(was, c, layoutPayload())];
-        }
-        if (op.shown) return [{ type: 'restore', sectionId: op.sid, toIndex: c.order.indexOf(op.sid) }];
-        return [{ render: op.kind === 'duplicate' ? 'duplicate' : 'insert', handle: op.doc, sectionId: op.sid, source: op.source, group: op.group, index: c.order.indexOf(op.sid), op }];
+        // row of the section before it, then moves to its spot.
+        if (!was) return [];
+        tidyLayout(c);
+        if (op.kind === 'duplicate' && op.source) placeUnder(op.doc, c, op.source, op.sid);
+        if (op.target) placeAt(op.doc, c, op.sid, op.target);
+        return [effectsOf(was, c, layoutPayload())];
       }
       if (!c.sections[op.sid]) return [];
       op.snapshot = clone(c.sections[op.sid]);
@@ -350,7 +322,7 @@ const TYPES = {
       delete c.sections[op.sid];
       c.order = c.order.filter((id) => id !== op.sid);
       if (op.layout) writeLayout(c, op.layout.keys, op.layout.values);
-      return [{ type: 'remove', sectionId: op.sid }, ...(was ? [effectsOf(was, c, layoutPayload())] : [])];
+      return was ? [effectsOf(was, c, layoutPayload())] : [];
     },
     describe: (op) => `${op.kind === 'duplicate' ? 'duplicate' : 'add'} ${op.name || 'section'}`,
   },
@@ -400,14 +372,13 @@ const TYPES = {
         if (s.blocks[op.bid]) return [];
         s.blocks[op.bid] = clone(op.snapshot);
         s.block_order.splice(clampIndex(op.index, s.block_order.length), 0, op.bid);
-        if (op.shown) return [{ type: 'block-restore', sectionId: op.sid, blockId: op.bid, index: s.block_order.indexOf(op.bid) }];
-        return [{ render: 'block-insert', handle: op.doc, sectionId: op.sid, blockId: op.bid, index: s.block_order.indexOf(op.bid), op }];
+        return [];
       }
       if (!s.blocks[op.bid]) return [];
       op.snapshot = clone(s.blocks[op.bid]);
       delete s.blocks[op.bid];
       s.block_order = s.block_order.filter((id) => id !== op.bid);
-      return [{ type: 'block-remove', sectionId: op.sid, blockId: op.bid }];
+      return [];
     },
     describe: (op) => `add ${op.name || 'block'}`,
   },
@@ -423,12 +394,12 @@ const TYPES = {
         op.index = s.block_order.indexOf(op.bid);
         delete s.blocks[op.bid];
         s.block_order = s.block_order.filter((id) => id !== op.bid);
-        return [{ type: 'block-remove', sectionId: op.sid, blockId: op.bid }];
+        return [];
       }
       if (s.blocks[op.bid] || !op.snapshot) return [];
       s.blocks[op.bid] = clone(op.snapshot);
       s.block_order.splice(clampIndex(op.index, s.block_order.length), 0, op.bid);
-      return [{ type: 'block-restore', sectionId: op.sid, blockId: op.bid, index: s.block_order.indexOf(op.bid) }];
+      return [];
     },
     describe: (op) => `remove ${op.name || 'block'}`,
   },
@@ -437,8 +408,8 @@ const TYPES = {
   'block-move': {
     apply(op, fwd) {
       const s = sectionIn(op.doc, op.sid);
-      if (!s || !moveInList(s.block_order, op.bid, fwd ? op.to : op.from)) return [];
-      return [{ type: 'block-move', sectionId: op.sid, blockId: op.bid, toIndex: s.block_order.indexOf(op.bid) }];
+      if (s) moveInList(s.block_order, op.bid, fwd ? op.to : op.from);
+      return [];
     },
     describe: (op) => `move ${op.name || 'block'}`,
   },
@@ -560,10 +531,9 @@ export function detachDocument(handle, savedSeq) {
 export function reapply(ops) {
   let count = 0;
   ops.forEach((old) => {
-    const op = clone({ ...old, snapshot: old.snapshot, op: undefined });
+    const op = clone({ ...old, snapshot: old.snapshot });
     delete op.seq;
     delete op.mergeKey;
-    delete op.shown;
     // Rows and sides are worked out again from the document as it is now.
     delete op.prior;
     delete op.layout;
