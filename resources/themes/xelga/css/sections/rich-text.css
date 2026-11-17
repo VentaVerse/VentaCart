@@ -2,6 +2,13 @@
    19. Rich text (center, start, split)
    ========================================================================== */
 
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-richtext {
+  container-type: inline-size;
+}
+
 .richtext {
   --rt-width: 46rem;
   display: grid;
@@ -47,10 +54,10 @@
   justify-content: center;
 }
 
-@media (min-width: 750px) {
+@container (min-width: 750px) {
   .s-richtext[data-variant="split"] .richtext {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
-    column-gap: clamp(2rem, 5vw, 5rem);
+    column-gap: clamp(2rem, 5cqi, 5rem);
     align-items: start;
     max-width: none;
   }

@@ -2,13 +2,20 @@
    13. Product spotlight (split, banner, compact)
    ========================================================================== */
 
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-spotlight {
+  container-type: inline-size;
+}
+
 .spotlight {
   display: grid;
-  gap: clamp(1.5rem, 1rem + 3vw, 4.5rem);
+  gap: clamp(1.5rem, 1rem + 3cqi, 4.5rem);
   align-items: center;
 }
 
-@media (min-width: 750px) {
+@container (min-width: 750px) {
   .spotlight {
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   }
@@ -173,8 +180,8 @@
 .s-spotlight[data-variant="banner"] .spotlight {
   position: relative;
   grid-template-columns: minmax(0, 1fr);
-  min-height: clamp(520px, 60vw, 640px);
-  padding: clamp(1rem, 4vw, 3rem);
+  min-height: clamp(520px, 60cqi, 640px);
+  padding: clamp(1rem, 4cqi, 3rem);
   overflow: hidden;
   border-radius: var(--radius-card);
 }
@@ -188,7 +195,7 @@
 
 .s-spotlight[data-variant="banner"] .spotlight__body {
   position: relative;
-  padding: clamp(1.25rem, 3vw, 2.5rem);
+  padding: clamp(1.25rem, 3cqi, 2.5rem);
   background: var(--c-bg);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-2);
@@ -244,7 +251,7 @@
   font-size: 1.125rem;
 }
 
-@media (min-width: 990px) {
+@container (min-width: 990px) {
   .s-spotlight[data-variant="compact"] .spotlight__body {
     grid-template-columns: minmax(0, 1.2fr) auto auto;
     grid-template-areas:

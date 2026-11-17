@@ -8,10 +8,14 @@
   ],
   "limit": null,
   "main": false,
+  "span": {
+    "min": 4
+  },
   "class": "s-quotes",
   "variants": [
     {
       "value": "grid",
+      "span": 6,
       "label": "Grid"
     },
     {

@@ -7,10 +7,14 @@
   ],
   "limit": null,
   "main": false,
+  "span": {
+    "min": 4
+  },
   "class": "s-usp",
   "variants": [
     {
       "value": "strip",
+      "span": 6,
       "label": "Thin strip"
     },
     {

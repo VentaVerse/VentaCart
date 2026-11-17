@@ -2,10 +2,17 @@
    14. Image with text (split, overlap, background)
    ========================================================================== */
 
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-iwt {
+  container-type: inline-size;
+}
+
 .iwt {
   --media-ratio: 4 / 3;
   display: grid;
-  gap: clamp(1.75rem, 1rem + 4vw, 5rem);
+  gap: clamp(1.75rem, 1rem + 4cqi, 5rem);
   align-items: center;
 }
 
@@ -15,7 +22,7 @@
 .s[data-align="top"] .iwt { align-items: start; }
 .s[data-align="bottom"] .iwt { align-items: end; }
 
-@media (min-width: 750px) {
+@container (min-width: 750px) {
   .iwt {
     grid-template-columns: calc(var(--media-width, 50) * 1%) minmax(0, 1fr);
   }
@@ -100,7 +107,7 @@
 }
 
 /* Overlap: the text panel slides over the photo's edge */
-@media (min-width: 750px) {
+@container (min-width: 750px) {
   .s-iwt[data-variant="overlap"] .iwt {
     gap: 0;
   }
@@ -109,7 +116,7 @@
     z-index: 1;
     max-width: none;
     margin-inline-start: -24%;
-    padding: clamp(1.75rem, 3vw, 3rem);
+    padding: clamp(1.75rem, 3cqi, 3rem);
     background: var(--c-card);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-2);
@@ -119,7 +126,7 @@
   }
 }
 
-@media (max-width: 749px) {
+@container (max-width: 749px) {
   .s-iwt[data-variant="overlap"] .iwt {
     gap: 0;
   }
@@ -153,7 +160,7 @@
 
 .s-iwt[data-variant="background"] .iwt__body {
   position: relative;
-  padding: clamp(1.5rem, 3vw, 2.75rem);
+  padding: clamp(1.5rem, 3cqi, 2.75rem);
   background: var(--c-bg);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-2);

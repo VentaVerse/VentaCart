@@ -2,6 +2,13 @@
    11. Promise bar (usp-bar)
    ========================================================================== */
 
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-usp {
+  container-type: inline-size;
+}
+
 .s-usp {
   --pad: clamp(1.25rem, 1rem + 1vw, 2rem);
 }
@@ -134,13 +141,13 @@
   text-transform: var(--heading-case);
 }
 
-@media (max-width: 989px) {
+@container (max-width: 989px) {
   .s-usp:not([data-variant="strip"]) .usp {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 749px) {
+@container (max-width: 749px) {
   .s-usp[data-variant="strip"] .usp {
     margin-inline: calc(var(--gutter) * -1);
     padding-inline: var(--gutter);
@@ -160,7 +167,7 @@
 
 
 /* Phones: an odd last centered promise takes the whole row. */
-@media (max-width: 749px) {
+@container (max-width: 749px) {
   .s-usp[data-variant="centered"] .usp__item:last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
