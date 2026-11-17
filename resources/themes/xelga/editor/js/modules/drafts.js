@@ -10,7 +10,8 @@
  */
 
 import { S, ctx, ui, doc, isDirty, addDocument, docLabel, pageHandles, ensureShape, schemes, anyDirty, anySaving, noteDraft, draftVersions, templateOf } from './state.js';
-import { detachDocument, reapply, resetHistory } from './operations.js';
+import { detachDocument, reapply, resetHistory, rulesFor } from './operations.js';
+import { normalize } from './board/model.js';
 import { normalizeDocument } from './api.js';
 import { h, toast, announce } from './dom.js';
 import { choose } from './popover.js';
@@ -113,11 +114,20 @@ function adopt(d, res, savedJson) {
     const saved = JSON.parse(d.savedJson);
     res.adjusted.forEach((item) => {
       const parts = pathParts(item.path);
-      if (!parts.length) return;
+      // A moved section names its new row, not a value to write.
+      if (!parts.length || item.moved) return;
       setPath(d.content, parts, item.value);
       setPath(saved, parts, item.value);
     });
-    d.savedJson = JSON.stringify(saved);
+    // The server moved sections out of places they do not fit; the row
+    // model makes the same moves here, since both normalize alike.
+    if (res.adjusted.some((item) => item.moved)) {
+      const rules = rulesFor(d.handle);
+      d.content = ensureShape(normalize(d.content, rules).content, d.kind);
+      d.savedJson = JSON.stringify(res.content ? ensureShape(res.content, d.kind) : normalize(saved, rules).content);
+    } else {
+      d.savedJson = JSON.stringify(saved);
+    }
   }
   const sections = new Set();
   res.adjusted.forEach((item) => {
@@ -127,7 +137,8 @@ function adopt(d, res, savedJson) {
   ui.renderOutline();
   ui.renderInspector();
   ui.runEffects?.([...sections].map((sid) => ({ render: 'replace', handle: d.handle, sectionId: sid })), { saved: true });
-  if (d.handle === 'settings') ui.reloadPreview?.();
+  // Columns and sides are drawn by the server, so a moved section shows after the preview loads again.
+  if (d.handle === 'settings' || res.adjusted.some((item) => item.moved)) ui.reloadPreview?.();
   const first = res.adjusted.find((a) => a.message)?.message;
   if (res.adjusted.length) {
     toast(first

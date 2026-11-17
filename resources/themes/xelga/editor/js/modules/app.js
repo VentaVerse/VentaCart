@@ -10,8 +10,9 @@ import {
 } from './state.js';
 import { normalizeDocument, isSameOrigin } from './api.js';
 import { setCatalog } from './catalog.js';
+import { useLayout } from './board/model.js';
 import { installIcons } from './icons.js';
-import { onChange, resetHistory } from './operations.js';
+import { onChange, resetHistory, LAYOUT_TYPES } from './operations.js';
 import { createBridge } from './bridge.js';
 import { buildShell, panelsLoading } from './shell.js';
 import { initPreview, loadFrame, setDevice, setAppState, canvasState, hideCanvasState } from './preview.js';
@@ -28,7 +29,7 @@ import { initStores } from './stores.js';
 import { initNeeds } from './needs.js';
 import { h } from './dom.js';
 
-const STRUCTURAL = new Set(['remove', 'insert', 'move', 'rename', 'block-add', 'block-remove', 'block-move', 'visible']);
+const STRUCTURAL = new Set(['remove', 'insert', 'move', 'rename', 'block-add', 'block-remove', 'block-move', 'visible', ...LAYOUT_TYPES]);
 
 /*
  * Undo and redo show the list the change belongs to, so it is never made out
@@ -279,6 +280,7 @@ export function startEditor({ boot, api, mount = null }) {
   setSprite(boot.icons || '');
   if (!boot.icons) installIcons();
   setCatalog(boot.catalog, boot.option_sources || {});
+  useLayout(boot.layout);
 
   S.store = boot.store;
   S.user = boot.user || null;

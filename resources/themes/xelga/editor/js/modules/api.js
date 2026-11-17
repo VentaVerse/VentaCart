@@ -21,6 +21,8 @@
  * of this one.
  */
 
+import { MOVE_REASONS } from './board/model.js';
+
 export class ApiError extends Error {
   constructor({ kind, status = 0, message = '', data = null, fields = {}, retryAfter = 0, code = null }) {
     super(message || defaultMessage(kind));
@@ -155,7 +157,14 @@ function templatesAnswer(json) {
 /** A save or restore answer: { document, adjusted, warnings }. */
 function savedAnswer(json, handle) {
   const document = normalizeDocument(json.document || {}, handle);
-  const adjusted = (Array.isArray(json.adjusted) ? json.adjusted : []).map((a) => ({ path: a.path, value: a.value, message: a.message || a.reason || '' }));
+  // A section the server moved to a row of its own is reported with a reason code and the new row's id.
+  const adjusted = (Array.isArray(json.adjusted) ? json.adjusted : []).map((a) => ({
+    path: a.path,
+    value: a.value,
+    reason: a.reason || null,
+    moved: Object.hasOwn(MOVE_REASONS, a.reason || ''),
+    message: a.message || MOVE_REASONS[a.reason] || a.reason || '',
+  }));
   return {
     document,
     draftVersion: document.draftVersion,
@@ -301,7 +310,8 @@ export function createApi(boot, { fetchImpl } = {}) {
     /** Saves the whole draft. Throws `conflict` when draftVersion is stale. */
     async saveDraft(handle, content, draftVersion, { keepalive = false } = {}) {
       const json = unwrap(await send('PUT', route('documents.draft', { handle }), {
-        body: { content, draft_version: draftVersion },
+        // This editor keeps a page's rows and sides, so the server lets it save pages that have them.
+        body: { content, draft_version: draftVersion, with_rows: true },
         keepalive,
       }));
       return savedAnswer(json, handle);
