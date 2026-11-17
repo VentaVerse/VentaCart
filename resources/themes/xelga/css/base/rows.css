@@ -1,0 +1,88 @@
+/*
+ * Rows of columns. A one-column row draws its section with no wrapper, so
+ * only rows of two to four columns reach these rules.
+ *
+ * The grid has twelve tracks, so the edges of a half, a third and a
+ * quarter line up from one row to the next. From 990px every column takes
+ * its share of the row. From 750px a row of two columns keeps its shares,
+ * and a row of three or four goes two to a line (the last of three takes
+ * the whole line). Below 750px every column takes the whole line, in the
+ * order the page reads.
+ *
+ * A column, like the row, never sets container-type: a section that
+ * answers to its own width sets it on itself.
+ */
+
+.xr {
+  --xr-gap: var(--grid-gap);
+  padding-block: calc(var(--space-section) * .5);
+  color: var(--c-text);
+}
+
+/* A row with a color scheme paints its background; one without shows the page behind it. */
+.xr[class*="scheme-"] {
+  padding-block: var(--space-section);
+  background: var(--c-bg);
+}
+
+.xr[data-space="sm"] { --xr-gap: calc(var(--grid-gap) * .5); }
+.xr[data-space="md"] { --xr-gap: var(--grid-gap); }
+.xr[data-space="lg"] { --xr-gap: calc(var(--grid-gap) * 2); }
+
+.xr__inner {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--xr-gap);
+  width: min(100% - 2 * var(--gutter), var(--page-width));
+  margin-inline: auto;
+}
+
+/* Full width: the row spans the screen, less the gutters. */
+.xr[data-width="full"] .xr__inner {
+  width: calc(100% - 2 * var(--gutter));
+}
+
+.xr__col {
+  display: grid;
+  grid-column: 1 / -1;
+  align-content: start;
+  gap: var(--xr-gap);
+  min-width: 0;
+}
+
+@media (min-width: 750px) {
+  .xr[data-split="6-6"] .xr__col { grid-column: span 6; }
+  .xr[data-split="8-4"] .xr__col:nth-child(1),
+  .xr[data-split="4-8"] .xr__col:nth-child(2) { grid-column: span 8; }
+  .xr[data-split="8-4"] .xr__col:nth-child(2),
+  .xr[data-split="4-8"] .xr__col:nth-child(1) { grid-column: span 4; }
+
+  .xr:is([data-split="4-4-4"], [data-split="3-6-3"], [data-split="3-3-3-3"]) .xr__col { grid-column: span 6; }
+  .xr:is([data-split="4-4-4"], [data-split="3-6-3"]) .xr__col:nth-child(3) { grid-column: 1 / -1; }
+}
+
+@media (min-width: 990px) {
+  .xr[data-split="4-4-4"] .xr__col:nth-child(n) { grid-column: span 4; }
+  .xr[data-split="3-6-3"] .xr__col:nth-child(odd) { grid-column: span 3; }
+  .xr[data-split="3-6-3"] .xr__col:nth-child(2) { grid-column: span 6; }
+  .xr[data-split="3-3-3-3"] .xr__col:nth-child(n) { grid-column: span 3; }
+}
+
+/*
+ * A section in a column is drawn as a tile: rounded, with its own inner
+ * space. The column already sets the width, so the section drops its
+ * gutters. Side padding in percent follows the column's width, not the
+ * window's, so a narrow tile is not padded like a full-width section. Top
+ * and bottom padding is the same in every column, so tiles side by side
+ * start their content on one line; the section's own spacing setting
+ * scales it.
+ */
+.xr__col > .s {
+  padding-block: calc(var(--pad) * .5);
+  padding-inline: clamp(1rem, 6%, calc(var(--space-section) * .5));
+  border-radius: var(--radius-card);
+}
+
+.xr__col > .s .s__inner {
+  width: 100%;
+}

@@ -6,9 +6,11 @@ use Illuminate\Support\HtmlString;
 use Themes\Xelga\Catalog\Catalog;
 use Themes\Xelga\Documents\Defaults;
 use Themes\Xelga\Documents\Handles;
+use Themes\Xelga\Documents\Layout;
+use Themes\Xelga\Documents\Shape;
 
 /**
- * Draws a document's sections in order. Settings are merged over the
+ * Draws a document's sections in order, row by row (see Layout). Settings are merged over the
  * schema's defaults, so a setting added in a theme update needs no data
  * change. Each section is wrapped in comment markers, and one that fails
  * is logged and left out, so a bad section never takes the page down.
@@ -23,19 +25,143 @@ final class SectionRenderer
 
     public function render(array $content, RenderContext $context): string
     {
-        $html = '';
         $sections = (array) ($content['sections'] ?? []);
+        $context = $context->withTypes($this->drawnTypes($content, $context));
         $this->extensionCounts = [];
+        $sides = self::sides($content);
 
-        foreach ((array) ($content['order'] ?? []) as $id) {
-            $section = $sections[$id] ?? null;
-            if (! is_string($id) || ! is_array($section)) {
-                continue;
-            }
-            $html .= $this->section($id, $section, $context);
+        // A side's sections draw at full width where they read, the left
+        // side's before the rows and the right side's after, until the page
+        // draws its sides beside the content.
+        $html = '';
+        foreach ($sides['left'] as $id) {
+            $html .= $this->placed($id, $sections, $context);
+        }
+        foreach (Layout::rows($content) as $row) {
+            $html .= $this->row($row, $sections, $context);
+        }
+        foreach ($sides['right'] as $id) {
+            $html .= $this->placed($id, $sections, $context);
         }
 
         return $html;
+    }
+
+    /**
+     * The types of the sections the document will draw, each once: a type
+     * the catalog knows, a section not hidden, and an extension section
+     * only where it may be placed. Hidden sections are left out in the
+     * editor preview too, so what a section decides from this list looks
+     * the same there as on the store.
+     *
+     * @return list<string>
+     */
+    public function drawnTypes(array $content, RenderContext $context): array
+    {
+        $sections = (array) ($content['sections'] ?? []);
+        $counts = [];
+        $types = [];
+        foreach (self::drawOrder($content) as $id) {
+            $section = $sections[$id] ?? null;
+            $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
+            if ($schema === null) {
+                continue;
+            }
+            // Counted before the hidden check, as render() counts it.
+            if ($schema->source() !== null && ! $this->placeable($schema, $context, $counts)) {
+                continue;
+            }
+            if ((bool) ($section['disabled'] ?? false)) {
+                continue;
+            }
+            $types[$schema->type] = true;
+        }
+
+        return array_keys($types);
+    }
+
+    /**
+     * One row. A one-column row draws its section as it always has, with
+     * no wrapper; a row of columns draws a grid, each column marked with
+     * its width in twelfths and its sections drawn for that width. An
+     * empty column keeps its place in the grid; a row with nothing to show
+     * a shopper is left out.
+     *
+     * @param  array{id: string, split: string, columns: list<list<string>>, settings: array}  $row
+     */
+    private function row(array $row, array $sections, RenderContext $context): string
+    {
+        $parts = Layout::SPLITS[$row['split']]['parts'] ?? [12];
+        if (count($parts) === 1) {
+            $html = '';
+            foreach (array_merge(...($row['columns'] ?: [[]])) as $id) {
+                $html .= $this->placed($id, $sections, $context);
+            }
+
+            return $html;
+        }
+
+        $columns = '';
+        $drawn = false;
+        foreach ($parts as $index => $part) {
+            $inner = '';
+            foreach ($row['columns'][$index] ?? [] as $id) {
+                $inner .= $this->placed($id, $sections, $context->withSpan($part));
+            }
+            $drawn = $drawn || $inner !== '';
+            $columns .= '<div class="xr__col" data-span="' . $part . '">' . $inner . '</div>';
+        }
+        if (! $drawn && ! $context->preview) {
+            return '';
+        }
+
+        $settings = $row['settings'];
+        $choice = fn (string $key) => in_array($settings[$key] ?? null, Layout::ROW_CHOICES[$key], true) ? $settings[$key] : Layout::ROW_DEFAULTS[$key];
+        $scheme = is_string($settings['scheme'] ?? null) && preg_match(Shape::SCHEME_ID, $settings['scheme']) === 1 ? ' ' . $settings['scheme'] : '';
+        $id = (string) $row['id'];
+        $html = '<div class="xr' . $scheme . '" data-row-id="' . e($id) . '" data-split="' . e($row['split']) . '" data-width="' . e($choice('width')) . '" data-space="' . e($choice('space')) . '">'
+            . '<div class="xr__inner">' . $columns . '</div></div>';
+
+        return preg_match(Shape::ID, $id) === 1 ? $this->wrap($id, $html) : $html;
+    }
+
+    /** A section of the document by its id, or nothing when the id names none. */
+    private function placed(mixed $id, array $sections, RenderContext $context): string
+    {
+        $section = is_string($id) ? ($sections[$id] ?? null) : null;
+
+        return is_array($section) ? $this->section($id, $section, $context) : '';
+    }
+
+    /**
+     * Section ids in the order the page draws them: the left side, each
+     * row's columns left to right, the right side.
+     *
+     * @return list<string>
+     */
+    private static function drawOrder(array $content): array
+    {
+        $sides = self::sides($content);
+        $ids = $sides['left'];
+        foreach (Layout::rows($content) as $row) {
+            foreach ($row['columns'] as $column) {
+                array_push($ids, ...$column);
+            }
+        }
+
+        return [...$ids, ...$sides['right']];
+    }
+
+    /** @return array{left: list<string>, right: list<string>} */
+    private static function sides(array $content): array
+    {
+        $given = is_array($content['sides'] ?? null) ? $content['sides'] : [];
+        $sides = [];
+        foreach (Layout::SIDES as $which) {
+            $sides[$which] = array_values(array_filter(is_array($given[$which] ?? null) ? $given[$which] : [], 'is_string'));
+        }
+
+        return $sides;
     }
 
     /** @return list<array> */
@@ -71,7 +197,7 @@ final class SectionRenderer
         // wrote the stored document: one that breaks its schema's rules is
         // not drawn, so its data class never runs on a page it was not
         // made for.
-        if ($schema->source() !== null && ! $this->placeable($schema, $context)) {
+        if ($schema->source() !== null && ! $this->placeable($schema, $context, $this->extensionCounts)) {
             return '';
         }
         if ($disabled && ! $context->preview) {
@@ -163,9 +289,11 @@ final class SectionRenderer
     /**
      * Whether an extension section may be drawn here: in a page template it
      * is allowed in, as a main section only on its own page type, and no
-     * more of it than its limit allows.
+     * more of it than its limit allows, counted in $counts.
+     *
+     * @param  array<string, int>  $counts  extension sections met so far in the document, by type
      */
-    private function placeable(\Themes\Xelga\Catalog\SectionSchema $schema, RenderContext $context): bool
+    private function placeable(\Themes\Xelga\Catalog\SectionSchema $schema, RenderContext $context, array &$counts): bool
     {
         $handle = $context->handle;
         $pageType = Handles::pageType($handle);
@@ -178,7 +306,7 @@ final class SectionRenderer
             return false;
         }
 
-        $count = $this->extensionCounts[$schema->type] = ($this->extensionCounts[$schema->type] ?? 0) + 1;
+        $count = $counts[$schema->type] = ($counts[$schema->type] ?? 0) + 1;
         $limit = $main ? 1 : $schema->limit();
 
         return $limit === null || $count <= $limit;
