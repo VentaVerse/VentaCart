@@ -14,17 +14,23 @@ use App\Services\ExtensionManager;
  */
 trait UsesSampleExtension
 {
+    /** Whether this test made the link, and so takes it away again. */
+    private bool $madeSampleExtensionLink = false;
+
     protected function linkSampleExtension(): string
     {
         $link = base_path('extensions/sample-extension');
+        // Only a link this test made goes when it ends: one someone made by
+        // hand to look at the fixture stays.
         if (! is_link($link) && ! file_exists($link)) {
             symlink(base_path('tests/fixtures/extensions/sample-extension'), $link);
+            $this->madeSampleExtensionLink = true;
+            $this->beforeApplicationDestroyed(function () use ($link) {
+                if (is_link($link)) {
+                    unlink($link);
+                }
+            });
         }
-        $this->beforeApplicationDestroyed(function () use ($link) {
-            if (is_link($link)) {
-                unlink($link);
-            }
-        });
         app()->forgetInstance(ExtensionManager::class);
 
         return $link;
@@ -62,7 +68,17 @@ trait UsesSampleExtension
         $manager = app(ExtensionManager::class);
         $manager->uninstall('sample-extension');
         $link = base_path('extensions/sample-extension');
-        if (is_link($link)) {
+        if (is_link($link) && ! $this->madeSampleExtensionLink) {
+            // A link made by hand is put aside, out of discovery's sight,
+            // and back when the test ends.
+            $aside = base_path('extensions/.sample-extension-aside');
+            rename($link, $aside);
+            $this->beforeApplicationDestroyed(function () use ($link, $aside) {
+                if (is_link($aside) && ! file_exists($link) && ! is_link($link)) {
+                    rename($aside, $link);
+                }
+            });
+        } elseif (is_link($link)) {
             unlink($link);
         }
         \Tests\TestCase::forgetStorefrontHooks();
