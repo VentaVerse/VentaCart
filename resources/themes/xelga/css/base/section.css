@@ -18,13 +18,14 @@
 /*
  * Two neighbours on the same scheme share one gap instead of two. A thin
  * strip (promises, small or no padding) keeps the full gap after it, or
- * the next section's heading would sit against the strip's text.
+ * the next section's heading would sit against the strip's text. Tiles
+ * in a column of a row stand apart, so each keeps its own padding.
  */
-.scheme-1:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-1:not(.s-footer, .s-hero, [data-has-bg="true"]),
-.scheme-2:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-2:not(.s-footer, .s-hero, [data-has-bg="true"]),
-.scheme-3:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-3:not(.s-footer, .s-hero, [data-has-bg="true"]),
-.scheme-4:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-4:not(.s-footer, .s-hero, [data-has-bg="true"]),
-.scheme-5:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-5:not(.s-footer, .s-hero, [data-has-bg="true"]) {
+:where(:not(.xr__col)) > .scheme-1:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-1:not(.s-footer, .s-hero, [data-has-bg="true"]),
+:where(:not(.xr__col)) > .scheme-2:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-2:not(.s-footer, .s-hero, [data-has-bg="true"]),
+:where(:not(.xr__col)) > .scheme-3:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-3:not(.s-footer, .s-hero, [data-has-bg="true"]),
+:where(:not(.xr__col)) > .scheme-4:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-4:not(.s-footer, .s-hero, [data-has-bg="true"]),
+:where(:not(.xr__col)) > .scheme-5:not(.s-hero, .s-header, .s-announcement, [data-pad="none"], [data-pad="sm"], .s-usp[data-variant="strip"], [data-has-bg="true"]) + .s.scheme-5:not(.s-footer, .s-hero, [data-has-bg="true"]) {
   padding-block-start: 0;
 }
 

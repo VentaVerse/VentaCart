@@ -21,6 +21,12 @@ use Themes\Xelga\Settings\Sanitizer;
  */
 final class Picture
 {
+    /** The widest the page's content is drawn, in CSS pixels (the --page-width token). */
+    public const PAGE_WIDTH = 1280;
+
+    /** The window width from which photos are sized in pixels for PAGE_WIDTH rather than in vw. */
+    private const WIDE_FROM = 1320;
+
     /** @var array<string, ?array> */
     private static array $memo = [];
 
@@ -71,17 +77,62 @@ final class Picture
     }
 
     /**
-     * The width a shared product card's photo is drawn at: the card grid's
-     * share of the page (at most 1280 pixels wide) for its columns.
+     * The width a photo that fills its section is drawn at, for a section
+     * $span twelfths wide (a column of a row, or the whole page), as the
+     * rows' grid lays it out: from 990 pixels every column at its share of
+     * the page (at most PAGE_WIDTH wide), from 750 pixels a column of a
+     * two-column row keeps its share while three or four columns go two to
+     * a line, and below 750 pixels every column fills the screen ($phone).
+     * The last of three columns draws across both halves between 750 and
+     * 989 pixels; half is the closer guess for the others and costs that
+     * one photo a little sharpness only.
      */
-    public static function cardSizes(mixed $mobileCols = 2, mixed $cols = 4): string
+    public static function spanSizes(int $span, string $phone = '100vw'): string
+    {
+        $span = max(1, min(12, $span));
+        $wide = (int) ceil(self::PAGE_WIDTH * $span / 12);
+        $desktop = (int) ceil(100 * $span / 12);
+        $tablet = self::tabletShare($span);
+
+        // A step that draws as wide as the next one says nothing more.
+        $steps = [['(min-width: 990px) ', "{$desktop}vw"], ['(min-width: 750px) ', "{$tablet}vw"], ['', $phone]];
+        $out = ["(min-width: " . self::WIDE_FROM . "px) {$wide}px"];
+        foreach ($steps as $i => [$query, $width]) {
+            if (isset($steps[$i + 1]) && $steps[$i + 1][1] === $width) {
+                continue;
+            }
+            $out[] = $query . $width;
+        }
+
+        return implode(', ', $out);
+    }
+
+    /**
+     * The width a shared product card's photo is drawn at: the card grid's
+     * share of the page (at most PAGE_WIDTH wide) for its columns, inside a
+     * section $span twelfths wide.
+     */
+    public static function cardSizes(mixed $mobileCols = 2, mixed $cols = 4, int $span = 12): string
     {
         $phone = (int) $mobileCols === 1 ? '100vw' : '50vw';
         $cols = max(2, min(6, (int) $cols ?: 4));
-        $wide = (int) ceil(1280 / $cols);
-        $vw = (int) ceil(100 / $cols);
+        $span = max(1, min(12, $span));
+        $wide = (int) ceil(self::PAGE_WIDTH * $span / 12 / $cols);
+        $vw = (int) ceil(100 * $span / 12 / $cols);
+        // Three cards to a line on a tablet, across the section's share of the screen.
+        $tablet = (int) round(self::tabletShare($span) / 3);
 
-        return "(min-width: 1320px) {$wide}px, (min-width: 990px) {$vw}vw, (min-width: 750px) 33vw, {$phone}";
+        return "(min-width: " . self::WIDE_FROM . "px) {$wide}px, (min-width: 990px) {$vw}vw, (min-width: 750px) {$tablet}vw, {$phone}";
+    }
+
+    /** The share of the screen, in vw, a section $span twelfths wide takes between 750 and 989 pixels. */
+    private static function tabletShare(int $span): int
+    {
+        return match (true) {
+            $span >= 12 => 100,
+            $span >= 8 => 67,
+            default => 50,
+        };
     }
 
     public static function flush(): void

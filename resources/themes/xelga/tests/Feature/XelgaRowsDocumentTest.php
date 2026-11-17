@@ -200,6 +200,14 @@ class XelgaRowsDocumentTest extends TestCase
         $this->assertStringNotContainsString('<!--xelga:', $between, 'Nothing between the product information and the card.');
         $this->assertStringNotContainsString('xr__col', $between, 'The card is in no column.');
         $this->assertGreaterThan($cardStart, $tiles, 'The tiles come after the card.');
+        // The tiles' row does draw its columns, so the check above can fail.
+        $cardEnd = strpos($html, '<!--/xelga:' . $card . '-->');
+        $this->assertStringNotContainsString('xr__col', substr($html, $cardStart, $cardEnd - $cardStart), 'The card is in no column.');
+        $rowStart = strpos($html, '<!--xelga:row-tiles-->');
+        $this->assertNotFalse($rowStart, 'The tiles draw in their row.');
+        $this->assertGreaterThan($cardEnd, $rowStart);
+        $this->assertLessThan($tiles, $rowStart);
+        $this->assertSame(2, substr_count(substr($html, $rowStart, strpos($html, '<!--/xelga:row-tiles-->') - $rowStart), '<div class="xr__col" data-span="6">'));
 
         // The editor reads the card in a row of its own, right after the product information's row.
         $content = $this->actingAs($this->admin())->getJson(route('admin.xelga.documents.show', ['handle' => 'product']))->assertOk()->json('data.content');
