@@ -361,7 +361,7 @@ final class CatalogLinter
             $class = (string) ($spec['class'] ?? '');
             $file = Catalog::root('css/sections/' . ($spec['type'] ?? '') . '.css');
             $css = is_file($file) ? $this->stripComments((string) file_get_contents($file)) : '';
-            if ($class === '' || preg_match('/(?:^|[},\s])\.' . preg_quote($class, '/') . '\s*\{[^{}]*container-type\s*:\s*inline-size/', $css) !== 1) {
+            if ($class === '' || preg_match('/(?:^|[{},])\s*\.' . preg_quote($class, '/') . '\s*\{[^{}]*container-type\s*:\s*inline-size/', $css) !== 1) {
                 $this->problem("{$where}: can sit in a narrow column, so css/sections/{$spec['type']}.css must set container-type: inline-size on .{$class} itself.");
             }
         }
