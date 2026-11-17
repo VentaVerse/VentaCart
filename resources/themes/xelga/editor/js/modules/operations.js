@@ -185,6 +185,16 @@ function placeUnder(handle, c, source, sid) {
   if (next !== c) writeLayout(c, Object.keys(next), next);
 }
 
+/**
+ * A section added at a spot of the board moves there from the row of its
+ * own tidy() gave it. When it is already there, or the spot no longer
+ * takes it, it keeps that row.
+ */
+function placeAt(handle, c, sid, target) {
+  const next = place(c, sid, target, rulesFor(handle)).content;
+  if (next !== c) writeLayout(c, Object.keys(next), next);
+}
+
 /** The address of a stored image, as the API adapter knows the server serves it. */
 export function mediaUrl(path) {
   if (!path) return '';
@@ -302,7 +312,8 @@ const TYPES = {
   },
 
   /*
-   * { doc, sid, group, index, snapshot, kind: 'add' | 'duplicate', source }
+   * { doc, sid, group, index, snapshot, kind: 'add' | 'duplicate', source, target }
+   * `target`, on a page with rows, is the spot of the board it is added at.
    * The first time forward asks the server for the new section's markup;
    * after an undo the preview still holds it, so redo restores it.
    */
@@ -321,6 +332,7 @@ const TYPES = {
         if (was) {
           tidyLayout(c);
           if (op.kind === 'duplicate' && op.source) placeUnder(op.doc, c, op.source, op.sid);
+          if (op.target) placeAt(op.doc, c, op.sid, op.target);
           return [effectsOf(was, c, layoutPayload())];
         }
         if (op.shown) return [{ type: 'restore', sectionId: op.sid, toIndex: c.order.indexOf(op.sid) }];

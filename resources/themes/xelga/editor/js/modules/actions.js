@@ -8,7 +8,7 @@ import { announce, toast } from './dom.js';
 import { S, ctx, ui, sec, blk, doc, locate, groupList, groupIndex, blockList, usedIds, labelOf, valueOf, ensureShape, openOnly } from './state.js';
 import { sectionDef, blockDef, blockTypes } from './catalog.js';
 import { commit, undo, hasLayout, layoutPayload, rulesFor } from './operations.js';
-import { rowsOf, fits, locate as locateIn } from './board/model.js';
+import { rowsOf, fits, spanAt, freshRowId, locate as locateIn } from './board/model.js';
 import { clone, humanize } from './util.js';
 import { select } from './selection.js';
 import { flush, resolveConflict, setFatal } from './drafts.js';
@@ -329,9 +329,11 @@ export function removeSection(sid) {
 
 /**
  * Adds a section from the add panel: a preset (settings and blocks) or a
- * variant with the schema's defaults.
+ * variant with the schema's defaults. It goes at a place in the page's
+ * order (`index`), or at a spot of the board (`target`, a row model
+ * target), refused when the section is too wide for it.
  */
-export function addSection(type, { variant = null, preset = null, index = null } = {}) {
+export function addSection(type, { variant = null, preset = null, index = null, target = null } = {}) {
   const def = sectionDef(type);
   const handle = S.page?.handle;
   if (!def || !handle) return null;
@@ -351,9 +353,51 @@ export function addSection(type, { variant = null, preset = null, index = null }
     snapshot.blocks[bid] = { type: b.type, label: b.label || `${blockDef(type, b.type).label} ${i + 1}`, disabled: false, settings: clone(b.settings || {}) };
   });
   const count = groupList('template').length;
-  const at = Math.max(0, Math.min(index ?? count, count));
-  commit({ t: 'insert', kind: 'add', doc: handle, sid, group: 'template', index: at, snapshot, name: def.label });
+  let at = Math.max(0, Math.min(index ?? count, count));
+  let spot = null;
+  const c = doc(handle)?.content;
+  if (target && c) {
+    if (!hasLayout(c) && target.drop === 'gap') {
+      // A page of full-width sections only: the gap is a place in its order.
+      at = orderIndexOfGap(c, target);
+    } else {
+      const rules = rulesFor(handle);
+      if (rules.minSpan(snapshot) > spanAt(c, target, rules)) {
+        toast(`${def.label} needs a wider spot than that one.`, { tone: 'error' });
+        return null;
+      }
+      spot = target;
+      at = count;
+    }
+  }
+  commit({ t: 'insert', kind: 'add', doc: handle, sid, group: 'template', index: at, snapshot, name: def.label, target: spot });
   return sid;
+}
+
+function orderIndexOfGap(c, target) {
+  if (target.before === 'end') return c.order.length;
+  const r = rowsOf(c, layoutPayload()).find((x) => x.id === target.before);
+  const index = r ? c.order.indexOf(r.columns[0]?.[0]) : -1;
+  return index < 0 ? c.order.length : index;
+}
+
+/** Adds an empty row of columns at a gap of the board. Answers whether it was added. */
+export function addRowAt(split, target) {
+  const handle = S.page?.handle;
+  const c = doc(handle)?.content;
+  const layout = layoutPayload();
+  if (!c || !layout?.splits?.[split]) return false;
+  if (rowsOf(c, layout).length >= layout.max_rows) {
+    toast(`This page has ${layout.max_rows} rows, the most it can have.`, { tone: 'error' });
+    return false;
+  }
+  const op = { t: 'row-add', doc: handle, split, before: target?.before ?? 'end', rowId: freshRowId(c, layout) };
+  commit(op);
+  if (!op.prior) return false;
+  const text = `Row added: ${layout.splits[split].label.toLowerCase()}. Add sections to its columns.`;
+  toast(text, { action: { label: 'Undo', run: undo } });
+  announce(text);
+  return true;
 }
 
 /**

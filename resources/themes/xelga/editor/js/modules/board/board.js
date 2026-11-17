@@ -9,6 +9,12 @@
  * Clicking a section selects it, and its settings open as they do from the
  * section list. Every change redraws the board, then the pictures it
  * touched.
+ *
+ * Sections are added where they will show: an Add line between rows (a
+ * row of columns, or one section full width) and an Add under each column.
+ * Sections and rows move by drag and drop or Alt plus the arrow keys (see
+ * drag.js); every spot that takes a drop carries its target in
+ * `data-target`.
  */
 
 import { $, h, icon, schematic, toast } from '../dom.js';
@@ -23,6 +29,9 @@ import { fitFrame } from '../preview.js';
 import { rowsOf } from './model.js';
 import { createPictures } from './pictures.js';
 import { boardSource } from '../layouts.js';
+import { openAdd } from '../add-section.js';
+import { splitOf, listWords, columnName } from './words.js';
+import { startDrag, keyMove, keyMoveRow, dragJustEnded, afterRender, targetKey } from './drag.js';
 
 const REFRESH_WAIT_MS = 700;
 
@@ -36,24 +45,6 @@ const app = () => $('#app');
    Words
    ------------------------------------------------------------------------ */
 
-const splitOf = (split) => layoutPayload()?.splits?.[split] || { parts: [12], label: 'One column' };
-
-function listWords(names) {
-  if (names.length <= 1) return names[0] || '';
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-}
-
-function columnName(parts, index) {
-  const n = parts.length;
-  if (n === 2 && parts[0] === parts[1]) return ['Left half', 'Right half'][index];
-  const names = {
-    2: ['Left column', 'Right column'],
-    3: ['Left column', 'Middle column', 'Right column'],
-    4: ['First column', 'Second column', 'Third column', 'Last column'],
-  };
-  return (names[n] || ['Column'])[index];
-}
-
 const variantOf = (sid) => valueOf(sid, null, 'variant');
 
 function variantLabel(sid, type) {
@@ -65,7 +56,12 @@ function variantLabel(sid, type) {
    Pieces: one section on the board
    ------------------------------------------------------------------------ */
 
-function piece(section, span) {
+const SHORTCUTS = 'Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight';
+
+/** A spot that takes a drop: the row model's target, kept on the element. */
+const dropData = (target) => ({ target: JSON.stringify(target), drop: target.drop });
+
+function piece(section, span, { movable = false } = {}) {
   const def = sectionDef(section.type);
   const selected = S.sel?.kind === 'section' && S.sel.sid === section.id;
   const name = labelOf(section.id);
@@ -81,10 +77,14 @@ function piece(section, span) {
     class: `piece${selected ? ' is-selected' : ''}${main ? ' piece--main' : ''}${hidden ? ' is-hidden' : ''}`,
     dataset: { sid: section.id, type: section.type },
     'aria-pressed': String(selected),
+    'aria-keyshortcuts': movable ? SHORTCUTS : null,
     onclick: () => {
+      if (dragJustEnded()) return;
       S.view = { type: 'section', sid: section.id };
       select(section.id);
     },
+    onpointerdown: movable ? (e) => startDrag(e, { kind: 'section', sid: section.id }) : null,
+    onkeydown: movable ? (e) => keyMove(e, section.id) : null,
   },
   h('span', { class: 'piece__bar' },
     icon(sectionIcon(section.type), 'icon--sm piece__icon'),
@@ -116,12 +116,39 @@ function rowBackground(row) {
   return scheme?.colors?.bg ? { background: scheme.colors.bg } : null;
 }
 
+/** The spot the add panel adds at, while it is open from the board. */
+function addTarget() {
+  return S.nav === 'add' && S.view.type === 'add' && S.addAt?.target ? S.addAt.target : null;
+}
+
+const isAddTarget = (target) => {
+  const t = addTarget();
+  return Boolean(t) && targetKey(t) === targetKey(target);
+};
+
+function newSpot() {
+  return h('div', { class: 'newspot', 'aria-hidden': 'true' }, icon('plus', 'icon--sm'), 'New section goes here');
+}
+
+/** Between two rows: an Add line, shown on hover or focus (always on touch screens). */
+function gapEl(before, above, below) {
+  const target = { drop: 'gap', before };
+  if (isAddTarget(target)) return h('div', { class: 'gap gap--target', dataset: dropData(target) }, newSpot());
+  const where = above && below ? `between ${above} and ${below}` : below ? `above ${below}` : above ? `below ${above}` : '';
+  return h('div', { class: 'gap', dataset: dropData(target) },
+    h('button', {
+      type: 'button', class: 'gap__add', 'aria-label': `Add a section or a row of columns${where ? ` ${where}` : ''}`,
+      onclick: () => { if (!dragJustEnded()) openAdd(null, target); },
+    }, h('span', { class: 'gap__line', 'aria-hidden': 'true' }), h('span', { class: 'gap__pill' }, icon('plus', 'icon--xs'), 'Add')));
+}
+
 function rowEl(row, sections) {
   const split = splitOf(row.split);
   const parts = split.parts;
   const single = parts.length === 1;
   const named = row.columns.flat().map((sid) => sections[sid] && labelOf(sid)).filter(Boolean);
   const selected = S.view.type === 'row' && S.view.rowId === row.id;
+  const main = row.columns.flat().some((sid) => sectionDef(sections[sid]?.type)?.main === true);
   const el = h('div', {
     class: `row ${single ? 'row--single' : 'row--multi'}${selected ? ' is-selected' : ''}`,
     dataset: { rowId: row.id, split: row.split },
@@ -130,12 +157,17 @@ function rowEl(row, sections) {
     el.append(h('button', {
       type: 'button', class: 'row__tab', 'aria-pressed': String(selected),
       'aria-label': `Row, ${split.label.toLowerCase()}${named.length ? `: ${listWords(named)}` : ''}`,
+      'aria-keyshortcuts': 'Alt+ArrowUp Alt+ArrowDown',
+      title: 'Row settings. Drag to move the row.',
       onclick: () => {
+        if (dragJustEnded()) return;
         S.view = selected ? { type: 'board' } : { type: 'row', rowId: row.id };
         // A row and a section are never selected together.
         if (S.sel?.kind === 'section') deselect();
         else renderBoard();
       },
+      onpointerdown: (e) => startDrag(e, { kind: 'row', rowId: row.id }),
+      onkeydown: (e) => keyMoveRow(e, row.id),
     }, splitPicture(parts), h('span', { text: `Row, ${split.label.toLowerCase()}` })));
   }
   const cols = h('div', {
@@ -143,11 +175,43 @@ function rowEl(row, sections) {
     dataset: { space: row.settings?.space || 'md', width: row.settings?.width || 'page' },
     style: single ? null : { gridTemplateColumns: parts.map((p) => `minmax(0, ${p}fr)`).join(' '), ...rowBackground(row) },
   });
+  const max = layoutPayload()?.max_per_column ?? 6;
   parts.forEach((part, index) => {
     const column = h('div', { class: 'col', dataset: { span: String(part) } });
     const list = (row.columns[index] || []).map((sid) => (sections[sid] ? { id: sid, ...sections[sid] } : null)).filter(Boolean);
-    list.forEach((s) => column.append(piece(s, part)));
-    if (!list.length) column.append(h('p', { class: 'col__empty', text: `${columnName(parts, index)}, empty` }));
+    if (single) {
+      list.forEach((s) => column.append(piece(s, part, { movable: true })));
+      // Two sections side by side: a drop on the left or right edge of a full-width one.
+      if (list.length === 1 && !main) {
+        ['left', 'right'].forEach((side) => column.append(h('div', {
+          class: `beside beside--${side}`, 'aria-hidden': 'true', dataset: dropData({ drop: 'beside', rowId: row.id, side }),
+        }, h('span', { text: `Put ${side === 'left' ? 'on the left' : 'on the right'}` }))));
+      }
+    } else {
+      const name = columnName(parts, index).toLowerCase();
+      list.forEach((s) => {
+        const spot = { drop: 'column', rowId: row.id, column: index, before: s.id };
+        if (isAddTarget(spot)) column.append(newSpot());
+        column.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(spot) }), piece(s, part, { movable: true }));
+      });
+      const end = { drop: 'column', rowId: row.id, column: index, before: null };
+      if (isAddTarget(end)) {
+        column.append(newSpot());
+      } else if (!list.length) {
+        column.append(h('button', {
+          type: 'button', class: 'col__empty', dataset: dropData(end), 'aria-label': `Add a section to the ${name}`,
+          onclick: () => { if (!dragJustEnded()) openAdd(null, end); },
+        }, icon('plus', 'icon--sm'), h('span', { text: 'Add a section' })));
+      } else if (list.length < max) {
+        column.append(h('button', {
+          type: 'button', class: 'col__add', dataset: dropData(end),
+          'aria-label': `Add a section to the ${name}, under ${labelOf(list[list.length - 1].id)}`,
+          onclick: () => { if (!dragJustEnded()) openAdd(null, end); },
+        }, icon('plus', 'icon--xs'), h('span', { text: 'Add' })));
+      } else {
+        column.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(end) }));
+      }
+    }
     cols.append(column);
   });
   el.append(cols);
@@ -157,7 +221,12 @@ function rowEl(row, sections) {
 function sideEl(which, ids, sections) {
   const el = h('div', { class: `side side--${which}` },
     h('p', { class: 'side__tag', text: which === 'left' ? 'Left side' : 'Right side' }));
-  ids.forEach((sid) => { if (sections[sid]) el.append(piece({ id: sid, ...sections[sid] }, 3)); });
+  ids.forEach((sid) => {
+    if (!sections[sid]) return;
+    el.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData({ drop: 'side', side: which, before: sid }) }),
+      piece({ id: sid, ...sections[sid] }, 3, { movable: true }));
+  });
+  el.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData({ drop: 'side', side: which, before: null }) }));
   return el;
 }
 
@@ -166,7 +235,10 @@ function pageRows() {
   if (!content) return h('div', { class: 'rows' });
   const sections = content.sections || {};
   const rows = h('div', { class: 'rows' });
-  rowsOf(content, layoutPayload()).forEach((row) => rows.append(rowEl(row, sections)));
+  const list = rowsOf(content, layoutPayload());
+  const nameOf = (row) => (row ? listWords(row.columns.flat().filter((sid) => sections[sid]).map((sid) => labelOf(sid))) || 'an empty row' : null);
+  list.forEach((row, i) => rows.append(gapEl(row.id, nameOf(list[i - 1]), nameOf(row)), rowEl(row, sections)));
+  rows.append(gapEl('end', nameOf(list[list.length - 1]), null));
   const left = (content.sides?.left || []).filter((sid) => sections[sid]);
   const right = (content.sides?.right || []).filter((sid) => sections[sid]);
   if (!left.length && !right.length) return rows;
@@ -207,8 +279,12 @@ export function renderBoard() {
   if (!board) return;
   app().dataset.loaded = String(Boolean(S.loaded));
   // The board follows the selection made anywhere: the section list, the preview, undo.
-  if (S.sel?.kind === 'section') S.view = { type: 'section', sid: S.sel.sid };
-  else if (S.view.type === 'section') S.view = { type: 'board' };
+  if (S.view.type === 'add' && !addTarget()) S.view = { type: 'board' };
+  // While the add panel is open at a spot of the board, the board keeps showing that spot.
+  if (S.view.type !== 'add') {
+    if (S.sel?.kind === 'section') S.view = { type: 'section', sid: S.sel.sid };
+    else if (S.view.type === 'section') S.view = { type: 'board' };
+  }
   if (S.view.type === 'row' && !rowExists(S.view.rowId)) S.view = { type: 'board' };
 
   if (!S.loaded || !S.page) {
@@ -227,6 +303,7 @@ export function renderBoard() {
   sheet.append(sharedBand('footer'));
   board.replaceChildren(h('div', { class: 'board__inner' }, head(), sheet));
   board.scrollTop = keep;
+  afterRender();
 }
 
 function rowExists(rowId) {
