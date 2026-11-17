@@ -49,7 +49,7 @@ test('javascript and other script addresses are dropped, also when hidden with s
 });
 
 test('store links, web addresses, mail and phone links and page fragments stay', () => {
-  const kept = '<a href="/products/demo-001">a</a><a href="https://example.com/x">b</a><a href="mailto:juan@example.com">c</a><a href="tel:+639000000000">d</a><a href="#reviews">e</a><a href="?page=2">f</a>';
+  const kept = '<a href="/products/demo-001">a</a><a href="https://example.com/x">b</a><a href="mailto:juan@example.com">c</a><a href="tel:+10000000000">d</a><a href="#reviews">e</a><a href="?page=2">f</a>';
   assert.equal(html(cleanFragment(kept)), kept);
 });
 

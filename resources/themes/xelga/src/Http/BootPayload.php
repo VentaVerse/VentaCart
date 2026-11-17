@@ -342,7 +342,7 @@ final class BootPayload
         ];
     }
 
-    /** Every record of a kind, through core's model: 0 when the kind is not installed. */
+    /** Every record of a kind in this store, through core's model: 0 when the kind is not installed. */
     private static function subjectCount(string $subjectType): int
     {
         $model = TemplateManager::subjectModel($subjectType);
@@ -351,7 +351,14 @@ final class BootPayload
         }
 
         try {
-            return (int) $model::query()->count();
+            $query = $model::query();
+            // Records of this store only, as core's own admin counts them.
+            $table = (new $model())->getTable();
+            if (\Illuminate\Support\Facades\Schema::hasColumn($table, 'store_id')) {
+                $query->where($table . '.store_id', (int) config('app.store_id', 1));
+            }
+
+            return (int) $query->count();
         } catch (\Throwable) {
             return 0;
         }

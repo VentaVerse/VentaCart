@@ -286,6 +286,15 @@ function queueRefresh(op, effects) {
   timer = window.setTimeout(runRefresh, REFRESH_WAIT_MS);
 }
 
+function requeue(job) {
+  pending = pending || { rows: new Set(), sections: new Set(), styles: false };
+  job.rows.forEach((id) => pending.rows.add(id));
+  job.sections.forEach((id) => pending.sections.add(id));
+  pending.styles = pending.styles || job.styles;
+  window.clearTimeout(timer);
+  timer = window.setTimeout(runRefresh, REFRESH_WAIT_MS * 4);
+}
+
 async function runRefresh() {
   const job = pending;
   pending = null;
@@ -296,7 +305,11 @@ async function runRefresh() {
   const inRows = new Set(content ? rowsOf(content, layoutPayload()).filter((r) => job.rows.has(r.id)).flatMap((r) => r.columns.flat()) : []);
   const sections = [...job.sections].filter((id) => !inRows.has(id));
   try {
-    if (!await flush()) return;
+    if (!await flush()) {
+      // Not saved yet, so nothing new to draw: keep the job for the next try.
+      requeue(job);
+      return;
+    }
     if (key !== loadedKey) return;
     await pictures.refresh({ rows: [...job.rows], sections, styles: job.styles });
   } catch (error) {
