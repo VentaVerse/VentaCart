@@ -383,6 +383,11 @@
   border-radius: 2px;
 }
 
+/* In the header and footer bands the gap between sections stays the same. */
+.shared > .slot {
+  margin-block: -3px;
+}
+
 /* The left and right edge of a full-width section, to put another beside it. */
 .beside {
   position: absolute;
