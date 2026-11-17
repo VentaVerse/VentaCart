@@ -297,7 +297,8 @@ export function addableBlocks(sid) {
   const s = sec(sid);
   const def = sectionDef(s?.type);
   if (!def?.blocks) return { types: [], full: false };
-  const list = blockList(sid);
+  // Blocks of an extension that is away take no room.
+  const list = blockList(sid).filter((b) => blockDef(s.type, b.type));
   const full = Boolean(def.blocks.max) && list.length >= def.blocks.max;
   const types = blockTypes(s.type).filter((t) => !t.limit || list.filter((b) => b.type === t.type).length < t.limit);
   return { types: full ? [] : types, full, max: def.blocks.max };
@@ -309,9 +310,13 @@ export function canDuplicateBlock(sid, bid) {
   return Boolean(b) && addableBlocks(sid).types.some((t) => t.type === b.type);
 }
 
-export function canRemoveBlock(sid) {
-  const def = sectionDef(sec(sid)?.type);
-  return blockList(sid).length > (def?.blocks?.min || 0);
+/* A block of an extension that is away can always be removed: it counts toward nothing. */
+export function canRemoveBlock(sid, bid = null) {
+  const type = sec(sid)?.type;
+  const b = bid ? blk(sid, bid) : null;
+  if (b && !blockDef(type, b.type)) return true;
+  const def = sectionDef(type);
+  return blockList(sid).filter((x) => blockDef(type, x.type)).length > (def?.blocks?.min || 0);
 }
 
 export function addBlock(sid, type) {
@@ -334,7 +339,7 @@ export function addBlock(sid, type) {
 export function removeBlock(sid, bid) {
   const at = locate(sid);
   if (!at || !blk(sid, bid)) return;
-  if (!canRemoveBlock(sid)) {
+  if (!canRemoveBlock(sid, bid)) {
     toast(`${labelOf(sid)} needs at least ${sectionDef(at.data.type)?.blocks?.min} of these.`, { tone: 'error' });
     return;
   }

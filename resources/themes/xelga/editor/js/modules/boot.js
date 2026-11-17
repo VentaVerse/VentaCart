@@ -32,6 +32,11 @@
  *   media      { root, extensions, storage_url* }
  *   limits     { sections, document_bytes, heartbeat_seconds, autosave_ms }
  *   icons*     the icon sprite's URL, or empty when the shell inlines it
+ *   extensions* { name: { title, state } }    every extension on disk, state 'on', 'off' or
+ *              'missing', so a section or block whose extension is away names it
+ *
+ * A section schema of an extension carries source and source_label; a page
+ * of an extension's page type carries extension: true and group (its name).
  */
 
 export class BootError extends Error {}
@@ -64,6 +69,8 @@ export function normalizePage(p) {
     groups: Array.isArray(p.groups) ? p.groups : [],
     note: p.note || '',
     custom: false,
+    extension: Boolean(p.extension),
+    group: p.group || null,
   };
 }
 
@@ -111,6 +118,7 @@ export function normalizeBoot(raw) {
     .filter((s) => s && typeof s.slug === 'string' && typeof s.name === 'string')
     .map((s) => ({ slug: s.slug, name: s.name, line: String(s.line || '') }));
   boot.products_exist = Boolean(boot.products_exist ?? true);
+  boot.extensions = boot.extensions && typeof boot.extensions === 'object' && !Array.isArray(boot.extensions) ? boot.extensions : {};
   boot.page = boot.page || boot.pages.find((p) => p.ready && p.kind === 'template')?.handle || 'home';
   return boot;
 }

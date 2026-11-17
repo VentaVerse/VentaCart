@@ -121,6 +121,8 @@ final class BootPayload
             // store has products yet, for the empty state of product sections.
             'store_templates' => \Themes\Xelga\StoreTemplates\StoreTemplates::summaries(),
             'products_exist' => \App\Models\Product::query()->exists(),
+            // Every extension on disk, so the editor can name the one a section or block is waiting for.
+            'extensions' => (object) \Themes\Xelga\Extensions\Extensions::current()->summary(),
             'pages' => self::pages(),
             'templates' => array_map(fn (array $t) => $t + self::previewFor($t), $summary['templates']),
             'drafts' => (object) $summary['drafts'],

@@ -6,8 +6,8 @@
  */
 
 import { $, $$, h, icon, dotsIcon } from './dom.js';
-import { S, ui, groupsInScope, groupList, blockList, labelOf, sec, isBusy, isFixed, isShared, openOnly } from './state.js';
-import { sectionDef, blockDef, sectionIcon, blockIcon } from './catalog.js';
+import { S, ctx, ui, groupsInScope, groupList, blockList, labelOf, sec, isBusy, isFixed, isShared, openOnly } from './state.js';
+import { sectionDef, blockDef, sectionIcon, blockIcon, absentNote } from './catalog.js';
 import { select } from './selection.js';
 import { openMenu } from './popover.js';
 import { highlight } from './preview.js';
@@ -304,12 +304,12 @@ function sectionItem(s, index, count, errors, group) {
   } else {
     row.append(h('button', {
       type: 'button', class: 'o-row__main', 'aria-current': selected ? 'true' : null,
-      title: def ? `${label} (${def.label})` : 'This section is no longer available',
+      title: def ? `${label} (${def.label})` : absentNote(s.type, ctx.boot?.extensions) || 'This section is no longer available',
       'aria-keyshortcuts': group === 'template' && !main ? `F2 Delete ${MOD}+D Alt+ArrowUp Alt+ArrowDown` : 'F2 Alt+ArrowUp Alt+ArrowDown',
       onclick: () => select(s.id),
       onkeydown: (e) => rowKeys(e, { sid: s.id, removable: group === 'template' && !main, copyable: group === 'template' && canDuplicate(s.id) }),
     }, icon(def ? sectionIcon(s.type) : 'alert', 'o-row__icon'),
-    def ? rowText(label, needTag(s.id)) : h('span', { class: 'o-row__label', text: 'No longer available' }),
+    def ? rowText(label, needTag(s.id)) : h('span', { class: 'o-row__label', text: absentNote(s.type, ctx.boot?.extensions) || 'No longer available' }),
     busy ? h('span', { class: 'o-row__busy', text: 'Updating' }) : null,
     errors.has(s.id) ? h('span', { class: 'o-row__err', 'aria-label': 'Has a value that was not accepted' }, icon('alert')) : null));
   }
@@ -328,10 +328,7 @@ function sectionItem(s, index, count, errors, group) {
     if (types.length) {
       ul.append(h('li', { class: 'o-item' }, h('button', {
         type: 'button', class: 'o-add o-add--block', 'aria-haspopup': types.length > 1 ? 'true' : null,
-        onclick: (e) => (types.length === 1 ? addBlock(s.id, types[0].type) : openMenu(e.currentTarget, [
-          { heading: 'Add to this section' },
-          ...types.map((t) => ({ label: t.label || humanize(t.type), iconName: blockIcon(s.type, t.type), hint: t.description || null, run: () => addBlock(s.id, t.type) })),
-        ])),
+        onclick: (e) => (types.length === 1 ? addBlock(s.id, types[0].type) : openMenu(e.currentTarget, blockMenu(s, types))),
       }, icon('plus'), types.length === 1 ? `Add ${String(types[0].label || humanize(types[0].type)).toLowerCase()}` : 'Add block')));
     } else if (full) {
       ul.append(h('li', { class: 'o-note', text: `Holds up to ${max}. Remove one to add another.` }));
@@ -341,7 +338,39 @@ function sectionItem(s, index, count, errors, group) {
   return li;
 }
 
+/* The theme's own blocks first, then each extension's under its name. */
+function blockMenu(s, types) {
+  const item = (t) => ({ label: t.label || humanize(t.type), iconName: blockIcon(s.type, t.type), hint: t.description || null, run: () => addBlock(s.id, t.type) });
+  const items = [{ heading: 'Add to this section' }, ...types.filter((t) => !t.source).map(item)];
+  const groups = new Map();
+  types.filter((t) => t.source).forEach((t) => {
+    const name = t.source_label || t.source;
+    if (!groups.has(name)) groups.set(name, []);
+    groups.get(name).push(t);
+  });
+  groups.forEach((list, name) => items.push({ heading: name }, ...list.map(item)));
+  return items;
+}
+
+/* A block of an extension that is away: kept, shown with its note, and only movable or removable. */
+function absentBlockItem(s, b, index, count) {
+  const label = absentNote(b.type, ctx.boot?.extensions) || 'No longer available';
+  const li = h('li', { class: 'o-item', dataset: { bid: b.id } });
+  const row = h('div', { class: 'o-row o-row--block is-missing', dataset: { row: b.id } },
+    h('span', { class: 'o-row__main', title: label }, icon('alert', 'o-row__icon'), h('span', { class: 'o-row__label', text: label })),
+    h('span', { class: 'o-row__actions' }, moreButton(labelOf(s.id, b.id) || label, (e) => openMenu(e.currentTarget, [
+      { label: 'Move up', iconName: 'chevron-up', disabled: index === 0, run: () => moveBlockBy(s.id, b.id, -1) },
+      { label: 'Move down', iconName: 'chevron-down', disabled: index >= count - 1, run: () => moveBlockBy(s.id, b.id, 1) },
+      { sep: true },
+      { label: 'Remove block', iconName: 'trash', danger: true, run: () => removeBlock(s.id, b.id) },
+    ]))));
+  li.append(row);
+  if (count > 1) wireDrag(li, { kind: 'block', sid: s.id, bid: b.id });
+  return li;
+}
+
 function blockItem(s, b, index, count) {
+  if (sectionDef(s.type) && !blockDef(s.type, b.type)) return absentBlockItem(s, b, index, count);
   const selected = S.sel?.kind === 'section' && S.sel.sid === s.id && S.sel.bid === b.id;
   const hidden = Boolean(b.disabled);
   const label = labelOf(s.id, b.id);

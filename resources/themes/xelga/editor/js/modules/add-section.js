@@ -27,7 +27,7 @@ function closeAdd() {
 function available() {
   const page = S.page || {};
   // A page's main section is always there, once; it is never added.
-  return Object.entries(sectionTypes()).filter(([, def]) => !def.main && allowedIn(def, page.pageType || page.handle, Boolean(page.custom)));
+  return Object.entries(sectionTypes()).filter(([, def]) => !def.main && allowedIn(def, page.pageType || page.handle, Boolean(page.custom), Boolean(page.extension)));
 }
 
 export function renderAdd() {
@@ -58,7 +58,19 @@ function renderList(listEl) {
   const q = S.addAt.query.trim().toLowerCase();
   const handle = S.page?.handle;
   const items = available().filter(([, def]) => !q || def.label.toLowerCase().includes(q) || (def.description || '').toLowerCase().includes(q));
-  listEl.replaceChildren(...items.map(([type, def]) => {
+  // The theme's own sections first, then one list per extension under its name.
+  const rows = [];
+  let heading = null;
+  items.sort(([, a], [, b]) => (a.source ? 1 : 0) - (b.source ? 1 : 0) || String(a.source_label || '').localeCompare(String(b.source_label || '')));
+  items.forEach((item) => {
+    const label = item[1].source ? item[1].source_label || item[1].source : null;
+    if (label && label !== heading) rows.push(h('li', { class: 'add-group', text: label }));
+    heading = label;
+    rows.push(item);
+  });
+  listEl.replaceChildren(...rows.map((entry) => {
+    if (!Array.isArray(entry)) return entry;
+    const [type, def] = entry;
     const open = S.addAt.open === type;
     const atLimit = Boolean(def.limit) && countOfType(handle, type) >= def.limit;
     const li = h('li', { class: `add-type${open ? ' is-open' : ''}${atLimit ? ' is-full' : ''}` },

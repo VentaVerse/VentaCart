@@ -42,6 +42,7 @@
         <link rel="preload" href="{{ $xelgaPreload }}" as="font" type="font/woff2" crossorigin>
     @endif
     @vite(['resources/themes/xelga/css/theme.css', 'resources/themes/xelga/js/theme.js'])
+    {{ \Themes\Xelga\Extensions\Extensions::current()->stylesheetTags() }}
     <link rel="stylesheet" href="{{ $xelga->tokensUrl() }}">
     @if ($xelga->preview())
         @vite(['resources/themes/xelga/editor/css/frame.css', 'resources/themes/xelga/editor/js/frame.js'])

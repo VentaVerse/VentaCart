@@ -71,11 +71,15 @@ export function liveMode(setting, def) {
   return 'attr';
 }
 
-/** True when the schema allows this section type in the template being edited. */
-export function allowedIn(def, pageType, isCustom) {
+/**
+ * True when the schema allows this section type in the template being
+ * edited. `*extension` opens it to every page type an extension added.
+ */
+export function allowedIn(def, pageType, isCustom, isExtensionPage = false) {
   if (!def || def.group !== 'template') return false;
   const list = def.templates;
   if (!list || list.includes('*')) return true;
+  if (isExtensionPage && list.includes('*extension')) return true;
   if (!list.includes(pageType)) return false;
   // `*custom` opens the section to custom templates of the listed page types.
   return !isCustom || list.includes('*custom');
@@ -94,6 +98,23 @@ export const BLOCK_ICONS = {
   banner: 'image', hotspot: 'map-pin', brand: 'plus-square', review: 'chat', menu: 'menu',
   contact: 'phone', text: 'type', 'mega-promo': 'image',
 };
+
+/*
+ * A section or block of an extension that is switched off or removed: its
+ * type is `{extension}.{name}` and the catalog has no such type now.
+ */
+export const extensionOf = (type) => {
+  const m = /^([a-z][a-z0-9-]{0,39})\.[a-z0-9]+(?:-[a-z0-9]+)*$/.exec(String(type || ''));
+  return m ? m[1] : null;
+};
+
+/** "Marketplace is switched off." for a section or block whose extension is away. */
+export function absentNote(type, extensions = {}) {
+  const name = extensionOf(type);
+  if (!name) return null;
+  const ext = extensions[name] || { title: name, state: 'missing' };
+  return `${ext.title || name} is ${ext.state === 'off' ? 'switched off' : 'not installed'}.`;
+}
 
 export const sectionIcon = (type) => sectionDef(type)?.icon || SECTION_ICONS[type] || 'layout';
 export const blockIcon = (type, blockType) => blockDef(type, blockType)?.icon || BLOCK_ICONS[blockType] || 'layout';

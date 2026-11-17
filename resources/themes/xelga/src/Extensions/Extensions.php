@@ -60,6 +60,50 @@ final class Extensions
         return $this->parts = $parts;
     }
 
+    /**
+     * The stylesheets of the registered extensions, after the theme's own,
+     * so a section added live in the editor is already styled. One the
+     * build does not know is logged and left out; the page still draws.
+     */
+    public function stylesheetTags(): \Illuminate\Support\HtmlString
+    {
+        $html = '';
+        foreach ($this->all() as $part) {
+            if ($part->stylesheet === null) {
+                continue;
+            }
+            try {
+                $html .= app(\Illuminate\Foundation\Vite::class)($part->stylesheet)->toHtml();
+            } catch (\Throwable $e) {
+                Registrar::refuse($part->name, 'its stylesheet is not in the build (run npm run build)', ['entry' => $part->stylesheet]);
+            }
+        }
+
+        return new \Illuminate\Support\HtmlString($html);
+    }
+
+    /**
+     * Every extension on disk, for the editor's notes about sections whose
+     * extension is away: its title and whether it is on, off or missing.
+     *
+     * @return array<string, array{title: string, state: string}>
+     */
+    public function summary(): array
+    {
+        $out = [];
+        foreach ($this->extensions->discovered() as $name => $manifest) {
+            if (($manifest['type'] ?? null) === 'theme' || preg_match(Registrar::NAME, (string) $name) !== 1) {
+                continue;
+            }
+            $out[$name] = [
+                'title' => trim((string) ($manifest['title'] ?? '')) !== '' ? (string) $manifest['title'] : (string) $name,
+                'state' => isset($this->all()[$name]) ? 'on' : $this->absence((string) $name),
+            ];
+        }
+
+        return $out;
+    }
+
     public function get(string $name): ?ExtensionParts
     {
         return $this->all()[$name] ?? null;
