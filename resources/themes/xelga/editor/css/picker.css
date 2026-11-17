@@ -19,7 +19,7 @@
   min-width: 0;
 }
 
-.piece-wrap .piece__bar {
+.piece-wrap .piece__line {
   padding-inline-end: 40px;
 }
 
@@ -754,7 +754,7 @@ body.is-dragging .piece__change {
   }
 
   /* Change at the end of the one-line sections of the phone board. */
-  .piece-wrap .piece__bar {
+  .piece-wrap .piece__line {
     padding-inline-end: 44px;
   }
 
@@ -775,6 +775,10 @@ body.is-dragging .piece__change {
   .row--multi .piece-wrap .piece__bar,
   .side .piece-wrap .piece__bar {
     padding-block-start: 42px;
+  }
+
+  .row--multi .piece-wrap .piece__line,
+  .side .piece-wrap .piece__line {
     padding-inline-end: 8px;
   }
 }
