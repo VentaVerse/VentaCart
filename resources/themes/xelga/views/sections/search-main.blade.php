@@ -7,10 +7,12 @@
     $list = $data['list'];
     $query = $data['query'];
     $found = $list['total'] > 0;
+    // As many cards to a line as the content area holds (the setting on a page without sides).
+    $cols = $context->fitColumns($settings['cols'], 3);
 @endphp
 <section class="s {{ $section['class'] }} s-search {{ $settings['scheme'] }}" id="{{ $section['id'] }}" @include('xelga::snippets.section-attrs')
          data-variant="{{ $settings['view'] }}" data-default-view="{{ $settings['view'] }}" data-switch-view="{{ $settings['switch_view'] ? 'true' : 'false' }}"
-         data-cols="{{ $settings['cols'] }}" data-mobile-cols="{{ $settings['mobile_cols'] }}" data-filters="none"
+         data-cols="{{ $cols }}" data-mobile-cols="{{ $settings['mobile_cols'] }}" data-filters="none"
          data-state="{{ $found ? 'results' : 'empty' }}" data-show-search="{{ $settings['show_search'] ? 'true' : 'false' }}"
          data-pagination="{{ $settings['pagination'] }}" aria-labelledby="{{ $section['id'] }}-title">
     <div class="s__inner">
@@ -36,7 +38,7 @@
             <div class="listing listing--nofilters" data-listing>
                 <div class="listing__main">
                     @include('xelga::blocks.listing.toolbar', ['withFilters' => false])
-                    @include('xelga::blocks.listing.grid', ['label' => 'Search results'])
+                    @include('xelga::blocks.listing.grid', ['label' => 'Search results', 'cols' => $cols])
                     @include('xelga::blocks.listing.pagination')
                 </div>
             </div>

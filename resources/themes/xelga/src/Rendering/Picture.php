@@ -119,6 +119,26 @@ final class Picture
     }
 
     /**
+     * The sizes of a photo in a section drawn across the page's content
+     * area, $span twelfths of the page wide (less than 12 when sides are
+     * drawn beside it). $fullWidth is written for a content area the whole
+     * page wide; $share is the part of the content area the photo takes.
+     * Sides stand beside the content only from 990 pixels, so below that
+     * the content area is the whole page and $fullWidth applies as it is.
+     */
+    public static function contentSizes(int $span, string $fullWidth, float $share = 1.0): string
+    {
+        if ($span >= 12) {
+            return $fullWidth;
+        }
+        $part = max(1, $span) / 12 * $share;
+        $wide = (int) ceil(self::PAGE_WIDTH * $part);
+        $desktop = (int) ceil(100 * $part);
+
+        return "(min-width: " . self::WIDE_FROM . "px) {$wide}px, (min-width: 990px) {$desktop}vw, {$fullWidth}";
+    }
+
+    /**
      * The sizes of a photo in a grid of $cols to a line (one to a line on a
      * phone when $mobileCols is 1): $fullWidth (written for a section the
      * whole page wide) on a full-width row, and the column's own share of

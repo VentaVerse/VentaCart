@@ -151,11 +151,11 @@
   .s-usp[data-variant="strip"] .usp {
     justify-content: flex-start;
   }
-  /* The strip runs out to the screen's edge only where the section sits in the page's gutters, not inside a column. */
+  /* The strip runs out to the screen's edge only where the section sits in the page's gutters, not inside a column or beside sides. */
   :where(:not(.xr__col)) > .s-usp[data-variant="strip"] .usp {
-    margin-inline: calc(var(--gutter) * -1);
-    padding-inline: var(--gutter);
-    scroll-padding-inline: var(--gutter);
+    margin-inline: calc(var(--bleed, var(--gutter)) * -1);
+    padding-inline: var(--bleed, var(--gutter));
+    scroll-padding-inline: var(--bleed, var(--gutter));
   }
   .s-usp[data-variant="strip"] .usp__item {
     padding-inline: 1rem;

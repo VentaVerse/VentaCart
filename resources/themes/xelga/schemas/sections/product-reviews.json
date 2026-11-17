@@ -12,6 +12,9 @@
   "limit": 1,
   "main": false,
   "class": "s-reviews",
+  "span": {
+    "min": 6
+  },
   "settings": [
     {
       "key": "heading",

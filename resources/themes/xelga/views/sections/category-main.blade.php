@@ -6,10 +6,12 @@
     $list = $data['list'];
     $filtersOn = $data['filters']['facets'] !== [] || $data['filters']['price'] !== null;
     $hasActive = $data['filters']['active'] > 0;
+    // As many cards to a line as the content area holds (the setting on a page without sides).
+    $cols = $context->fitColumns($settings['cols'], 3);
 @endphp
 <section class="s {{ $section['class'] }} {{ $settings['scheme'] }}" id="{{ $section['id'] }}" @include('xelga::snippets.section-attrs')
          data-variant="{{ $settings['view'] }}" data-default-view="{{ $settings['view'] }}" data-switch-view="{{ $settings['switch_view'] ? 'true' : 'false' }}"
-         data-cols="{{ $settings['cols'] }}" data-mobile-cols="{{ $settings['mobile_cols'] }}" data-subcats="{{ $settings['subcats'] }}"
+         data-cols="{{ $cols }}" data-mobile-cols="{{ $settings['mobile_cols'] }}" data-subcats="{{ $settings['subcats'] }}"
          data-filters="{{ $filtersOn ? $settings['filters'] : 'none' }}" data-show-description="{{ $settings['show_description'] ? 'true' : 'false' }}"
          data-show-image="{{ $settings['show_image'] ? 'true' : 'false' }}" data-pagination="{{ $settings['pagination'] }}"
          aria-labelledby="{{ $section['id'] }}-title">
@@ -17,7 +19,7 @@
         <header class="listing-head @if ($data['picture']) listing-head--media @endif">
             @if ($data['picture'])
                 <div class="listing-head__media">
-                    <img src="{{ $data['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($data['picture'], '(min-width: 750px) 40vw, 100vw') }}
+                    <img src="{{ $data['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($data['picture'], \Themes\Xelga\Rendering\Picture::contentSizes($context->span, '(min-width: 750px) 40vw, 100vw', .5)) }}
                          @if ($data['picture']['width']) width="{{ $data['picture']['width'] }}" height="{{ $data['picture']['height'] }}" @endif>
                 </div>
             @endif
@@ -61,7 +63,7 @@
                         @endif
                     </div>
                 @else
-                    @include('xelga::blocks.listing.grid', ['label' => $data['title']])
+                    @include('xelga::blocks.listing.grid', ['label' => $data['title'], 'cols' => $cols])
                 @endif
                 @include('xelga::blocks.listing.pagination')
             </div>

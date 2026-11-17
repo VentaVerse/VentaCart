@@ -2,6 +2,9 @@
     The page frame: header group, the page's content, footer group and the
     four regions every theme draws. Rendered through core's x-store-layout,
     which hands it the page title, the store's name and the cart count.
+    The page's sections are drawn before this frame, so main can name the
+    width of the content area (data-content, in twelfths) when sides
+    narrow it; a page the whole page wide carries none.
 --}}
 @php
     $xelga = app(\Themes\Xelga\Rendering\Storefront::class);
@@ -55,7 +58,7 @@
 
     {{ $xelga->group('header') }}
 
-    <main id="main-content">
+    <main id="main-content"@if ($xelga->contentSpan() < 12) data-content="{{ $xelga->contentSpan() }}"@endif>
         {{ $slot }}
     </main>
 

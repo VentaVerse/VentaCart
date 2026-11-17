@@ -15,7 +15,7 @@
  * The row answers to its section's width (a section that holds one is a size
  * container), so a swipe row in a column draws as it would on a page of that
  * width. It runs out to the screen's edge only where the section sits in the
- * page's gutters, never inside a column.
+ * page's gutters, never inside a column or beside sides (--bleed, rows.css).
  */
 .s:is([data-variant="carousel"], [data-variant="large"]) .rail-track {
   grid-auto-flow: column;
@@ -29,9 +29,9 @@
 }
 
 :where(:not(.xr__col)) > .s:is([data-variant="carousel"], [data-variant="large"]) .rail-track {
-  margin-inline: calc(var(--gutter) * -1);
-  padding-inline: var(--gutter);
-  scroll-padding-inline: var(--gutter);
+  margin-inline: calc(var(--bleed, var(--gutter)) * -1);
+  padding-inline: var(--bleed, var(--gutter));
+  scroll-padding-inline: var(--bleed, var(--gutter));
 }
 
 .s:is([data-variant="carousel"], [data-variant="large"]) .rail-track::-webkit-scrollbar {

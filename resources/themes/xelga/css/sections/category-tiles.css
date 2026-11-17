@@ -223,11 +223,11 @@
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
   }
-  /* The row runs out to the screen's edge only where the section sits in the page's gutters, not inside a column. */
+  /* The row runs out to the screen's edge only where the section sits in the page's gutters, not inside a column or beside sides. */
   :where(:not(.xr__col)) > .s-categories:is([data-variant="circles"], [data-mobile-layout="scroll"]) .tiles {
-    margin-inline: calc(var(--gutter) * -1);
-    padding-inline: var(--gutter);
-    scroll-padding-inline: var(--gutter);
+    margin-inline: calc(var(--bleed, var(--gutter)) * -1);
+    padding-inline: var(--bleed, var(--gutter));
+    scroll-padding-inline: var(--bleed, var(--gutter));
   }
   .s-categories[data-mobile-layout="scroll"]:not([data-variant="circles"]) .tiles {
     grid-auto-columns: 44%;

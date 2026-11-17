@@ -1,6 +1,11 @@
-/* Product reviews: score, list and Show more. */
+/*
+ * Product reviews: score, list and Show more. The section answers to its
+ * own width, so in a column or beside sides the score sits above the list
+ * as it does on a narrow screen. Rules below aim at its contents.
+ */
+.s-reviews { container-type: inline-size; }
 .reviews { display: grid; gap: 2.5rem; }
-@media (min-width: 990px) { .reviews { grid-template-columns: 19rem minmax(0, 1fr); gap: 5rem; } }
+@container (min-width: 990px) { .reviews { grid-template-columns: 19rem minmax(0, 1fr); gap: 5rem; } }
 .reviews__summary { display: grid; gap: .875rem; justify-items: start; align-content: start; }
 .reviews__summary .editor-note { margin: .5rem 0 0; font-size: .8125rem; }
 .reviews__score { display: flex; align-items: center; gap: .875rem; }

@@ -1,5 +1,10 @@
 {{-- Photos: a swipeable viewer with thumbnails, or stacked and grid layouts on large screens. --}}
-@php $images = $data['images']; $count = count($images); @endphp
+@php
+    $images = $data['images'];
+    $count = count($images);
+    // Beside the details on a content area of eight twelfths or more, across the whole content area below that.
+    $photoSizes = \Themes\Xelga\Rendering\Picture::contentSizes($context->span, '(min-width: 1320px) 720px, (min-width: 750px) 55vw, 100vw', $context->span >= 8 ? .55 : 1);
+@endphp
 <div class="gallery" data-block-id="{{ $block['id'] }}" data-block-type="gallery" data-gallery @if ($block['disabled']) hidden @endif>
     @if ($count === 0)
         @php \Themes\Xelga\Rendering\Fold::close(); @endphp
@@ -9,7 +14,7 @@
             <div class="gallery__track" data-gallery-track @if ($count > 1) role="region" aria-roledescription="carousel" aria-label="Photos of {{ $product->name }}. Use the arrow keys to move between them." tabindex="0" @endif>
                 @foreach ($images as $i => $image)
                     <figure class="gallery__slide" @if ($count > 1) role="group" aria-roledescription="slide" aria-label="{{ $i + 1 }} of {{ $count }}" @endif data-index="{{ $i }}">
-                        <img src="{{ $image['src'] }}" {{ \Themes\Xelga\Rendering\Picture::sources($image, '(min-width: 1320px) 720px, (min-width: 750px) 55vw, 100vw') }} alt="{{ $image['alt'] }}" @if ($settings['zoom'] === 'hover') data-zoom-src="{{ $image['src'] }}" @endif {{ \Themes\Xelga\Rendering\Fold::attrs($context, $i === 0) }}>
+                        <img src="{{ $image['src'] }}" {{ \Themes\Xelga\Rendering\Picture::sources($image, $photoSizes) }} alt="{{ $image['alt'] }}" @if ($settings['zoom'] === 'hover') data-zoom-src="{{ $image['src'] }}" @endif {{ \Themes\Xelga\Rendering\Fold::attrs($context, $i === 0) }}>
                         @if ($i === 0) @php \Themes\Xelga\Rendering\Fold::close(); @endphp @endif
                     </figure>
                 @endforeach

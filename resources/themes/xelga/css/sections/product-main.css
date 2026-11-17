@@ -1,4 +1,12 @@
-/* Product information: gallery, price, variants, stock, volume pricing, buy row, buy bar and full screen photos. */
+/*
+ * Product information: gallery, price, variants, stock, volume pricing, buy row, buy bar and full screen photos.
+ *
+ * The section is the page's main content, so it takes the content area's
+ * width: beside one side (main[data-content="9"]) the details keep room
+ * for the buy row, and beside two (6) photos and details stack in one
+ * column, as on a tablet, with the gallery as a swipeable viewer. The
+ * buy bar and full screen photos still cover the window.
+ */
 .pmain { display: grid; gap: 2rem; }
 @media (min-width: 750px) {
     .pmain { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2.5rem; }
@@ -8,10 +16,14 @@
     /* Photo size: the photo column's share of the row on a computer screen. */
     .s-product[data-photo-size=small] .pmain { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
     .s-product[data-photo-size=large] .pmain { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
-    .s-product:is([data-gallery=thumbs-below], [data-gallery=thumbs-left]) .pmain__media,
-    .s-product:is([data-gallery=stacked], [data-gallery=grid]) .pmain__info {
+    .s-product:is([data-gallery=thumbs-below], [data-gallery=thumbs-left]):where(:not(main[data-content="6"] *)) .pmain__media,
+    .s-product:is([data-gallery=stacked], [data-gallery=grid]):where(:not(main[data-content="6"] *)) .pmain__info {
         position: sticky; top: calc(var(--header-h) + 1.5rem); align-self: start;
     }
+    main[data-content="9"] .s-product .pmain { grid-template-columns: minmax(0, 1fr) minmax(21rem, 1fr); }
+    main[data-content="9"] .s-product[data-photo-size=small] .pmain { grid-template-columns: minmax(0, 5fr) minmax(21rem, 7fr); }
+    main[data-content="9"] .s-product[data-photo-size=large] .pmain { grid-template-columns: minmax(0, 7fr) minmax(21rem, 5fr); }
+    main[data-content="6"] .s-product .pmain { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
 }
 
 /* ------------------------------------------------------------ product: gallery */
@@ -110,20 +122,21 @@
     /*
      * Stacked photos and the grid scroll with the page, so they take no
      * screen cap. Stacked whole photos keep each photo's own proportions; the
-     * grid keeps one frame shape so its rows line up.
+     * grid keeps one frame shape so its rows line up. Above the details
+     * (beside two sides) they stay a swipeable viewer.
      */
-    .s-product:is([data-gallery=stacked], [data-gallery=grid]) { --photo-max-h: none; }
-    .s-product:is([data-gallery=stacked], [data-gallery=grid]):not([data-photo-shape=fit]) .gallery { max-width: none; }
-    .s-product[data-gallery=stacked][data-photo-shape=fit] .gallery__slide { aspect-ratio: auto; }
-    .s-product[data-gallery=stacked][data-photo-shape=fit] .gallery__slide img { height: auto; }
-    .s-product:is([data-gallery=stacked], [data-gallery=grid]) .gallery__track {
+    .s-product:is([data-gallery=stacked], [data-gallery=grid]):where(:not(main[data-content="6"] *)) { --photo-max-h: none; }
+    .s-product:is([data-gallery=stacked], [data-gallery=grid]):where(:not(main[data-content="6"] *)):not([data-photo-shape=fit]) .gallery { max-width: none; }
+    .s-product[data-gallery=stacked][data-photo-shape=fit]:where(:not(main[data-content="6"] *)) .gallery__slide { aspect-ratio: auto; }
+    .s-product[data-gallery=stacked][data-photo-shape=fit]:where(:not(main[data-content="6"] *)) .gallery__slide img { height: auto; }
+    .s-product:is([data-gallery=stacked], [data-gallery=grid]):where(:not(main[data-content="6"] *)) .gallery__track {
         grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: minmax(0, 1fr);
         gap: .75rem; overflow: visible; scroll-snap-type: none; border-radius: 0;
     }
-    .s-product:is([data-gallery=stacked], [data-gallery=grid]) .gallery__slide { border-radius: var(--radius-card); }
-    .s-product:is([data-gallery=stacked], [data-gallery=grid]) :is(.gallery__nav, .gallery__count, .gallery__thumbs) { display: none; }
-    .s-product[data-gallery=grid] .gallery__track { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .s-product[data-gallery=grid] .gallery__slide:first-child { grid-column: 1 / -1; }
+    .s-product:is([data-gallery=stacked], [data-gallery=grid]):where(:not(main[data-content="6"] *)) .gallery__slide { border-radius: var(--radius-card); }
+    .s-product:is([data-gallery=stacked], [data-gallery=grid]):where(:not(main[data-content="6"] *)) :is(.gallery__nav, .gallery__count, .gallery__thumbs) { display: none; }
+    .s-product[data-gallery=grid]:where(:not(main[data-content="6"] *)) .gallery__track { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .s-product[data-gallery=grid]:where(:not(main[data-content="6"] *)) .gallery__slide:first-child { grid-column: 1 / -1; }
 }
 
 /*

@@ -5,7 +5,7 @@
     off, so this section only draws an editor note then.
 --}}
 <section class="s {{ $section['class'] }} {{ $settings['scheme'] }}" @include('xelga::snippets.section-attrs')
-         data-variant="{{ $data['variant'] }}" data-cols="{{ $settings['cols'] }}"
+         data-variant="{{ $data['variant'] }}" data-cols="{{ $context->fitColumns($settings['cols'], 3) }}"
          data-show-date="{{ $settings['show_date'] ? 'true' : 'false' }}" data-show-excerpt="{{ $settings['show_excerpt'] ? 'true' : 'false' }}"
          data-show-category="{{ $settings['show_category'] ? 'true' : 'false' }}"
          aria-labelledby="{{ $section['id'] }}-title">

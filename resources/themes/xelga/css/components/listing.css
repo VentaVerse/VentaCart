@@ -3,18 +3,26 @@
  * drawer, active filter chips, empty state and pagination. Filters are a
  * real form; the script only sends it sooner and moves it into the drawer.
  */
+.s-listing[data-cols="2"] { --cols: 2; }
 .s-listing[data-cols="3"] { --cols: 3; }
 .s-listing[data-cols="4"] { --cols: 4; }
 .listing { display: grid; gap: 2rem; }
 .listing__main { min-width: 0; }
 .listing__aside { display: none; }
+/*
+ * The filter column, from 990px. Beside two sides (a content area of six
+ * twelfths) there is no room for it, so the filters stay in the drawer
+ * as on a smaller screen; the script reads which one is drawn.
+ */
 @media (min-width: 990px) {
-    .s-listing[data-filters=sidebar] .listing { grid-template-columns: 15.5rem minmax(0, 1fr); gap: 3rem; }
-    .s-listing[data-filters=sidebar] .listing__aside {
+    .s-listing[data-filters=sidebar]:where(:not(main[data-content="6"] *)) .listing { grid-template-columns: 15.5rem minmax(0, 1fr); gap: 3rem; }
+    .s-listing[data-filters=sidebar]:where(:not(main[data-content="6"] *)) .listing__aside {
         display: block; position: sticky; top: calc(var(--header-h) + 1rem); align-self: start;
         max-height: calc(100dvh - var(--header-h) - 2rem); overflow-y: auto; scrollbar-width: thin; padding-inline-end: .25rem;
     }
-    .s-listing[data-filters=sidebar] .toolbar__filter { display: none; }
+    .s-listing[data-filters=sidebar]:where(:not(main[data-content="6"] *)) .toolbar__filter { display: none; }
+    /* Beside one side, a narrower column leaves the products room for two cards a line. */
+    main[data-content="9"] .s-listing[data-filters=sidebar] .listing { grid-template-columns: 13.5rem minmax(0, 1fr); gap: 2rem; }
 }
 .filters__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block-end: .5rem; border-block-end: 1px solid var(--c-border); }
 .filters__title { font-size: var(--fs-h4); }
