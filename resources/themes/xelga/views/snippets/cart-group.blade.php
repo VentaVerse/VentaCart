@@ -1,14 +1,13 @@
 {{--
     One group of cart lines (App\Support\CartGroups): a header with the
-    group's name, linked when it has an address, and its shipping note,
-    then its lines. A group without a name (the lines no group took) has
-    no header.
+    group's title, linked when it has an address, and its shipping note,
+    then its lines. The lines no group took are titled "Other items".
 --}}
-<section class="cart-group" data-cart-group="{{ $group['key'] }}" @if ($group['label'] !== '') aria-label="{{ $group['label'] }}" @endif>
-    @if ($group['label'] !== '')
+<section class="cart-group" data-cart-group="{{ $group['key'] }}" @if ($group['title'] !== '') aria-label="{{ $group['title'] }}" @endif>
+    @if ($group['title'] !== '')
         <header class="cart-group__head">
             <h{{ $headingLevel }} class="cart-group__title">
-                @if ($group['url'] !== null)<a href="{{ $group['url'] }}">{{ $group['label'] }}</a>@else{{ $group['label'] }}@endif
+                @if ($group['url'] !== null)<a href="{{ $group['url'] }}">{{ $group['title'] }}</a>@else{{ $group['title'] }}@endif
             </h{{ $headingLevel }}>
             @if ($group['shipping'] !== null)
                 <p class="cart-group__ship">

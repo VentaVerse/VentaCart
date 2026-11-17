@@ -66,11 +66,26 @@ class XelgaCartGroupsTest extends TestCase
             ->assertSee('aria-label="Other items in your cart"', false)
             ->getContent();
 
+        // The lines no group took come first, under their own neutral header,
+        // so they never read as the last seller's.
         $demo = strpos($html, 'data-cart-group="demo-store"');
         $other = strpos($html, 'data-cart-group="other"');
-        $this->assertTrue($demo < strpos($html, 'Demo Mug') && strpos($html, 'Demo Bowl') < $other && $other < strpos($html, 'Plain Cup'));
+        $this->assertTrue($other < strpos($html, 'Plain Cup') && strpos($html, 'Plain Cup') < $demo && $demo < strpos($html, 'Demo Mug'));
+        $this->assertMatchesRegularExpression('#<section class="cart-group" data-cart-group="other"\s+aria-label="Other items"\s*>\s*<header class="cart-group__head">\s*<h2 class="cart-group__title">\s*Other items\s*</h2>#', $html);
         $this->assertSame(1, substr_count($html, 'data-cart-group="other"'));
         $this->assertStringNotContainsString('<ul class="lines lines--page" aria-label="Items in your cart">', $html);
+    }
+
+    public function test_a_grouper_that_names_no_line_gives_the_plain_list(): void
+    {
+        $this->setUpXelgaWithExtension();
+        $this->fillCart();
+        \App\Models\Product::all()->each(fn (\App\Models\Product $p) => $p->update(['sku' => 'OTHER-' . $p->id]));
+
+        $html = $this->page('/cart')->getContent();
+
+        $this->assertSame(1, substr_count($html, '<ul class="lines lines--page" aria-label="Items in your cart">'));
+        $this->assertStringNotContainsString('Other items', $html);
     }
 
     public function test_switched_off_the_cart_is_one_list_again(): void

@@ -175,15 +175,21 @@ function groupHead(group) {
   return li;
 }
 
-/* The lines in cart order, or under their groups' headers when an extension grouped them. */
+/*
+ * The lines in cart order, or under their groups' headers when an extension
+ * grouped them. Core puts the lines no group took (`other`) first; they get
+ * a neutral header when named groups follow, and alone are the plain list.
+ */
 function lineNodes(items, groups) {
-  if (!Array.isArray(groups) || !groups.length) return items.map(lineNode);
+  const named = Array.isArray(groups) ? groups.filter((g) => g.key !== 'other') : [];
+  if (!named.length) return items.map(lineNode);
   const byId = new Map(items.map((item) => [Number(item.id), item]));
   const nodes = [];
   groups.forEach((group) => {
     const lines = (group.lines || []).map((id) => byId.get(Number(id))).filter(Boolean);
     if (!lines.length) return;
-    if (group.label) nodes.push(groupHead(group));
+    if (group.key === 'other') nodes.push(groupHead({ key: 'other', label: 'Other items', url: null, shipping: null }));
+    else if (group.label) nodes.push(groupHead(group));
     lines.forEach((item) => nodes.push(lineNode(item)));
   });
   return nodes;

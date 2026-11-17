@@ -51,6 +51,9 @@ final class CartMain implements SectionData
     /**
      * The lines under the groups an extension made of them (one per
      * seller, say), as core checked them, or null for one plain list.
+     * Core puts the lines no group took first; they get a neutral title
+     * ("Other items") when named groups follow, so they never read as part
+     * of a seller's group. Alone, they are the plain list.
      *
      * @param  \Illuminate\Support\Collection<int, CartItem>  $items
      * @param  list<array>  $lines
@@ -74,9 +77,11 @@ final class CartMain implements SectionData
                 continue;
             }
             $shipping = $group['shipping'] ?? null;
+            $rest = $group['key'] === \App\Support\CartGroups::REST;
             $out[] = [
                 'key' => (string) $group['key'],
                 'label' => (string) $group['label'],
+                'title' => $rest ? (count($groups) > 1 ? 'Other items' : '') : (string) $group['label'],
                 'url' => $group['url'] ?? null,
                 'shipping' => is_array($shipping) ? [
                     'label' => (string) $shipping['label'],
@@ -87,7 +92,9 @@ final class CartMain implements SectionData
             ];
         }
 
-        return $out === [] ? null : $out;
+        $onlyRest = count($out) === 1 && $out[0]['key'] === \App\Support\CartGroups::REST;
+
+        return $out === [] || $onlyRest ? null : $out;
     }
 
     /** One line as the page draws it. */
