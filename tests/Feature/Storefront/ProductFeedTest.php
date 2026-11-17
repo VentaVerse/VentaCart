@@ -82,6 +82,27 @@ class ProductFeedTest extends TestCase
         $this->assertSame(['Big Seller', 'Small Seller', 'Unsold Popular', 'Unsold Quiet'], $this->names(['filter' => 'best_sellers']));
     }
 
+    public function test_best_sellers_sum_the_order_lines_once_and_reuse_the_ranking(): void
+    {
+        $seller = $this->product('Seller');
+        $this->product('Unsold');
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+        $order = Order::create(['store_id' => 1, 'order_status_id' => $status->id, 'first_name' => 'Juan',
+            'last_name' => 'Dela Cruz', 'email' => 'juan@example.com', 'subtotal' => 300, 'total' => 300]);
+        OrderProduct::create(['order_id' => $order->id, 'product_id' => $seller->id, 'name' => 'Seller', 'price' => 300, 'quantity' => 1, 'total' => 300]);
+
+        $sums = 0;
+        \Illuminate\Support\Facades\DB::listen(function ($q) use (&$sums) {
+            if (str_contains($q->sql, 'order_products')) {
+                $sums++;
+            }
+        });
+
+        $this->assertSame(['Seller', 'Unsold'], $this->names(['filter' => 'best_sellers']));
+        $this->assertSame(['Seller', 'Unsold'], $this->names(['filter' => 'best_sellers']));
+        $this->assertSame(1, $sums, 'the order lines are summed once, then the cached ranking is used');
+    }
+
     public function test_on_sale_lists_only_products_with_an_active_sale_special(): void
     {
         $sale = $this->product('On Sale');

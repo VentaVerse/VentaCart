@@ -4,10 +4,12 @@ namespace App\Support;
 
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\OrderProduct;
 use App\Models\Product;
 use App\Services\CartService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -26,7 +28,8 @@ use Illuminate\Support\Facades\DB;
  * Criteria (all optional; they narrow one another):
  *
  *   filter         'new' (default): newest first, by date available
- *                  'best_sellers':  most revenue from order lines first
+ *                  'best_sellers':  most revenue from order lines first (the ranking
+ *                                   is cached for an hour, see bestSellerIds())
  *                  'on_sale':       only products on sale for the shopper looking (their customer group, one unit)
  *                  'most_viewed':   most viewed first
  *                  'random':        a random pick
@@ -233,19 +236,63 @@ final class ProductFeed
         return true;
     }
 
+    /** Products ranked for best sellers; the rest follow by views. */
+    public const BEST_SELLERS_RANKED = 500;
+
+    /** How long the best-seller ranking is kept before it is summed again. */
+    public const BEST_SELLERS_TTL = 3600;
+
+    public const BEST_SELLERS_CACHE_KEY = 'product_feed_best_seller_ids';
+
+    /**
+     * Product ids by revenue from order lines, highest first, for the whole
+     * store. Summing every order line is the one costly part of the list
+     * and the answer is the same for every shopper, so it is cached for an
+     * hour (a sale moves a product up at most that much later) and kept for
+     * the request.
+     *
+     * @return list<int>
+     */
+    public static function bestSellerIds(): array
+    {
+        return RequestCache::remember(self::BEST_SELLERS_CACHE_KEY, fn () => Cache::remember(self::BEST_SELLERS_CACHE_KEY, self::BEST_SELLERS_TTL, function () {
+            $prefix = DB::getTablePrefix();
+
+            return OrderProduct::query()
+                ->whereNotNull('product_id')
+                ->groupBy('product_id')
+                ->havingRaw("SUM({$prefix}order_products.price * {$prefix}order_products.quantity) > 0")
+                ->orderByRaw("SUM({$prefix}order_products.price * {$prefix}order_products.quantity) DESC")
+                ->orderByDesc('product_id')
+                ->limit(self::BEST_SELLERS_RANKED)
+                ->pluck('product_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }));
+    }
+
     private static function order(Builder $query, string $filter): void
     {
         switch ($filter) {
             case 'best_sellers':
-                $prefix = DB::getTablePrefix();
-                $query->withCount(['orderProducts as total_revenue' => function ($q) use ($prefix) {
-                    $q->select(DB::raw("COALESCE(SUM({$prefix}order_products.price * {$prefix}order_products.quantity), 0)"));
-                }])
-                    // Everything that has sold nothing has sold the same
-                    // amount, so a store with no orders yet would return
-                    // whatever the database felt like. Views break the tie,
-                    // which is the closest thing to a seller a new shop has.
-                    ->orderByDesc('total_revenue')->orderByDesc('views')->orderByDesc('id');
+                // The ranking comes from a cached list (bestSellerIds), so a
+                // page never sums the store's order lines; the shopper's own
+                // filters (visibility, category, brand) still apply here.
+                $ranked = self::bestSellerIds();
+                if ($ranked !== []) {
+                    $column = $query->getQuery()->getGrammar()->wrap($query->getModel()->getQualifiedKeyName());
+                    $bindings = [];
+                    foreach ($ranked as $position => $id) {
+                        array_push($bindings, $id, $position);
+                    }
+                    $bindings[] = count($ranked);
+                    $query->orderByRaw("CASE {$column} " . str_repeat('WHEN ? THEN ? ', count($ranked)) . 'ELSE ? END', $bindings);
+                }
+                // Everything that has sold nothing has sold the same amount,
+                // so a store with no orders yet would return whatever the
+                // database felt like. Views break the tie, which is the
+                // closest thing to a seller a new shop has.
+                $query->orderByDesc('views')->orderByDesc('id');
                 break;
             case 'most_viewed':
                 $query->orderByDesc('views')->orderByDesc('id');
