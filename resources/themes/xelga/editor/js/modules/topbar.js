@@ -266,6 +266,8 @@ export function onKeydown(e) {
   const t = e.target;
   const typing = t && (t.isContentEditable || (t.matches && t.matches('input:not([type="range"]):not([type="color"]):not([type="checkbox"]), textarea, select')));
   const key = (e.key || '').toLowerCase();
+  // While the section picker is open, nothing behind it changes.
+  if (document.querySelector('#section-picker[open]') && e.key !== 'Escape') return;
   if (mod && !typing && key === 'z') {
     e.preventDefault();
     if (e.shiftKey) doRedo();

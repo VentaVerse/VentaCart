@@ -55,7 +55,7 @@ export const S = {
   seq: 0, // increasing number given to each operation
   sel: null, // { kind: 'section', sid, bid } | { kind: 'theme', group, scheme? }
   // What the layout board shows beside the page: {type: 'board'} (nothing
-  // more), {type: 'section', sid}, {type: 'row', rowId}, {type: 'add', target},
+  // more), {type: 'section', sid}, {type: 'row', rowId},
   // {type: 'theme'} or {type: 'schemes'}.
   view: { type: 'board' },
   canvas: 'board', // what the canvas shows: 'board' (the layout board) or 'preview' (the store preview)

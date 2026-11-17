@@ -8,6 +8,12 @@ namespace Themes\Xelga\Catalog;
  */
 final class SectionSchema
 {
+    /** The groups of tiles the section picker shows the theme's own sections in, in order. */
+    public const PICKER_GROUPS = ['banners', 'products', 'categories', 'text'];
+
+    /** The group of a section that names none: text and trust. */
+    public const DEFAULT_PICKER_GROUP = 'text';
+
     public readonly string $type;
 
     public readonly string $label;
@@ -27,6 +33,21 @@ final class SectionSchema
         $source = $this->raw['source'] ?? null;
 
         return is_string($source) && $source !== '' ? $source : null;
+    }
+
+    /**
+     * The group of tiles the section picker shows the section in: the
+     * schema's own, else text and trust. An extension's sections are
+     * grouped under the extension, so they have none.
+     */
+    public function pickerGroup(): ?string
+    {
+        if ($this->source() !== null) {
+            return null;
+        }
+        $group = $this->raw['picker_group'] ?? null;
+
+        return in_array($group, self::PICKER_GROUPS, true) ? $group : self::DEFAULT_PICKER_GROUP;
     }
 
     /** The theme's view that draws one of its own sections. */

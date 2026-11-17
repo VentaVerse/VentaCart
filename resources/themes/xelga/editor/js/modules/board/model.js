@@ -543,6 +543,52 @@ export function place(content, sid, target, rules) {
   return { content: next, created: createdBetween(content, next, layout) };
 }
 
+/** How wide a section's own place is, in twelfths: its column, its side or a full-width row; null when it is not on the page. */
+export function roomOf(content, sid, rules) {
+  const layout = layoutOf(rules.layout);
+  const at = locate(content, sid, layout);
+  if (!at) return null;
+  if (at.where === 'side') return layout.side_span;
+  const r = rowsOf(content, layout).find((x) => x.id === at.rowId);
+  return (r && partsOf(layout, r.split)?.[at.column]) || 12;
+}
+
+/**
+ * Puts another section in a section's place: the same row, column or
+ * side and the same position in it, under the new id. Answers null, and
+ * changes nothing, when the old one is not on the page or is the page's
+ * main section, the new id is taken, or the new section does not fit the
+ * place (too wide for it, or a main section). Rows, sides and order keep
+ * their shape and key order, so nothing else moves.
+ */
+export function replaceIn(content, sid, newSid, section, rules) {
+  const sections = sectionMap(content);
+  if (!sections.has(sid) || !isString(newSid) || newSid === '' || sections.has(newSid)) return null;
+  if (rules.isMain(sections.get(sid)) || rules.isMain(section)) return null;
+  const room = roomOf(content, sid, rules);
+  if (room === null || rules.minSpan(section) > room) return null;
+
+  const swap = (id) => (id === sid ? newSid : id);
+  const swapList = (list) => (Array.isArray(list) ? list.map(swap) : list);
+  const out = {};
+  Object.keys(content).forEach((key) => {
+    if (key === 'sections') {
+      out.sections = {};
+      Object.keys(content.sections).forEach((id) => { out.sections[swap(id)] = id === sid ? section : content.sections[id]; });
+    } else if (key === 'order') {
+      out.order = swapList(content.order);
+    } else if (key === 'rows' && Array.isArray(content.rows)) {
+      out.rows = content.rows.map((r) => (isList(r) && Array.isArray(r.columns) ? { ...r, columns: r.columns.map(swapList) } : r));
+    } else if (key === 'sides' && isList(content.sides) && !Array.isArray(content.sides)) {
+      out.sides = {};
+      Object.keys(content.sides).forEach((which) => { out.sides[which] = swapList(content.sides[which]); });
+    } else {
+      out[key] = content[key];
+    }
+  });
+  return { content: out };
+}
+
 /* ------------------------------------------------------------------------
    Rows
    ------------------------------------------------------------------------ */

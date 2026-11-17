@@ -2,6 +2,7 @@
   "type": "breadcrumbs",
   "label": "Breadcrumbs",
   "group": "template",
+  "picker_group": "categories",
   "templates": ["product", "category", "brand", "brand-list", "search", "cart", "blog", "blog-post", "page", "contact", "not-found", "*custom", "*extension"],
   "limit": 1,
   "main": false,

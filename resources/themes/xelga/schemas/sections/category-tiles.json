@@ -2,6 +2,7 @@
   "type": "category-tiles",
   "label": "Category tiles",
   "group": "template",
+  "picker_group": "categories",
   "templates": [
     "*"
   ],

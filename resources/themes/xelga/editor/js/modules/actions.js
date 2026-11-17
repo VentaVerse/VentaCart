@@ -8,7 +8,8 @@ import { announce, toast } from './dom.js';
 import { S, ctx, ui, sec, blk, doc, locate, groupList, groupIndex, blockList, usedIds, labelOf, valueOf, ensureShape, openOnly } from './state.js';
 import { sectionDef, blockDef, blockTypes } from './catalog.js';
 import { commit, undo, hasLayout, layoutPayload, rulesFor } from './operations.js';
-import { rowsOf, fits, spanAt, freshRowId, locate as locateIn } from './board/model.js';
+import { rowsOf, fits, spanAt, freshRowId, replaceIn, locate as locateIn } from './board/model.js';
+import { schemeSetting } from './board/choices.js';
 import { clone, humanize } from './util.js';
 import { select } from './selection.js';
 import { flush, resolveConflict, setFatal } from './drafts.js';
@@ -328,7 +329,7 @@ export function removeSection(sid) {
 }
 
 /**
- * Adds a section from the add panel: a preset (settings and blocks) or a
+ * Adds a section from the section picker or the add panel: a preset (settings and blocks) or a
  * variant with the schema's defaults. It goes at a place in the page's
  * order (`index`), or at a spot of the board (`target`, a row model
  * target), refused when the section is too wide for it.
@@ -341,17 +342,7 @@ export function addSection(type, { variant = null, preset = null, index = null, 
     toast(`This page already has ${def.limit === 1 ? 'a' : def.limit} ${def.label}${def.limit === 1 ? '' : ' sections'}, the most it can have.`, { tone: 'error' });
     return null;
   }
-  const used = usedIds();
-  const sid = newId(type, used);
-  used.add(sid);
-  const settings = clone(preset?.settings || {});
-  if (variant && !preset) settings.variant = variant;
-  const snapshot = { type, label: def.label, disabled: false, settings, block_order: [], blocks: {} };
-  presetBlocks(def, preset).forEach((b, i) => {
-    const bid = uniqueBlockId(b.type, used);
-    snapshot.block_order.push(bid);
-    snapshot.blocks[bid] = { type: b.type, label: b.label || `${blockDef(type, b.type).label} ${i + 1}`, disabled: false, settings: clone(b.settings || {}) };
-  });
+  const { sid, snapshot } = buildSection(type, def, { variant, preset }, usedIds());
   const count = groupList('template').length;
   let at = Math.max(0, Math.min(index ?? count, count));
   let spot = null;
@@ -374,6 +365,61 @@ export function addSection(type, { variant = null, preset = null, index = null, 
   return sid;
 }
 
+/**
+ * A new section of a type with fresh ids for it and its blocks: a preset
+ * (settings and blocks) or a variant with the schema's defaults. Adds the
+ * ids to `used`.
+ */
+export function buildSection(type, def, { variant = null, preset = null } = {}, used = new Set()) {
+  const sid = newId(type, used);
+  used.add(sid);
+  const settings = clone(preset?.settings || {});
+  if (variant && !preset) settings.variant = variant;
+  const snapshot = { type, label: def.label, disabled: false, settings, block_order: [], blocks: {} };
+  presetBlocks(def, preset).forEach((b, i) => {
+    const bid = uniqueBlockId(b.type, used);
+    snapshot.block_order.push(bid);
+    snapshot.blocks[bid] = { type: b.type, label: b.label || `${blockDef(type, b.type)?.label || humanize(b.type)} ${i + 1}`, disabled: false, settings: clone(b.settings || {}) };
+  });
+  return { sid, snapshot };
+}
+
+/**
+ * Replaces a section of the page with a new one of another type, in the
+ * same spot: a preset or a variant with the new type's defaults, keeping
+ * only the old section's color scheme. Refused, with a message, when the
+ * new type is at its limit on the page or does not fit the spot. One
+ * operation, so one undo puts the old section back exactly. Answers the
+ * new section's id, or null.
+ */
+export function replaceSection(sid, type, { variant = null, preset = null } = {}) {
+  const at = locate(sid);
+  const def = sectionDef(type);
+  if (!at || at.group !== 'template' || !def || def.main || isMain(sid) || at.data.type === type) return null;
+  if (def.limit && countOfType(at.handle, type) >= def.limit) {
+    toast(`This page already has ${def.limit === 1 ? 'a' : def.limit} ${def.label}${def.limit === 1 ? '' : ' sections'}, the most it can have.`, { tone: 'error' });
+    return null;
+  }
+  const { sid: newSid, snapshot } = buildSection(type, def, { variant, preset }, usedIds());
+  keepScheme(snapshot, def, sid);
+  if (!replaceIn(at.doc.content, sid, newSid, snapshot, rulesFor(at.handle))) {
+    toast(`${def.label} needs a wider spot than that one.`, { tone: 'error' });
+    return null;
+  }
+  const op = { t: 'replace', doc: at.handle, sid, newSid, snapshot, name: labelOf(sid) };
+  commit(op);
+  return op.prior ? newSid : null;
+}
+
+/* The new section takes the color scheme the old one shows, so the page keeps its colors. */
+function keepScheme(snapshot, def, sid) {
+  const to = schemeSetting(def);
+  const from = schemeSetting(sectionDef(sec(sid)?.type));
+  if (!to || !from) return;
+  const value = valueOf(sid, null, from.key);
+  if (value !== undefined && value !== null && value !== '') snapshot.settings[to.key] = clone(value);
+}
+
 function orderIndexOfGap(c, target) {
   if (target.before === 'end') return c.order.length;
   const r = rowsOf(c, layoutPayload()).find((x) => x.id === target.before);
@@ -381,23 +427,23 @@ function orderIndexOfGap(c, target) {
   return index < 0 ? c.order.length : index;
 }
 
-/** Adds an empty row of columns at a gap of the board. Answers whether it was added. */
+/** Adds an empty row of columns at a gap of the board. Answers the new row's id, or null. */
 export function addRowAt(split, target) {
   const handle = S.page?.handle;
   const c = doc(handle)?.content;
   const layout = layoutPayload();
-  if (!c || !layout?.splits?.[split]) return false;
+  if (!c || !layout?.splits?.[split]) return null;
   if (rowsOf(c, layout).length >= layout.max_rows) {
     toast(`This page has ${layout.max_rows} rows, the most it can have.`, { tone: 'error' });
-    return false;
+    return null;
   }
   const op = { t: 'row-add', doc: handle, split, before: target?.before ?? 'end', rowId: freshRowId(c, layout) };
   commit(op);
-  if (!op.prior) return false;
+  if (!op.prior) return null;
   const text = `Row added: ${layout.splits[split].label.toLowerCase()}. Add sections to its columns.`;
   toast(text, { action: { label: 'Undo', run: undo } });
   announce(text);
-  return true;
+  return op.rowId;
 }
 
 /**

@@ -29,9 +29,10 @@ import { initStores } from './stores.js';
 import { initNeeds } from './needs.js';
 import { initBoard } from './board/board.js';
 import { initDrawer } from './board/drawer.js';
+import { initPicker } from './board/picker.js';
 import { h } from './dom.js';
 
-const STRUCTURAL = new Set(['remove', 'insert', 'move', 'rename', 'block-add', 'block-remove', 'block-move', 'visible', ...LAYOUT_TYPES]);
+const STRUCTURAL = new Set(['remove', 'insert', 'replace', 'move', 'rename', 'block-add', 'block-remove', 'block-move', 'visible', ...LAYOUT_TYPES]);
 
 /*
  * Undo and redo show the list the change belongs to, so it is never made out
@@ -324,6 +325,7 @@ export function startEditor({ boot, api, mount = null }) {
   initNeeds();
   initBoard();
   initDrawer();
+  initPicker();
   ctx.bridge.on('ready', onFrameReady);
   ui.openPage = openPage;
   ui.rememberPage = rememberPage;

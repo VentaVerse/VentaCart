@@ -3,6 +3,7 @@
   "label": "Product reviews",
   "description": "Shows approved reviews. Hidden while the Reviews extension is off.",
   "group": "template",
+  "picker_group": "products",
   "templates": [
     "product",
     "*custom"

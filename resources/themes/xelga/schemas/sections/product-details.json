@@ -3,6 +3,7 @@
   "label": "Product details",
   "description": "Description and specifications come from VentaCart.",
   "group": "template",
+  "picker_group": "products",
   "templates": [
     "product",
     "*custom"

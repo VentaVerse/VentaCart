@@ -159,6 +159,7 @@ Rejected: a schema block inside the Blade file. It needs a custom Blade parser a
   "label": "Main banner",
   "description": "The large banner at the top of the page.",
   "group": "template",
+  "picker_group": "banners",
   "templates": ["home", "page", "category", "brand", "blog", "*custom"],
   "limit": null,
   "main": false,
@@ -191,7 +192,8 @@ Keys a section schema may carry:
 | `icon` | the editor's icon for the type, a name in the editor's sprite. |
 | `limit` | most instances per document (header: 1). |
 | `main` | the page's main section (product information, category listing). Cannot be removed, duplicated or hidden; exactly one per template of its type. |
-| `presets` | named starting points the Add section panel offers; a preset is settings plus blocks. Without presets the panel offers the section's variants with defaults. |
+| `presets` | named starting points the section picker offers as the type's layouts; a preset is settings plus blocks. Without presets the picker offers the section's variants with defaults. |
+| `picker_group` | the group of tiles the section picker shows the type in: `banners` (Banners and photos), `products`, `categories` (Categories and brands) or `text` (Text and trust). Every theme section that can be added names one; the linter refuses any other value. An extension's sections are grouped under the extension's title instead. |
 | `blocks.types[].limit` | most blocks of that type in one section. |
 | setting `live` | how the preview applies a change: `text`, `attr`, `css`, or `render` (server re-render, section 7.5). Inferred when absent: picker types, `url` on a data-driven section, and any setting named in the section's `render_keys` are `render`; text types are `text`; everything else `attr`. |
 | setting `visible_if` | unchanged from the draft: shown only when every listed key matches. |

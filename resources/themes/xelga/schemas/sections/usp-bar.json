@@ -2,6 +2,7 @@
   "type": "usp-bar",
   "label": "Store promises",
   "group": "template",
+  "picker_group": "text",
   "templates": [
     "*"
   ],

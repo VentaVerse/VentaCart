@@ -2,6 +2,7 @@
   "type": "featured-products",
   "label": "Featured products",
   "group": "template",
+  "picker_group": "products",
   "templates": [
     "*"
   ],
