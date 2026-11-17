@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Extensions\Seo\Models\NotFoundLog;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaState;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -29,7 +29,7 @@ class LogNotFound
 
         // 404 logging lives in the seo extension; without it (or before
         // its table exists) nothing is recorded.
-        if (! class_exists(NotFoundLog::class) || ! Schema::hasTable('not_found_logs')) {
+        if (! class_exists(NotFoundLog::class) || ! SchemaState::hasTable('not_found_logs')) {
             return $response;
         }
 

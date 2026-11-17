@@ -11,6 +11,25 @@ use Illuminate\Support\ServiceProvider;
 class AppServiceProvider extends ServiceProvider
 {
     /**
+     * The settings boot reads (site name, mail, time zone, admin prefix,
+     * address lookups), by group and key, from one query; null when the
+     * settings table cannot be read (a fresh install, a migration).
+     *
+     * @var array<string, array<string, ?string>>|null
+     */
+    private ?array $bootSettings = null;
+
+    private bool $bootSettingsLoaded = false;
+
+    /** Single settings boot needs, by group => key. The whole mail group is read too. */
+    private const BOOT_SETTINGS = [
+        ['identity', 'site_name'],
+        ['general', 'timezone'],
+        ['security', 'admin_prefix'],
+        ['extensions', 'ph_address_enabled'],
+    ];
+
+    /**
      * Register any application services.
      */
     public function register(): void
@@ -26,6 +45,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // A migration can create or drop a table SchemaState remembers; a
+        // queue worker runs for days, so each job starts from what is true now.
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Database\Events\MigrationsEnded::class, fn () => \App\Support\SchemaState::forget());
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Queue\Events\JobProcessing::class, fn () => \App\Support\SchemaState::forgetInProcess());
 
         // Package uploads install code; a few a minute is plenty for a person.
         \Illuminate\Support\Facades\RateLimiter::for('package-uploads', fn (\Illuminate\Http\Request $request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('extensions.upload.per_minute', 5)))
@@ -108,9 +131,11 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->booted(function () {
             try {
-                $enabled = Setting::where('group', 'extensions')
-                    ->where('key', 'ph_address_enabled')
-                    ->value('value');
+                $settings = $this->bootSettings();
+                if ($settings === null) {
+                    return;
+                }
+                $enabled = $settings['extensions']['ph_address_enabled'] ?? null;
 
                 if ($enabled === '0') {
                     return;
@@ -126,15 +151,42 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
+    /**
+     * Every setting boot reads, from one query instead of one per setting.
+     *
+     * @return array<string, array<string, ?string>>|null
+     */
+    private function bootSettings(): ?array
+    {
+        if ($this->bootSettingsLoaded) {
+            return $this->bootSettings;
+        }
+        $this->bootSettingsLoaded = true;
+
+        try {
+            $rows = Setting::query()
+                ->where(function ($query) {
+                    $query->where('group', 'mail');
+                    foreach (self::BOOT_SETTINGS as [$group, $key]) {
+                        $query->orWhere(fn ($q) => $q->where('group', $group)->where('key', $key));
+                    }
+                })
+                ->get(['group', 'key', 'value']);
+        } catch (\Throwable) {
+            return $this->bootSettings = null;
+        }
+
+        $settings = [];
+        foreach ($rows as $row) {
+            $settings[(string) $row->group][(string) $row->key] = $row->value;
+        }
+
+        return $this->bootSettings = $settings;
+    }
+
     private function configureTimezoneFromDatabase(): void
     {
-        try {
-            $timezone = Setting::where('group', 'general')
-                ->where('key', 'timezone')
-                ->value('value');
-        } catch (\Throwable) {
-            return;
-        }
+        $timezone = $this->bootSettings()['general']['timezone'] ?? null;
 
         if ($timezone && in_array($timezone, timezone_identifiers_list())) {
             config(['app.timezone' => $timezone]);
@@ -144,25 +196,15 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureAppNameFromDatabase(): void
     {
-        try {
-            $siteName = Setting::where('group', 'identity')->where('key', 'site_name')->value('value');
-            if ($siteName) {
-                config(['app.name' => $siteName]);
-            }
-        } catch (\Throwable $e) {
-            // DB may not be available during migrations
+        $siteName = $this->bootSettings()['identity']['site_name'] ?? null;
+        if ($siteName) {
+            config(['app.name' => $siteName]);
         }
     }
 
     private function configureAdminPrefixFromDatabase(): void
     {
-        try {
-            $prefix = Setting::where('group', 'security')
-                ->where('key', 'admin_prefix')
-                ->value('value');
-        } catch (\Throwable) {
-            return;
-        }
+        $prefix = $this->bootSettings()['security']['admin_prefix'] ?? null;
 
         if ($prefix && preg_match('/^[a-z][a-z0-9-]*$/', $prefix)) {
             config(['admin.prefix' => $prefix]);
@@ -171,12 +213,11 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureMailFromDatabase(): void
     {
-        try {
-            $mail = Setting::where('group', 'mail')->pluck('value', 'key')
-                ->filter(fn ($v) => $v !== null && $v !== '');
-        } catch (\Throwable) {
+        $settings = $this->bootSettings();
+        if ($settings === null) {
             return; // Table may not exist during migrations
         }
+        $mail = collect($settings['mail'] ?? [])->filter(fn ($v) => $v !== null && $v !== '');
 
         if ($mail->isEmpty()) return;
 

@@ -5,7 +5,7 @@ namespace Themes\Xelga\Sections;
 use App\Services\CartService;
 use App\Support\PaymentFamilies;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaState;
 
 /**
  * What the cart page and the cart drawer say around the lines, read from
@@ -69,7 +69,7 @@ final class CartSummary
     {
         $model = 'Extensions\\ShippingFree\\Models\\FreeShippingRule';
         try {
-            if (! class_exists($model) || ! Schema::hasTable('free_shipping_rules')) {
+            if (! class_exists($model) || ! SchemaState::hasTable('free_shipping_rules')) {
                 return null;
             }
             $lowest = null;

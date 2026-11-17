@@ -19,9 +19,17 @@ class DeepAddressProvider implements AddressProvider
         private array $config,
     ) {}
 
+    /** Looked up once: registering the provider asks for it twice on every request. */
+    private int|false|null $countryId = false;
+
     public function countryId(): ?int
     {
-        return Country::where('iso2', $this->iso)->value('id');
+        if ($this->countryId === false) {
+            $id = Country::where('iso2', $this->iso)->value('id');
+            $this->countryId = $id === null ? null : (int) $id;
+        }
+
+        return $this->countryId;
     }
 
     public function countryCode(): string

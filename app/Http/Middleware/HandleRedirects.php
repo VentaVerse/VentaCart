@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Extensions\Seo\Models\Redirect;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaState;
 
 /**
  * Looks up the request path in the `redirects` table and short-circuits with
@@ -23,7 +23,7 @@ class HandleRedirects
     {
         // Redirect management lives in the seo extension; without it (or
         // before its table exists) this is a straight pass-through.
-        if (! class_exists(Redirect::class) || ! Schema::hasTable('redirects')) {
+        if (! class_exists(Redirect::class) || ! SchemaState::hasTable('redirects')) {
             return $next($request);
         }
 

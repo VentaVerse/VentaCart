@@ -2,7 +2,7 @@
 
 namespace Themes\Xelga\Rendering;
 
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaState;
 use Themes\Xelga\Documents\Defaults;
 use Themes\Xelga\Documents\Document;
 use Themes\Xelga\Documents\Handles;
@@ -84,7 +84,7 @@ final class DocumentRepository
         if (! $this->tableChecked) {
             $this->tableChecked = true;
             try {
-                $this->hasTable = Schema::hasTable('xelga_documents');
+                $this->hasTable = SchemaState::hasTable('xelga_documents');
             } catch (\Throwable) {
                 $this->hasTable = false;
             }

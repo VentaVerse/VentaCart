@@ -4,7 +4,7 @@ namespace Themes\Xelga\Sections;
 
 use App\Services\ExtensionManager;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Schema;
+use App\Support\SchemaState;
 use Themes\Xelga\Rendering\Picture;
 use Themes\Xelga\Rendering\RenderContext;
 use Themes\Xelga\Rendering\SectionData;
@@ -23,7 +23,7 @@ final class BlogPosts implements SectionData
             return false;
         }
         try {
-            return app(ExtensionManager::class)->state('blog') === 'enabled' && Schema::hasTable('blog_posts');
+            return app(ExtensionManager::class)->state('blog') === 'enabled' && SchemaState::hasTable('blog_posts');
         } catch (\Throwable) {
             return false;
         }

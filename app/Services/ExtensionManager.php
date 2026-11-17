@@ -37,6 +37,9 @@ class ExtensionManager
      */
     public const REGISTRY_CACHE_KEY = 'extensions.registry';
 
+    /** The registry as read during boot, before the cache service exists (see readRegistry). */
+    private ?Collection $bootRead = null;
+
     protected ?Collection $discoveredCache = null;
 
     /**
@@ -187,7 +190,10 @@ class ExtensionManager
     {
         // Asked for by many parts of one page (is this extension on?): kept
         // for the request, so the cache is read once rather than each time.
-        $memo = \App\Support\RequestCache::remember(self::REGISTRY_CACHE_KEY, fn () => $this->readRegistry());
+        // The registry read while the application booted (straight from the
+        // table, see readRegistry) is the newest there is, so the first ask
+        // after boot takes it instead of reading again.
+        $memo = \App\Support\RequestCache::remember(self::REGISTRY_CACHE_KEY, fn () => $this->takeBootRead() ?? $this->readRegistry());
         if ($memo instanceof Collection) {
             return $memo;
         }
@@ -196,9 +202,19 @@ class ExtensionManager
         return collect();
     }
 
+    /** The registry read during boot, handed over once. */
+    private function takeBootRead(): ?Collection
+    {
+        $read = $this->bootRead;
+        $this->bootRead = null;
+
+        return $read;
+    }
+
     /** @return Collection|false the registry, or false while the table does not exist yet */
     private function readRegistry(): Collection|false
     {
+        $cacheReady = true;
         try {
             // One read: a missing key comes back as the default, not as a
             // has() query followed by a get() query.
@@ -208,12 +224,23 @@ class ExtensionManager
             }
         } catch (\Throwable) {
             // Cache backend unavailable/unmigrated (e.g. `database` store
-            // without a migrated `cache` table) — fall through to a live,
-            // guarded read below. Never let a broken cache take the site
-            // down any more than a broken `extensions` table should.
+            // without a migrated `cache` table, or boot, before the cache
+            // service is registered) — fall through to a live, guarded read
+            // below. Never let a broken cache take the site down any more
+            // than a broken `extensions` table should.
+            $cacheReady = false;
         }
 
-        if (! Schema::hasTable('extensions')) {
+        // The read is its own guard: a missing table throws, which costs
+        // nothing on every other request, where Schema::hasTable() was an
+        // information_schema query each time.
+        try {
+            $rows = DB::table('extensions')->get();
+        } catch (\Illuminate\Database\QueryException) {
+            $rows = null;
+        }
+
+        if ($rows === null) {
             // Deliberately NOT cached: a "table missing" snapshot (e.g.
             // captured mid `php artisan migrate`, before this migration has
             // run yet) must never persist past the moment the table starts
@@ -224,7 +251,14 @@ class ExtensionManager
             return false;
         }
 
-        $fresh = $this->hydrateRegistryRows(DB::table('extensions')->get());
+        $fresh = $this->hydrateRegistryRows($rows);
+
+        if (! $cacheReady) {
+            // Read at boot: kept for the first ask once the request runs.
+            $this->bootRead = $fresh;
+
+            return $fresh;
+        }
 
         try {
             Cache::forever(self::REGISTRY_CACHE_KEY, $fresh);
@@ -268,13 +302,17 @@ class ExtensionManager
             return;
         }
 
-        if (! Schema::hasTable('extensions')) {
+        // registry() checks for the table itself, and only when the
+        // registry is not cached: a cached registry means the table exists,
+        // so a request does not pay an information_schema query for it.
+        $registry = $this->registry();
+        if ($registry->isEmpty()) {
             return;
         }
 
         $bootedAny = false;
 
-        foreach ($this->registry() as $row) {
+        foreach ($registry as $row) {
             if (! $row->enabled) {
                 continue;
             }
@@ -529,6 +567,7 @@ class ExtensionManager
     protected function invalidateRegistryCache(): void
     {
         \App\Support\RequestCache::forget(self::REGISTRY_CACHE_KEY);
+        $this->bootRead = null;
 
         try {
             Cache::forget(self::REGISTRY_CACHE_KEY);

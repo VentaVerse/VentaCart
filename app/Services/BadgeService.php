@@ -156,7 +156,7 @@ class BadgeService
             // Guarded: the model lives in the shipping-free extension;
             // no extension, no free shipping badges.
             if (! class_exists(\Extensions\ShippingFree\Models\FreeShippingRule::class)
-                || ! \Illuminate\Support\Facades\Schema::hasTable('free_shipping_rules')) {
+                || ! \App\Support\SchemaState::hasTable('free_shipping_rules')) {
                 return collect();
             }
 
