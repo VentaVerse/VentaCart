@@ -30,9 +30,9 @@ interface ReleasableTotalInterface
 
     /**
      * The order was paid after all: take again whatever release() gave
-     * back, so the line's discount is never had twice. When it cannot be
-     * taken back in full (the customer has spent it meanwhile), take
-     * nothing and answer with needsReview, so the merchant settles it.
+     * back, so the line's discount is never had twice. What cannot be
+     * taken back (the customer has spent it meanwhile) is answered with
+     * needsReview and the amount missing, so the merchant settles it.
      *
      * @param  array  $line  the line this provider added, as stored on the order
      * @return ReclaimResult|null null when nothing was owed

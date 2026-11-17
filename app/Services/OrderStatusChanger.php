@@ -129,8 +129,7 @@ class OrderStatusChanger
     /**
      * An unpaid order given up on (UnpaidOrderAbandonment) gave back what
      * it held; one whose payment went through after all takes it again.
-     * What cannot be taken back in full is left alone and the order is
-     * marked for review instead. Never fatal: a confirmed payment must not
+     * What cannot be taken back marks the order for review. Never fatal: a confirmed payment must not
      * fail over this bookkeeping, so a failure marks the order for review
      * too and is reported.
      */

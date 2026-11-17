@@ -16,7 +16,8 @@ use Extensions\StoreCredit\Models\CustomerTransaction;
  * the placement transaction.
  *
  * An order that is never paid gives its credit back (release()), and one
- * paid after that takes it again when the balance covers it (reclaim()).
+ * paid after that takes it again, as far as the balance covers it
+ * (reclaim()).
  * A placed order that is later cancelled is not credited back
  * automatically: the merchant re-credits by hand from the customer's
  * panel.
@@ -51,6 +52,9 @@ class StoreCreditTotalProvider implements OrderTotalProviderInterface, Releasabl
 
     public function confirm(Order $order, array $line): void
     {
+        // Under the customer's credit lock, like every spend, so a reclaim
+        // for another order of theirs cannot read the balance meanwhile.
+        CreditService::lockedBalance((int) $line['extras']['customer_id']);
         CreditService::add(
             $line['extras']['customer_id'],
             $line['amount'],
@@ -91,21 +95,27 @@ class StoreCreditTotalProvider implements OrderTotalProviderInterface, Releasabl
             return null;
         }
 
-        // Taken back only in full and only from what the customer has: a
-        // balance spent meanwhile is never driven below zero. The order is
-        // marked for the merchant to settle instead.
-        $balance = (int) round(CreditService::balance($customerId) * 100);
-        if ($balance < $owed) {
-            return new ReclaimResult(
-                'Paid after its store credit of ' . number_format($owed / 100, 2) . ' was returned, and the customer\'s balance of '
-                    . number_format($balance / 100, 2) . ' does not cover it. Nothing was taken back: settle it from the customer\'s store credit.',
-                needsReview: true,
-            );
+        // Taken back from what the customer has now, read under the lock
+        // every balance-dependent spend takes, so the balance never goes
+        // below zero. What it cannot cover is marked for the merchant.
+        $balance = max(0, (int) round(CreditService::lockedBalance($customerId) * 100));
+        $taken = min($owed, $balance);
+        $short = $owed - $taken;
+
+        if ($taken > 0) {
+            CreditService::add($customerId, -$taken / 100, 'Order #' . $order->id . ' paid, store credit applied again', $order->id);
         }
 
-        CreditService::add($customerId, -$owed / 100, 'Order #' . $order->id . ' paid, store credit applied again', $order->id);
+        if ($short === 0) {
+            return new ReclaimResult('Store credit of ' . number_format($taken / 100, 2) . ' applied again, as the order was paid after it had been returned.');
+        }
 
-        return new ReclaimResult('Store credit of ' . number_format($owed / 100, 2) . ' applied again, as the order was paid after it had been returned.');
+        return new ReclaimResult(
+            'Paid after its store credit of ' . number_format($owed / 100, 2) . ' was returned. '
+                . number_format($taken / 100, 2) . ' was taken back from the customer\'s balance; '
+                . number_format($short / 100, 2) . ' was not recovered, as the balance does not cover it.',
+            needsReview: true,
+        );
     }
 
     private function customerOf(Order $order, array $line): ?int

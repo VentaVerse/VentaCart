@@ -411,11 +411,16 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $this->assertNull($fresh->review_reason);
     }
 
-    public function test_an_order_paid_after_its_credit_was_returned_and_spent_is_marked_for_review(): void
+    /**
+     * The shopper spends the returned credit on another order, then pays
+     * the old one. What the balance still holds is taken back; only the
+     * shortfall is left for the merchant, and the balance never goes below
+     * zero.
+     */
+    public function test_a_partly_covered_reclaim_takes_the_balance_and_flags_the_rest(): void
     {
         $order = $this->unpaidOrder(200.0);
         $this->assertTrue(UnpaidOrderAbandonment::abandon($order, paymentClosed: true));
-        // The customer spends the returned credit on another order.
         CreditService::add($this->customer->id, -450.0, 'Order #9999');
         $this->assertSame(50.0, $this->balance());
 
@@ -423,20 +428,59 @@ class UnpaidOrderStoreCreditTest extends TestCase
 
         $fresh = $order->fresh();
         $this->assertSame($this->paid->id, (int) $fresh->order_status_id, 'The payment still confirms the order.');
-        $this->assertSame(50.0, $this->balance(), 'The balance is left alone, never driven below zero.');
-        $this->assertSame(0, CustomerTransaction::where('order_id', $order->id)->where('description', 'like', '%applied again%')->count());
-        $this->assertNotNull($fresh->review_reason);
-        $this->assertStringContainsString('does not cover it', $fresh->review_reason);
-        $this->assertTrue($order->histories()->where('comment', 'like', '%does not cover it%')->exists());
+        $this->assertSame(0.0, $this->balance());
+        $taken = CustomerTransaction::where('order_id', $order->id)->where('description', 'like', '%applied again%')->get();
+        $this->assertCount(1, $taken, 'One ledger entry for what was taken back.');
+        $this->assertSame(-50.0, (float) $taken[0]->amount);
+        $this->assertStringContainsString('150.00 was not recovered', (string) $fresh->review_reason);
+        $this->assertTrue($order->histories()->where('comment', 'like', '%150.00 was not recovered%')->exists());
 
         $admin = User::factory()->create();
         $this->actingAs($admin)->get(route('admin.orders.show', $order))
-            ->assertOk()->assertSee('This order needs review')->assertSee('does not cover it');
+            ->assertOk()->assertSee('This order needs review')->assertSee('150.00 was not recovered');
 
         $this->actingAs($admin)->post(route('admin.orders.review.clear', $order))
             ->assertRedirect(route('admin.orders.show', $order));
         $this->assertNull($order->fresh()->review_reason);
         $this->assertTrue($order->histories()->where('comment', 'like', 'Marked reviewed:%')->exists());
+    }
+
+    public function test_a_reclaim_with_no_balance_takes_nothing_and_flags_all_of_it(): void
+    {
+        $order = $this->unpaidOrder(200.0);
+        $this->assertTrue(UnpaidOrderAbandonment::abandon($order, paymentClosed: true));
+        CreditService::add($this->customer->id, -500.0, 'Order #9999');
+
+        $this->paidAfterAll($order);
+
+        $this->assertSame(0.0, $this->balance());
+        $this->assertSame(0, CustomerTransaction::where('order_id', $order->id)->where('description', 'like', '%applied again%')->count());
+        $this->assertStringContainsString('200.00 was not recovered', (string) $order->fresh()->review_reason);
+    }
+
+    /** The payment confirmation reclaims once: a second one, by any path, finds the order paid. */
+    public function test_a_second_reclaim_for_the_same_order_does_nothing(): void
+    {
+        $order = $this->unpaidOrder(200.0);
+        $this->assertTrue(UnpaidOrderAbandonment::abandon($order, paymentClosed: true));
+        CreditService::add($this->customer->id, -450.0, 'Order #9999');
+        $stale = Order::find($order->id);
+
+        $this->assertTrue(OrderStatusChanger::claimStatus($order, $this->paid->id, 'Paid.'));
+        // More credit arrives, then a second confirmation with a stale copy.
+        CreditService::add($this->customer->id, 300.0, 'Goodwill');
+        $this->assertFalse(OrderStatusChanger::claimStatus($stale, $this->paid->id, 'Paid again.'));
+        $this->comeBack('completed');
+
+        $this->assertSame(300.0, $this->balance());
+        $this->assertSame(1, CustomerTransaction::where('order_id', $order->id)->where('description', 'like', '%applied again%')->count());
+
+        // Fully covered, the provider itself finds nothing more owed.
+        $full = $this->unpaidOrder(100.0);
+        $this->assertTrue(UnpaidOrderAbandonment::abandon($full, paymentClosed: true));
+        OrderTotals::reclaim($full->fresh());
+        OrderTotals::reclaim($full->fresh());
+        $this->assertSame(1, CustomerTransaction::where('order_id', $full->id)->where('description', 'like', '%applied again%')->count());
     }
 
     public function test_an_order_paid_without_ever_being_abandoned_is_charged_once(): void
