@@ -139,10 +139,14 @@ final class Picture
         $phone = (int) $mobileCols === 1 ? '100vw' : '50vw';
         $cols = max(1, min(6, (int) $cols ?: 4));
         $span = max(1, min(12, $span));
+        // A column too narrow to reach the width where the grid opens up draws the phone's number of cards to a line.
+        if ($span < 8) {
+            $cols = min($cols, (int) $mobileCols === 1 ? 1 : 2);
+        }
         $wide = (int) ceil(self::PAGE_WIDTH * $span / 12 / $cols);
         $vw = (int) ceil(100 * $span / 12 / $cols);
         // Three cards to a line on a tablet, across the section's share of the screen.
-        $tablet = (int) round(self::tabletShare($span) / 3);
+        $tablet = (int) round(self::tabletShare($span) / ($span < 8 ? $cols : 3));
 
         return "(min-width: " . self::WIDE_FROM . "px) {$wide}px, (min-width: 990px) {$vw}vw, (min-width: 750px) {$tablet}vw, {$phone}";
     }

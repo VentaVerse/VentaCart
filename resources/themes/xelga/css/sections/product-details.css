@@ -4,6 +4,9 @@
  */
 .s-details { container-type: inline-size; }
 .s-details[data-layout=tabs] [data-accs], .s-details[data-layout=accordion] [data-tabs] { display: none; }
+/* A wide table in the description scrolls inside its box instead of widening the column. */
+.s-details .rte { min-width: 0; }
+.s-details .rte table { display: block; max-width: 100%; overflow-x: auto; }
 .tabs__list {
     display: flex; gap: clamp(1.25rem, 3cqi, 2.5rem);
     border-block-end: 1px solid var(--c-border); overflow-x: auto; scrollbar-width: none;

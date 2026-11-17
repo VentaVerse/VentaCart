@@ -29,6 +29,20 @@
   }
 }
 
+/* In a column the halves sit side by side from a narrower width than on a full page. */
+@container (min-width: 640px) {
+  .xr__col > .s-look[data-variant="side"] .look {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    align-items: center;
+  }
+  .xr__col > .s-look[data-variant="side"][data-image-pos="end"] .look {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+  .xr__col > .s-look[data-variant="side"][data-image-pos="end"] .look__media {
+    order: 2;
+  }
+}
+
 .look__media {
   position: relative;
   overflow: visible;

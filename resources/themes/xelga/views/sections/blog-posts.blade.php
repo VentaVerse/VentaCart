@@ -21,7 +21,7 @@
                     @foreach ($posts as $post)
                         <li class="post">
                             @if ($post['picture'])
-                                <div class="post__media"><img src="{{ $post['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($post['picture'], \Themes\Xelga\Rendering\Picture::gridSizes($context->span, '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw', 1, $data['cols'])) }} @if ($post['picture']['width']) width="{{ $post['picture']['width'] }}" height="{{ $post['picture']['height'] }}" @endif></div>
+                                <div class="post__media"><img src="{{ $post['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($post['picture'], \Themes\Xelga\Rendering\Picture::gridSizes($context->span, '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw', 1, $context->span < 12 && $settings['variant'] === 'featured' ? 1 : $data['cols'])) }} @if ($post['picture']['width']) width="{{ $post['picture']['width'] }}" height="{{ $post['picture']['height'] }}" @endif></div>
                             @endif
                             <div class="post__body">
                                 @if ($post['date'] || $post['category'])

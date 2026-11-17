@@ -231,11 +231,12 @@ class XelgaRowsRenderTest extends TestCase
 
     public function test_product_lists_cap_cards_per_row_to_their_width(): void
     {
+        $this->fakePhoto();
         $store = Store::firstOrCreate(['code' => 'demo'], ['name' => 'Demo Store']);
         foreach (['Linen Shirt', 'Canvas Bag', 'Wool Cap', 'Denim Jacket'] as $i => $name) {
             Product::create([
                 'store_id' => $store->id, 'name' => $name, 'slug' => 'demo-' . $i,
-                'sku' => 'DEMO-00' . $i, 'price' => 1250, 'quantity' => 5, 'is_active' => true,
+                'sku' => 'DEMO-00' . $i, 'price' => 1250, 'quantity' => 5, 'is_active' => true, 'image' => 'media/demo/photo.jpg',
             ]);
         }
 
@@ -250,9 +251,7 @@ class XelgaRowsRenderTest extends TestCase
             $this->assertStringContainsString('data-cols="' . $cols . '"', $section);
             $this->assertStringContainsString('class="s s-products ', $section);
             // The cap reaches the card photos' sizes, as a share of the column.
-            if (str_contains($section, 'sizes="')) {
-                $this->assertStringContainsString('sizes="' . e(Picture::cardSizes(2, (int) $cols, $span)) . '"', $section);
-            }
+            $this->assertStringContainsString('sizes="' . e(Picture::cardSizes(2, (int) $cols, $span)) . '"', $section);
         }
 
         // The same list on a full-width row keeps the setting.
@@ -266,8 +265,36 @@ class XelgaRowsRenderTest extends TestCase
 
     public function test_card_sizes_count_the_columns_a_line_holds(): void
     {
-        $this->assertSame('(min-width: 1320px) 640px, (min-width: 990px) 50vw, (min-width: 750px) 17vw, 50vw', Picture::cardSizes(2, 1, 6));
+        $this->assertSame('(min-width: 1320px) 640px, (min-width: 990px) 50vw, (min-width: 750px) 50vw, 50vw', Picture::cardSizes(2, 1, 6));
+        // A column too narrow to open the grid draws the phone's number of cards to a line.
+        $this->assertSame('(min-width: 1320px) 640px, (min-width: 990px) 50vw, (min-width: 750px) 50vw, 100vw', Picture::cardSizes(1, 4, 6));
         $this->assertSame('(min-width: 1320px) 320px, (min-width: 990px) 25vw, (min-width: 750px) 33vw, 50vw', Picture::cardSizes(2, 4, 12));
+    }
+
+    public function test_category_tile_photos_are_sized_for_their_column(): void
+    {
+        $this->fakePhoto();
+        $home = $this->homeWithRow('6-6', [['tiles-1'], ['tile-b']]);
+        $home['sections']['tiles-1'] = $this->tilesWithPhoto();
+        $this->publishedDocument('home', $home);
+        $section = $this->cut($this->cut($this->page('/')->getContent(), 'row-tiles'), 'tiles-1');
+
+        $this->assertStringContainsString('data-cols="2"', $section);
+        $this->assertStringContainsString('sizes="' . e(Picture::gridSizes(6, '', 2, 2)) . '"', $section);
+    }
+
+    /** Category tiles whose photo is set on each tile. */
+    private function tilesWithPhoto(): array
+    {
+        $section = $this->narrowSection('category-tiles', 'image-cards');
+        $store = Store::firstOrCreate(['code' => 'demo'], ['name' => 'Demo Store']);
+        $category = \App\Models\Category::create(['store_id' => $store->id, 'name' => 'Shirts', 'slug' => 'shirts', 'is_active' => true]);
+        foreach ($section['blocks'] as $id => $block) {
+            $section['blocks'][$id]['settings']['image'] = 'media/demo/photo.jpg';
+            $section['blocks'][$id]['settings']['category'] = $category->id;
+        }
+
+        return $section;
     }
 
     public function test_tiles_and_posts_fit_their_column(): void
@@ -443,7 +470,7 @@ class XelgaRowsRenderTest extends TestCase
         // A product card's photo: unchanged on a full-width row, a share of the column in one.
         $this->assertSame('(min-width: 1320px) 320px, (min-width: 990px) 25vw, (min-width: 750px) 33vw, 50vw', Picture::cardSizes());
         $this->assertSame('(min-width: 1320px) 320px, (min-width: 990px) 25vw, (min-width: 750px) 33vw, 100vw', Picture::cardSizes(1, 4, 12));
-        $this->assertSame('(min-width: 1320px) 214px, (min-width: 990px) 17vw, (min-width: 750px) 17vw, 50vw', Picture::cardSizes(2, 3, 6));
+        $this->assertSame('(min-width: 1320px) 320px, (min-width: 990px) 25vw, (min-width: 750px) 25vw, 50vw', Picture::cardSizes(2, 3, 6));
     }
 
     public function test_row_settings_reach_the_markup(): void
