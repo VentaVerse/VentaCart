@@ -31,6 +31,7 @@
                             <p class="text-lg text-[var(--color-text-heading)] font-heading">{{ store_money($order->total) }}</p>
                         </div>
                     </div>
+                    {{ \App\Support\OrderPanels::render('order.detail.summary', $order) }}
                 </div>
 
                 {{-- Addresses --}}
@@ -212,6 +213,7 @@
                     @endif
                     <div class="account-order-foot__row">
                         <a href="{{ route('account.orders') }}" class="account-link">&larr; Back to Orders</a>
+                        {{ \App\Support\OrderPanels::render('order.detail.actions', $order) }}
                         @if ($canCancel ?? false)
                             <button type="button" class="account-btn-danger" x-show="!open" :aria-expanded="open" aria-controls="cancel-panel" @click="open = true; $nextTick(() => $refs.reason.focus())">CANCEL THIS ORDER</button>
                         @endif

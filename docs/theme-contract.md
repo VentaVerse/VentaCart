@@ -357,3 +357,34 @@ The extension's view draws inside the live theme's page frame when the theme has
 ```blade
 @extends(view()->exists('extension.page') ? 'extension.page' : 'marketplace::layouts.plain')
 ```
+
+### 9.5 Order panels
+
+An extension adds fragments to the customer's order pages from its provider's `boot()`:
+
+```php
+use App\Support\OrderPanels;
+
+OrderPanels::add(OrderPanels::ROW_AFTER, fn (\Illuminate\Support\Collection $orders) => [/* order id => fragment */]);
+OrderPanels::add(OrderPanels::DETAIL_SUMMARY, fn (\App\Models\Order $order) => new \Illuminate\Support\HtmlString('…'));
+OrderPanels::add(OrderPanels::DETAIL_ACTIONS, fn (\App\Models\Order $order) => '…');
+```
+
+| slot | where a theme draws it | the callable receives | it returns |
+|---|---|---|---|
+| `order.row.after` | under each row of `account.orders` | the page's orders, once (so it can read what it needs in one query) | fragments keyed by order id |
+| `order.detail.summary` | inside the order summary of `account.order-detail` | the `Order` | one fragment |
+| `order.detail.actions` | with the actions of `account.order-detail` (back to orders, cancel) | the `Order` | one fragment |
+
+A fragment is an `Htmlable` or a string. It is printed as given, so the extension escapes every value it puts in one. A fragment for an order not on the page, or anything that is neither, is dropped. A callable that throws is reported and left out; the page still draws. Fragments of one slot are joined in the order they were added. Unregistered, nothing is drawn.
+
+A theme draws them with:
+
+```blade
+@php $orderPanels = \App\Support\OrderPanels::rows($orders); @endphp   {{-- once, before the rows --}}
+{{ $orderPanels[$order->id] ?? '' }}                                       {{-- under a row --}}
+{{ \App\Support\OrderPanels::render('order.detail.summary', $order) }}
+{{ \App\Support\OrderPanels::render('order.detail.actions', $order) }}
+```
+
+The order pages are the customer's own: core's controller has already checked the order belongs to the signed-in customer before the theme draws it. A callable reads only what that customer may see.

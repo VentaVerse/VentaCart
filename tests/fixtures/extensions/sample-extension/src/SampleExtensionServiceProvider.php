@@ -5,6 +5,7 @@ namespace Tests\Fixtures\Extensions\SampleExtension;
 use App\Support\AccountMenu;
 use App\Support\CartGroups;
 use App\Support\CheckoutPage;
+use App\Support\OrderPanels;
 use App\Support\StorefrontPageType;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,5 +29,8 @@ class SampleExtensionServiceProvider extends ServiceProvider
         CartGroups::use(Cart\SampleCartGrouper::class);
         AccountMenu::add('sample-extension.account', 'Sample things', 'store');
         CheckoutPage::use(Http\SampleCheckoutController::class);
+        OrderPanels::add(OrderPanels::ROW_AFTER, [Orders\SampleOrderPanels::class, 'rows']);
+        OrderPanels::add(OrderPanels::DETAIL_SUMMARY, [Orders\SampleOrderPanels::class, 'summary']);
+        OrderPanels::add(OrderPanels::DETAIL_ACTIONS, [Orders\SampleOrderPanels::class, 'actions']);
     }
 }

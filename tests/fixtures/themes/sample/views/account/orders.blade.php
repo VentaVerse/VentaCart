@@ -28,6 +28,8 @@
                                 </thead>
                                 {{-- One tbody per order: the confirm strip is a second row
                                      in the same Alpine scope as the row it belongs to. --}}
+                                {{-- What extensions add under a row (OrderPanels), read once for the page. --}}
+                                @php $orderPanels = \App\Support\OrderPanels::rows($orders); @endphp
                                 @foreach ($orders as $order)
                                     @php $canCancel = $cancellable[$order->id] ?? false; @endphp
                                     <tbody x-data="{ open: false }" @keydown.escape.window="open = false">
@@ -47,6 +49,9 @@
                                                 @endif
                                             </td>
                                         </tr>
+                                        @isset($orderPanels[$order->id])
+                                            <tr class="account-order-panel"><td colspan="6">{{ $orderPanels[$order->id] }}</td></tr>
+                                        @endisset
                                         @if ($canCancel)
                                             <tr x-show="open" x-cloak x-transition.opacity.duration.200ms>
                                                 <td colspan="6" class="account-cancel-cell">

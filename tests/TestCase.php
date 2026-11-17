@@ -58,6 +58,7 @@ abstract class TestCase extends BaseTestCase
         \App\Support\CartGroups::forget();
         \App\Support\AccountMenu::forget();
         \App\Support\CheckoutPage::forget();
+        \App\Support\OrderPanels::forget();
     }
 
     /**
