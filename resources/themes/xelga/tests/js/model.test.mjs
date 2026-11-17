@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import {
   useLayout, normalize, rowsOf, rowIdFor, freshRowId, locate, spanAt, fits, place,
   addRow, moveRow, removeRow, changeSplit, setRow, effectsOf, tidy, checkAddSpot,
+  contentSpan, sideTargets, catalogRules, roomOf,
 } from '../../editor/js/modules/board/model.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -45,11 +46,18 @@ function page(types, extra = {}) {
 const row = (id, split, columns, settings = DEFAULTS) => ({ id, split, columns, settings: { ...settings } });
 const json = (value) => JSON.stringify(value);
 
+/** The shared cases: the top folder and content-width/, whose cases measure columns beside the sides. */
+function fixtureFiles() {
+  const list = (dir) => readdirSync(join(FIXTURES, dir)).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => join(FIXTURES, dir, f));
+  return [...list('.'), ...list('content-width')];
+}
+
 test('normalize matches every shared fixture', () => {
-  const files = readdirSync(FIXTURES).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
+  const files = fixtureFiles();
   assert.ok(files.length > 20);
+  assert.ok(files.some((f) => f.includes('content-width')), 'the content width cases are read');
   files.forEach((file) => {
-    const fixture = JSON.parse(readFileSync(join(FIXTURES, file), 'utf8'));
+    const fixture = JSON.parse(readFileSync(file, 'utf8'));
     const rules = rulesOf(fixture.rules);
     const input = JSON.parse(json(fixture.input));
     const result = normalize(input, rules);
@@ -93,6 +101,84 @@ test('locate finds a section in a column or a side', () => {
   assert.deepEqual(locate(c, 'b'), { where: 'row', rowId: 'r1', column: 1, index: 0 });
   assert.deepEqual(locate(c, 'c'), { where: 'side', side: 'right', index: 0 });
   assert.equal(locate(c, 'nope'), null);
+});
+
+test('spanAt gives a column its part of the content area beside the sides', () => {
+  const c = page({ a: 'text', b: 'text', f: 'text', g: 'text' }, { rows: [row('r1', '8-4', [['a'], ['b']])], sides: { left: ['f'] } });
+  assert.equal(spanAt(c, { drop: 'column', rowId: 'r1', column: 0, before: null }, RULES), 6);
+  assert.equal(spanAt(c, { drop: 'column', rowId: 'r1', column: 1, before: null }, RULES), 3);
+  assert.equal(spanAt(c, { drop: 'side', side: 'right', before: null }, RULES), 3);
+  // The section leaving the only side: the page is whole again.
+  assert.equal(spanAt(c, { drop: 'column', rowId: 'r1', column: 0, before: null }, RULES, 'f'), 8);
+  const both = { ...c, sides: { left: ['f'], right: ['g'] } };
+  assert.equal(spanAt(both, { drop: 'column', rowId: 'r1', column: 0, before: null }, RULES), 4);
+  assert.equal(roomOf(both, 'a', RULES), 4);
+  // A page that cannot have sides is measured whole.
+  assert.equal(spanAt(c, { drop: 'column', rowId: 'r1', column: 0, before: null }, rulesOf({ min: {}, sides: false })), 8);
+});
+
+test('fits measures a column beside the sides, as the server does', () => {
+  const c = page({ h: 'half', a: 'text', f: 'text', x: 'half' }, { rows: [row('r1', '6-6', [['a'], []]), row('rx', '12', [['x']])], sides: { left: ['f'] } });
+  c.order = ['f', 'a', 'x'];
+  // A half beside one side is 4.5 twelfths: too narrow for a section of 6.
+  assert.equal(fits(c, 'x', { drop: 'column', rowId: 'r1', column: 1, before: null }, RULES), false);
+  assert.equal(checkAddSpot(c, { drop: 'column', rowId: 'r1', column: 1, before: null }, { type: 'half' }, RULES).reason, 'narrow');
+  assert.equal(fits(c, 'f', { drop: 'column', rowId: 'r1', column: 1, before: null }, RULES), true);
+  // Out of the only side, the page is whole again and the half fits.
+  const out = place(c, 'f', { drop: 'column', rowId: 'r1', column: 1, before: null }, RULES).content;
+  assert.equal(out.sides, undefined);
+  assert.equal(fits(out, 'x', { drop: 'column', rowId: 'r1', column: 1, before: null }, RULES), true);
+});
+
+test('a section dropped in an empty side narrows the page and moves what no longer fits', () => {
+  const c = page({ h: 'half', a: 'text', t: 'text' }, { rows: [row('r1', '6-6', [['h'], ['a']]), row('rt', '12', [['t']])] });
+  c.order = ['h', 'a', 't'];
+  const result = place(c, 't', { drop: 'side', side: 'left', before: null }, RULES);
+  assert.deepEqual(result.content.sides, { left: ['t'] });
+  assert.deepEqual(result.moved, ['h']);
+  assert.deepEqual(rowsOf(result.content).map((r) => r.columns), [[[], ['a']], [['h']]]);
+});
+
+test('contentSpan ignores a side of hidden sections', () => {
+  const c = page({ a: 'text', f: 'text', g: 'text' }, { sides: { left: ['f'], right: ['g'] } });
+  assert.equal(contentSpan(c, RULES), 6);
+  c.sections.g.disabled = true;
+  assert.equal(contentSpan(c, RULES), 9);
+  c.sections.f.disabled = true;
+  assert.equal(contentSpan(c, RULES), 12);
+  // A side of a type the catalog does not know draws nothing either.
+  const unknown = page({ a: 'text', f: 'gone' }, { sides: { left: ['f'] } });
+  assert.equal(contentSpan(unknown, catalogRules(LAYOUT, (type) => (type === 'text' ? { span: { min: 3 } } : null), true)), 12);
+  assert.equal(contentSpan(page({ a: 'text', f: 'text' }, { sides: { left: ['f'] } }), rulesOf({ min: { text: 3 }, sides: false })), 12);
+});
+
+test('sideTargets offers both sides on the page types that may have them, never on the cart', () => {
+  assert.deepEqual(sideTargets('category', LAYOUT), ['left', 'right']);
+  assert.deepEqual(sideTargets('home', LAYOUT), ['left', 'right']);
+  assert.deepEqual(sideTargets('cart', LAYOUT), []);
+  assert.deepEqual(sideTargets('header', LAYOUT), []);
+});
+
+test('removing the last section of a side drops the side', () => {
+  const c = page({ a: 'text', b: 'text', f: 'text' }, { rows: [row('r1', '6-6', [['a'], ['b']])], sides: { left: ['f'] } });
+  c.order = ['f', 'a', 'b'];
+  delete c.sections.f;
+  c.order = ['a', 'b'];
+  const next = tidy(c);
+  assert.equal(Object.hasOwn(next, 'sides'), false);
+  assert.deepEqual(next.order, ['a', 'b']);
+  // Moved out of its side, the last section takes the side with it.
+  const d = page({ a: 'text', f: 'text' }, { sides: { right: ['f'] } });
+  const out = place(d, 'f', { drop: 'gap', before: 'end' }, RULES).content;
+  assert.equal(Object.hasOwn(out, 'sides'), false);
+  assert.deepEqual(out.order, ['a', 'f']);
+});
+
+test('effectsOf names every section whose width a new side changed', () => {
+  const c = page({ a: 'text', b: 'text', t: 'text' }, { rows: [row('r1', '6-6', [['a'], ['b']]), row('rt', '12', [['t']])] });
+  c.order = ['a', 'b', 't'];
+  const after = place(c, 't', { drop: 'side', side: 'right', before: null }, RULES).content;
+  assert.deepEqual(effectsOf(c, after).sections.sort(), ['a', 'b', 't']);
 });
 
 test('spanAt gives a column its split part, a side 3, a gap 12 and beside 6', () => {

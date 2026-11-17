@@ -416,7 +416,8 @@ body.is-dragging * {
 
 body.is-dragging .gap__add,
 body.is-dragging .col__add,
-body.is-dragging .col__empty {
+body.is-dragging .col__empty,
+body.is-dragging .side__add {
   pointer-events: none;
 }
 
@@ -436,13 +437,15 @@ body.is-dragging .slot.is-over {
 }
 
 body.is-dragging .col__add.is-valid,
-body.is-dragging .col__empty.is-valid {
+body.is-dragging .col__empty.is-valid,
+body.is-dragging .side__add.is-valid {
   border-color: var(--accent-line);
   background: var(--accent-soft);
 }
 
 body.is-dragging .col__add.is-over,
-body.is-dragging .col__empty.is-over {
+body.is-dragging .col__empty.is-over,
+body.is-dragging .side__add.is-over {
   color: var(--accent);
   background: var(--accent-soft);
   border: 2px solid var(--accent);
@@ -514,15 +517,23 @@ body.is-dragging .beside.is-over span { display: inline; }
 
 /* --------------------------------------------------------------------- sides */
 
+/*
+ * The page content between its left and right side. A side with sections
+ * takes three twelfths; an empty one is a thin strip that adds the first.
+ */
 .zone {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr) 64px;
   gap: 12px;
 }
 
-.zone[data-sides="l"] { grid-template-columns: minmax(150px, 3fr) minmax(0, 9fr); }
-.zone[data-sides="r"] { grid-template-columns: minmax(0, 9fr) minmax(150px, 3fr); }
+.zone[data-sides="l"] { grid-template-columns: minmax(150px, 3fr) minmax(0, 9fr) 64px; }
+.zone[data-sides="r"] { grid-template-columns: 64px minmax(0, 9fr) minmax(150px, 3fr); }
 .zone[data-sides="lr"] { grid-template-columns: minmax(150px, 3fr) minmax(0, 6fr) minmax(150px, 3fr); }
+
+.zone > .rows {
+  min-width: 0;
+}
 
 .side {
   display: flex;
@@ -541,6 +552,51 @@ body.is-dragging .beside.is-over span { display: inline; }
   font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-3);
+}
+
+.side.is-empty {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.side__add {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 160px;
+  padding: 8px 4px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--text-3);
+  background: transparent;
+  border: 2px dashed var(--line-2);
+  border-radius: var(--radius-lg);
+}
+
+/* The strip runs the page's height; its words stay in view while the board scrolls past it. */
+.side__addlabel {
+  position: sticky;
+  inset-block-start: 40%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-block: 56px;
+}
+
+.side__add:hover {
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.side .col__add {
+  align-self: flex-start;
 }
 
 /* -------------------------------------------------------------- the pieces */
@@ -828,8 +884,7 @@ body.is-dragging .beside.is-over span { display: inline; }
     content: none;
   }
 
-  .row--multi .piece__type,
-  .side .piece__type {
+  .row--multi .piece__type {
     white-space: normal;
     overflow-wrap: break-word;
   }
@@ -838,18 +893,16 @@ body.is-dragging .beside.is-over span { display: inline; }
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .row--multi .piece__shot,
-  .side .piece__shot {
+  /* A stacked side is the whole width, so its sections are lines like the rows'. */
+  .row--multi .piece__shot {
     display: none;
   }
 
-  .row--multi .piece__bar,
-  .side .piece__bar {
+  .row--multi .piece__bar {
     grid-column: 1;
   }
 
-  .row--multi .piece__name,
-  .side .piece__name {
+  .row--multi .piece__name {
     font-size: var(--fs-xs);
     white-space: normal;
     overflow-wrap: break-word;
@@ -864,8 +917,30 @@ body.is-dragging .beside.is-over span { display: inline; }
     min-height: 44px;
   }
 
+  /* The sides stack around the page content, as a phone shows the store: left above, right below. */
+  .zone,
   .zone[data-sides] {
     grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .side {
+    padding: 6px;
+  }
+
+  .side.is-empty {
+    padding: 0;
+  }
+
+  .side__add {
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .side__addlabel {
+    position: static;
+    flex-direction: row;
+    margin-block: 0;
   }
 }
 

@@ -39,9 +39,7 @@ than it was made for. (The storefront leaves out a side whose sections are
 all hidden, so the content is then wider than measured, never narrower.)
 A page that cannot have sides is measured at 12.
 
-These cases live in `content-width/`. The PHP test reads them with the
-rest. The editor's tests read only the top folder, so they skip these until
-the editor measures columns the same way; then the cases move up here.
+These cases live in `content-width/`. Both tests read them with the rest.
 
 ## Reasons in `moved`
 

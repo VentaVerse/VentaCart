@@ -2,19 +2,23 @@
  * The layout board: the page drawn in the shape the shopper sees it, at
  * most as wide as the store. The header on top, marked as on every page;
  * the page's rows, each column at its true share of the width; the footer
- * at the bottom. Each section is a name bar over a picture of how the
- * store draws it from the draft (see pictures.js); a section the page draws
- * nothing for shows the drawing of its layout instead.
+ * at the bottom. On a page that may have sides, a left and a right side
+ * stand beside every row: an empty one is a thin strip that adds its first
+ * section, a filled one holds its sections at three twelfths, and the rows
+ * between them draw at the content width the sides leave. Each section is
+ * a name bar over a picture of how the store draws it from the draft (see
+ * pictures.js); a section the page draws nothing for shows the drawing of
+ * its layout instead.
  *
  * Clicking a section selects it, and its settings open in the drawer.
  * Every change redraws the board, then the pictures it touched. On a phone
  * the page is drawn as a list instead (see phone.js).
  *
  * Sections are added where they will show: an Add line between rows (a
- * row of columns, or one section full width) and an Add under each column,
- * both opening the section picker. Each section but the page's main one
- * has a Change control on its name bar that opens the same picker to
- * replace it in its spot.
+ * row of columns, or one section full width), an Add under each column
+ * and side, and the strip of an empty side, all opening the section
+ * picker. Each section but the page's main one has a Change control on
+ * its name bar that opens the same picker to replace it in its spot.
  * Sections and rows move by drag and drop or Alt plus the arrow keys (see
  * drag.js); every spot that takes a drop carries its target in
  * `data-target`.
@@ -25,11 +29,11 @@ import {
   S, ctx, ui, doc, groupHandle, groupList, isFixed, labelOf, pageTitle, valueOf, schemes,
 } from '../state.js';
 import { sectionDef, sectionIcon, variantDrawing } from '../catalog.js';
-import { onChange, layoutPayload, rulesFor } from '../operations.js';
+import { onChange, layoutPayload, rulesFor, sidesFor } from '../operations.js';
 import { flush, setFatal } from '../drafts.js';
 import { openSheet, closeSheet, isPhone } from '../selection.js';
 import { refreshNeeds, needTag } from '../needs.js';
-import { rowsOf } from './model.js';
+import { rowsOf, contentSpan } from './model.js';
 import { createPictures } from './pictures.js';
 import { boardSource, layoutButton, fixedPanel } from '../layouts.js';
 import { openPicker, pickerSpot, pickerReplacing } from './picker.js';
@@ -77,14 +81,19 @@ function sectionShortcuts(sid) {
 /** A spot that takes a drop: the row model's target, kept on the element. */
 const dropData = (target) => ({ target: JSON.stringify(target), drop: target.drop });
 
-function piece(section, span, { movable = false, changeable = false, band = null } = {}) {
+/**
+ * One section: its name bar over its picture. `span` is its column's part
+ * (12 for a full-width row, 3 in a side) and `area` the content area that
+ * column sits in, so the picture is drawn at the width the store gives it.
+ */
+function piece(section, span, { movable = false, changeable = false, band = null, area = 12 } = {}) {
   const def = sectionDef(section.type);
   const selected = S.sel?.kind === 'section' && S.sel.sid === section.id;
   const name = labelOf(section.id);
   const words = barWords(name, def?.label || '', variantLabel(section.id, section.type));
   const hidden = Boolean(section.disabled);
   const main = def?.main === true;
-  const picture = pictures?.pictureFor(section.id, span) || null;
+  const picture = pictures?.pictureFor(section.id, span, area) || null;
   const flags = [];
   const need = def && !hidden ? needTag(section.id) : null;
   if (main) flags.push(['lock', 'Page content', 'The page content: it can be moved, never removed']);
@@ -174,7 +183,7 @@ function gapEl(before, above, below) {
     }, h('span', { class: 'gap__line', 'aria-hidden': 'true' }), h('span', { class: 'gap__pill' }, icon('plus', 'icon--xs'), 'Add')));
 }
 
-function rowEl(row, sections) {
+function rowEl(row, sections, area = 12) {
   const split = splitOf(row.split);
   const parts = split.parts;
   const single = parts.length === 1;
@@ -210,7 +219,7 @@ function rowEl(row, sections) {
     const column = h('div', { class: 'col', dataset: { span: String(part) } });
     const list = (row.columns[index] || []).map((sid) => (sections[sid] ? { id: sid, ...sections[sid] } : null)).filter(Boolean);
     if (single) {
-      list.forEach((s) => column.append(piece(s, part, { movable: true, changeable: true })));
+      list.forEach((s) => column.append(piece(s, part, { movable: true, changeable: true, area })));
       // Two sections side by side: a drop on the left or right edge of a full-width one.
       if (list.length === 1 && !main) {
         ['left', 'right'].forEach((side) => column.append(h('div', {
@@ -222,7 +231,7 @@ function rowEl(row, sections) {
       list.forEach((s) => {
         const spot = { drop: 'column', rowId: row.id, column: index, before: s.id };
         if (isAddTarget(spot)) column.append(newSpot());
-        column.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(spot) }), piece(s, part, { movable: true, changeable: true }));
+        column.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(spot) }), piece(s, part, { movable: true, changeable: true, area }));
       });
       const end = { drop: 'column', rowId: row.id, column: index, before: null };
       if (isAddTarget(end)) {
@@ -248,35 +257,75 @@ function rowEl(row, sections) {
   return el;
 }
 
+const SIDE_NAMES = { left: 'Left side', right: 'Right side' };
+
+/**
+ * A side of the page. Empty, it is a thin strip whose one button adds the
+ * side's first section (and takes a dropped one); a section there turns
+ * the side on. With sections, it holds them one under the other, with an
+ * Add under the last while there is room.
+ */
 function sideEl(which, ids, sections) {
-  const el = h('div', { class: `side side--${which}` },
-    h('p', { class: 'side__tag', text: which === 'left' ? 'Left side' : 'Right side' }));
+  const name = SIDE_NAMES[which];
+  const end = { drop: 'side', side: which, before: null };
+  if (!ids.length) {
+    const el = h('div', { class: `side side--${which} is-empty`, dataset: { side: which } });
+    if (isAddTarget(end)) {
+      el.classList.remove('is-empty');
+      el.append(newSpot());
+      return el;
+    }
+    el.append(h('button', {
+      type: 'button', class: 'side__add', dataset: dropData(end), 'aria-label': `Add a section to the ${which} side`, title: `Add a ${which} side`,
+      onclick: () => { if (!dragJustEnded()) openPicker({ target: end }); },
+    }, h('span', { class: 'side__addlabel' }, icon('plus', 'icon--sm'), h('span', { class: 'side__addtext', text: name }))));
+    return el;
+  }
+  const el = h('div', { class: `side side--${which}`, dataset: { side: which } },
+    h('p', { class: 'side__tag', text: name }));
   ids.forEach((sid) => {
-    if (!sections[sid]) return;
-    el.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData({ drop: 'side', side: which, before: sid }) }),
+    const spot = { drop: 'side', side: which, before: sid };
+    if (isAddTarget(spot)) el.append(newSpot());
+    el.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(spot) }),
       piece({ id: sid, ...sections[sid] }, 3, { movable: true, changeable: true }));
   });
-  el.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData({ drop: 'side', side: which, before: null }) }));
+  const max = layoutPayload()?.max_per_side ?? 6;
+  if (isAddTarget(end)) {
+    el.append(newSpot());
+  } else if (ids.length < max) {
+    el.append(h('button', {
+      type: 'button', class: 'col__add', dataset: dropData(end),
+      'aria-label': `Add a section to the ${which} side, under ${labelOf(ids[ids.length - 1])}`,
+      onclick: () => { if (!dragJustEnded()) openPicker({ target: end }); },
+    }, icon('plus', 'icon--xs'), h('span', { text: 'Add' })));
+  } else {
+    el.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(end) }));
+  }
   return el;
 }
 
 function pageRows() {
-  const content = doc(groupHandle('template'))?.content;
+  const handle = groupHandle('template');
+  const content = doc(handle)?.content;
   if (!content) return h('div', { class: 'rows' });
   const sections = content.sections || {};
+  const offered = sidesFor(handle);
+  const side = (which) => (offered.includes(which) ? (content.sides?.[which] || []).filter((sid) => sections[sid]) : []);
+  const left = side('left');
+  const right = side('right');
+  // Every row draws at the width the sides leave the page's content.
+  const area = offered.length ? contentSpan(content, rulesFor(handle)) : 12;
   const rows = h('div', { class: 'rows' });
   const list = rowsOf(content, layoutPayload());
   const nameOf = (row) => (row ? listWords(row.columns.flat().filter((sid) => sections[sid]).map((sid) => labelOf(sid))) || 'an empty row' : null);
-  list.forEach((row, i) => rows.append(gapEl(row.id, nameOf(list[i - 1]), nameOf(row)), rowEl(row, sections)));
+  list.forEach((row, i) => rows.append(gapEl(row.id, nameOf(list[i - 1]), nameOf(row)), rowEl(row, sections, area)));
   rows.append(gapEl('end', nameOf(list[list.length - 1]), null));
-  const left = (content.sides?.left || []).filter((sid) => sections[sid]);
-  const right = (content.sides?.right || []).filter((sid) => sections[sid]);
-  if (!left.length && !right.length) return rows;
-  // Sides run the full height of the page content, beside every row.
-  return h('div', { class: 'zone', dataset: { sides: `${left.length ? 'l' : ''}${right.length ? 'r' : ''}` } },
-    left.length ? sideEl('left', left, sections) : null,
+  if (!offered.length) return rows;
+  // Sides run the full height of the page content, beside every row; on a phone they stack around it.
+  return h('div', { class: 'zone', dataset: { sides: `${left.length ? 'l' : ''}${right.length ? 'r' : ''}`, content: String(area) } },
+    sideEl('left', left, sections),
     rows,
-    right.length ? sideEl('right', right, sections) : null);
+    sideEl('right', right, sections));
 }
 
 function splitPicture(parts) {

@@ -10,6 +10,7 @@ import { sectionDef, blockDef, blockTypes } from './catalog.js';
 import { commit, undo, hasLayout, layoutPayload, rulesFor } from './operations.js';
 import { rowsOf, checkAddSpot, freshRowId, replaceIn } from './board/model.js';
 import { schemeSetting } from './board/choices.js';
+import { listWords } from './board/words.js';
 import { clone, humanize } from './util.js';
 import { select } from './selection.js';
 import { flush, resolveConflict, setFatal } from './drafts.js';
@@ -215,6 +216,7 @@ export function removeSection(sid) {
 const SPOT_WORDS = {
   gone: 'The page changed while you were choosing, and that spot is no longer on it. Nothing was added; choose where it goes again.',
   full: 'That column holds as many sections as it can. Nothing was added.',
+  'full-side': 'That side holds as many sections as it can. Nothing was added.',
 };
 
 /**
@@ -237,14 +239,23 @@ export function addSection(type, { variant = null, preset = null, target = null 
   const rules = rulesFor(handle);
   const spot = checkAddSpot(c, target, snapshot, rules);
   if (!spot.ok) {
-    toast(SPOT_WORDS[spot.reason] || `${def.label} needs a wider spot than that one.`, { tone: 'error', timeout: 8000 });
+    const reason = spot.reason === 'full' && target.drop === 'side' ? 'full-side' : spot.reason;
+    toast(SPOT_WORDS[reason] || `${def.label} needs a wider spot than that one.`, { tone: 'error', timeout: 8000 });
     return null;
   }
   const count = groupList('template').length;
   // A page of full-width sections only: the gap is a place in its order.
   const plain = !hasLayout(c) && target.drop === 'gap';
   const index = plain ? orderIndexOfGap(c, target) : count;
-  commit({ t: 'insert', kind: 'add', doc: handle, sid, group: 'template', index, snapshot, name: def.label, target: plain ? null : target });
+  const op = { t: 'insert', kind: 'add', doc: handle, sid, group: 'template', index, snapshot, name: def.label, target: plain ? null : target };
+  commit(op);
+  // The first section of a side narrows the page: what no longer fits its column moves to a row of its own.
+  const moved = (op.moved || []).filter((id) => c.sections[id]).map((id) => labelOf(id));
+  if (moved.length) {
+    toast(moved.length === 1
+      ? `${moved[0]} needs a wider column beside the side, so it moved to a row of its own.`
+      : `${listWords(moved)} need wider columns beside the side, so they moved to rows of their own.`, { timeout: 8000 });
+  }
   return sid;
 }
 

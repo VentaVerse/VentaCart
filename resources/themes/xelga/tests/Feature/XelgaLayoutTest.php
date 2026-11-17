@@ -45,7 +45,7 @@ class XelgaLayoutTest extends TestCase
     public function test_normalizer_cases(): void
     {
         // content-width/ holds the cases that measure a column beside the
-        // sides; the editor's tests read them once the editor measures so too.
+        // sides; the editor's tests read them too.
         $files = [...(glob(self::FIXTURES . '/[!_]*.json') ?: []), ...(glob(self::FIXTURES . '/content-width/[!_]*.json') ?: [])];
         $this->assertNotEmpty($files);
 

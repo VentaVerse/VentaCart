@@ -765,20 +765,17 @@ body.is-dragging .piece__change {
     margin-block-start: -16px;
   }
 
-  .row--multi .piece__change,
-  .side .piece__change {
+  .row--multi .piece__change {
     inset-block-start: 6px;
     margin-block-start: 0;
   }
 
-  /* A column this narrow cannot hold a name beside Change: the name starts under it, at full width. */
-  .row--multi .piece-wrap .piece__bar,
-  .side .piece-wrap .piece__bar {
+  /* A column this narrow cannot hold a name beside Change: the name starts under it, at full width. A stacked side is the whole width, so its sections keep the one-line form. */
+  .row--multi .piece-wrap .piece__bar {
     padding-block-start: 42px;
   }
 
-  .row--multi .piece-wrap .piece__line,
-  .side .piece-wrap .piece__line {
+  .row--multi .piece-wrap .piece__line {
     padding-inline-end: 8px;
   }
 }

@@ -83,8 +83,12 @@ const RULES = catalogRules(LAYOUT, sectionDef, true);
 
 const row = (id, split, columns) => ({ id, split, columns, settings: { ...DEFAULTS } });
 
-/** A page: a banner row, a row of halves, a row of thirds, recently viewed, a left side. */
-function samplePage() {
+/**
+ * A page: a banner row, a row of halves, a row of thirds, recently viewed,
+ * and a note before them; with `side`, the note sits in a left side (which
+ * narrows every column to three quarters of its part).
+ */
+function samplePage({ side = false } = {}) {
   return {
     schema: 1,
     order: ['note', 'hero', 'words', 'shop', 'a', 'b', 'c', 'seen'],
@@ -112,7 +116,7 @@ function samplePage() {
       row('r-three', '4-4-4', [['a'], ['b'], ['c']]),
       row('r-seen', '12', [['seen']]),
     ],
-    sides: { left: ['note'] },
+    ...(side ? { sides: { left: ['note'] } } : {}),
   };
 }
 
@@ -206,7 +210,7 @@ test('replaceIn keeps the spot: a column, a side and a full-width row', () => {
   assert.deepEqual(Object.keys(inColumn.sections), ['note', 'hero', 'words', 'tiles-1', 'a', 'b', 'c', 'seen']);
   assert.equal(inColumn.sections.shop, undefined);
 
-  const inSide = replaceIn(c, 'note', 'text-1', { type: 'text', settings: {} }, RULES).content;
+  const inSide = replaceIn(samplePage({ side: true }), 'note', 'text-1', { type: 'text', settings: {} }, RULES).content;
   assert.deepEqual(inSide.sides, { left: ['text-1'] });
 
   const inRow = replaceIn(c, 'hero', 'look-1', { type: 'look', settings: { variant: 'full' } }, RULES).content;
@@ -219,7 +223,10 @@ test('replaceIn refuses a section that does not fit the spot', () => {
   const c = samplePage();
   assert.equal(replaceIn(c, 'shop', 'banner-1', { type: 'banner', settings: {} }, RULES), null);
   assert.equal(replaceIn(c, 'b', 'tiles-1', { type: 'tiles', settings: {} }, RULES), null);
-  assert.equal(replaceIn(c, 'note', 'products-1', { type: 'products', settings: {} }, RULES), null, 'A side is 3 wide.');
+  assert.equal(replaceIn(samplePage({ side: true }), 'note', 'products-1', { type: 'products', settings: {} }, RULES), null, 'A side is 3 wide.');
+  // Beside a side, a half is four and a half twelfths: a section of 6 no longer fits it.
+  assert.equal(replaceIn(samplePage({ side: true }), 'words', 'tiles-1', { type: 'tiles', settings: {} }, RULES), null);
+  assert.ok(replaceIn(samplePage(), 'words', 'tiles-1', { type: 'tiles', settings: {} }, RULES));
   assert.equal(replaceIn(c, 'hero', 'main-1', { type: 'product-main', settings: {} }, RULES), null, 'Main sections are never put in by replacing.');
   assert.equal(replaceIn(c, 'hero', 'shop', { type: 'look', settings: {} }, RULES), null, 'The new id must be free.');
   assert.equal(replaceIn(c, 'gone', 'look-1', { type: 'look', settings: {} }, RULES), null);

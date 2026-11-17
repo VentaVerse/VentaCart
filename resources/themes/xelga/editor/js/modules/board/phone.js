@@ -1,7 +1,9 @@
 /*
  * The layout board on a phone. A full board cannot fit a narrow screen,
- * so below 720 pixels the page is drawn as a list: the header, the rows
- * one under the other and the footer. Each section is one line with the
+ * so below 720 pixels the page is drawn as a list: the header, the left
+ * side, the rows one under the other, the right side and the footer, the
+ * order a phone shows the store in. Each side is a group of its sections,
+ * or a strip that adds the first one. Each section is one line with the
  * small drawing of its layout and its name (its type under it when it has
  * a name of its own); the columns of a row sit side by side as chips at
  * their true proportions; the Add buttons always show. Settings and the
@@ -15,8 +17,8 @@ import { h } from '../dom.js';
 
 /**
  * The page as a list, from the board's own parts (drawn by board.js): the
- * head, the header band, the page (its rows and sides, or the note of a
- * page with a fixed layout) and the footer band. The same pieces as on the
+ * head, the header band, the page (its left side, rows and right side, or
+ * the note of a page with a fixed layout) and the footer band. The same pieces as on the
  * board, so every control is the same one; the phone styles in board.css
  * lay them out as lines and chips, and no section pictures are loaded.
  */

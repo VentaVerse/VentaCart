@@ -437,7 +437,15 @@ function spotMap() {
   if (t.drop === 'gap' && t.before === 'end') rows.append(mark());
   const side = (which) => {
     const ids = c.sides?.[which] || [];
-    return ids.length ? h('div', { class: 'smap__side' }, ...ids.map(sectionEl)) : null;
+    const here = t.drop === 'side' && t.side === which;
+    if (!ids.length && !here) return null;
+    const el = h('div', { class: 'smap__side' });
+    ids.forEach((sid) => {
+      if (here && t.before === sid) el.append(mark());
+      el.append(sectionEl(sid));
+    });
+    if (here && (t.before ?? null) === null) el.append(mark());
+    return el;
   };
   return h('div', { class: 'smap', 'aria-hidden': 'true' },
     h('div', { class: 'smap__band' }),
