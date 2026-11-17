@@ -29,7 +29,7 @@ final class RelatedProducts implements SectionData
             : self::related($product, $context, $count);
 
         return [
-            'cards' => ProductCards::for($products, Swatches::wanted($context)),
+            'cards' => ProductCards::for($products, Swatches::wanted($context), CardLines::wanted($context)),
             'empty' => ($settings['source'] ?? '') === 'brand'
                 ? 'This product has no brand, or no other product of its brand, so shoppers do not see this section.'
                 : 'No other product shares a category with this one, so shoppers do not see this section.',

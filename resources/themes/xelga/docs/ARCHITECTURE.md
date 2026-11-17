@@ -705,7 +705,7 @@ Fixtures use neutral names (Demo Store, Juan Dela Cruz, `DEMO-001`, example.com)
 
 ## 14. Extensions
 
-How a VentaCart extension adds to Xelga without editing it: section types, blocks inside Xelga's sections, page templates and default placements. This is Xelga's side of the extension hooks, API 1; core's side (pages of extension page types, cart groups, the checkout page, order panels, the account menu, the `extension.*` frames) is in `docs/theme-contract.md`, section 9.
+How a VentaCart extension adds to Xelga without editing it: section types, blocks inside Xelga's sections, page templates and default placements. This is Xelga's side of the extension hooks, API 1; core's side (pages of extension page types, cart groups, the checkout page, order panels, product card lines, the account menu, the `extension.*` frames) is in `docs/theme-contract.md`, section 9.
 
 ### 14.1 Words
 
@@ -747,11 +747,17 @@ A block schema: `type`, `label`, `description`, `icon`, `settings`, `limit` (1 t
 
 Add section and Add block list Xelga's types first, then each extension's under its `source_label`. The page picker lists extension templates after Xelga's pages under the extension's name. The boot payload's `extensions` (every installed extension, switched on or off, with its title and `on` or `off`; one not listed is not installed) lets the outline name the extension of a dormant row. Extension section HTML reaches the editor only through `SectionOnly` and the frame's existing allowlist; API 1 has no extension section scripts. The storefront layout loads each extension's stylesheet after Xelga's bundle (`Extensions::stylesheetTags()`): from the store's build, else from the build the package ships (`App\Support\PackageVite`), else the file as it ships through `ExtensionStylesheetController` (route `xelga.extension-css`, addressed by a fingerprint of the file, cached for a year, only while the extension is on). The last case is logged once per catalog compile, so an extension installed from an upload is styled without a rebuild.
 
-### 14.8 Checks
+### 14.8 Product card lines
+
+Core's `ProductCardLines` (contract section 9.9) reaches every shared card through `ProductCards::for($products, $swatches, $lines)`, which asks core once for the whole list and puts each product's lines in the card as `ext`; `snippets/product-card` prints them in `.card__ext` right under the title, before card details, color dots, rating and price. `$lines` is `CardLines::wanted($context)` for sections (always in the editor's preview, else the theme setting `show_extension_details`, Product cards > Show details from extensions, default on), null on fixed pages (the setting), and false where a product is drawn without the shared card (product spotlight, shop the look, the account dashboard's wishlist list), so no extension is asked for lines nobody sees. With no line registered, `CardLines::wanted()` answers false before reading any setting, so a store without such an extension runs no extra query. The setting also prints `data-card-ext` on `<html>`, so the editor hides and shows the lines live. `partials/product-card` (core's own pages) draws one product and never asks per card: it prints lines only when the page passes `$cardLines` from one `ProductCardLines::for()` call.
+
+The places covered: category, brand and search listings (and their Load more, which imports server-drawn cards), featured products rows, related products, recently viewed and the wishlist page. No product card is drawn by script; the cart drawer lists cart lines.
+
+### 14.9 Checks
 
 `php artisan xelga:lint --extension={name}` (`CatalogLinter::checkExtension()`) applies Xelga's section checks to the extension's sections and blocks, plus: the type and file rules, views present and not links, a block's targets being Xelga sections that take extension blocks, a CSS rule in the extension's stylesheet for every range value (write them with `node bin/ranges.mjs --schemas <parts>/schemas/sections --out <file>`, which also covers `schemas/blocks`), template defaults (a registered page type, one main section of the extension's own, no store records, Shape-clean), and placements (each valid and allowed where it goes).
 
-### 14.9 Tests
+### 14.10 Tests
 
-`tests/fixtures/extensions/sample-extension` uses every hook: the section types `sample-extension.card` and `sample-extension.main`, the block `sample-extension.seller`, the page type `sample_page` with its template, a section and a block placement, plus core's cart grouper, checkout page, order panels and account link. `Tests\Support\UsesSampleExtension` links it into `extensions/` for a test, installs, switches off, back on, and removes it. Xelga's tests for it are `tests/Feature/XelgaExtension*Test.php` and `XelgaCartGroupsTest.php`.
+`tests/fixtures/extensions/sample-extension` uses every hook: the section types `sample-extension.card` and `sample-extension.main`, the block `sample-extension.seller`, the page type `sample_page` with its template, a section and a block placement, plus core's cart grouper, checkout page, order panels, a product card line and account link. `Tests\Support\UsesSampleExtension` links it into `extensions/` for a test, installs, switches off, back on, and removes it. Xelga's tests for it are `tests/Feature/XelgaExtension*Test.php`, `XelgaCartGroupsTest.php` and `XelgaProductCardLinesTest.php`.
 

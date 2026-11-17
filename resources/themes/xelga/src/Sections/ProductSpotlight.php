@@ -21,7 +21,7 @@ final class ProductSpotlight implements SectionData
     {
         $id = ProductSource::id($settings['product'] ?? null);
         $product = $id === null ? null : ProductSource::get(['ids' => [$id], 'limit' => 1])->first();
-        $card = $product ? (ProductCards::for([$product], Swatches::wanted($context))[0] ?? null) : null;
+        $card = $product ? (ProductCards::for([$product], Swatches::wanted($context), lines: false)[0] ?? null) : null;
 
         $endsAt = null;
         if ($card && $card['on_sale'] && $card['ends_at'] !== null) {

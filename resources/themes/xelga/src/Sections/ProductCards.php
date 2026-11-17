@@ -7,6 +7,7 @@ use App\Services\BadgeService;
 use App\Services\WishlistService;
 use App\Support\Pricing;
 use App\Support\ProductAttributes;
+use App\Support\ProductCardLines;
 use App\Support\Reviews;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
@@ -18,7 +19,8 @@ use Illuminate\Support\Facades\Route;
  * Every number on a card comes from core: the price and sale from
  * Pricing::display() (the amount the cart charges this shopper), the New
  * badge from core's badge rules, stock from the product's own count, the
- * rating from the review aggregates core's listing loads.
+ * rating from the review aggregates core's listing loads. Lines extensions
+ * add (core's ProductCardLines) are asked for once for the whole list.
  */
 final class ProductCards
 {
@@ -33,9 +35,11 @@ final class ProductCards
 
     /**
      * @param  iterable<Product>  $products  loaded through ProductSource, with images, specials, brand and card attributes
+     * @param  bool|null  $lines  whether cards carry the lines extensions add; null follows the theme setting. False for a
+     *                            place that draws a product without the shared card, so no extension is asked for nothing.
      * @return list<array<string, mixed>>
      */
-    public static function for(iterable $products, bool $swatches = false): array
+    public static function for(iterable $products, bool $swatches = false, ?bool $lines = null): array
     {
         $products = Collection::make($products)->filter(fn ($p) => $p instanceof Product)->values();
         if ($products->isEmpty()) {
@@ -53,8 +57,11 @@ final class ProductCards
         $wishlist = self::wishlistIds();
         $reviews = Reviews::enabled();
         $hasRoute = Route::has('product.show');
+        $ext = ($lines ?? CardLines::wanted()) ? ProductCardLines::for($products) : [];
 
-        return $products->map(fn (Product $p) => self::card($p, $badges, $wishlist, $reviews, $hasRoute, $swatches))->all();
+        return $products->map(function (Product $p) use ($badges, $wishlist, $reviews, $hasRoute, $swatches, $ext) {
+            return self::card($p, $badges, $wishlist, $reviews, $hasRoute, $swatches) + ['ext' => $ext[(int) $p->id] ?? null];
+        })->all();
     }
 
     /** @param list<int> $wishlist */

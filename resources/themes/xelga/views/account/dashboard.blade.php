@@ -6,7 +6,7 @@
 @php
     app(\Themes\Xelga\Rendering\Storefront::class)->page('account');
     $wishlistCards = \Illuminate\Support\Facades\Route::has('wishlist.index')
-        ? \Themes\Xelga\Sections\ProductCards::for(app(\App\Services\WishlistService::class)->products()->take(3))
+        ? \Themes\Xelga\Sections\ProductCards::for(app(\App\Services\WishlistService::class)->products()->take(3), lines: false)
         : [];
     $wishlistCount = \Illuminate\Support\Facades\Route::has('wishlist.index') ? app(\App\Services\WishlistService::class)->count() : 0;
 @endphp

@@ -131,6 +131,27 @@ html[data-card-brand="false"] .card__brand,
   border-radius: var(--radius-card);
 }
 
+/* Lines extensions add (core's ProductCardLines), one per extension. */
+.card__ext {
+  display: flex;
+  flex-direction: column;
+  gap: .125rem;
+  min-width: 0;
+  font-size: var(--fs-xs);
+  color: var(--c-muted);
+  overflow-wrap: anywhere;
+}
+
+/* A link in a line sits above the card's own link, which covers the card. */
+.card__ext a {
+  position: relative;
+  z-index: 3;
+}
+
+html[data-card-ext="false"] .card__ext {
+  display: none;
+}
+
 .card__spec {
   font-size: var(--fs-xs);
   color: var(--c-muted);

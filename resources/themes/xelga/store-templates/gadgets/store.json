@@ -26,6 +26,7 @@
         "show_brand": true,
         "show_wishlist": true,
         "show_swatches": false,
+        "show_extension_details": true,
         "badge_style": "percent",
         "card_radius": 12,
         "page_width": 1320,

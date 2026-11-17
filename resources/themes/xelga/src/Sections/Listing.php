@@ -51,7 +51,7 @@ final class Listing
         $total = (int) $products->total();
 
         return [
-            'cards' => ProductCards::for($products->items(), Swatches::wanted($context)),
+            'cards' => ProductCards::for($products->items(), Swatches::wanted($context), CardLines::wanted($context)),
             'total' => $total,
             'from' => (int) ($products->firstItem() ?? 0),
             'to' => (int) ($products->lastItem() ?? 0),

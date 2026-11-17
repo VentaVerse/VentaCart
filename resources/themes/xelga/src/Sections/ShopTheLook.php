@@ -25,7 +25,7 @@ final class ShopTheLook implements SectionData
         $products = $ids === [] ? [] : ProductSource::get(['ids' => $ids, 'limit' => \App\Support\ProductFeed::LIMIT_MAX]);
 
         $cards = [];
-        foreach (ProductCards::for($products, Swatches::wanted($context)) as $card) {
+        foreach (ProductCards::for($products, Swatches::wanted($context), lines: false) as $card) {
             $cards[$card['id']] = $card;
         }
 

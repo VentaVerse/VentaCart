@@ -1,7 +1,7 @@
 {{--
     The shared product card, from a card that ProductCards prepared: photo
-    (and a second one on hover), badges, wishlist heart, brand, name, card
-    details, color dots, rating, price and quick add. Theme settings decide
+    (and a second one on hover), badges, wishlist heart, brand, name, lines
+    extensions add, card details, color dots, rating, price and quick add. Theme settings decide
     which of these show, through attributes on <html>, so every card in the
     store follows them. A product with variants opens its page instead of
     adding to the cart, so the shopper chooses one.
@@ -45,6 +45,9 @@
             <p class="card__brand">{{ $card['brand'] }}</p>
         @endif
         <{{ $level }} class="card__title" id="{{ $cardId }}"><a href="{{ $card['url'] }}">{{ $card['name'] }}</a></{{ $level }}>
+        @if (! empty($card['ext']))
+            <div class="card__ext">{{ $card['ext'] }}</div>
+        @endif
         @if ($card['spec'] !== '')
             <p class="card__spec">{{ $card['spec'] }}</p>
         @endif

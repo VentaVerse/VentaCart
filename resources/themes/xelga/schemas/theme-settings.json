@@ -491,6 +491,17 @@
           "info": "Dots come from the variant groups named Color, Fabric, Finish or Shade."
         },
         {
+          "key": "show_extension_details",
+          "type": "toggle",
+          "label": "Show details from extensions",
+          "default": true,
+          "target": {
+            "type": "attr",
+            "name": "data-card-ext"
+          },
+          "info": "Short lines extensions add under the name, such as who sells it."
+        },
+        {
           "key": "badge_style",
           "type": "select",
           "label": "Sale badge",
