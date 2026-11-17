@@ -86,3 +86,27 @@
 .xr__col > .s .s__inner {
   width: 100%;
 }
+
+/*
+ * A content area narrower than the page. From 990px sides stand beside
+ * the page's content, and main names the content area's width in
+ * twelfths (data-content: 9 or 6; a page without sides carries none).
+ * Below 990px the sides stack and the content is the whole page again,
+ * so every rule keyed on data-content sits inside this width.
+ *
+ * The type scale grows with the window, so in a narrower content area
+ * the largest headings take the next step's size. Swipe rows and strips
+ * that run out to the screen's edge stop at the content area's edge,
+ * where a side stands (--bleed).
+ */
+@media (min-width: 990px) {
+  main[data-content] {
+    --fs-display: var(--fs-h1);
+    --bleed: 0px;
+  }
+
+  /* Set on the children, so --fs-display above still reads the page's own h1 size. */
+  main[data-content="6"] > * {
+    --fs-h1: var(--fs-h2);
+  }
+}

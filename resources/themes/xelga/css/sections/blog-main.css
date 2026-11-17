@@ -137,6 +137,14 @@
   }
 }
 
+/* Beside two sides (a content area of six twelfths) a post in the list keeps its photo above its text. */
+@media (min-width: 990px) {
+  main[data-content="6"] .s-mainblog[data-variant="list"] .post {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .875rem;
+  }
+}
+
 .s-mainblog[data-variant="list"] .posts {
   gap: 0;
 }

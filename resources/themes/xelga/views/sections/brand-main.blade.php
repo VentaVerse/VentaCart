@@ -3,10 +3,12 @@
     $list = $data['list'];
     $filtersOn = $data['filters']['facets'] !== [] || $data['filters']['price'] !== null;
     $hasActive = $data['filters']['active'] > 0;
+    // As many cards to a line as the content area holds (the setting on a page without sides).
+    $cols = $context->fitColumns($settings['cols'], 3);
 @endphp
 <section class="s {{ $section['class'] }} s-brand {{ $settings['scheme'] }}" id="{{ $section['id'] }}" @include('xelga::snippets.section-attrs')
          data-variant="{{ $settings['view'] }}" data-default-view="{{ $settings['view'] }}" data-switch-view="{{ $settings['switch_view'] ? 'true' : 'false' }}"
-         data-cols="{{ $settings['cols'] }}" data-mobile-cols="{{ $settings['mobile_cols'] }}"
+         data-cols="{{ $cols }}" data-mobile-cols="{{ $settings['mobile_cols'] }}"
          data-filters="{{ $filtersOn ? $settings['filters'] : 'none' }}" data-show-logo="{{ $settings['show_logo'] ? 'true' : 'false' }}"
          data-show-description="{{ $settings['show_description'] ? 'true' : 'false' }}" data-show-count="{{ $settings['show_count'] ? 'true' : 'false' }}"
          data-pagination="{{ $settings['pagination'] }}" aria-labelledby="{{ $section['id'] }}-title">
@@ -50,7 +52,7 @@
                         @endif
                     </div>
                 @else
-                    @include('xelga::blocks.listing.grid', ['label' => $data['title']])
+                    @include('xelga::blocks.listing.grid', ['label' => $data['title'], 'cols' => $cols])
                 @endif
                 @include('xelga::blocks.listing.pagination')
             </div>

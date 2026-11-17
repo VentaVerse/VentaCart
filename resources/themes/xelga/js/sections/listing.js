@@ -11,7 +11,6 @@
 import { $, $$ } from '../util.js';
 
 const VIEW_KEY = 'xelga.listing-view';
-const WIDE = window.matchMedia('(min-width: 990px)');
 
 function readView() {
   try {
@@ -72,15 +71,18 @@ export function initListing(section) {
     if (event.target.matches('[data-sort]')) sortForm.requestSubmit();
   });
 
-  // Filters: in the column on large screens, in the drawer on phones or
-  // wherever the section asks for a drawer.
+  // Filters: in the column where the styles draw it (a large screen with
+  // room beside the products), in the drawer everywhere else. Whether the
+  // column is drawn depends on the section's own width as well as the
+  // screen's (sides may stand beside the content), so the script asks the
+  // column itself, again whenever the section's width changes.
   const form = $('[data-filters]', section);
   const drawer = $('[data-filter-drawer]', section);
   const home = $('[data-filter-home]', section);
   const slot = $('[data-filter-slot]', section);
   if (form) {
     section.dataset.liveFilters = 'true';
-    const inDrawer = () => !WIDE.matches || section.dataset.filters === 'drawer';
+    const inDrawer = () => !home || section.dataset.filters === 'drawer' || getComputedStyle(home).display === 'none';
     const place = () => {
       if (!drawer || !slot || !home) return;
       const target = inDrawer() ? slot : home;
@@ -88,7 +90,11 @@ export function initListing(section) {
       if (!inDrawer() && drawer.open) drawer.close();
     };
     place();
-    on(WIDE, 'change', place);
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(place);
+      observer.observe(section);
+      cleanups.push(() => observer.disconnect());
+    }
 
     // In the column a change is sent at once; in the drawer the shopper
     // picks several and sends them with the drawer's button.

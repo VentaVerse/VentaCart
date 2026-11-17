@@ -523,6 +523,114 @@ class XelgaRowsRenderTest extends TestCase
         $this->assertSame(1, $context->withSpan(0)->span);
     }
 
+    /**
+     * A page's template drawn for a content area $span twelfths wide, with
+     * the data core's controller handed the page: the page is visited once
+     * to learn that data, then drawn again by the renderer.
+     */
+    private function drawnAt(string $url, int $span, ?SectionRenderer $renderer = null): string
+    {
+        $seen = null;
+        \Illuminate\Support\Facades\View::composer('xelga::snippets.template', function ($view) use (&$seen) {
+            $seen = $view->getData();
+        });
+        $this->page($url);
+        $this->assertNotNull($seen, "{$url} draws a template.");
+
+        $handle = app(\Themes\Xelga\Rendering\TemplateResolver::class)->handleFor($seen['pageType'], $seen['subject'] ?? null);
+        $content = Storefront::withMainSection(app(\Themes\Xelga\Rendering\DocumentRepository::class)->content($handle), \Themes\Xelga\Documents\Handles::baseFor($seen['pageType']));
+        $content = Layout::normalize($content, app(LayoutRules::class, ['handle' => $handle]))['content'];
+        $context = (new RenderContext($seen['pageType'], $handle, 'template', false, $seen['subject'] ?? null, $seen['page'] ?? []))->withSpan($span);
+
+        return ($renderer ?? app(SectionRenderer::class))->render($content, $context);
+    }
+
+    /** The sizes attribute of every photo in the HTML. */
+    private function sizesIn(string $html): array
+    {
+        preg_match_all('#\bsizes="([^"]*)"#', $html, $m);
+
+        return array_map('html_entity_decode', $m[1]);
+    }
+
+    public function test_the_main_banner_is_sized_for_a_narrower_content_area(): void
+    {
+        $this->fakePhoto();
+        $home = $this->defaults('home');
+        foreach ($home['sections'] as $id => $section) {
+            if ($section['type'] === 'hero') {
+                $home['sections'][$id]['settings']['variant'] = 'full-image';
+                foreach ($section['blocks'] as $blockId => $block) {
+                    $home['sections'][$id]['blocks'][$blockId]['settings']['image'] = 'media/demo/photo.jpg';
+                }
+                $hero = $id;
+            }
+        }
+        $this->publishedDocument('home', $home);
+
+        // The whole page wide, the banner is sized for the screen as before.
+        $this->assertSame(['100vw'], array_values(array_unique($this->sizesIn($this->cut($this->page('/')->getContent(), $hero)))));
+
+        // Beside the sides, for the content area left between them.
+        $renderer = app(SectionRenderer::class);
+        $sizes = array_values(array_unique($this->sizesIn($this->cut($this->drawnAt('/', 6, $renderer), $hero))));
+        $this->assertSame([Picture::contentSizes(6, '100vw')], $sizes);
+        $this->assertStringContainsString('640px', $sizes[0]);
+        $this->assertSame(6, $renderer->contentSpan());
+        // Below 990 pixels the sides stack and the banner is the screen's width again.
+        $this->assertStringEndsWith(', 100vw', $sizes[0]);
+    }
+
+    public function test_main_sections_are_sized_for_a_narrower_content_area(): void
+    {
+        $this->fakePhoto();
+        $store = Store::firstOrCreate(['code' => 'demo'], ['name' => 'Demo Store']);
+        $category = \App\Models\Category::create(['store_id' => $store->id, 'name' => 'Laptops', 'slug' => 'laptops', 'is_active' => true]);
+        foreach (['DEMO-001' => 'Demo Laptop 13', 'DEMO-002' => 'Demo Laptop 14', 'DEMO-003' => 'Demo Laptop 15'] as $sku => $name) {
+            $product = Product::create([
+                'store_id' => $store->id, 'name' => $name, 'slug' => strtolower($sku), 'sku' => $sku,
+                'price' => 45000, 'quantity' => 10, 'track_stock' => true, 'is_active' => true, 'image' => 'media/demo/photo.jpg',
+            ]);
+            $product->categories()->attach($category->id);
+        }
+
+        // The product's photos: sized for the photo column of the whole page as
+        // before, and for the content area (one column) at six twelfths.
+        $full = $this->sizesIn($this->drawnAt('/product/demo-001', 12));
+        $this->assertContains('(min-width: 1320px) 720px, (min-width: 750px) 55vw, 100vw', $full);
+        $narrow = $this->sizesIn($this->drawnAt('/product/demo-001', 6));
+        $this->assertContains(Picture::contentSizes(6, '(min-width: 1320px) 720px, (min-width: 750px) 55vw, 100vw'), $narrow);
+        $this->assertStringStartsWith('(min-width: 1320px) 640px, (min-width: 990px) 50vw, ', Picture::contentSizes(6, '(min-width: 1320px) 720px, (min-width: 750px) 55vw, 100vw'));
+
+        // The category's cards: as many to a line as the content area holds, and sized for it.
+        $grid = fn (string $html) => (string) preg_replace('#^.*?(<section[^>]*data-section-type="category-main".*?</section>).*$#s', '$1', $html);
+        $wide = $grid($this->drawnAt('/category/laptops', 12));
+        $this->assertMatchesRegularExpression('#data-section-type="category-main"[^>]*data-cols="3"#s', $wide);
+        $this->assertContains(Picture::cardSizes(), $this->sizesIn($wide));
+        $six = $grid($this->drawnAt('/category/laptops', 6));
+        $this->assertMatchesRegularExpression('#data-section-type="category-main"[^>]*data-cols="2"#s', $six);
+        $this->assertContains(Picture::contentSizes(6, Picture::cardSizes(2, 2), .5), $this->sizesIn($six));
+        $this->assertNotContains(Picture::cardSizes(), $this->sizesIn($six));
+    }
+
+    public function test_the_content_area_is_the_whole_page_until_sides_are_drawn(): void
+    {
+        $renderer = app(SectionRenderer::class);
+        $this->assertSame(12, $renderer->contentSpan());
+
+        // A row keeps its split; its columns' sections take their share of the content area.
+        $this->publishedDocument('home', $this->homeWithRow('6-6', [['tile-a'], ['tile-b']]));
+        $html = $this->drawnAt('/', 6, $renderer);
+        $this->assertSame(['6', '6'], $this->columnSpans($this->cut($html, 'row-tiles')));
+        $this->assertStringContainsString('data-span="3"', $this->cut($html, 'tile-a'));
+        $this->assertStringContainsString('sizes="' . e(Picture::spanSizes(3)) . '"', $this->cut($html, 'tile-a'));
+
+        // The store's own pages are drawn the whole page wide, so main carries no width.
+        $page = $this->page('/')->getContent();
+        $this->assertStringContainsString('<main id="main-content">', $page);
+        $this->assertSame(12, app(Storefront::class)->contentSpan());
+    }
+
     protected function tearDown(): void
     {
         Storefront::forgetRequestState();

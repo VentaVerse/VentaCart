@@ -15,6 +15,8 @@
     // The first slide is usually the page's largest paint: preloaded, at high priority.
     $preload = $first && ! $preview && $picture && \Themes\Xelga\Rendering\Fold::nextIsHigh($context);
     $loading = \Themes\Xelga\Rendering\Fold::attrs($context, $first && $picture !== null);
+    // The banner spans the content area: the whole screen, or less where sides stand beside it.
+    $sizes = \Themes\Xelga\Rendering\Picture::contentSizes($context->span, '100vw');
     // A banner fills a phone's first screen: photos below it wait their turn
     // instead of sharing the bandwidth the first slide needs.
     if ($first && $picture !== null) {
@@ -25,9 +27,9 @@
     @push('head')
         @if ($phone)
             <link rel="preload" as="image" href="{{ $phone['src'] }}" @if ($phone['srcset'] !== '') imagesrcset="{{ $phone['srcset'] }}" imagesizes="100vw" @endif media="(max-width: 749px)" fetchpriority="high">
-            <link rel="preload" as="image" href="{{ $picture['src'] }}" @if ($picture['srcset'] !== '') imagesrcset="{{ $picture['srcset'] }}" imagesizes="100vw" @endif media="(min-width: 750px)" fetchpriority="high">
+            <link rel="preload" as="image" href="{{ $picture['src'] }}" @if ($picture['srcset'] !== '') imagesrcset="{{ $picture['srcset'] }}" imagesizes="{{ $sizes }}" @endif media="(min-width: 750px)" fetchpriority="high">
         @else
-            <link rel="preload" as="image" href="{{ $picture['src'] }}" @if ($picture['srcset'] !== '') imagesrcset="{{ $picture['srcset'] }}" imagesizes="100vw" @endif fetchpriority="high">
+            <link rel="preload" as="image" href="{{ $picture['src'] }}" @if ($picture['srcset'] !== '') imagesrcset="{{ $picture['srcset'] }}" imagesizes="{{ $sizes }}" @endif fetchpriority="high">
         @endif
     @endpush
 @endif
@@ -38,13 +40,13 @@
         @if ($picture && $phone)
             <picture>
                 <source media="(max-width: 749px)" srcset="{{ $phone['srcset'] !== '' ? $phone['srcset'] : $phone['src'] }}" sizes="100vw" @if ($phone['width']) width="{{ $phone['width'] }}" height="{{ $phone['height'] }}" @endif>
-                <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Picture::sources($picture, '100vw') }}
+                <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Picture::sources($picture, $sizes) }}
                      @if ($picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif
                      data-setting="image" data-setting-attr="image_alt:alt"
                      {{ $loading }} @if (! $first) fetchpriority="low" @endif>
             </picture>
         @elseif ($picture)
-            <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Picture::sources($picture, '100vw') }}
+            <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Picture::sources($picture, $sizes) }}
                  @if ($picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif
                  data-setting="image" data-setting-attr="image_alt:alt"
                  {{ $loading }} @if (! $first) fetchpriority="low" @endif>

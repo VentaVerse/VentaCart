@@ -10,21 +10,27 @@
   margin-block-end: 0;
 }
 
+/* The menu beside the text from 990px; beside two sides (a content area of six twelfths) it stays below, as on a smaller screen. */
 @media (min-width: 990px) {
-  .info {
+  .info:where(:not(main[data-content="6"] *)) {
     grid-template-columns: 15rem minmax(0, 1fr);
     align-items: start;
   }
 
-  .info > * {
+  .info:where(:not(main[data-content="6"] *)) > * {
     grid-column: 2;
   }
 
-  .info__nav {
+  .info__nav:where(:not(main[data-content="6"] *)) {
     grid-column: 1;
     grid-row: 1 / span 3;
     position: sticky;
     top: calc(var(--header-h, 0px) + 1.5rem);
+  }
+
+  main[data-content="6"] .info__nav {
+    padding-block-start: 1.5rem;
+    border-top: 1px solid var(--c-border);
   }
 
   .s-mainpage[data-variant="plain"] .info {

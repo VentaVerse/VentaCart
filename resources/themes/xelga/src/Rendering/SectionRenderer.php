@@ -23,8 +23,20 @@ final class SectionRenderer
     /** @var array<string, int> extension sections met so far in the document being drawn, by type */
     private array $extensionCounts = [];
 
+    /** How wide the page's content area was drawn, in twelfths of the page. */
+    private int $contentSpan = 12;
+
+    /**
+     * Draws a document. For a page template the context's span is the
+     * width of the content area every row is drawn in: the whole page, or
+     * less when sides stand beside it. Header and footer are always the
+     * whole page wide and leave the content area as it was.
+     */
     public function render(array $content, RenderContext $context): string
     {
+        if ($context->group === 'template') {
+            $this->contentSpan = $context->span;
+        }
         $sections = (array) ($content['sections'] ?? []);
         $context = $context->withTypes($this->drawnTypes($content, $context));
         $this->extensionCounts = [];
@@ -105,8 +117,10 @@ final class SectionRenderer
         $drawn = false;
         foreach ($parts as $index => $part) {
             $inner = '';
+            // A column takes its part of the content area, which may be narrower than the page.
+            $span = (int) round($part * $context->span / 12);
             foreach ($row['columns'][$index] ?? [] as $id) {
-                $inner .= $this->placed($id, $sections, $context->withSpan($part));
+                $inner .= $this->placed($id, $sections, $context->withSpan($span));
             }
             $drawn = $drawn || $inner !== '';
             $columns .= '<div class="xr__col" data-span="' . $part . '">' . $inner . '</div>';
@@ -162,6 +176,16 @@ final class SectionRenderer
         }
 
         return $sides;
+    }
+
+    /**
+     * How wide the last page template drawn had its content area, in
+     * twelfths of the page: 12 until one is drawn, and for a page without
+     * sides.
+     */
+    public function contentSpan(): int
+    {
+        return $this->contentSpan;
     }
 
     /** @return list<array> */

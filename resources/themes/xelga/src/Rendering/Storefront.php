@@ -103,6 +103,15 @@ final class Storefront
         return $content;
     }
 
+    /**
+     * How wide the page's content area is drawn, in twelfths of the page:
+     * 12 for a page without sides, or one drawn without a template.
+     */
+    public function contentSpan(): int
+    {
+        return $this->renderer->contentSpan();
+    }
+
     /** Remember which page this is, for a page drawn without a template. */
     public function page(string $pageType): void
     {

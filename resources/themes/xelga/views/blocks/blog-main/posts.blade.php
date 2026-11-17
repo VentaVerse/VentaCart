@@ -2,6 +2,8 @@
 @php
     $total = $data['total'];
     $filtered = $data['search'] !== null || $data['category'] !== null || $data['tag'] !== null;
+    // In a grid, a share of the content area for each post a line holds there.
+    $photoSizes = \Themes\Xelga\Rendering\Picture::contentSizes($context->span, '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw', $data['variant'] === 'grid' ? 1 / $context->fitColumns($settings['cols'], 3) : .4);
 @endphp
 <div class="blog-list" data-block-id="{{ $block['id'] }}" data-block-type="posts" @if ($block['disabled']) hidden @endif>
     <div class="blog-list__bar">
@@ -38,7 +40,7 @@
             @foreach ($data['posts'] as $post)
                 <li class="post">
                     @if ($post['picture'])
-                        <div class="post__media"><img src="{{ $post['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($post['picture'], '(min-width: 990px) 33vw, (min-width: 750px) 50vw, 100vw') }} @if ($post['picture']['width']) width="{{ $post['picture']['width'] }}" height="{{ $post['picture']['height'] }}" @endif></div>
+                        <div class="post__media"><img src="{{ $post['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($post['picture'], $photoSizes) }} @if ($post['picture']['width']) width="{{ $post['picture']['width'] }}" height="{{ $post['picture']['height'] }}" @endif></div>
                     @endif
                     <div class="post__body">
                         @if ($post['date'] || $post['category'])

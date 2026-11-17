@@ -1,8 +1,13 @@
 /*
  * Main banner: full-image, split, slideshow and collage.
+ *
+ * The banner answers to its own width: it spans the page's content area,
+ * which is narrower than the screen where sides stand beside it. Rules
+ * below aim at its contents, never at the section itself.
  */
 
 .s-hero {
+  container-type: inline-size;
   --overlay: 35;
   --hero-h: clamp(440px, 64svh, 660px);
   padding-block: 0;
@@ -64,7 +69,7 @@
   justify-content: flex-start;
   width: min(100% - 2 * var(--gutter), var(--page-width));
   margin-inline: auto;
-  padding-block: clamp(2.5rem, 6vw, 5rem);
+  padding-block: clamp(2.5rem, 6cqi, 5rem);
 }
 
 .hero__slide[data-text-x="center"] .hero__content { justify-content: center; text-align: center; }
@@ -94,7 +99,7 @@
 
 .hero__text {
   max-width: 46ch;
-  font-size: clamp(1rem, .95rem + .3vw, 1.1875rem);
+  font-size: clamp(1rem, .95rem + .3cqi, 1.1875rem);
   color: var(--c-muted);
 }
 
@@ -135,7 +140,7 @@
 }
 
 .hero__slide[data-box="panel"] .hero__box {
-  padding: clamp(1.5rem, 1rem + 2vw, 2.75rem);
+  padding: clamp(1.5rem, 1rem + 2cqi, 2.75rem);
   background: var(--c-bg);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-2);
@@ -303,7 +308,7 @@
 
 .hero__controls {
   position: absolute;
-  inset-block-end: clamp(.75rem, 2vw, 1.5rem);
+  inset-block-end: clamp(.75rem, 2cqi, 1.5rem);
   inset-inline: 0;
   z-index: 2;
   display: none;
@@ -383,8 +388,8 @@
   grid-row: 1;
   width: auto;
   margin: 0;
-  padding-block: clamp(2.5rem, 6vw, 5rem);
-  padding-inline: max(var(--gutter), calc(100% - var(--page-width) / 2)) clamp(2rem, 5vw, 5rem);
+  padding-block: clamp(2.5rem, 6cqi, 5rem);
+  padding-inline: max(var(--gutter), calc(100% - var(--page-width) / 2)) clamp(2rem, 5cqi, 5rem);
   text-align: start;
   justify-content: flex-start;
 }
@@ -392,7 +397,7 @@
 .s-hero[data-variant="split"] .hero__slide[data-text-x="end"] .hero__media { grid-column: 1; }
 .s-hero[data-variant="split"] .hero__slide[data-text-x="end"] .hero__content {
   grid-column: 2;
-  padding-inline: clamp(2rem, 5vw, 5rem) max(var(--gutter), calc(100% - var(--page-width) / 2));
+  padding-inline: clamp(2rem, 5cqi, 5rem) max(var(--gutter), calc(100% - var(--page-width) / 2));
 }
 
 .s-hero[data-variant="split"] .hero__slide[data-text-x="center"] .hero__box {
@@ -403,7 +408,7 @@
   justify-content: flex-start;
 }
 
-@media (max-width: 749px) {
+@container (max-width: 749px) {
   .s-hero[data-variant="split"] .hero__slide {
     grid-template-columns: minmax(0, 1fr);
     min-height: 0;
@@ -433,7 +438,7 @@
   width: min(100% - 2 * var(--gutter), var(--page-width));
   min-height: var(--hero-h);
   margin-inline: auto;
-  padding-block: clamp(1rem, 2.5vw, 2rem);
+  padding-block: clamp(1rem, 2.5cqi, 2rem);
 }
 
 .s-hero[data-variant="collage"] .hero__slide {
@@ -460,14 +465,14 @@
   grid-area: text;
   width: auto;
   margin: 0;
-  padding: clamp(1rem, 3vw, 3rem) clamp(0rem, 2vw, 2rem) clamp(1rem, 3vw, 3rem) 0;
+  padding: clamp(1rem, 3cqi, 3rem) clamp(0rem, 2cqi, 2rem) clamp(1rem, 3cqi, 3rem) 0;
 }
 
 .s-hero[data-variant="collage"] .hero__title {
   font-size: var(--fs-h1);
 }
 
-@media (max-width: 749px) {
+@container (max-width: 749px) {
   .s-hero[data-variant="collage"] .hero__slides {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: auto;
@@ -485,9 +490,9 @@
 
 /* Phones: the slideshow's arrows and dots get their own row under the text,
    so they never sit on top of the heading, the text panel or a button. */
-@media (max-width: 749px) {
+@container (max-width: 749px) {
   .s-hero[data-variant="slideshow"] .hero__content {
-    padding-block-end: calc(44px + clamp(1.25rem, 4vw, 2rem));
+    padding-block-end: calc(44px + clamp(1.25rem, 4cqi, 2rem));
   }
   .s-hero[data-variant="slideshow"] .hero__controls {
     justify-content: center;
@@ -499,7 +504,7 @@
 .hero__empty {
   width: min(100% - 2 * var(--gutter), var(--page-width));
   margin-inline: auto;
-  padding-block: clamp(1.5rem, 4vw, 2.5rem);
+  padding-block: clamp(1.5rem, 4cqi, 2.5rem);
 }
 
 /* Reduced motion: slides change at once and photos stay still. */
