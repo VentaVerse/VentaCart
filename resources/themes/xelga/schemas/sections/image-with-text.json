@@ -7,6 +7,9 @@
   ],
   "limit": null,
   "main": false,
+  "span": {
+    "min": 4
+  },
   "class": "s-iwt",
   "variants": [
     {
@@ -15,6 +18,7 @@
     },
     {
       "value": "overlap",
+      "span": 8,
       "label": "Text panel over the photo edge"
     },
     {

@@ -7,6 +7,9 @@
   ],
   "limit": null,
   "main": false,
+  "span": {
+    "min": 3
+  },
   "class": "s-richtext",
   "variants": [
     {
@@ -19,6 +22,7 @@
     },
     {
       "value": "split",
+      "span": 6,
       "label": "Heading beside text"
     }
   ],

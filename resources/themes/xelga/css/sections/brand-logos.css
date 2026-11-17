@@ -2,6 +2,13 @@
    17. Brand logos (row, grid)
    ========================================================================== */
 
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-brands {
+  container-type: inline-size;
+}
+
 .brands {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
@@ -10,7 +17,7 @@
   list-style: none;
 }
 
-@media (min-width: 990px) {
+@container (min-width: 990px) {
   .brands {
     grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr));
   }
@@ -70,7 +77,7 @@
 
 
 /* Phones show two per row; an odd last logo takes the whole row. */
-@media (max-width: 749px) {
+@container (max-width: 749px) {
   .brands {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

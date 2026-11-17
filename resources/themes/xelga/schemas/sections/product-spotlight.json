@@ -7,6 +7,9 @@
   ],
   "limit": null,
   "main": false,
+  "span": {
+    "min": 4
+  },
   "class": "s-spotlight",
   "variants": [
     {
@@ -15,6 +18,7 @@
     },
     {
       "value": "banner",
+      "span": 8,
       "label": "Photo background"
     },
     {

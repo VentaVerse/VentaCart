@@ -2,9 +2,16 @@
 
 namespace Themes\Xelga\Tests\Feature;
 
+use App\Models\Brand;
+use App\Models\Product;
+use App\Models\Store;
+use App\Support\ImageRenditions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\Support\UsesSampleExtension;
 use Tests\TestCase;
+use Themes\Xelga\Catalog\Catalog;
 use Themes\Xelga\Documents\Layout;
 use Themes\Xelga\Documents\LayoutRules;
 use Themes\Xelga\Rendering\Picture;
@@ -81,6 +88,136 @@ class XelgaRowsRenderTest extends TestCase
         $this->assertNotFalse($end);
 
         return (string) preg_replace('/name="_token" value="[^"]*"/', 'name="_token" value=""', substr($html, $start, $end - $start));
+    }
+
+    /**
+     * A section of the given type and variant, with the sample content its
+     * own preset ships, a photo wherever the section takes one, and a brand
+     * to show. Only variants that fit a column of four are drawn in one: the
+     * wide ones (a store's default is not always among the narrow ones) have
+     * their own test.
+     */
+    private function narrowSection(string $type, string $variant): array
+    {
+        $schema = Catalog::section($type);
+        $preset = collect($schema->raw['presets'])->first(fn ($p) => ($p['settings']['variant'] ?? null) === $variant) ?? $schema->raw['presets'][0];
+        $photo = 'media/demo/photo.jpg';
+        $settings = ['variant' => $variant] + $preset['settings'];
+        if ($type === 'product-spotlight') {
+            $store = Store::firstOrCreate(['code' => 'demo'], ['name' => 'Demo Store']);
+            $settings['product'] = Product::create([
+                'store_id' => $store->id, 'name' => 'Linen Shirt', 'slug' => 'linen-shirt-' . Str::lower(Str::random(4)),
+                'sku' => 'DEMO-001', 'price' => 1250, 'quantity' => 5, 'is_active' => true,
+            ])->id;
+        }
+        if (in_array($type, ['image-with-text', 'product-spotlight'], true)) {
+            $settings['image'] = $photo;
+        }
+        if ($type === 'brand-logos') {
+            $store = Store::firstOrCreate(['code' => 'demo'], ['name' => 'Demo Store']);
+            Brand::create(['store_id' => $store->id, 'name' => 'Northwind', 'slug' => 'northwind', 'is_active' => true]);
+            $settings['source'] = 'all';
+        }
+        $blocks = [];
+        foreach ($preset['blocks'] ?? [] as $i => $block) {
+            $blockSettings = $block['settings'];
+            if ($type === 'promo-banners') {
+                $blockSettings['image'] = $photo;
+            }
+            $blocks["{$type}-b{$i}"] = ['type' => $block['type'], 'label' => $block['label'] ?? '', 'disabled' => false, 'settings' => $blockSettings];
+        }
+
+        return ['type' => $type, 'label' => '', 'disabled' => false, 'settings' => $settings, 'block_order' => array_keys($blocks), 'blocks' => $blocks];
+    }
+
+    private function fakePhoto(): void
+    {
+        Storage::fake('public');
+        ImageRenditions::flush();
+        $image = imagecreatetruecolor(1600, 900);
+        ob_start();
+        imagejpeg($image);
+        Storage::disk('public')->put('media/demo/photo.jpg', (string) ob_get_clean());
+        imagedestroy($image);
+        ImageRenditions::make('media/demo/photo.jpg');
+    }
+
+    /** The home page with one section of the narrow group in a 4-8 row beside a tile. */
+    private function homeWithNarrow(string $type, string $variant): array
+    {
+        $home = $this->homeWithRow('4-8', [['narrow-1'], ['tile-b']]);
+        $home['sections']['narrow-1'] = $this->narrowSection($type, $variant);
+
+        return $home;
+    }
+
+    /** @return array<string, array{0: string, 1: string, 2: string, 3: bool}> type, variant, section class, whether it prints photos */
+    public static function narrowGroup(): array
+    {
+        return [
+            'text' => ['rich-text', 'center', 's-richtext', false],
+            'image with text' => ['image-with-text', 'split', 's-iwt', true],
+            'promo banners' => ['promo-banners', 'overlay', 's-promos', true],
+            'product spotlight' => ['product-spotlight', 'split', 's-spotlight', true],
+            'brand logos' => ['brand-logos', 'row', 's-brands', false],
+            'testimonials' => ['testimonials', 'carousel', 's-quotes', false],
+            'store promises' => ['usp-bar', 'columns', 's-usp', false],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('narrowGroup')]
+    public function test_the_narrow_group_sits_in_columns(string $type, string $variant, string $class, bool $photos): void
+    {
+        $this->fakePhoto();
+        $this->publishedDocument('home', $this->homeWithNarrow($type, $variant));
+
+        $row = $this->cut($this->page('/')->getContent(), 'row-tiles');
+
+        $this->assertSame(['4', '8'], $this->columnSpans($row));
+        $this->assertMatchesRegularExpression('#<div class="xr__col" data-span="4"><!--xelga:narrow-1-->.*?<!--/xelga:narrow-1--></div>#s', $row);
+        $section = $this->cut($row, 'narrow-1');
+        $this->assertMatchesRegularExpression('#<section class="s ' . $class . ' #', $section);
+        if ($photos) {
+            $this->assertStringContainsString('sizes="' . e(Picture::spanSizes(4)) . '"', $section);
+            $this->assertStringContainsString('427px', $section);
+        }
+    }
+
+    /** @return array<string, array{0: string, 1: string, 2: string}> type, variant, the split whose wide column holds it */
+    public static function wideVariants(): array
+    {
+        return [
+            'text beside text' => ['rich-text', 'split', '6-6'],
+            'overlapping image with text' => ['image-with-text', 'overlap', '8-4'],
+            'mosaic banners' => ['promo-banners', 'mosaic', '8-4'],
+            'banner spotlight' => ['product-spotlight', 'banner', '8-4'],
+            'review grid' => ['testimonials', 'grid', '6-6'],
+            'promise strip' => ['usp-bar', 'strip', '6-6'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('wideVariants')]
+    public function test_a_variant_too_wide_for_its_column_moves_out(string $type, string $variant, string $split): void
+    {
+        $this->fakePhoto();
+        $home = $this->homeWithNarrow($type, $variant);
+        $adjusted = $this->saveWithRows('home', $home, 0)->assertOk()->json('data.adjusted');
+
+        $moved = array_values(array_filter($adjusted, fn ($a) => $a['reason'] === 'too-wide'));
+        $this->assertCount(1, $moved);
+        $this->assertSame('content.sections.narrow-1', $moved[0]['path']);
+
+        // Published as it stands, the section is drawn in a row of its own, outside the column.
+        $this->publishedDocument('home', $home);
+        $html = $this->page('/')->getContent();
+        $this->assertStringNotContainsString('narrow-1', $this->cut($html, 'row-tiles'));
+        $this->assertStringContainsString('<!--xelga:narrow-1-->', $html);
+
+        // In the wide column of a split that has one, the same variant stays.
+        $wide = $this->homeWithRow($split, [['narrow-1'], ['tile-b']]);
+        $wide['sections']['narrow-1'] = $this->narrowSection($type, $variant);
+        $adjusted = $this->saveWithRows('home', $wide, 1)->assertOk()->json('data.adjusted');
+        $this->assertSame([], array_values(array_filter($adjusted, fn ($a) => $a['reason'] === 'too-wide')));
     }
 
     public function test_a_plain_row_draws_no_wrapper(): void

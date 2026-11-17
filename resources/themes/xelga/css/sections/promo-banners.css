@@ -2,6 +2,13 @@
    15. Promo banners (overlay, stacked, mosaic)
    ========================================================================== */
 
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-promos {
+  container-type: inline-size;
+}
+
 .promos {
   --promo-h: 360px;
   display: grid;
@@ -56,7 +63,7 @@
   align-self: end;
   gap: .625rem;
   max-width: 32rem;
-  padding: clamp(1.25rem, 1rem + 1.5vw, 2.25rem);
+  padding: clamp(1.25rem, 1rem + 1.5cqi, 2.25rem);
   color: var(--c-on-image);
 }
 
@@ -127,7 +134,7 @@
 }
 
 /* Mosaic: first banner large, the others stacked beside it */
-@media (min-width: 990px) {
+@container (min-width: 990px) {
   .s-promos[data-variant="mosaic"] .promos {
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     grid-auto-rows: minmax(calc(var(--promo-h) * .6), auto);
@@ -149,7 +156,7 @@
 
 /* Phones: shorter banners, so two or three stacked do not each fill the
    screen; the text keeps the room it needs. */
-@media (max-width: 749px) {
+@container (max-width: 749px) {
   .promos { --promo-h: 300px; }
   .s[data-height="small"] .promos { --promo-h: 220px; }
   .s[data-height="large"] .promos { --promo-h: 380px; }

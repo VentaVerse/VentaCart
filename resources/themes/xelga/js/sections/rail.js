@@ -35,13 +35,27 @@ function copyOf(item) {
   return copy;
 }
 
+/**
+ * Whether the section is wide enough for its columns. A section that
+ * answers to its own width (it is a size container) is measured, so it
+ * agrees with its styles in a column; the others follow the window.
+ */
+function isWide(section) {
+  if (getComputedStyle(section).containerType === 'inline-size') {
+    const style = getComputedStyle(section);
+    const room = section.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    return room >= 750;
+  }
+  return window.matchMedia('(min-width: 750px)').matches;
+}
+
 /** Grid variant only: show columns x rows products, hide the rest. */
 function applyRowLimit(section) {
   const track = $('.product-grid', section);
   if (!track) return;
   const cols = Number(getComputedStyle(section).getPropertyValue('--cols')) || 4;
   const rows = Number(section.dataset.rows) || 0;
-  const wide = window.matchMedia('(min-width: 750px)').matches;
+  const wide = isWide(section);
   const perRow = wide ? cols : (section.dataset.mobileCols === '1' ? 1 : 2);
   const limit = section.dataset.variant === 'grid' && rows > 0 ? perRow * rows : Infinity;
   Array.from(track.children).forEach((item, i) => item.classList.toggle('is-over-limit', i >= limit));
@@ -217,6 +231,7 @@ export function initRail(section) {
     settle();
   });
   observer.observe(track);
+  observer.observe(section);
   update();
 
   return () => {

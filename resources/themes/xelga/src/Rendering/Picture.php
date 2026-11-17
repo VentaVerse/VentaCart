@@ -108,6 +108,17 @@ final class Picture
     }
 
     /**
+     * The sizes of a photo that takes part of its section: $fullWidth (a
+     * width written for a section the whole page wide) on a full-width
+     * row, and the column's own share when the section sits in a column,
+     * where the photo can be as wide as the column.
+     */
+    public static function columnSizes(int $span, string $fullWidth): string
+    {
+        return $span >= 12 ? $fullWidth : self::spanSizes($span);
+    }
+
+    /**
      * The width a shared product card's photo is drawn at: the card grid's
      * share of the page (at most PAGE_WIDTH wide) for its columns, inside a
      * section $span twelfths wide.

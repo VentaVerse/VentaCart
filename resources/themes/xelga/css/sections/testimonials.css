@@ -2,6 +2,13 @@
    18. Testimonials (grid, carousel, large)
    ========================================================================== */
 
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-quotes {
+  container-type: inline-size;
+}
+
 .quotes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
@@ -11,9 +18,35 @@
   list-style: none;
 }
 
-@media (min-width: 990px) {
+@container (min-width: 990px) {
   .s-quotes[data-variant="grid"] .quotes {
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+  }
+}
+
+/*
+ * The carousel's card widths follow the section's width, not the window's:
+ * the shared rail rules answer to the window, which a section in a column
+ * is narrower than.
+ */
+@container (max-width: 749px) {
+  .s-quotes[data-variant="carousel"] .rail-track {
+    grid-auto-columns: 46%;
+  }
+  .s-quotes[data-variant="carousel"][data-mobile-cols="1"] .rail-track {
+    grid-auto-columns: 80%;
+  }
+}
+
+@container (min-width: 750px) and (max-width: 989px) {
+  .s-quotes[data-variant="carousel"] .rail-track {
+    grid-auto-columns: calc((100% - 2 * var(--grid-gap)) / 3);
+  }
+}
+
+@container (min-width: 990px) {
+  .s-quotes[data-variant="carousel"] .rail-track {
+    grid-auto-columns: calc((100% - (var(--cols, 4) - 1) * var(--grid-gap)) / var(--cols, 4));
   }
 }
 
@@ -21,7 +54,7 @@
   display: grid;
   align-content: space-between;
   gap: 1.5rem;
-  padding: clamp(1.25rem, 1rem + 1vw, 2rem);
+  padding: clamp(1.25rem, 1rem + 1cqi, 2rem);
   background: var(--c-card);
   border-radius: var(--radius-card);
 }
@@ -61,7 +94,7 @@
 
 .s-quotes[data-variant="large"] .quote {
   justify-items: center;
-  padding: clamp(1.5rem, 4vw, 4rem) clamp(1rem, 8vw, 8rem);
+  padding: clamp(1.5rem, 4cqi, 4rem) clamp(1rem, 8cqi, 8rem);
   text-align: center;
   background: transparent;
 }
