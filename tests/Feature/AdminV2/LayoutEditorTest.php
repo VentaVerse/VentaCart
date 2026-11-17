@@ -18,7 +18,7 @@ use Tests\TestCase;
  */
 class LayoutEditorTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     protected function setUp(): void
     {

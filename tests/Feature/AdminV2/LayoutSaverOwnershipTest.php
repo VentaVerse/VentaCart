@@ -16,7 +16,7 @@ use Tests\TestCase;
  */
 class LayoutSaverOwnershipTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     private function placement(array $attributes): LayoutPlacement
     {

@@ -52,26 +52,27 @@ class ThemePackagesTest extends TestCase
         $this->assertTrue(collect($problems)->contains(fn ($p) => str_starts_with($p, 'theme.json regions is missing ')));
     }
 
-    public function test_themes_are_discovered_as_packages_and_the_default_is_installed(): void
+    public function test_themes_are_discovered_as_packages_and_the_bundled_one_is_installed(): void
     {
         $this->makeSampleTheme();
+        $bundled = ThemeService::bundled();
         $discovered = app(ExtensionManager::class)->discovered();
-        $this->assertSame('theme', $discovered->get('theme-default')['type']);
-        $this->assertSame('theme', $discovered->get('theme-sample')['type']);
-        $this->assertTrue($discovered->get('theme-default')['default_enabled']);
-        $this->assertFalse($discovered->get('theme-sample')['default_enabled']);
+        $this->assertSame('theme', $discovered->get('theme-'.$bundled)['type']);
+        $this->assertSame('theme', $discovered->get('theme-'.$this->sampleTheme)['type']);
+        $this->assertTrue($discovered->get('theme-'.$bundled)['default_enabled']);
+        $this->assertFalse($discovered->get('theme-'.$this->sampleTheme)['default_enabled']);
 
         $themes = app(ThemeService::class)->getAvailableThemes();
-        $this->assertTrue($themes['default']['installed']);
-        $this->assertFalse($themes['sample']['installed']);
-        $this->assertArrayNotHasKey('sample', app(ThemeService::class)->getInstalledThemes());
+        $this->assertTrue($themes[$bundled]['installed']);
+        $this->assertFalse($themes[$this->sampleTheme]['installed']);
+        $this->assertArrayNotHasKey($this->sampleTheme, app(ThemeService::class)->getInstalledThemes());
     }
 
     public function test_a_theme_that_is_not_installed_cannot_be_made_live(): void
     {
         $this->makeSampleTheme();
         $this->expectException(\InvalidArgumentException::class);
-        app(ThemeService::class)->activateTheme('sample');
+        app(ThemeService::class)->activateTheme($this->sampleTheme);
     }
 
     public function test_the_themes_page_installs_and_uninstalls_a_package(): void
@@ -81,18 +82,18 @@ class ThemePackagesTest extends TestCase
 
         $this->get(route('admin.theme.index'))->assertOk()->assertSee('Not installed')->assertSee('Install');
 
-        $this->post(route('admin.theme.package.install'), ['theme' => 'sample'])->assertRedirect()->assertSessionHas('success');
-        $this->assertTrue(Extension::where('name', 'theme-sample')->exists());
+        $this->post(route('admin.theme.package.install'), ['theme' => $this->sampleTheme])->assertRedirect()->assertSessionHas('success');
+        $this->assertTrue(Extension::where('name', 'theme-'.$this->sampleTheme)->exists());
         $this->get(route('admin.theme.index'))->assertOk()->assertSee('Use this theme');
 
-        $this->post(route('admin.theme.package.uninstall'), ['theme' => 'sample'])->assertRedirect()->assertSessionHas('success');
-        $this->assertFalse(Extension::where('name', 'theme-sample')->exists());
+        $this->post(route('admin.theme.package.uninstall'), ['theme' => $this->sampleTheme])->assertRedirect()->assertSessionHas('success');
+        $this->assertFalse(Extension::where('name', 'theme-'.$this->sampleTheme)->exists());
     }
 
     public function test_uninstalling_a_theme_takes_its_own_extensions_and_their_data_with_it(): void
     {
         $this->makeSampleTheme();
-        $ext = resource_path('themes/sample/extensions/notes');
+        $ext = resource_path('themes/'.$this->sampleTheme.'/extensions/notes');
         File::ensureDirectoryExists($ext.'/database/migrations');
         File::put($ext.'/extension.json', json_encode(['name' => 'sample-notes', 'title' => 'Sample Notes', 'version' => '1.0.0', 'type' => 'feature']));
         File::put($ext.'/database/migrations/2026_01_01_000000_create_sample_notes.php', <<<'PHP'
@@ -107,14 +108,14 @@ class ThemePackagesTest extends TestCase
             PHP);
         $this->admin();
 
-        $this->post(route('admin.theme.package.install'), ['theme' => 'sample'])->assertSessionHas('success');
+        $this->post(route('admin.theme.package.install'), ['theme' => $this->sampleTheme])->assertSessionHas('success');
         app(ExtensionManager::class)->forgetRegistry();
         app(ExtensionManager::class)->install('sample-notes');
         $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('sample_notes'));
 
-        $this->post(route('admin.theme.package.uninstall'), ['theme' => 'sample'])->assertRedirect()->assertSessionHas('success');
+        $this->post(route('admin.theme.package.uninstall'), ['theme' => $this->sampleTheme])->assertRedirect()->assertSessionHas('success');
 
-        $this->assertFalse(Extension::where('name', 'theme-sample')->exists());
+        $this->assertFalse(Extension::where('name', 'theme-'.$this->sampleTheme)->exists());
         $this->assertFalse(Extension::where('name', 'sample-notes')->exists(), 'The theme\'s own extension goes with it.');
         $this->assertFalse(\Illuminate\Support\Facades\Schema::hasTable('sample_notes'), 'And so does its data.');
     }
@@ -124,7 +125,7 @@ class ThemePackagesTest extends TestCase
         $this->admin();
         $this->get('/')->assertOk();
 
-        $this->post(route('admin.theme.package.uninstall'), ['theme' => 'default'])->assertRedirect()->assertSessionHas('warning');
+        $this->post(route('admin.theme.package.uninstall'), ['theme' => ThemeService::bundled()])->assertRedirect()->assertSessionHas('warning');
 
         $this->get('/')->assertStatus(503)->assertSee('No theme installed');
         $this->get(route('admin.theme.index'))->assertOk()->assertSee('Install');
@@ -132,15 +133,16 @@ class ThemePackagesTest extends TestCase
         // A callback has nothing to do with how pages look: posts pass the gate.
         $this->post('/cart/add', [])->assertStatus(302);
 
-        $this->post(route('admin.theme.package.install'), ['theme' => 'default'])->assertRedirect()->assertSessionHas('success');
+        $this->post(route('admin.theme.package.install'), ['theme' => ThemeService::bundled()])->assertRedirect()->assertSessionHas('success');
         $this->get('/')->assertOk();
     }
 
     public function test_the_registry_row_carries_the_package_version(): void
     {
-        // The default theme ships inside core, so it is recorded at core's version.
-        $row = Extension::where('name', 'theme-default')->first();
-        $this->assertSame((string) config('app.version'), $row->version);
-        $this->assertSame('enabled', app(ExtensionManager::class)->state('theme-default'));
+        $name = ThemeService::registryName(ThemeService::bundled());
+        $manifest = json_decode((string) file_get_contents(ThemeService::root(ThemeService::bundled() . '/theme.json')), true);
+        $row = Extension::where('name', $name)->first();
+        $this->assertSame($manifest['version'], $row->version);
+        $this->assertSame('enabled', app(ExtensionManager::class)->state($name));
     }
 }

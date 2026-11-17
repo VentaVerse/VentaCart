@@ -17,7 +17,7 @@ use Tests\TestCase;
  */
 class LayoutTemplatesTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     private array $rows;
 

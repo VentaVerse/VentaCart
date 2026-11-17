@@ -18,7 +18,7 @@ use Tests\TestCase;
  */
 class LayoutColumnsTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     private function rail(string $pageType, string $region = 'column_left'): void
     {

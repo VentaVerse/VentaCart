@@ -77,3 +77,7 @@ countries-states-cities-database-3.1-export.2/
 # test fixtures a theme-extension test writes and removes
 resources/themes/*/extensions/zz-test-*
 /public/packages
+
+# The sample theme is linked here while tests run.
+/resources/themes/sample
+/resources/themes/sample-two

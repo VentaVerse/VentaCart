@@ -23,8 +23,8 @@ class SystemRegionsTest extends TestCase
         $this->makeSampleTheme();
 
         $this->assertSame([], Regions::defaults('header', 'default'));
-        $this->assertSame([['widget' => 'system.header', 'title' => null, 'config' => []]], Regions::defaults('header', 'sample'));
-        $this->assertSame('*', Regions::page('header', 'sample'));
+        $this->assertSame([['widget' => 'system.header', 'title' => null, 'config' => []]], Regions::defaults('header', $this->sampleTheme));
+        $this->assertSame('*', Regions::page('header', $this->sampleTheme));
     }
 
     public function test_header_pieces_are_offered_only_in_a_header_region(): void
@@ -77,7 +77,7 @@ class SystemRegionsTest extends TestCase
     {
         $this->makeSampleTheme();
 
-        $rows = Regions::defaultRows('product_main', 'sample');
+        $rows = Regions::defaultRows('product_main', $this->sampleTheme);
         $this->assertCount(2, $rows);
         $this->assertSame([4, 4], $rows[0]['columns']);
         $this->assertSame(['system.product_images'], array_column($rows[0]['cols'][0], 'widget'));
@@ -88,21 +88,21 @@ class SystemRegionsTest extends TestCase
         // The flat list is every piece in order, as it always was.
         $this->assertSame(
             ['system.product_images', 'system.product_name', 'system.product_price', 'system.product_add_to_cart', 'system.product_tabs'],
-            array_column(Regions::defaults('product_main', 'sample'), 'widget')
+            array_column(Regions::defaults('product_main', $this->sampleTheme), 'widget')
         );
-        $this->assertSame([], \App\Support\ThemeContract::check(resource_path('themes/sample')), 'Every piece its regions take has a view.');
+        $this->assertSame([], \App\Support\ThemeContract::check(resource_path('themes/'.$this->sampleTheme)), 'Every piece its regions take has a view.');
     }
 
     public function test_a_shipped_row_whose_columns_do_not_add_up_is_reported_and_drawn_as_one_column(): void
     {
         $this->makeSampleTheme();
-        $path = resource_path('themes/sample/theme.json');
+        $path = resource_path('themes/'.$this->sampleTheme.'/theme.json');
         $manifest = json_decode((string) file_get_contents($path), true);
         $manifest['regions']['product_main']['defaults'] = [['columns' => [4, 3], 'cols' => [['system.product_images'], ['system.product_price']]]];
         file_put_contents($path, json_encode($manifest));
 
-        $this->assertStringContainsString('do not add up', implode(' ', \App\Support\ThemeContract::check(resource_path('themes/sample'))));
-        $rows = Regions::defaultRows('product_main', 'sample');
+        $this->assertStringContainsString('do not add up', implode(' ', \App\Support\ThemeContract::check(resource_path('themes/'.$this->sampleTheme))));
+        $rows = Regions::defaultRows('product_main', $this->sampleTheme);
         $this->assertSame([8], $rows[0]['columns']);
         $this->assertSame(['system.product_images', 'system.product_price'], array_column($rows[0]['cols'][0], 'widget'));
     }
@@ -111,7 +111,7 @@ class SystemRegionsTest extends TestCase
     {
         $this->installSampleTheme(activate: true);
         // The theme's views join the finder per request; this renders outside one.
-        view()->getFinder()->prependLocation(resource_path('themes/sample/views'));
+        view()->getFinder()->prependLocation(resource_path('themes/'.$this->sampleTheme.'/views'));
 
         $html = \Illuminate\Support\Facades\Blade::render('<x-storefront.region name="product_main" />');
 
@@ -138,7 +138,7 @@ class SystemRegionsTest extends TestCase
         $one = (array) \App\Support\LayoutInventory::units("category:{$category->id}");
         $this->assertSame(['system.category_subcategories', 'system.category_products'], array_column($one['category_main'][0]['cols'][0], 'widget'));
 
-        \App\Models\LayoutPlacement::create(['theme' => 'sample', 'page_type' => 'category', 'region' => 'category_main', 'widget' => 'system.category_products', 'sort_order' => 0, 'is_enabled' => true]);
+        \App\Models\LayoutPlacement::create(['theme' => $this->sampleTheme, 'page_type' => 'category', 'region' => 'category_main', 'widget' => 'system.category_products', 'sort_order' => 0, 'is_enabled' => true]);
         $this->assertArrayNotHasKey('category_main', (array) \App\Support\LayoutInventory::units("category:{$category->id}"));
     }
 

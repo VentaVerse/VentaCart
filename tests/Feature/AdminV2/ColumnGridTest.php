@@ -134,7 +134,7 @@ class ColumnGridTest extends TestCase
     public function test_a_twelve_part_grid_with_fill_and_auto(): void
     {
         $this->installSampleTheme(activate: true, manifest: $this->manifest(self::TWELVE, [6, 6]));
-        $grid = ColumnGrid::forTheme('sample');
+        $grid = ColumnGrid::forTheme($this->sampleTheme);
 
         $this->assertFalse($grid->isDefault());
         $this->assertSame([6, 6], $grid->normalizeColumns([6, 6]));
@@ -147,7 +147,7 @@ class ColumnGridTest extends TestCase
 
         app(LayoutSaver::class)->save('home', ['rows' => $this->rows([6, 'fill', 'auto'], ['tablet' => [12, 'auto', 'fill'], 'phone' => [6, null, 'bogus']])]);
 
-        $row = LayoutRow::where('theme', 'sample')->firstOrFail();
+        $row = LayoutRow::where('theme', $this->sampleTheme)->firstOrFail();
         $this->assertSame([6, 'fill', 'auto'], $row->columns);
         $this->assertSame([12, 'auto', 'fill'], $row->responsive['tablet']);
         $this->assertSame([6, null, null], $row->responsive['phone']);
@@ -162,7 +162,7 @@ class ColumnGridTest extends TestCase
     public function test_a_percent_grid_wraps_and_keeps_true_thirds(): void
     {
         $this->installSampleTheme(activate: true, manifest: $this->manifest(self::PERCENT, [50, 50]));
-        $grid = ColumnGrid::forTheme('sample');
+        $grid = ColumnGrid::forTheme($this->sampleTheme);
 
         $this->assertSame([66, 33], $grid->normalizeColumns([66, 33]));
         $this->assertSame([50, 50, 50], $grid->normalizeColumns([50, 50, 50]), 'Past one hundred, columns wrap.');
@@ -184,14 +184,14 @@ class ColumnGridTest extends TestCase
     public function test_a_grid_registered_from_a_provider_wins_and_can_be_passed_explicitly(): void
     {
         $this->installSampleTheme(activate: true, manifest: $this->manifest(self::PERCENT, [50, 50]));
-        ColumnGrid::register('sample', ColumnGrid::make(self::TWELVE));
+        ColumnGrid::register($this->sampleTheme, ColumnGrid::make(self::TWELVE));
 
-        $this->assertSame(12, ColumnGrid::forTheme('sample')->units);
+        $this->assertSame(12, ColumnGrid::forTheme($this->sampleTheme)->units);
 
         // A theme with its own editor can name the grid it saves on.
         $result = app(LayoutSaver::class)->save('home', ['rows' => $this->rows([4, 4, 4])], false, ColumnGrid::make(self::TWELVE));
         $this->assertCount(3, $result['kept']);
-        $this->assertSame([4, 4, 4], LayoutRow::where('theme', 'sample')->firstOrFail()->columns);
+        $this->assertSame([4, 4, 4], LayoutRow::where('theme', $this->sampleTheme)->firstOrFail()->columns);
         $this->assertSame([8], ColumnGrid::default()->normalizeColumns([4, 4, 4]));
     }
 
@@ -200,13 +200,13 @@ class ColumnGridTest extends TestCase
         $this->makeSampleTheme(array_replace_recursive($this->manifest(self::TWELVE, [6, 6]), ['regions' => ['content_top' => ['label' => 'Top', 'defaults' => [
             ['columns' => [6, 'fill'], 'cols' => [['test.marker'], ['test.marker']]],
         ]]]]));
-        $problems = \App\Support\ThemeContract::check(resource_path('themes/sample'));
+        $problems = \App\Support\ThemeContract::check(resource_path('themes/'.$this->sampleTheme));
         $this->assertSame([], array_values(array_filter($problems, fn ($p) => str_contains($p, 'default row'))));
 
         $this->makeSampleTheme(['regions' => ['content_top' => ['label' => 'Top', 'defaults' => [
             ['columns' => [6, 'fill'], 'cols' => [['test.marker'], ['test.marker']]],
         ]]]]);
-        $problems = \App\Support\ThemeContract::check(resource_path('themes/sample'));
+        $problems = \App\Support\ThemeContract::check(resource_path('themes/'.$this->sampleTheme));
         $this->assertNotEmpty(array_filter($problems, fn ($p) => str_contains($p, 'default row')));
     }
 }

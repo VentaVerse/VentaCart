@@ -48,15 +48,15 @@ class ProductAttributesPieceTest extends TestCase
     {
         $this->makeSampleTheme();
 
-        $this->assertFileDoesNotExist(resource_path('themes/sample/views/widgets/system/product_attributes.blade.php'));
-        $this->assertSame([], ThemeContract::check(resource_path('themes/sample')));
+        $this->assertFileDoesNotExist(resource_path('themes/'.$this->sampleTheme.'/views/widgets/system/product_attributes.blade.php'));
+        $this->assertSame([], ThemeContract::check(resource_path('themes/'.$this->sampleTheme)));
     }
 
     public function test_core_draws_the_attribute_groups_when_the_theme_does_not(): void
     {
         $this->installSampleTheme(activate: true);
         $product = $this->productWithAttributes();
-        LayoutPlacement::create(['theme' => 'sample', 'page_type' => 'product', 'region' => 'product_main', 'widget' => 'system.product_attributes', 'sort_order' => 0, 'is_enabled' => true]);
+        LayoutPlacement::create(['theme' => $this->sampleTheme, 'page_type' => 'product', 'region' => 'product_main', 'widget' => 'system.product_attributes', 'sort_order' => 0, 'is_enabled' => true]);
 
         $this->get(route('product.show', $product->slug))
             ->assertOk()

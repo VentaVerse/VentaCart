@@ -21,7 +21,7 @@ use Tests\TestCase;
  */
 class BannerInputTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     private BannerGroup $group;
 

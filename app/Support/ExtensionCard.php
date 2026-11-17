@@ -49,10 +49,7 @@ class ExtensionCard
             'title' => $manifest['title'] ?? $name,
             'description' => $manifest['description'] ?? '',
             'icon' => $manifest['icon'] ?? 'categories',
-            // The bundled theme ships inside core and shows no version of its own.
-            'version' => ($manifest['theme'] ?? null) === \App\Services\ThemeService::bundled()
-                ? null
-                : ($registryRow->version ?? ($manifest['version'] ?? null)),
+            'version' => $registryRow->version ?? ($manifest['version'] ?? null),
             // The version on disk, when it is newer than the installed one.
             'update_to' => $state === 'needs_migration' ? ($manifest['version'] ?? null) : null,
             'state' => $state,

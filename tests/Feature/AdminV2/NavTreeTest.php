@@ -20,7 +20,7 @@ use Tests\TestCase;
  */
 class NavTreeTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     private NavMenu $main;
 

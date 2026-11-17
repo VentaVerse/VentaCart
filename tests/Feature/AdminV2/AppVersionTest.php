@@ -4,6 +4,7 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\User;
 use App\Services\ExtensionManager;
+use App\Services\ThemeService;
 use App\Support\ThemeContract;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
@@ -11,9 +12,9 @@ use Tests\Support\UsesSampleTheme;
 use Tests\TestCase;
 
 /**
- * Core carries one version, shown under the admin navigation. The default
- * theme ships inside core, so it has no version of its own; a theme sold
- * separately still must declare one.
+ * Core carries one version, shown under the admin navigation. Every theme
+ * declares a version of its own, the one that ships with core included,
+ * because a theme is released and updated on its own.
  */
 class AppVersionTest extends TestCase
 {
@@ -34,14 +35,16 @@ class AppVersionTest extends TestCase
             ->assertSee('VentaCart v' . config('app.version'));
     }
 
-    public function test_the_default_theme_takes_cores_version(): void
+    /** A theme is released on its own, the bundled one included, so it carries its own number. */
+    public function test_the_bundled_theme_carries_its_own_version(): void
     {
-        $this->assertArrayNotHasKey('version', json_decode(File::get(resource_path('themes/default/theme.json')), true));
-        $this->assertSame([], ThemeContract::check(resource_path('themes/default')));
-        $this->assertSame(config('app.version'), app(ExtensionManager::class)->discovered()->get('theme-default')['version']);
+        $bundled = ThemeService::bundled();
+        $manifest = json_decode(File::get(ThemeService::root($bundled . '/theme.json')), true);
+
+        $this->assertSame($manifest['version'], app(ExtensionManager::class)->discovered()->get(ThemeService::registryName($bundled))['version']);
     }
 
-    public function test_a_separate_theme_still_needs_a_version(): void
+    public function test_a_theme_without_a_version_is_refused(): void
     {
         $dir = storage_path('framework/testing/theme-unversioned');
         File::deleteDirectory($dir);
@@ -52,19 +55,5 @@ class AppVersionTest extends TestCase
         File::deleteDirectory($dir);
 
         $this->assertContains('theme.json needs a version.', $problems);
-    }
-
-    public function test_the_extensions_page_shows_no_version_for_the_default_theme(): void
-    {
-        // A store installed before the default theme dropped its own number
-        // still has it stored; the card must not show it.
-        app(ExtensionManager::class)->install('theme-default');
-        \App\Models\Extension::where('name', 'theme-default')->update(['version' => '2.0']);
-        $this->actingAs(User::factory()->create());
-
-        $this->get(route('admin.extensions.index'))
-            ->assertOk()
-            ->assertSee('Default')
-            ->assertDontSee(' v2.0', false);
     }
 }

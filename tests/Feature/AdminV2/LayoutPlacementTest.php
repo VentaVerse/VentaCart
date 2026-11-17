@@ -19,7 +19,7 @@ use Tests\TestCase;
  */
 class LayoutPlacementTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     protected function setUp(): void
     {

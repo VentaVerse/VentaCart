@@ -44,7 +44,7 @@ class ThemeUpdateTest extends TestCase
         $this->installSampleTheme(activate: true);
         $this->bumpSampleVersion('9.9.9');
 
-        $this->assertSame('needs_migration', app(ExtensionManager::class)->state('theme-sample'));
+        $this->assertSame('needs_migration', app(ExtensionManager::class)->state('theme-'.$this->sampleTheme));
         $this->assertTrue(app(ThemeService::class)->hasActiveTheme());
 
         $this->get('/')->assertOk()->assertDontSee('No theme installed');
@@ -62,13 +62,13 @@ class ThemeUpdateTest extends TestCase
             ->assertSee('The storefront keeps running the installed theme until you update.');
         $this->get(route('admin.extensions.index'))->assertOk()->assertSee('Update available: v9.9.9');
 
-        $this->post(route('admin.theme.package.install'), ['theme' => 'sample'])
+        $this->post(route('admin.theme.package.install'), ['theme' => $this->sampleTheme])
             ->assertRedirect()
-            ->assertSessionHas('success', 'Sample is updated to version 9.9.9.');
+            ->assertSessionHas('success', 'Sample Two is updated to version 9.9.9.');
 
-        $this->assertSame('9.9.9', Extension::where('name', 'theme-sample')->value('version'));
-        $this->assertSame('enabled', app(ExtensionManager::class)->state('theme-sample'));
-        $this->assertFalse(app(ThemeService::class)->getAvailableThemes()['sample']['update_available']);
+        $this->assertSame('9.9.9', Extension::where('name', 'theme-'.$this->sampleTheme)->value('version'));
+        $this->assertSame('enabled', app(ExtensionManager::class)->state('theme-'.$this->sampleTheme));
+        $this->assertFalse(app(ThemeService::class)->getAvailableThemes()[$this->sampleTheme]['update_available']);
         $this->get(route('admin.theme.index'))->assertOk()->assertDontSee('Update available');
         $this->get('/')->assertOk();
     }
@@ -105,7 +105,7 @@ class ThemeUpdateTest extends TestCase
         $this->bumpSampleVersion('9.9.9');
         $this->admin();
 
-        $this->post(route('admin.theme.package.install'), ['theme' => 'sample'])->assertSessionHas('success');
+        $this->post(route('admin.theme.package.install'), ['theme' => $this->sampleTheme])->assertSessionHas('success');
 
         $this->assertTrue(Schema::hasTable('sample_theme_notes'));
     }
@@ -113,12 +113,12 @@ class ThemeUpdateTest extends TestCase
     public function test_updating_keeps_a_switched_off_package_switched_off(): void
     {
         $this->installSampleTheme();
-        app(ExtensionManager::class)->disable('theme-sample');
+        app(ExtensionManager::class)->disable('theme-'.$this->sampleTheme);
         $this->bumpSampleVersion('9.9.9');
 
-        app(ExtensionManager::class)->install('theme-sample');
+        app(ExtensionManager::class)->install('theme-'.$this->sampleTheme);
 
-        $row = Extension::where('name', 'theme-sample')->first();
+        $row = Extension::where('name', 'theme-'.$this->sampleTheme)->first();
         $this->assertSame('9.9.9', $row->version);
         $this->assertFalse((bool) $row->enabled);
     }
@@ -137,7 +137,7 @@ class ThemeUpdateTest extends TestCase
         $this->get(route('admin.theme.index'))->assertOk()
             ->assertSee('Update available')
             ->assertSee('do not keep the theme contract');
-        $this->post(route('admin.theme.package.install'), ['theme' => 'sample'])
+        $this->post(route('admin.theme.package.install'), ['theme' => $this->sampleTheme])
             ->assertSessionHas('error', fn ($message) => str_contains($message, 'View [home] is missing.'));
     }
 }

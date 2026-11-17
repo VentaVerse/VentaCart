@@ -9,32 +9,33 @@ use Illuminate\Support\Facades\File;
 /**
  * A second theme for tests of the theme platform itself.
  *
- * Core ships one theme, but much of the platform only matters once there
- * are two: installing a package, a theme that brings its own editor, a
- * theme that declares system regions. This builds "sample" for the length
- * of a test: the default theme's manifest, styles and views, plus an editor
- * of its own, system regions and placeholder views for the system pieces.
- * It is assembled from the default theme each time, so it never drifts
- * from it, and removed when the test ends.
+ * Every test runs on the sample theme (tests/fixtures/themes/sample), but
+ * much of the platform only matters once there are two: installing a
+ * package, a theme that brings its own editor, a theme that declares
+ * system regions. This builds "sample-two" for the length of a test: a copy
+ * of the sample, plus an editor of its own, system regions and placeholder
+ * views for the system pieces. It is a copy, so a test may change its files
+ * without touching the fixture, and it is removed when the test ends.
  */
 trait UsesSampleTheme
 {
-    protected string $sampleTheme = 'sample';
+    protected string $sampleTheme = 'sample-two';
 
-    /** @param  array<string, mixed>  $overrides  keys laid over the sample's theme.json */
+    /** @param  array<string, mixed>  $overrides  keys laid over the copy's theme.json */
     protected function makeSampleTheme(array $overrides = []): void
     {
-        $default = resource_path('themes/'.ThemeService::bundled());
+        $source = base_path('tests/fixtures/themes/sample');
         $build = storage_path('framework/testing/themes/'.$this->sampleTheme);
         $link = resource_path('themes/'.$this->sampleTheme);
 
         File::deleteDirectory($build);
+        File::copyDirectory($source, $build);
+        // The copy draws its own system pieces, below.
+        File::deleteDirectory($build.'/views/widgets/system');
         File::ensureDirectoryExists($build.'/views/widgets/system');
 
-        $manifest = json_decode((string) file_get_contents($default.'/theme.json'), true);
-        $manifest['name'] = 'Sample';
-        // A theme installed beside core declares its own version; only the
-        // default theme, which ships inside core, goes without one.
+        $manifest = json_decode((string) file_get_contents($build.'/theme.json'), true);
+        $manifest['name'] = 'Sample Two';
         $manifest['version'] = '1.0.0';
         $manifest['editor'] = 'admin.dashboard';
         $manifest['regions']['header'] = ['label' => 'Header', 'system' => true, 'page' => '*', 'defaults' => ['system.header']];
@@ -48,25 +49,8 @@ trait UsesSampleTheme
         $manifest = array_replace_recursive($manifest, $overrides);
         file_put_contents($build.'/theme.json', json_encode($manifest, JSON_PRETTY_PRINT));
 
-        foreach (['css', 'js'] as $dir) {
-            symlink($default.'/'.$dir, $build.'/'.$dir);
-        }
-        foreach (File::directories($default.'/views') as $dir) {
-            if (basename($dir) !== 'widgets') {
-                symlink($dir, $build.'/views/'.basename($dir));
-            }
-        }
-        foreach (File::files($default.'/views') as $file) {
-            symlink($file->getPathname(), $build.'/views/'.$file->getFilename());
-        }
-        foreach (File::directories($default.'/views/widgets') as $dir) {
-            // The sample draws its own system pieces, below.
-            if (basename($dir) !== 'system') {
-                symlink($dir, $build.'/views/widgets/'.basename($dir));
-            }
-        }
         // A placeholder for every system piece its regions take, so the
-        // sample passes the contract however many pieces core registers.
+        // copy passes the contract however many pieces core registers.
         // Pieces core draws itself are left to core.
         foreach (\App\Support\Widgets::all() as $key => $spec) {
             if (! empty($spec['system']) && empty($spec['theme']) && empty($spec['optional']) && str_starts_with($key, 'system.')

@@ -18,7 +18,7 @@ use Tests\TestCase;
  */
 class ContentBlocksTest extends TestCase
 {
-    use RefreshDatabase, UsesSampleTheme;
+    use RefreshDatabase, UsesSampleTheme, \Tests\Support\RunsOnTheDefaultTheme;
 
     protected function setUp(): void
     {
@@ -196,7 +196,7 @@ class ContentBlocksTest extends TestCase
         // draw them; a theme that does is.
         $this->assertSame([], \App\Support\ThemeContract::check(resource_path('themes/default')));
         $this->makeSampleTheme();
-        @unlink(resource_path('themes/sample/views/widgets/system/welcome_text.blade.php'));
-        $this->assertContains('View [widgets.system.welcome_text] is missing.', \App\Support\ThemeContract::check(resource_path('themes/sample')));
+        @unlink(resource_path('themes/'.$this->sampleTheme.'/views/widgets/system/welcome_text.blade.php'));
+        $this->assertContains('View [widgets.system.welcome_text] is missing.', \App\Support\ThemeContract::check(resource_path('themes/'.$this->sampleTheme)));
     }
 }

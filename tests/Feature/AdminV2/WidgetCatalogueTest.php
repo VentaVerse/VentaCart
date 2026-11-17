@@ -20,7 +20,7 @@ use Tests\TestCase;
  */
 class WidgetCatalogueTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     /**
      * Product listings read the reviews relation the reviews extension adds

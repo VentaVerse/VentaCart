@@ -17,9 +17,9 @@ use Tests\TestCase;
  */
 class LayoutEditThemeTest extends TestCase
 {
-    use RefreshDatabase, UsesSampleTheme;
+    use RefreshDatabase, UsesSampleTheme, \Tests\Support\RunsOnTheDefaultTheme;
 
-    private function boot(string $activate = 'sample'): void
+    private function boot(?string $activate = null): void
     {
         $m = app(ExtensionManager::class);
         foreach (['theme', 'banners'] as $name) {
@@ -27,7 +27,7 @@ class LayoutEditThemeTest extends TestCase
         }
         $this->installSampleTheme();
         app(ExtensionManager::class)->bootEnabled();
-        app(ThemeService::class)->activateTheme($activate);
+        app(ThemeService::class)->activateTheme($activate ?? $this->sampleTheme);
         app(ThemeService::class)->clearCache();
         $this->withoutVite();
         $this->actingAs(User::factory()->create());
@@ -44,7 +44,7 @@ class LayoutEditThemeTest extends TestCase
 
     public function test_the_core_layout_editor_edits_the_themes_that_ride_it(): void
     {
-        $this->boot('sample');
+        $this->boot($this->sampleTheme);
 
         // Sample brings its own editor, so with Sample live the core editor
         // opens on the first theme that rides it: the default theme.
@@ -56,7 +56,7 @@ class LayoutEditThemeTest extends TestCase
             ->assertRedirect()->assertSessionHas('success');
 
         $this->assertSame(1, LayoutPlacement::where('theme', 'default')->where('widget', 'content.text')->count());
-        $this->assertSame(0, LayoutPlacement::where('theme', 'sample')->where('widget', 'content.text')->count());
+        $this->assertSame(0, LayoutPlacement::where('theme', $this->sampleTheme)->where('widget', 'content.text')->count());
 
         // Sample's storefront does not wear it; Venta's does once it is live.
         $this->assertStringNotContainsString('DEFAULT-OWN-ROW', $this->get('/')->assertOk()->getContent());
@@ -71,15 +71,15 @@ class LayoutEditThemeTest extends TestCase
 
     public function test_a_decoupled_or_unknown_theme_parameter_lands_on_a_riding_theme(): void
     {
-        $this->boot('sample');
+        $this->boot($this->sampleTheme);
         // Sample is decoupled: asking the core editor for it, or for nothing
         // real, both land on the theme that rides the editor.
-        $this->post(route('admin.layout.update', ['theme' => 'sample']), ['payload' => json_encode($this->payload('SOMEWHERE'))])->assertRedirect();
+        $this->post(route('admin.layout.update', ['theme' => $this->sampleTheme]), ['payload' => json_encode($this->payload('SOMEWHERE'))])->assertRedirect();
         $this->post(route('admin.layout.update', ['theme' => 'nope']), ['payload' => json_encode($this->payload('ELSEWHERE'))])->assertRedirect();
         // Each save is the whole page, so the second replaced the first;
         // both landed on Venta and neither touched Sample.
         $this->assertSame(1, LayoutPlacement::where('theme', 'default')->whereJsonContains('config->content', 'ELSEWHERE')->count());
-        $this->assertSame(0, LayoutPlacement::where('theme', 'sample')->where('widget', 'content.text')->count());
+        $this->assertSame(0, LayoutPlacement::where('theme', $this->sampleTheme)->where('widget', 'content.text')->count());
         $this->assertSame(0, LayoutPlacement::where('theme', 'nope')->count());
     }
 }

@@ -17,7 +17,7 @@ use Tests\TestCase;
  */
 class LayoutRowStyleTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     private function row(array $attrs = []): LayoutRow
     {

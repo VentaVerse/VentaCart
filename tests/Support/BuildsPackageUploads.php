@@ -5,7 +5,6 @@ namespace Tests\Support;
 use App\Models\PackageUpload;
 use App\Models\User;
 use App\Services\ExtensionManager;
-use App\Services\ThemeService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use ZipArchive;
@@ -31,7 +30,7 @@ trait BuildsPackageUploads
      * Every folder a test writes to is its own: themes, extensions, the
      * published builds and the lock live in a scratch folder named for
      * this run, so tests never touch the store's real folders or another
-     * run's uploads. The default theme is linked in, because a theme zip
+     * run's uploads. The sample theme is linked in, because a theme zip
      * is made from it and the store needs one to draw with.
      */
     protected function setUpPackageScratch(): void
@@ -43,7 +42,7 @@ trait BuildsPackageUploads
         $this->publicRoot = $this->scratch . '/public-packages';
         File::ensureDirectoryExists($this->extensionsRoot);
         File::ensureDirectoryExists($this->themesRoot);
-        symlink(resource_path('themes/' . ThemeService::bundled()), $this->themesRoot . '/' . ThemeService::bundled());
+        symlink(base_path('tests/fixtures/themes/sample'), $this->themesRoot . '/sample');
 
         config([
             'extensions.path' => $this->extensionsRoot,
@@ -67,14 +66,14 @@ trait BuildsPackageUploads
     }
 
     /**
-     * A zip of the default theme under another folder name, at $version,
+     * A zip of the sample theme under another folder name, at $version,
      * with a migration of its own. Extra entries are added as given.
      *
      * @param  array<string, string>  $extra
      */
     protected function themeZip(string $version = '1.0.0', array $extra = [], string $folder = self::SLUG, ?callable $manifest = null): string
     {
-        $default = resource_path('themes/' . ThemeService::bundled());
+        $default = base_path('tests/fixtures/themes/sample');
         $files = [];
 
         $items = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($default, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS));

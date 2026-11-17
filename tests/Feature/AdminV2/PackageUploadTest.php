@@ -330,6 +330,7 @@ class PackageUploadTest extends TestCase
         $this->assertStringContainsString('php_flag engine off', (string) file_get_contents($this->publicRoot . '/.htaccess'));
 
         if (is_file(public_path('build/manifest.json'))) {
+            $this->withVite();
             $html = (string) app(\Illuminate\Foundation\Vite::class)('resources/themes/upload-sample/css/extra.css');
             $this->assertStringContainsString('/packages/theme-upload-sample/assets/extra-abc123.css', $html);
             $this->assertStringNotContainsString('..', $html);

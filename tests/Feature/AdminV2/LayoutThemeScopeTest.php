@@ -22,7 +22,7 @@ use Tests\TestCase;
  */
 class LayoutThemeScopeTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     protected function setUp(): void
     {

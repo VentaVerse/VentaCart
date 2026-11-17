@@ -60,10 +60,7 @@ final class ThemeContract
             return ['theme.json is not valid JSON.'];
         }
 
-        // The default theme ships inside core, so core's version is its own.
-        $required = basename(rtrim($path, '/')) === \App\Services\ThemeService::bundled()
-            ? ['name']
-            : ['name', 'version'];
+        $required = ['name', 'version'];
 
         foreach ($required as $key) {
             if (empty($meta[$key]) || ! is_string($meta[$key])) {

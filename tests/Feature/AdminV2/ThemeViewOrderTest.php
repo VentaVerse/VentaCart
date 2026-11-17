@@ -22,7 +22,7 @@ class ThemeViewOrderTest extends TestCase
     {
         $this->installSampleTheme(activate: true);
         RegisterThemeViews::register();
-        $this->assertSame(realpath(ThemeService::root('sample/views')), View::getFinder()->getPaths()[0]);
+        $this->assertSame(realpath(ThemeService::root($this->sampleTheme.'/views')), View::getFinder()->getPaths()[0]);
 
         app(ThemeService::class)->activateTheme(ThemeService::bundled());
         app(ThemeService::class)->clearCache();

@@ -1,5 +1,6 @@
 {
     "name": "Default",
+    "version": "1.0.0",
     "author": "VentaCart",
     "description": "VentaCart's default theme. The look is fixed; merchants arrange the storefront in Layout.",
     "thumbnail": "preview.png",

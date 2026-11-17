@@ -33,7 +33,7 @@ class ThemeOwnWidgetsTest extends TestCase
         parent::setUp();
         $this->installSampleTheme();
 
-        Widgets::register(self::SAMPLE_ONLY, ['title' => 'Sample ticker', 'module' => 'sample', 'theme' => 'sample', 'view' => 'widgets.sample.ticker']);
+        Widgets::register(self::SAMPLE_ONLY, ['title' => 'Sample ticker', 'module' => 'sample', 'theme' => $this->sampleTheme, 'view' => 'widgets.sample.ticker']);
         // A theme that is not on disk: its widgets must reach no one.
         Widgets::register(self::ELSEWHERE, ['title' => 'Elsewhere ticker', 'module' => 'elsewhere', 'theme' => 'elsewhere', 'view' => 'widgets.elsewhere.ticker']);
     }
@@ -60,7 +60,7 @@ class ThemeOwnWidgetsTest extends TestCase
 
     public function test_a_theme_sees_its_own_widget_and_the_shared_ones(): void
     {
-        $this->asTheme('sample');
+        $this->asTheme($this->sampleTheme);
 
         $this->assertTrue(Widgets::has(self::SAMPLE_ONLY));
         $keys = array_column(LayoutInventory::catalogue(Regions::all()), 'key');
@@ -71,10 +71,10 @@ class ThemeOwnWidgetsTest extends TestCase
 
     public function test_two_themes_may_register_the_same_key_without_replacing_each_other(): void
     {
-        Widgets::register('shared.key', ['title' => 'Sample version', 'theme' => 'sample']);
+        Widgets::register('shared.key', ['title' => 'Sample version', 'theme' => $this->sampleTheme]);
         Widgets::register('shared.key', ['title' => 'Elsewhere version', 'theme' => 'elsewhere']);
 
-        $this->asTheme('sample');
+        $this->asTheme($this->sampleTheme);
         $this->assertSame('Sample version', Widgets::get('shared.key')['title']);
 
         Widgets::forget('shared.key');
@@ -99,7 +99,7 @@ class ThemeOwnWidgetsTest extends TestCase
 
     public function test_the_install_check_asks_a_theme_only_for_its_own_and_the_shared_views(): void
     {
-        $problems = ThemeContract::check(ThemeService::root('sample'));
+        $problems = ThemeContract::check(ThemeService::root($this->sampleTheme));
 
         $this->assertContains('View [widgets.sample.ticker] is missing.', $problems, 'Its own widget needs its view.');
         $this->assertNotContains('View [widgets.elsewhere.ticker] is missing.', $problems);

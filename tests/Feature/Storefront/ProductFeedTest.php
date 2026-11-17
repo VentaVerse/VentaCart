@@ -24,7 +24,7 @@ use Tests\TestCase;
  */
 class ProductFeedTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
 
     private function product(string $name, array $attrs = []): Product
     {

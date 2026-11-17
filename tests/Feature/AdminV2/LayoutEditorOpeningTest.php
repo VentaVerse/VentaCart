@@ -21,7 +21,7 @@ use Tests\TestCase;
  */
 class LayoutEditorOpeningTest extends TestCase
 {
-    use RefreshDatabase, UsesSampleTheme;
+    use RefreshDatabase, UsesSampleTheme, \Tests\Support\RunsOnTheDefaultTheme;
 
     private function place(string $page, string $region = 'content_top'): void
     {
@@ -144,13 +144,13 @@ class LayoutEditorOpeningTest extends TestCase
         }
         $this->installSampleTheme();
         app(ExtensionManager::class)->bootEnabled();
-        app(ThemeService::class)->activateTheme('sample');
+        app(ThemeService::class)->activateTheme($this->sampleTheme);
         app(ThemeService::class)->clearCache();
         $this->withoutVite();
         $this->actingAs(User::factory()->create());
 
         $this->get(route('admin.layout'))->assertOk()
-            ->assertSee('Your live theme Sample arranges its pages in its own editor.')
+            ->assertSee('Your live theme Sample Two arranges its pages in its own editor.')
             ->assertSee('href="' . route('admin.dashboard') . '"', false);
     }
 

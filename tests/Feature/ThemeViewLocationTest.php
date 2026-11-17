@@ -37,7 +37,7 @@ class ThemeViewLocationTest extends TestCase
         $this->get('/');
 
         $this->assertContains(
-            resource_path('themes/' . app(\App\Services\ThemeService::class)->getActiveTheme() . '/views'),
+            realpath(resource_path('themes/' . app(\App\Services\ThemeService::class)->getActiveTheme() . '/views')),
             View::getFinder()->getPaths(),
             'The active theme\'s view folder was not registered while serving the request.'
         );
@@ -55,7 +55,7 @@ class ThemeViewLocationTest extends TestCase
         $this->get('/');
         $this->get('/');
 
-        $path = resource_path('themes/' . app(\App\Services\ThemeService::class)->getActiveTheme() . '/views');
+        $path = realpath(resource_path('themes/' . app(\App\Services\ThemeService::class)->getActiveTheme() . '/views'));
 
         $this->assertSame(
             1,

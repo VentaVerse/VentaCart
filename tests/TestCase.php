@@ -8,26 +8,57 @@ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 abstract class TestCase extends BaseTestCase
 {
     /**
+     * The theme core's tests run on: a plain package kept under
+     * tests/fixtures/themes, so the suite never depends on the theme that
+     * ships with VentaCart and passes with that theme removed.
+     */
+    public const SAMPLE_THEME = 'sample';
+
+    /**
      * A migrated test database has no registry rows (seeders do not run),
      * and a store without an installed theme shows the plain no-theme page.
-     * The shipped theme is installed the way the seeder installs it on a
-     * fresh store, contract check included. A test about the registry
-     * itself sets this false and starts from the bare table.
+     * The sample theme is linked in, made the bundled theme, and installed
+     * the way the seeder installs it on a fresh store, contract check
+     * included. A test about the registry itself sets this false and starts
+     * from the bare table.
      */
-    protected bool $installsDefaultTheme = true;
+    protected bool $installsSampleTheme = true;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        if ($this->installsDefaultTheme && in_array(RefreshDatabase::class, class_uses_recursive(static::class), true)) {
+        $this->linkSampleTheme();
+        config(['themes.bundled' => self::SAMPLE_THEME]);
+
+        if ($this->installsSampleTheme && in_array(RefreshDatabase::class, class_uses_recursive(static::class), true)) {
             app(\App\Services\ExtensionManager::class)->install(
-                \App\Services\ThemeService::registryName(\App\Services\ThemeService::bundled())
+                \App\Services\ThemeService::registryName(self::SAMPLE_THEME)
             );
             // Discovery was cached by that install; a test that points the
             // kernel at fixture extensions must not find a stale list.
             app()->forgetInstance(\App\Services\ExtensionManager::class);
+            // The sample's stylesheet is never built.
+            $this->withoutVite();
         }
+    }
+
+    /**
+     * Put the sample theme where themes live, for the length of the test.
+     * It is a link to the fixture, so nothing is copied.
+     */
+    private function linkSampleTheme(): void
+    {
+        $link = resource_path('themes/' . self::SAMPLE_THEME);
+        if (! is_link($link) && ! file_exists($link)) {
+            symlink(base_path('tests/fixtures/themes/' . self::SAMPLE_THEME), $link);
+        }
+
+        $this->beforeApplicationDestroyed(function () use ($link) {
+            if (is_link($link)) {
+                unlink($link);
+            }
+        });
     }
 
     /**

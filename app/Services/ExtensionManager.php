@@ -94,11 +94,7 @@ class ExtensionManager
                 return [
                     'name' => ThemeService::registryName($slug),
                     'title' => (string) ($meta['name'] ?? ucfirst(str_replace('-', ' ', $slug))),
-                    // The default theme ships inside core and carries no
-                    // version of its own: it is whatever core is.
-                    'version' => $slug === ThemeService::bundled()
-                        ? (string) config('app.version')
-                        : (string) ($meta['version'] ?? '1.0.0'),
+                    'version' => (string) ($meta['version'] ?? '1.0.0'),
                     'description' => (string) ($meta['description'] ?? ''),
                     'type' => 'theme',
                     'theme' => $slug,
