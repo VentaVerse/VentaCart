@@ -20,7 +20,7 @@
 import { S, doc, sec, ctx, labelOf } from './state.js';
 import { sectionDef } from './catalog.js';
 import { clone, same } from './util.js';
-import { place, locate, rowsOf, addRow, moveRow, removeRow, changeSplit, setRow, effectsOf, tidy, catalogRules, replaceIn } from './board/model.js';
+import { place, locate, rowsOf, addRow, moveRow, removeRow, changeSplit, setRow, effectsOf, tidy, catalogRules, replaceIn, sideTargets } from './board/model.js';
 
 const listeners = new Set();
 
@@ -63,12 +63,17 @@ const LAYOUT_KEYS = ['order', 'rows', 'sides'];
 /** The boot payload's rows, splits and limits. */
 export const layoutPayload = () => ctx.boot?.layout || null;
 
-/** The layout rules of one document, from the section catalog. */
-export function rulesFor(handle) {
+/** The sides a document's page may have (both, or none), from the boot payload's `sides_on`. */
+export function sidesFor(handle) {
   const layout = layoutPayload();
   const kind = handle === 'settings' ? 'settings' : handle === 'header' || handle === 'footer' ? 'group' : 'template';
-  const pageType = kind === 'template' ? String(handle).split('.')[0] : null;
-  return catalogRules(layout, sectionDef, pageType !== null && (layout?.sides_on || []).includes(pageType));
+  if (kind !== 'template' || !layout) return [];
+  return sideTargets(String(handle).split('.')[0], layout);
+}
+
+/** The layout rules of one document, from the section catalog. */
+export function rulesFor(handle) {
+  return catalogRules(layoutPayload(), sectionDef, sidesFor(handle).length > 0);
 }
 
 /** Whether a document places its sections in rows or sides, not only in order. */
@@ -175,11 +180,13 @@ function placeUnder(handle, c, source, sid) {
 /**
  * A section added at a spot of the board moves there from the row of its
  * own tidy() gave it. When it is already there, or the spot no longer
- * takes it, it keeps that row.
+ * takes it, it keeps that row. Answers the other sections the move pushed
+ * out of their columns (a side filled for the first time narrows the page).
  */
 function placeAt(handle, c, sid, target) {
-  const next = place(c, sid, target, rulesFor(handle)).content;
+  const { content: next, moved } = place(c, sid, target, rulesFor(handle));
   if (next !== c) writeLayout(c, Object.keys(next), next);
+  return moved;
 }
 
 /** The address of a stored image, as the API adapter knows the server serves it. */
@@ -304,7 +311,9 @@ const TYPES = {
       if (!c) return [];
       if (fwd) {
         if (c.sections[op.sid]) return [];
-        op.layout = hasLayout(c) ? layoutSnapshot(c) : null;
+        // A spot of the board (a side, say) can give a page of full-width
+        // sections its first rows or sides.
+        op.layout = hasLayout(c) || op.target ? layoutSnapshot(c) : null;
         const was = op.layout ? layoutView(c) : null;
         c.sections[op.sid] = clone(op.snapshot);
         c.order.splice(clampIndex(op.index, c.order.length), 0, op.sid);
@@ -313,7 +322,7 @@ const TYPES = {
         if (!was) return [];
         tidyLayout(c);
         if (op.kind === 'duplicate' && op.source) placeUnder(op.doc, c, op.source, op.sid);
-        if (op.target) placeAt(op.doc, c, op.sid, op.target);
+        if (op.target) op.moved = placeAt(op.doc, c, op.sid, op.target);
         return [effectsOf(was, c, layoutPayload())];
       }
       if (!c.sections[op.sid]) return [];

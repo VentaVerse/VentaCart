@@ -13,8 +13,14 @@
  * normalize(), so what the editor saves is what the server would store.
  *
  * Nothing here touches the DOM or the editor's state. `rules` is
- * `{layout, minSpan(section), isMain(section), sidesAllowed}`, `layout`
- * being the boot payload's `layout` (splits, row defaults, limits).
+ * `{layout, minSpan(section), isMain(section), sidesAllowed, known?(section)}`,
+ * `layout` being the boot payload's `layout` (splits, row defaults, limits).
+ *
+ * Sides narrow the content area every row draws in: 12 twelfths without
+ * sides, 9 with one, 6 with both. A column of part `p` so really draws
+ * `p x content / 12` twelfths of the page, and a section fits it only when
+ * its span is no more than that, as on the server. A one-column row is the
+ * whole content area wide and is never measured.
  */
 
 const SIDES = ['left', 'right'];
@@ -225,12 +231,67 @@ function fitColumns(columns, count) {
   return out;
 }
 
-function misfit(section, span, rules) {
+/**
+ * Why a section cannot sit in a column or side `span` twelfths wide, or
+ * null. A column's span is its part of a content area `content` twelfths
+ * wide; a side is measured on the whole page.
+ */
+function misfit(section, span, rules, content = 12) {
   if (rules.isMain(section)) return 'main-section';
-  return rules.minSpan(section) > span ? 'too-wide' : null;
+  return rules.minSpan(section) * 12 > span * content ? 'too-wide' : null;
 }
 
+/** Whether a section `need` twelfths wide fits a column of part `part` in a content area `content` wide. */
+const fitsPart = (need, part, content) => need * 12 <= part * content;
+
 const sidesAllowedBy = (rules) => (typeof rules.sidesAllowed === 'function' ? Boolean(rules.sidesAllowed()) : Boolean(rules.sidesAllowed));
+
+/** The content area left beside `count` sides, in twelfths of the page. */
+function contentFor(count, layout) {
+  return Math.max(1, 12 - layout.side_span * Math.max(0, Math.min(SIDES.length, count)));
+}
+
+/**
+ * The content area the row model measures columns in: every side that
+ * holds a section counts, hidden ones included, since a hidden section
+ * can be shown again without a save. `without` is a section about to
+ * leave its side. A page that cannot have sides is measured at 12.
+ */
+function measuredContent(content, rules, without = null) {
+  const layout = layoutOf(rules.layout);
+  if (!sidesAllowedBy(rules)) return 12;
+  const sections = sectionMap(content);
+  const sides = sidesOf(content);
+  const count = SIDES.filter((which) => sides[which].some((sid) => sid !== without && sections.has(sid))).length;
+  return contentFor(count, layout);
+}
+
+/**
+ * How wide the page's content area draws, in twelfths of the page: 12, 9
+ * or 6. Counts the sides the store draws: those holding a section that is
+ * not hidden and whose type is known. A side whose sections draw nothing
+ * (an empty list, say) still counts here, though the store leaves it out:
+ * only the drawn page can tell. The board draws its rows and their
+ * pictures at this width.
+ */
+export function contentSpan(content, rules) {
+  const layout = layoutOf(rules.layout);
+  if (!sidesAllowedBy(rules)) return 12;
+  const sections = sectionMap(content);
+  const sides = sidesOf(content);
+  const known = typeof rules.known === 'function' ? rules.known : () => true;
+  const drawn = SIDES.filter((which) => sides[which].some((sid) => {
+    const section = sections.get(sid);
+    return Boolean(section) && !section.disabled && known(section);
+  })).length;
+  return contentFor(drawn, layout);
+}
+
+/** The sides a page type may have, from the boot payload's `sides_on`: both, or none. */
+export function sideTargets(pageType, layout) {
+  const l = layoutOf(layout);
+  return Array.isArray(l.sides_on) && l.sides_on.includes(pageType) ? [...SIDES] : [];
+}
 
 const movedEntry = (sid, reason, rowId) => ({ path: `content.sections.${sid}`, reason, value: rowId });
 
@@ -290,6 +351,18 @@ export function normalize(content, rules) {
     valuesOf(isList(list) ? list : []).forEach((id) => { if (claim(id)) sides[which].push(id); });
   });
 
+  // What stays in the sides decides the content area every column is measured in.
+  const allowed = sidesAllowedBy(rules);
+  const sideMisfits = [];
+  SIDES.forEach((which) => {
+    sides[which] = sides[which].filter((sid) => {
+      const reason = allowed ? misfit(sections.get(sid), layout.side_span, rules) : 'no-sides';
+      if (reason !== null) sideMisfits.push([sid, reason]);
+      return reason === null;
+    });
+  });
+  const area = contentFor(SIDES.filter((which) => sides[which].length).length, layout);
+
   let given;
   if (isList(content.rows)) {
     given = valuesOf(content.rows).filter(isList);
@@ -335,7 +408,7 @@ export function normalize(content, rules) {
     const id = ids.get(i) ?? freshId(seed, taken);
     const misfits = [];
     columns = columns.map((column, c) => column.filter((sid) => {
-      const reason = misfit(sections.get(sid), parts[c], rules);
+      const reason = misfit(sections.get(sid), parts[c], rules, area);
       if (reason !== null) misfits.push([sid, reason]);
       return reason === null;
     }));
@@ -349,16 +422,10 @@ export function normalize(content, rules) {
   });
 
   // Sides: what cannot sit in one goes to its own row at the end.
-  const allowed = sidesAllowedBy(rules);
-  SIDES.forEach((which) => {
-    sides[which] = sides[which].filter((sid) => {
-      const reason = allowed ? misfit(sections.get(sid), layout.side_span, rules) : 'no-sides';
-      if (reason === null) return true;
-      const plain = plainRow(sid, taken, defaults);
-      rows.push(plain);
-      moved.push(movedEntry(sid, reason, plain.id));
-      return false;
-    });
+  sideMisfits.forEach(([sid, reason]) => {
+    const plain = plainRow(sid, taken, defaults);
+    rows.push(plain);
+    moved.push(movedEntry(sid, reason, plain.id));
   });
 
   // Sections in no row and no side: after the row of the nearest one before them.
@@ -429,20 +496,26 @@ function createdBetween(before, after, layout) {
    ------------------------------------------------------------------------ */
 
 /**
- * How wide a drop target is, in twelfths. Targets:
+ * How wide a drop target really is, in twelfths of the page: a column its
+ * part of the content area (so 8 beside one side is 6, and may be a
+ * fraction), a side 3, a gap a whole row. Targets:
  * `{drop: 'gap', before: rowId | 'end'}` a row of its own between rows,
  * `{drop: 'column', rowId, column, before: sid | null}`,
  * `{drop: 'beside', rowId, side: 'left' | 'right'}` next to a full-width section,
  * `{drop: 'side', side, before: sid | null}`.
+ * `sid`, when given, is the section that would move there: a side it
+ * leaves empty no longer narrows the page.
  */
-export function spanAt(content, target, rules) {
+export function spanAt(content, target, rules, sid = null) {
   const layout = layoutOf(rules.layout);
   if (target?.drop === 'gap') return 12;
-  if (target?.drop === 'beside') return 6;
   if (target?.drop === 'side') return layout.side_span;
+  const area = measuredContent(content, rules, sid);
+  if (target?.drop === 'beside') return (6 * area) / 12;
   if (target?.drop === 'column') {
     const r = rowsOf(content, layout).find((x) => x.id === target.rowId);
-    return (r && partsOf(layout, r.split)?.[target.column]) || 0;
+    const part = (r && partsOf(layout, r.split)?.[target.column]) || 0;
+    return (part * area) / 12;
   }
   return 0;
 }
@@ -481,7 +554,7 @@ export function fits(content, sid, target, rules) {
     const here = at?.where === 'row' && at.rowId === r.id && at.column === target.column;
     if (here && (column[at.index + 1] ?? null) === before) return false;
     if (!here && column.length >= layout.max_per_column) return false;
-    return span <= parts[target.column];
+    return fitsPart(span, parts[target.column], measuredContent(content, rules, sid));
   }
 
   if (target.drop === 'beside') {
@@ -490,7 +563,8 @@ export function fits(content, sid, target, rules) {
     const other = r.columns[0][0];
     const otherSection = sectionMap(content).get(other);
     if (other === sid || !otherSection || rules.isMain(otherSection)) return false;
-    return span <= 6 && rules.minSpan(otherSection) <= 6 && partsOf(layout, '6-6') !== null;
+    const area = measuredContent(content, rules, sid);
+    return fitsPart(span, 6, area) && fitsPart(rules.minSpan(otherSection), 6, area) && partsOf(layout, '6-6') !== null;
   }
 
   if (target.drop === 'side') {
@@ -531,13 +605,14 @@ export function checkAddSpot(content, target, section, rules) {
     const column = r.columns[target.column] || [];
     if ((target.before ?? null) !== null && !column.includes(target.before)) return no('gone');
     if (column.length >= layout.max_per_column) return no('full');
-    return span <= parts[target.column] ? { ok: true } : no('narrow');
+    return fitsPart(span, parts[target.column], measuredContent(content, rules)) ? { ok: true } : no('narrow');
   }
   if (target?.drop === 'beside') {
     const r = rows.find((x) => x.id === target.rowId);
     const other = r?.split === '12' && r.columns[0]?.length === 1 ? sectionMap(content).get(r.columns[0][0]) : null;
     if (!other || rules.isMain(other) || !SIDES.includes(target.side)) return no('gone');
-    return span <= 6 && rules.minSpan(other) <= 6 ? { ok: true } : no('narrow');
+    const area = measuredContent(content, rules);
+    return fitsPart(span, 6, area) && fitsPart(rules.minSpan(other), 6, area) ? { ok: true } : no('narrow');
   }
   if (target?.drop === 'side') {
     if (!sidesAllowedBy(rules) || !SIDES.includes(target.side)) return no('gone');
@@ -551,10 +626,11 @@ export function checkAddSpot(content, target, section, rules) {
 
 /**
  * Moves a section to the target. Answers the document unchanged when the
- * section does not fit there, and the ids of the rows the move made.
+ * section does not fit there, the ids of the rows the move made, and the
+ * other sections it moved out of their columns.
  */
 export function place(content, sid, target, rules) {
-  if (!fits(content, sid, target, rules)) return { content, created: [] };
+  if (!fits(content, sid, target, rules)) return { content, created: [], moved: [] };
   const layout = layoutOf(rules.layout);
   const rows = rowsOf(content, layout).map((r) => ({ ...r, columns: r.columns.map((column) => column.filter((id) => id !== sid)) }));
   const sides = sidesOf(content);
@@ -581,18 +657,27 @@ export function place(content, sid, target, rules) {
     list.splice(index, 0, sid);
   }
 
-  const next = withLayout(content, rows, sides, rules).content;
-  return { content: next, created: createdBetween(content, next, layout) };
+  // A side filled for the first time narrows the page: a section too wide
+  // for its column then moves to a row of its own, and is named in `moved`.
+  const result = withLayout(content, rows, sides, rules);
+  const moved = result.moved.map((m) => m.path.replace(/^content\.sections\./, '')).filter((id) => id !== sid);
+  return { content: result.content, created: createdBetween(content, result.content, layout), moved };
 }
 
-/** How wide a section's own place is, in twelfths: its column, its side or a full-width row; null when it is not on the page. */
+/**
+ * How wide a section's own place really is, in twelfths of the page: its
+ * column's part of the content area, its side, or a full-width row; null
+ * when it is not on the page.
+ */
 export function roomOf(content, sid, rules) {
   const layout = layoutOf(rules.layout);
   const at = locate(content, sid, layout);
   if (!at) return null;
   if (at.where === 'side') return layout.side_span;
   const r = rowsOf(content, layout).find((x) => x.id === at.rowId);
-  return (r && partsOf(layout, r.split)?.[at.column]) || 12;
+  const parts = r ? partsOf(layout, r.split) : null;
+  if (!parts || parts.length < 2) return 12;
+  return (parts[at.column] * measuredContent(content, rules)) / 12;
 }
 
 /**
@@ -719,14 +804,19 @@ export function setRow(content, rowId, key, value, layout) {
    What a change redraws
    ------------------------------------------------------------------------ */
 
-/** Each section's width on the page, in twelfths. */
+/**
+ * Each section's width on the page, in twelfths: a side's 3, a column's
+ * part of the content area, a full-width row the content area. Every side
+ * that holds a section counts, as the editor's preview draws it.
+ */
 function widths(content, layout) {
   const out = new Map();
   const sides = sidesOf(content);
+  const area = contentFor(SIDES.filter((which) => sides[which].length).length, layout);
   SIDES.forEach((which) => sides[which].forEach((sid) => out.set(sid, layout.side_span)));
   rowsOf(content, layout).forEach((r) => {
     const parts = partsOf(layout, r.split) || [12];
-    r.columns.forEach((column, c) => column.forEach((sid) => out.set(sid, parts[c] ?? 12)));
+    r.columns.forEach((column, c) => column.forEach((sid) => out.set(sid, ((parts[c] ?? 12) * area) / 12)));
   });
   return out;
 }
@@ -766,6 +856,7 @@ export function catalogRules(layout, sectionDef, sidesAllowed) {
       return Number.isInteger(span.min) ? span.min : 12;
     },
     isMain: (section) => sectionDef(section?.type)?.main === true,
+    known: (section) => Boolean(sectionDef(section?.type)),
     sidesAllowed: Boolean(sidesAllowed),
   };
 }

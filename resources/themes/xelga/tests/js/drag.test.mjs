@@ -17,7 +17,7 @@ const noop = () => {};
 globalThis.document = globalThis.document || { addEventListener: noop, removeEventListener: noop, querySelector: () => null, querySelectorAll: () => [] };
 globalThis.window = globalThis.window || { addEventListener: noop, removeEventListener: noop, setTimeout, clearTimeout, location: { href: 'http://example.test/' } };
 
-const { useLayout } = await import('../../editor/js/modules/board/model.js');
+const { useLayout, catalogRules, sideTargets } = await import('../../editor/js/modules/board/model.js');
 const { targetsFor, keyTarget, keyMoves, rowKeyMoves, bandTargets, bandKeyTarget, bandIndex, listDropIndex, targetKey } = await import('../../editor/js/modules/board/drag.js');
 const { addableTypes } = await import('../../editor/js/modules/board/choices.js');
 
@@ -42,15 +42,60 @@ function page(types, extra = {}) {
 const row = (id, split, columns) => ({ id, split, columns, settings: { ...DEFAULTS } });
 const key = (t) => JSON.stringify(t);
 
-/** A page with a full-width row, a row of columns 8-4, the main section and a left side. */
+/** A page with a full-width row, a row of columns 8-4, the main section and no sides. */
 function sample() {
-  const c = page({ a: 'text', w: 'wide', b: 'text', t: 'text', main: 'product-main', s: 'text', h: 'half' }, {
+  const c = page({ a: 'text', w: 'wide', b: 'text', t: 'text', main: 'product-main', h: 'half' }, {
     rows: [row('ra', '12', [['a']]), row('r1', '8-4', [['b'], ['t']]), row('rm', '12', [['main']]), row('rh', '12', [['h']]), row('rw', '12', [['w']])],
-    sides: { left: ['s'] },
   });
-  c.order = ['s', 'a', 'b', 't', 'main', 'h', 'w'];
+  c.order = ['a', 'b', 't', 'main', 'h', 'w'];
   return c;
 }
+
+/** The sample with a section in its left side, so every column draws at three quarters. */
+function sampleWithSide() {
+  const c = sample();
+  c.sections.s = { type: 'text' };
+  c.sides = { left: ['s'] };
+  c.order = ['s', ...c.order];
+  return c;
+}
+
+const sidesIn = (targets) => targets.filter((t) => t.drop === 'side');
+
+test('targetsFor a span-3 section lists both sides', () => {
+  const c = sample();
+  const sides = sidesIn(targetsFor(c, { kind: 'section', sid: 't' }, RULES));
+  assert.deepEqual(sides, [{ drop: 'side', side: 'left', before: null }, { drop: 'side', side: 'right', before: null }]);
+  // A filled side offers each place in it.
+  const filled = sidesIn(targetsFor(sampleWithSide(), { kind: 'section', sid: 't' }, RULES)).map(key);
+  assert.ok(filled.includes(key({ drop: 'side', side: 'left', before: 's' })));
+  assert.ok(filled.includes(key({ drop: 'side', side: 'left', before: null })));
+  assert.ok(filled.includes(key({ drop: 'side', side: 'right', before: null })));
+});
+
+test('targetsFor a span-4 section lists no side', () => {
+  const c = page({ a: 'text', f: 'four' });
+  assert.deepEqual(sidesIn(targetsFor(c, { kind: 'section', sid: 'f' }, { ...RULES, minSpan: (s) => (s?.type === 'four' ? 4 : 3) })), []);
+});
+
+test('the cart board offers no side', () => {
+  const defs = { text: { span: { min: 3 } } };
+  const rules = catalogRules(LAYOUT, (type) => defs[type] || null, sideTargets('cart', LAYOUT).length > 0);
+  const c = page({ a: 'text', b: 'text' });
+  assert.deepEqual(sidesIn(targetsFor(c, { kind: 'section', sid: 'a' }, rules)), []);
+  const home = catalogRules(LAYOUT, (type) => defs[type] || null, sideTargets('home', LAYOUT).length > 0);
+  assert.equal(sidesIn(targetsFor(c, { kind: 'section', sid: 'a' }, home)).length, 2);
+});
+
+test('targetsFor beside the sides offers only the columns wide enough there', () => {
+  const c = sampleWithSide();
+  // The 8 column is 6 twelfths beside one side: too narrow for a section of 8.
+  assert.ok(!targetsFor(c, { kind: 'section', sid: 'w' }, RULES).some((t) => t.drop === 'column'));
+  // A half beside one side is 4.5 twelfths: two sections of 6 never sit side by side.
+  assert.ok(!targetsFor(c, { kind: 'section', sid: 't' }, RULES).some((t) => t.drop === 'beside' && t.rowId === 'rh'));
+  // Out of its side the section leaves the page whole, so the half is 6 again.
+  assert.ok(targetsFor(c, { kind: 'section', sid: 's' }, RULES).some((t) => t.drop === 'column' && t.rowId === 'r1' && t.column === 1));
+});
 
 test('targetsFor a span-8 section never lists a 4 column', () => {
   const c = sample();
@@ -93,7 +138,7 @@ test('targetsFor a row lists every gap but the two around it', () => {
 });
 
 test('keyMove targets are a subset of drag targets', () => {
-  const c = sample();
+  const c = sampleWithSide();
   let some = 0;
   Object.keys(c.sections).forEach((sid) => {
     const all = targetsFor(c, { kind: 'section', sid }, RULES).map(key);
@@ -214,6 +259,17 @@ test('addableTypes greys out a used limit-1 type with its reason', () => {
   assert.equal(bar.reason, 'Already on this page');
   assert.equal(list.find((x) => x.type === 'quote').disabled, false);
   assert.equal(list.find((x) => x.type === 'banner').disabled, false);
+});
+
+test('addableTypes measures a column beside a side, and a side offers only types of 3', () => {
+  const c = page({ a: 'text', b: 'text', f: 'text' }, { rows: [row('r1', '8-4', [['a'], ['b']])], sides: { left: ['f'] } });
+  const wide = Object.fromEntries(addableTypes(c, { drop: 'column', rowId: 'r1', column: 0, before: null }, CATALOG, CATALOG_RULES).map((x) => [x.type, x]));
+  assert.equal(wide.banner.disabled, true, 'the 8 column is 6 twelfths here');
+  assert.equal(wide.gallery.disabled, false, 'its compact layout of 4 fits');
+  const side = Object.fromEntries(addableTypes(c, { drop: 'side', side: 'right', before: null }, CATALOG, CATALOG_RULES).map((x) => [x.type, x]));
+  assert.equal(side.quote.disabled, false);
+  assert.equal(side.gallery.disabled, true);
+  assert.equal(side.banner.disabled, true);
 });
 
 test('addableTypes greys out types too wide for a column, unless a variant fits', () => {

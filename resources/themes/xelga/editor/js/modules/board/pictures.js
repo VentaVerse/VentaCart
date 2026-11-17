@@ -9,7 +9,8 @@
  * The theme's stylesheets are fetched once and shared by every shadow root.
  *
  * A section is drawn at the width it has on a 1280 pixel store page (its
- * column's share of it inside a row) and scaled to its place on the board.
+ * column's share of it inside a row, and beside sides its share of the
+ * content area they leave) and scaled to its place on the board.
  * A tall section shows about a third of its height, from where its content
  * starts, so the picture is not mostly padding; a short one shows whole.
  *
@@ -56,6 +57,7 @@ const FRAME_CSS = `
   :host { display: block; position: relative; overflow: hidden; height: var(--pic-h, 0px); contain: layout paint style; }
   .pic-frame { width: var(--pic-w, ${PAGE_WIDTH}px); transform: translateY(calc(var(--pic-y, 0px) * -1)) scale(var(--pic-k, .25)); transform-origin: 0 0; pointer-events: none; }
   .pic-body { margin: 0; min-height: 0; }
+  .pic-body > .xp { display: block; width: auto; margin: 0; }
 `;
 
 /** Sections drawn at the top level of a parsed page or fragment, by id. */
@@ -79,7 +81,7 @@ export function createPictures({ api, stylesheets = [] }) {
   let page = null; // { attrs: [[name, value]], bodyClass, sprite, sections: Map<id, Element> }
   let sheets = null; // { key, list: CSSStyleSheet[] }
   const faces = new Set();
-  const hosts = new Map(); // `${id}:${span}` -> { host, id, span, observer }
+  const hosts = new Map(); // `${id}:${span}:${content}` -> { host, id, span, content, observer }
 
   async function loadSheets(urls, { fresh = false } = {}) {
     const key = urls.join('\n');
@@ -127,7 +129,7 @@ export function createPictures({ api, stylesheets = [] }) {
 
   /** Draws one section into its host again: after a load or a refresh. */
   function fill(entry) {
-    const { host, id, span } = entry;
+    const { host, id, span, content } = entry;
     const source = page?.sections.get(id);
     const root = host.shadowRoot;
     if (!source || !sheets) {
@@ -142,7 +144,7 @@ export function createPictures({ api, stylesheets = [] }) {
       return name;
     });
     delete host.dataset.empty;
-    const width = Math.round((PAGE_WIDTH * span) / 12);
+    const width = Math.round((PAGE_WIDTH * span * content) / 144);
     host.style.setProperty('--pic-w', `${width}px`);
     const frame = document.createElement('div');
     frame.className = 'pic-frame';
@@ -153,15 +155,27 @@ export function createPictures({ api, stylesheets = [] }) {
     if (page.sprite) body.append(document.importNode(page.sprite, true));
     const section = document.importNode(source, true);
     section.querySelectorAll('img').forEach((img) => { img.loading = 'eager'; });
+    let inner = section;
     if (span < 12) {
       const column = document.createElement('div');
       column.className = 'xr__col';
       column.dataset.span = String(span);
       column.append(section);
-      body.append(column);
-    } else {
-      body.append(section);
+      inner = column;
     }
+    if (content < 12) {
+      // Beside sides the store draws the section inside a narrower content
+      // area, whose own rules (data-content) the theme's styles read.
+      const wrapper = document.createElement('div');
+      wrapper.className = 'xp';
+      const area = document.createElement('main');
+      area.className = 'xp__content';
+      area.dataset.content = String(content);
+      area.append(inner);
+      wrapper.append(area);
+      inner = wrapper;
+    }
+    body.append(inner);
     frame.append(body);
     root.replaceChildren(frame);
     root.adoptedStyleSheets = sheets.list;
@@ -197,12 +211,12 @@ export function createPictures({ api, stylesheets = [] }) {
     host.style.setProperty('--pic-h', `${Math.round(shown)}px`);
   }
 
-  function makeEntry(id, span) {
+  function makeEntry(id, span, content) {
     const host = document.createElement('div');
     host.className = 'pic';
     host.setAttribute('aria-hidden', 'true');
     host.attachShadow({ mode: 'open' });
-    const entry = { host, id, span, section: null, width: PAGE_WIDTH };
+    const entry = { host, id, span, content, section: null, width: PAGE_WIDTH };
     entry.observer = new ResizeObserver(() => measure(entry));
     return entry;
   }
@@ -222,17 +236,19 @@ export function createPictures({ api, stylesheets = [] }) {
     },
 
     /**
-     * The picture of a section at a span (12 for full width), or null when
-     * the page draws nothing for it (hidden, not placed on this store, or
-     * not loaded yet). The same element comes back for the same section and
-     * span until the page loads again, so the board can redraw freely.
+     * The picture of a section at a span (12 for full width) of a content
+     * area `content` twelfths of the page wide (12 without sides), or null
+     * when the page draws nothing for it (hidden, not placed on this store,
+     * or not loaded yet). The same element comes back for the same section,
+     * span and content area until the page loads again, so the board can
+     * redraw freely.
      */
-    pictureFor(id, span = 12) {
+    pictureFor(id, span = 12, content = 12) {
       if (!page || !page.sections.has(id)) return null;
-      const key = `${id}:${span}`;
+      const key = `${id}:${span}:${content}`;
       let entry = hosts.get(key);
       if (!entry) {
-        entry = makeEntry(id, span);
+        entry = makeEntry(id, span, content);
         hosts.set(key, entry);
         fill(entry);
       }

@@ -16,7 +16,7 @@ import { S, doc, groupHandle, labelOf, locate as locateSection } from '../state.
 import { sectionIcon } from '../catalog.js';
 import { commit, undo, layoutPayload, rulesFor } from '../operations.js';
 import { rowsOf, fits, locate, spanAt } from './model.js';
-import { rowName, targetWords } from './words.js';
+import { rowName, targetWords, listWords } from './words.js';
 import { createPress, PRESS_DELAY } from './phone.js';
 
 const SIDES = ['left', 'right'];
@@ -39,8 +39,10 @@ function gapsOf(rows) {
 /**
  * Every spot an item may be dropped on, in board order. A section: the
  * gaps between rows, each place in a column, the left and right edge of a
- * full-width section and each place in a side that is drawn, kept to those
- * it fits. A row: every gap but the two around it.
+ * full-width section, and each place in the left and right side (an empty
+ * side is one place, and a drop there turns the side on), kept to those it
+ * fits; a page that cannot have sides offers none. A row: every gap but
+ * the two around it.
  */
 export function targetsFor(content, item, rules) {
   const layout = rules.layout;
@@ -65,8 +67,6 @@ export function targetsFor(content, item, rules) {
   });
   SIDES.forEach((side) => {
     const list = Array.isArray(content.sides?.[side]) ? content.sides[side] : [];
-    // A side shows on the board while it holds a section.
-    if (!list.length) return;
     list.forEach((sid) => all.push({ drop: 'side', side, before: sid }));
     all.push({ drop: 'side', side, before: null });
   });
@@ -215,10 +215,20 @@ export function moveItem(item, target) {
   }
   commit(op);
   if (!op.prior) return false;
-  const text = `${name} moved ${words}.`;
-  toast(text, { action: { label: 'Undo', run: undo } });
+  const text = `${name} moved ${words}.${movedWords(op.moved)}`;
+  toast(text, { action: { label: 'Undo', run: undo }, timeout: op.moved?.length ? 8000 : undefined });
   announce(text);
   return true;
+}
+
+/* The sections a new side pushed out of their columns, in a sentence; empty when none. */
+function movedWords(ids) {
+  const names = (ids || []).filter((sid) => locateSection(sid)).map((sid) => labelOf(sid));
+  if (!names.length) return '';
+  const list = listWords(names);
+  return names.length === 1
+    ? ` ${list} needs a wider column beside the side, so it moved to a row of its own.`
+    : ` ${list} need wider columns beside the side, so they moved to rows of their own.`;
 }
 
 const bandOrder = (group) => doc(group)?.content?.order || [];
@@ -496,18 +506,19 @@ const inside = (el, x, y) => {
   return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 };
 
-/** Why a held section cannot go into a faded column. */
+/** Why a held section cannot go into a faded column or side. */
 function refusal(col) {
   const content = contentNow();
   const sid = D.item.sid;
   const name = labelOf(sid);
   const section = content?.sections?.[sid];
   const rules = rulesFor(template());
+  const side = col.classList.contains('side');
   if (rules.isMain(section)) return `${name} is the page content, so it keeps a row of its own.`;
   const t = targetOf($('[data-target]', col) || col);
-  const span = t && content ? spanAt(content, t, rules) : 0;
-  if (span && rules.minSpan(section) > span) return `${name} needs a wider column than that one.`;
-  return 'That column is full.';
+  const span = t && content ? spanAt(content, t, rules, sid) : 0;
+  if (span && rules.minSpan(section) > span) return side ? `${name} is too wide for a side.` : `${name} needs a wider column than that one.`;
+  return side ? 'That side is full.' : 'That column is full.';
 }
 
 function pickTarget() {
