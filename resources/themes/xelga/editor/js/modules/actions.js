@@ -7,7 +7,8 @@
 import { announce, toast } from './dom.js';
 import { S, ctx, ui, sec, blk, doc, locate, groupList, groupIndex, blockList, usedIds, labelOf, valueOf, ensureShape, openOnly } from './state.js';
 import { sectionDef, blockDef, blockTypes } from './catalog.js';
-import { commit, undo } from './operations.js';
+import { commit, undo, hasLayout, layoutPayload, rulesFor } from './operations.js';
+import { rowsOf, fits, locate as locateIn } from './board/model.js';
 import { clone, humanize } from './util.js';
 import { select } from './selection.js';
 import { flush, resolveConflict, setFatal } from './drafts.js';
@@ -44,6 +45,7 @@ export function rename(sid, bid, value) {
 export function moveBy(sid, delta) {
   const at = locate(sid);
   if (!at) return false;
+  if (hasLayout(at.doc.content)) return moveInLayout(at, sid, delta);
   const from = groupIndex(sid);
   const count = groupList(at.group).length;
   const to = from + delta;
@@ -57,8 +59,96 @@ export function moveTo(sid, to) {
   const at = locate(sid);
   const from = groupIndex(sid);
   if (!at || from === to) return;
+  if (hasLayout(at.doc.content)) {
+    const target = layoutTargetAt(at.doc.content, sid, to);
+    if (target) commitPlace(at, sid, target);
+    return;
+  }
   commit({ t: 'move', doc: at.handle, sid, from, to });
   announce(`${labelOf(sid)} moved to position ${to + 1}`);
+}
+
+/*
+ * On a page with rows the list shows the reading order, and a move goes
+ * through the row model: a section alone in its row moves the row; one in
+ * a column or a side moves within it, and past its end into a row of its own.
+ */
+function moveInLayout(at, sid, delta) {
+  const c = at.doc.content;
+  const layout = layoutPayload();
+  const where = locateIn(c, sid, layout);
+  if (!where) return false;
+  const rows = rowsOf(c, layout);
+  if (where.where === 'row') {
+    const index = rows.findIndex((r) => r.id === where.rowId);
+    const row = rows[index];
+    if (row.split === '12') {
+      if (index + delta < 0 || index + delta >= rows.length) return false;
+      const before = delta < 0 ? rows[index - 1].id : rows[index + 2]?.id ?? 'end';
+      commit({ t: 'row-move', doc: at.handle, rowId: row.id, before, name: labelOf(sid) });
+      announceMove(sid);
+      return true;
+    }
+    const column = row.columns[where.column];
+    const inside = where.index + delta;
+    if (inside >= 0 && inside < column.length) {
+      const before = delta < 0 ? column[inside] : column[inside + 1] ?? null;
+      return commitPlace(at, sid, { drop: 'column', rowId: row.id, column: where.column, before });
+    }
+    return commitPlace(at, sid, { drop: 'gap', before: delta < 0 ? row.id : rows[index + 1]?.id ?? 'end' });
+  }
+  const list = c.sides?.[where.side] || [];
+  const inside = where.index + delta;
+  if (inside >= 0 && inside < list.length) {
+    const before = delta < 0 ? list[inside] : list[inside + 1] ?? null;
+    return commitPlace(at, sid, { drop: 'side', side: where.side, before });
+  }
+  // Out of the left side downwards, or out of the right side upwards, into the rows.
+  if (where.side === 'left' && delta > 0) return commitPlace(at, sid, { drop: 'gap', before: rows[0]?.id ?? 'end' });
+  if (where.side === 'right' && delta < 0) return commitPlace(at, sid, { drop: 'gap', before: 'end' });
+  return false;
+}
+
+/**
+ * The row model's target for putting a section at a position of the
+ * reading order: into the column or side it lands in the middle of, else
+ * a row of its own in the gap before the next section's row.
+ */
+function layoutTargetAt(c, sid, to) {
+  const layout = layoutPayload();
+  const order = c.order.filter((id) => id !== sid);
+  const prev = order[to - 1] ?? null;
+  const next = order[to] ?? null;
+  const rows = rowsOf(c, layout);
+  if (next === null) return { drop: 'gap', before: 'end' };
+  const n = locateIn(c, next, layout);
+  const p = prev === null ? null : locateIn(c, prev, layout);
+  if (!n) return null;
+  if (n.where === 'side') {
+    if (p?.where === 'side' && p.side === n.side) return { drop: 'side', side: n.side, before: next };
+    return n.side === 'left' ? { drop: 'side', side: 'left', before: next } : { drop: 'gap', before: 'end' };
+  }
+  if (p?.where === 'row' && p.rowId === n.rowId) {
+    const row = rows.find((r) => r.id === n.rowId);
+    if (row && row.split !== '12') {
+      return p.column === n.column
+        ? { drop: 'column', rowId: n.rowId, column: n.column, before: next }
+        : { drop: 'column', rowId: n.rowId, column: p.column, before: null };
+    }
+  }
+  return { drop: 'gap', before: n.rowId };
+}
+
+function commitPlace(at, sid, target) {
+  if (!fits(at.doc.content, sid, target, rulesFor(at.handle))) return false;
+  commit({ t: 'place', doc: at.handle, sid, target });
+  announceMove(sid);
+  return true;
+}
+
+function announceMove(sid) {
+  const count = groupList(locate(sid)?.group).length;
+  announce(`${labelOf(sid)} moved to position ${groupIndex(sid) + 1} of ${count}`);
 }
 
 /** How many sections of a type a document already has, for the schema's limit. */

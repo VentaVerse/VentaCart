@@ -105,6 +105,11 @@ export function ensureShape(content, kind) {
   }
   c.sections = c.sections && typeof c.sections === 'object' ? c.sections : {};
   c.order = Array.isArray(c.order) ? c.order.filter((id) => c.sections[id]) : Object.keys(c.sections);
+  // Rows and sides are kept as the server sent them: the row model reads
+  // them, and saving without them would flatten the page. Anything that is
+  // not a list of rows or a map of sides is dropped.
+  if ('rows' in c && !Array.isArray(c.rows)) delete c.rows;
+  if ('sides' in c && (!c.sides || typeof c.sides !== 'object' || Array.isArray(c.sides))) delete c.sides;
   Object.values(c.sections).forEach((s) => {
     s.settings = s.settings && typeof s.settings === 'object' && !Array.isArray(s.settings) ? s.settings : {};
     s.blocks = s.blocks && typeof s.blocks === 'object' && !Array.isArray(s.blocks) ? s.blocks : {};

@@ -255,6 +255,11 @@ const latestRender = new Map(); // section id -> number of the newest redraw ask
 
 export function runEffects(effects) {
   effects.forEach((effect) => {
+    // A change of rows or sides: columns and sides are drawn by the server, so the page loads again.
+    if (effect.board) {
+      reloadSoon();
+      return;
+    }
     // A render effect is named after the message it ends in (insert, duplicate, replace, block-insert).
     if (effect.render && !supports(effect.render)) {
       reloadSoon();

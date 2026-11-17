@@ -10,11 +10,17 @@
  *
  * Operations are applied defensively: a target that no longer exists (after
  * loading someone else's changes, say) makes the step a no-op, never an error.
+ *
+ * Rows and sides change through the row model (board/model.js). Its
+ * operations remember the page's rows, sides and order before the change,
+ * so undo puts back exactly what was there; their effect names what the
+ * layout board draws again ({board, rows, sections}).
  */
 
 import { S, doc, sec, ctx, labelOf } from './state.js';
 import { sectionDef, blockDef, liveMode, themeSetting } from './catalog.js';
-import { clone } from './util.js';
+import { clone, same } from './util.js';
+import { place, locate, rowsOf, addRow, moveRow, removeRow, changeSplit, setRow, effectsOf, tidy, catalogRules } from './board/model.js';
 
 const listeners = new Set();
 
@@ -65,6 +71,118 @@ function settingEffect(handle, sid, bid, key, value) {
   // An image is stored as a storage path; the preview also gets its address.
   if (setting?.type === 'image') message.url = value ? mediaUrl(value) : '';
   return [message];
+}
+
+/* ------------------------------------------------------------------------
+   Rows and sides
+   ------------------------------------------------------------------------ */
+
+const LAYOUT_KEYS = ['order', 'rows', 'sides'];
+
+/** The boot payload's rows, splits and limits. */
+export const layoutPayload = () => ctx.boot?.layout || null;
+
+/** The layout rules of one document, from the section catalog. */
+export function rulesFor(handle) {
+  const layout = layoutPayload();
+  const kind = handle === 'settings' ? 'settings' : handle === 'header' || handle === 'footer' ? 'group' : 'template';
+  const pageType = kind === 'template' ? String(handle).split('.')[0] : null;
+  return catalogRules(layout, sectionDef, pageType !== null && (layout?.sides_on || []).includes(pageType));
+}
+
+/** Whether a document places its sections in rows or sides, not only in order. */
+export const hasLayout = (c) => Boolean(c) && ('rows' in c || 'sides' in c);
+
+/** What undo needs to put a document's rows, sides and order back, key order included. */
+const layoutSnapshot = (c) => ({ keys: Object.keys(c), values: clone({ order: c.order, rows: c.rows, sides: c.sides }) });
+
+/** A copy holding only what the row model reads, to compare before and after. */
+const layoutView = (c) => ({ order: clone(c.order), rows: clone(c.rows), sides: clone(c.sides), sections: c.sections });
+
+/**
+ * Writes rows, sides and order into the document in place (other parts of
+ * the editor hold it), keeping the key order the values came with.
+ */
+function writeLayout(c, keys, values) {
+  const rest = {};
+  Object.keys(c).forEach((key) => {
+    rest[key] = c[key];
+    delete c[key];
+  });
+  keys.forEach((key) => {
+    if (LAYOUT_KEYS.includes(key)) {
+      if (values[key] !== undefined) c[key] = clone(values[key]);
+    } else if (key in rest) {
+      c[key] = rest[key];
+    }
+  });
+  Object.keys(rest).forEach((key) => {
+    if (!LAYOUT_KEYS.includes(key) && !(key in c)) c[key] = rest[key];
+  });
+}
+
+/**
+ * An operation type that changes rows or sides through the model.
+ * `change(op, content, rules)` answers `{content, created?, moved?}`.
+ * Forward always works from the document as it is, so redo after undo
+ * gives the same result; backward puts back the snapshot kept in `prior`.
+ */
+function layoutType(change, describe) {
+  return {
+    apply(op, fwd) {
+      const c = contentOf(op.doc);
+      if (!c) return [];
+      const layout = layoutPayload();
+      if (!fwd) {
+        if (!op.prior) return [];
+        const was = layoutView(c);
+        writeLayout(c, op.prior.keys, op.prior.values);
+        return [effectsOf(was, c, layout)];
+      }
+      op.prior = null;
+      const result = change(op, c, rulesFor(op.doc));
+      const next = result?.content;
+      if (!next || same({ keys: Object.keys(next), order: next.order, rows: next.rows, sides: next.sides }, { keys: Object.keys(c), order: c.order, rows: c.rows, sides: c.sides })) return [];
+      op.prior = layoutSnapshot(c);
+      op.created = result.created || [];
+      op.moved = result.moved || [];
+      const was = layoutView(c);
+      writeLayout(c, Object.keys(next), next);
+      return [effectsOf(was, c, layout)];
+    },
+    describe,
+  };
+}
+
+/**
+ * After a section is added or removed on a page with rows: drop its id
+ * from the rows, or give it a row after the one of the section before it.
+ */
+function tidyLayout(c) {
+  if (!hasLayout(c)) return;
+  const next = tidy(c, layoutPayload());
+  writeLayout(c, Object.keys(next), next);
+}
+
+/**
+ * A copy sits right under its original when that is in a column or a side
+ * with room, as the server puts it; otherwise it keeps the row of its own
+ * tidy() gave it.
+ */
+function placeUnder(handle, c, source, sid) {
+  const layout = layoutPayload();
+  const at = locate(c, source, layout);
+  if (!at) return;
+  let target;
+  if (at.where === 'side') {
+    target = { drop: 'side', side: at.side, before: c.sides?.[at.side]?.[at.index + 1] ?? null };
+  } else {
+    const row = rowsOf(c, layout).find((r) => r.id === at.rowId);
+    if (!row || row.split === '12') return;
+    target = { drop: 'column', rowId: at.rowId, column: at.column, before: row.columns[at.column][at.index + 1] ?? null };
+  }
+  const next = place(c, sid, target, rulesFor(handle)).content;
+  if (next !== c) writeLayout(c, Object.keys(next), next);
 }
 
 /** The address of a stored image, as the API adapter knows the server serves it. */
@@ -162,12 +280,21 @@ const TYPES = {
         if (!c.sections[op.sid]) return [];
         op.snapshot = clone(c.sections[op.sid]);
         op.index = c.order.indexOf(op.sid);
+        op.layout = hasLayout(c) ? layoutSnapshot(c) : null;
+        const was = op.layout ? layoutView(c) : null;
         delete c.sections[op.sid];
         c.order = c.order.filter((id) => id !== op.sid);
-        return [{ type: 'remove', sectionId: op.sid }];
+        tidyLayout(c);
+        return [{ type: 'remove', sectionId: op.sid }, ...(was ? [effectsOf(was, c, layoutPayload())] : [])];
       }
       if (c.sections[op.sid] || !op.snapshot) return [];
       c.sections[op.sid] = clone(op.snapshot);
+      if (op.layout) {
+        const was = layoutView(c);
+        writeLayout(c, op.layout.keys, op.layout.values);
+        // Columns and sides are drawn by the server, so the preview loads again.
+        return [effectsOf(was, c, layoutPayload())];
+      }
       c.order.splice(clampIndex(op.index, c.order.length), 0, op.sid);
       return [{ type: 'restore', sectionId: op.sid, toIndex: c.order.indexOf(op.sid) }];
     },
@@ -185,16 +312,27 @@ const TYPES = {
       if (!c) return [];
       if (fwd) {
         if (c.sections[op.sid]) return [];
+        op.layout = hasLayout(c) ? layoutSnapshot(c) : null;
+        const was = op.layout ? layoutView(c) : null;
         c.sections[op.sid] = clone(op.snapshot);
         c.order.splice(clampIndex(op.index, c.order.length), 0, op.sid);
+        // On a page with rows the new section gets its own row after the
+        // row of the section before it; the preview loads again to draw it.
+        if (was) {
+          tidyLayout(c);
+          if (op.kind === 'duplicate' && op.source) placeUnder(op.doc, c, op.source, op.sid);
+          return [effectsOf(was, c, layoutPayload())];
+        }
         if (op.shown) return [{ type: 'restore', sectionId: op.sid, toIndex: c.order.indexOf(op.sid) }];
         return [{ render: op.kind === 'duplicate' ? 'duplicate' : 'insert', handle: op.doc, sectionId: op.sid, source: op.source, group: op.group, index: c.order.indexOf(op.sid), op }];
       }
       if (!c.sections[op.sid]) return [];
       op.snapshot = clone(c.sections[op.sid]);
+      const was = op.layout ? layoutView(c) : null;
       delete c.sections[op.sid];
       c.order = c.order.filter((id) => id !== op.sid);
-      return [{ type: 'remove', sectionId: op.sid }];
+      if (op.layout) writeLayout(c, op.layout.keys, op.layout.values);
+      return [{ type: 'remove', sectionId: op.sid }, ...(was ? [effectsOf(was, c, layoutPayload())] : [])];
     },
     describe: (op) => `${op.kind === 'duplicate' ? 'duplicate' : 'add'} ${op.name || 'section'}`,
   },
@@ -250,7 +388,28 @@ const TYPES = {
     },
     describe: (op) => `move ${op.name || 'block'}`,
   },
+
+  /* { doc, sid, target } a drop target of the row model */
+  place: layoutType((op, c, rules) => place(c, op.sid, op.target, rules), (op) => `move ${op.name || 'section'}`),
+
+  /* { doc, split, before, rowId } an empty row of columns */
+  'row-add': layoutType((op, c) => ({ content: addRow(c, op.split, op.before, op.rowId, layoutPayload()) }), () => 'add a row'),
+
+  /* { doc, rowId, before } */
+  'row-move': layoutType((op, c) => ({ content: moveRow(c, op.rowId, op.before, layoutPayload()) }), () => 'move a row'),
+
+  /* { doc, rowId } its sections stay, each in a row of its own */
+  'row-remove': layoutType((op, c) => removeRow(c, op.rowId, layoutPayload()), () => 'remove a row'),
+
+  /* { doc, rowId, split } */
+  'row-split': layoutType((op, c, rules) => changeSplit(c, op.rowId, op.split, rules), () => 'change the columns'),
+
+  /* { doc, rowId, key, to } */
+  'row-set': layoutType((op, c) => ({ content: setRow(c, op.rowId, op.key, op.to, layoutPayload()) }), () => 'change row settings'),
 };
+
+/** Operation types that change rows or sides. */
+export const LAYOUT_TYPES = new Set(['place', 'row-add', 'row-move', 'row-remove', 'row-split', 'row-set']);
 
 /** The documents an operation changes. */
 export const handlesOf = (op) => (op.t === 'theme' || op.t === 'color' ? ['settings'] : [op.doc]);
@@ -351,6 +510,9 @@ export function reapply(ops) {
     delete op.seq;
     delete op.mergeKey;
     delete op.shown;
+    // Rows and sides are worked out again from the document as it is now.
+    delete op.prior;
+    delete op.layout;
     const c = doc(op.doc)?.content;
     if (op.t === 'set') {
       const s = c?.sections?.[op.sid];
@@ -383,6 +545,8 @@ export function reapply(ops) {
     } else if (op.t === 'insert' && c?.sections?.[op.sid]) {
       return;
     } else if (op.t === 'remove' && !c?.sections?.[op.sid]) {
+      return;
+    } else if (op.t === 'place' && !c?.sections?.[op.sid]) {
       return;
     }
     commit(op);
