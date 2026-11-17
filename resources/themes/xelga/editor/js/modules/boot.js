@@ -11,11 +11,12 @@
  *   catalog    { sections: {type: schema}, theme_settings: [groups], font_pairs: [pairs] }
  *   options    { menus: [{value, label}], font_pairs: [...] }   lists for options_source
  *   documents* { handle: document state }      the documents of the first page, so it opens without a request
- *   pages      [{ type, handle, label, kind, url, subject_type*, subject*, groups*, note*, ready* }]
+ *   pages      [{ type, handle, label, kind, url, subject_type*, subject*, subject_count*, groups*, note*, ready* }]
  *              kind 'template' pages have sections; kind 'fixed' pages (checkout, sign in,
  *              account) have no handle and are only styled by theme settings. A page with
  *              subject_type can have special layouts; url is null when the store has no
- *              record to show it on (no product yet, for the product page)
+ *              record to show it on (no product yet, for the product page); subject_count
+ *              is how many records of that kind the store has
  *   templates* [{ handle, page_type, label, subject_type, count, assigned, url, subject, ... }]
  *              the special layouts (custom templates)
  *   drafts*    { handle: draft_version } for every document with a draft, loaded or not
@@ -66,6 +67,7 @@ export function normalizePage(p) {
     ready: p.ready !== false,
     subjectType: p.subject_type || p.subjectType || null,
     subject: p.subject || null,
+    subjectCount: Number(p.subject_count ?? p.subjectCount ?? 0),
     groups: Array.isArray(p.groups) ? p.groups : [],
     note: p.note || '',
     custom: false,

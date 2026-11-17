@@ -8,6 +8,7 @@
  * come from it, from the expected window, or with an unknown type.
  */
 import { $, $$, root, reduceMotion, EDITOR_SELECT } from '../../js/util.js';
+import { pickOne } from './modules/clean-html.js';
 
 const PROTOCOL = 1;
 const ORIGIN = window.location.origin;
@@ -447,93 +448,11 @@ function markSelection() {
 }
 
 /*
- * Markup from the server. It is the store's own preview answer, fetched by
- * the editor from this origin, and is parsed inertly in a template element.
- * It is still cleaned with allowlists before it joins the page, so that
- * markup which slipped past every other check cannot run: elements that can
- * run or load code are removed, every inline handler is dropped, and an
- * address is kept only when its scheme is one a storefront link or image
- * needs.
+ * Markup from the server is cleaned with allowlists before it joins the
+ * page (see clean-html.js); only the one section or block asked for is used.
  */
-const MAX_HTML = 2000000;
-
-// Removed with everything inside them. SVG names are matched in lower case.
-const DROP_TAGS = new Set([
-  'script', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'portal', 'link', 'style', 'base', 'meta',
-  'noscript', 'animate', 'animatemotion', 'animatetransform', 'set', 'foreignobject', 'handler', 'listener',
-]);
-
-// Attributes that hold one address, or a list of them (srcset).
-const URL_ATTRS = new Set([
-  'href', 'src', 'action', 'formaction', 'xlink:href', 'poster', 'data', 'background', 'ping', 'cite', 'longdesc',
-  'codebase', 'manifest', 'lowsrc', 'dynsrc', 'icon',
-]);
-const LIST_ATTRS = new Set(['srcset', 'imagesrcset']);
-const SAFE_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'tel:']);
-const IMAGE_DATA = /^data:image\/(png|jpeg|jpg|gif|webp|avif);base64,[a-z0-9+/=]*$/;
-
-// Control characters, space and DEL are ignored by URL parsers, so
-// "java&#9;script:" must be tested as "javascript:".
-const normalize = (value) => String(value).replace(/[\u0000- \u007f]/g, '').toLowerCase();
-
-/** Whether an address may stay on an attribute. */
-function safeUrl(raw, { name, tag }) {
-  const value = normalize(raw);
-  if (value === '' || value.startsWith('#')) return true;
-  // An SVG <use> only points into this document; elsewhere it loads markup.
-  if (tag === 'use' && (name === 'href' || name === 'xlink:href')) return false;
-  if ((name === 'src' || name === 'srcset' || name === 'imagesrcset') && value.startsWith('data:')) return IMAGE_DATA.test(value);
-  let url;
-  try {
-    url = new URL(String(raw).trim(), document.baseURI);
-  } catch {
-    return false;
-  }
-  // A scheme written in the value has to be on the list too; anything without
-  // one is relative and resolves on this origin.
-  const scheme = /^([a-z][a-z0-9+.-]*):/.exec(value)?.[1];
-  if (scheme && !SAFE_SCHEMES.has(`${scheme}:`)) return false;
-  if (!SAFE_SCHEMES.has(url.protocol)) return false;
-  // A form only submits to the store itself.
-  if (name === 'action' || name === 'formaction') return url.origin === window.location.origin;
-  return true;
-}
-
-/** Each address in a srcset list, without its width or density. */
-const srcsetUrls = (value) => String(value).split(',').map((part) => part.trim().split(/\s+/)[0]).filter(Boolean);
-
-function scrub(rootNode) {
-  rootNode.querySelectorAll('*').forEach((n) => {
-    if (DROP_TAGS.has(n.localName.toLowerCase())) n.remove();
-  });
-  rootNode.querySelectorAll('*').forEach((n) => {
-    const tag = n.localName.toLowerCase();
-    Array.from(n.attributes).forEach((attr) => {
-      const name = attr.name.toLowerCase();
-      let keep = !name.startsWith('on') && name !== 'srcdoc';
-      if (keep && URL_ATTRS.has(name)) keep = safeUrl(attr.value, { name, tag });
-      if (keep && LIST_ATTRS.has(name)) keep = srcsetUrls(attr.value).every((u) => safeUrl(u, { name, tag }));
-      // Any other attribute holding a script address (a data-href read by a script, say).
-      if (keep && /^(javascript|vbscript):/.test(normalize(attr.value))) keep = false;
-      if (!keep) n.removeAttribute(attr.name);
-    });
-    // A template's content is a separate fragment that the page's own
-    // scripts may clone later: clean it the same way.
-    if (tag === 'template' && n.content) scrub(n.content);
-  });
-}
-
-function parseOne(html, selector, id, attr) {
-  if (typeof html !== 'string' || html === '' || html.length > MAX_HTML) return null;
-  const tpl = document.createElement('template');
-  tpl.innerHTML = html;
-  scrub(tpl.content);
-  const el = Array.from(tpl.content.children).find((node) => node.matches(selector) && node.getAttribute(attr) === id);
-  return el ? document.importNode(el, true) : null;
-}
-
-const sectionFrom = (html, id) => parseOne(html, '[data-section-id]', id, 'data-section-id');
-const blockFrom = (html, id) => parseOne(html, '[data-block-id]', id, 'data-block-id');
+const sectionFrom = (html, id) => pickOne(html, '[data-section-id]', id, 'data-section-id');
+const blockFrom = (html, id) => pickOne(html, '[data-block-id]', id, 'data-block-id');
 
 const ID = /^[a-z0-9-]{1,40}$/;
 const clip = (text, max = 80) => String(text ?? '').slice(0, max);
@@ -824,8 +743,57 @@ function arrivedByLink() {
   }
 }
 
+/*
+ * The store preview opened in a tab of its own (Open store preview in the
+ * editor). Browsers send no frame header there, so a page only shows the
+ * draft when its address carries the preview window's nonce: links and
+ * searches that stay on this store take it along, so the tab keeps showing
+ * the draft while the merchant browses. Other sites never receive it.
+ */
+function previewAddress(raw) {
+  const nonce = new URLSearchParams(window.location.search).get(PREVIEW_PARAM);
+  if (!nonce) return null;
+  let url;
+  try {
+    url = new URL(raw, window.location.href);
+  } catch {
+    return null;
+  }
+  if (url.origin !== ORIGIN || url.searchParams.has(PREVIEW_PARAM)) return null;
+  // A jump within this page needs no new request.
+  if (url.hash && url.pathname === window.location.pathname && url.search === window.location.search) return null;
+  url.searchParams.set(PREVIEW_PARAM, nonce);
+  return url;
+}
+
+function keepPreviewInTab() {
+  if (!new URLSearchParams(window.location.search).get(PREVIEW_PARAM)) return;
+  // Rewritten as the link is about to be used, so a new tab or a copied
+  // address keeps the draft too.
+  const onLink = (event) => {
+    const link = event.target.closest?.('a[href]');
+    if (!link) return;
+    const url = previewAddress(link.getAttribute('href'));
+    if (url) link.href = url.href;
+  };
+  ['pointerdown', 'focusin', 'click', 'auxclick', 'contextmenu'].forEach((type) => document.addEventListener(type, onLink, true));
+  document.addEventListener('submit', (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || (form.method || 'get').toLowerCase() !== 'get') return;
+    if (!previewAddress(form.action || window.location.href) || form.elements.namedItem(PREVIEW_PARAM)) return;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = PREVIEW_PARAM;
+    input.value = new URLSearchParams(window.location.search).get(PREVIEW_PARAM);
+    form.append(input);
+  }, true);
+}
+
 function start() {
-  if (window.parent === window) return;
+  if (window.parent === window) {
+    keepPreviewInTab();
+    return;
+  }
   root.classList.add('in-editor');
   boxes.hover = makeBox('hover');
   boxes.select = makeBox('select');

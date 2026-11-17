@@ -1,13 +1,14 @@
 /*
  * The top bar and the controls around the panels: undo and redo, the save
- * status, Save draft, Publish (with its confirmation and refusal), the More
- * menu (preview, earlier versions, throw away draft), the page picker, the
+ * status, Open store preview, Save draft, Publish (with its confirmation and
+ * refusal), the More menu (the published store, earlier versions, throw away
+ * draft), the page picker, the
  * presence line, the panel tabs, the phone dock and keyboard shortcuts.
  */
 
 import { $, $$, h, icon, toast, announce } from './dom.js';
 import {
-  S, ui, anyDirty, anySaving, publishable, docLabel, isDirty, sec, blk, labelOf,
+  S, ctx, ui, anyDirty, anySaving, publishable, docLabel, isDirty, sec, blk, labelOf,
 } from './state.js';
 import { themeGroups, ownThemeGroups } from './catalog.js';
 import { undo, redo, canUndo, canRedo, describe } from './operations.js';
@@ -58,7 +59,28 @@ function status() {
   return ['', 'No changes yet', 'What you see is what shoppers see.'];
 }
 
+/**
+ * Open store preview: the page being edited, from the draft, in a tab of
+ * its own. The address carries the preview window's nonce, which is what
+ * shows the draft there; until the window is open the link waits.
+ */
+export function updatePreviewLink() {
+  const link = $('#preview-link');
+  if (!link) return;
+  const { nonce, param } = ctx.boot?.preview || {};
+  const base = S.page?.url || ctx.boot?.preview?.url || S.store?.url || '/';
+  if (!nonce) {
+    link.setAttribute('aria-disabled', 'true');
+    return;
+  }
+  const url = new URL(base, window.location.href);
+  url.searchParams.set(param || 'xelga_preview', nonce);
+  link.href = url.href;
+  link.removeAttribute('aria-disabled');
+}
+
 export function updateToolbar() {
+  updatePreviewLink();
   $('#undo-btn').disabled = !canUndo() || Boolean(S.fatal);
   $('#redo-btn').disabled = !canRedo() || Boolean(S.fatal);
   const [tone, text, title] = status();
@@ -182,7 +204,7 @@ async function runPublish() {
 function moreMenu(anchor) {
   const anyDraft = Object.values(S.docs).some((d) => d.hasDraft || isDirty(d));
   openMenu(anchor, [
-    { label: 'Preview store in a new tab', iconName: 'external', hint: 'Shows what shoppers see now', run: () => window.open($('#preview-link').href, '_blank', 'noopener') },
+    { label: 'Open the published store', iconName: 'external', hint: 'Shows what shoppers see now', run: () => window.open(S.store?.url || '/', '_blank', 'noopener') },
     { label: 'Reload preview', iconName: 'rotate-ccw', run: () => reloadPreview() },
     { label: 'Earlier versions', iconName: 'clock', hint: 'Go back to something you published', run: () => openRevisions() },
     { sep: true },
@@ -284,6 +306,13 @@ export function initTopbar() {
     }), { align: 'end', label: 'Publish' });
   });
   $('#more-btn').addEventListener('click', (e) => moreMenu(e.currentTarget));
+  // The preview window opens a moment after the editor: a click before then waits for it.
+  $('#preview-link').addEventListener('click', (e) => {
+    if (e.currentTarget.getAttribute('aria-disabled') === 'true') {
+      e.preventDefault();
+      toast('The store preview is still opening. Try again in a moment.');
+    }
+  });
   $('#page-btn').addEventListener('click', (e) => pageMenu(e.currentTarget));
   radioKeys($('#device-toggle'));
 
@@ -319,6 +348,7 @@ export function initTopbar() {
   document.addEventListener('keydown', onKeydown);
 
   ui.updateToolbar = updateToolbar;
+  ui.updatePreviewLink = updatePreviewLink;
   ui.updateDock = updateDock;
   ui.onKeydown = onKeydown;
   ui.setNav = setNav;

@@ -1,6 +1,6 @@
 /*
- * The editor's page structure: top bar, the two side panels, the preview
- * canvas and the phone dock. The server's shell only provides the boot data
+ * The editor's page structure: top bar, the two side panels, the canvas
+ * (the layout board, or the store preview) and the phone dock. The server's shell only provides the boot data
  * and a mount point; everything inside is drawn here, so the markup and the
  * code that drives it change together.
  */
@@ -37,8 +37,10 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
         icon('user', 'icon--sm'), h('span', { class: 'presence__text' })),
       h('p', { class: 'status', id: 'status', role: 'status', 'aria-live': 'polite' },
         h('span', { class: 'status__dot', 'aria-hidden': 'true' }), h('span', { class: 'status__text', text: 'Loading store' })),
-      h('a', { class: 'btn btn--ghost btn--preview', id: 'preview-link', href: storeUrl, target: '_blank', rel: 'noopener' },
-        icon('external', 'icon--sm'), h('span', { text: 'Preview store' })),
+      h('a', {
+        class: 'btn btn--ghost btn--preview', id: 'preview-link', href: storeUrl, target: '_blank', rel: 'noopener',
+        'aria-disabled': 'true', 'aria-label': 'Open store preview in a new tab', 'data-tip': 'Your draft, as shoppers will see it',
+      }, icon('external', 'icon--sm'), h('span', { text: 'Open store preview' })),
       h('button', { type: 'button', class: 'icon-btn', id: 'more-btn', 'aria-label': 'More actions', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'data-tip': 'More' }, dotsIcon()),
       h('button', { type: 'button', class: 'btn btn--secondary', id: 'save-btn', disabled: true }, h('span', { class: 'btn__label', text: 'Save draft' })),
       h('button', { type: 'button', class: 'btn btn--primary', id: 'publish-btn', disabled: true }, h('span', { class: 'btn__label', text: 'Publish' }))));
@@ -65,7 +67,14 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
     h('button', { type: 'button', class: 'apply-note__undo', id: 'apply-undo' }, 'Undo'),
     h('button', { type: 'button', class: 'icon-btn icon-btn--sm apply-note__close', id: 'apply-close', 'aria-label': 'Dismiss' }, icon('close', 'icon--sm')));
 
+  // The layout board, and the store preview beside it until the board does everything the preview did.
+  const canvasSwitch = h('div', { class: 'seg canvas-switch', id: 'canvas-switch', role: 'radiogroup', 'aria-label': 'Show' },
+    h('button', { type: 'button', role: 'radio', 'aria-checked': 'true', tabindex: 0, dataset: { canvas: 'board' } }, icon('layout', 'icon--sm'), h('span', { text: 'Board' })),
+    h('button', { type: 'button', role: 'radio', 'aria-checked': 'false', tabindex: -1, dataset: { canvas: 'preview' } }, icon('monitor', 'icon--sm'), h('span', { text: 'Preview' })));
+
   const canvas = h('main', { class: 'canvas', id: 'canvas' },
+    canvasSwitch,
+    h('div', { class: 'board', id: 'board', role: 'region', 'aria-label': 'Page layout' }),
     applyNote,
     h('div', { class: 'frame-wrap', id: 'frame-wrap' },
       h('iframe', { id: 'frame', title: 'Store preview', src: 'about:blank' }),
@@ -85,7 +94,7 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
 
   const app = h('div', {
     class: 'app', id: 'app',
-    dataset: { device: 'desktop', nav: 'sections', panel: 'nav', state: 'loading', sheet: 'closed' },
+    dataset: { device: 'desktop', nav: 'sections', panel: 'nav', state: 'loading', sheet: 'closed', canvas: 'board', loaded: 'false' },
   }, topbar, nav, canvas, inspector, dock);
 
   mount.replaceChildren(app,

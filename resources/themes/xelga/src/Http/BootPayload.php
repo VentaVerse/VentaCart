@@ -213,7 +213,7 @@ final class BootPayload
         $out = [];
         foreach (self::PAGES as $page) {
             $subject = isset($page['subjects']) ? self::sample($page['subjects']) : null;
-            $out[] = [
+            $entry = [
                 'type' => $page['type'],
                 'handle' => $page['type'],
                 'label' => $page['label'],
@@ -222,6 +222,12 @@ final class BootPayload
                 'subject' => $subject,
                 'url' => self::pageUrl($page['type'], $page['route'], $subject),
             ];
+            // How many records the page type has, so the editor can say how
+            // many use its default layout (those not on a special layout).
+            if (isset($page['subjects'])) {
+                $entry['subject_count'] = self::subjectCount($page['subjects']);
+            }
+            $out[] = $entry;
         }
         // Pages of page types extensions added, after the theme's own, under
         // the extension's name. A page with nothing to show yet has no url.
@@ -334,6 +340,21 @@ final class BootPayload
             'name' => (string) $row->{$nameColumn},
             'slug' => (string) $row->slug,
         ];
+    }
+
+    /** Every record of a kind, through core's model: 0 when the kind is not installed. */
+    private static function subjectCount(string $subjectType): int
+    {
+        $model = TemplateManager::subjectModel($subjectType);
+        if ($model === null) {
+            return 0;
+        }
+
+        try {
+            return (int) $model::query()->count();
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     /** The storefront address of a page, or null when it cannot be opened on this store. */

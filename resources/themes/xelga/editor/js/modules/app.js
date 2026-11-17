@@ -1,7 +1,7 @@
 /*
  * Starts the editor: draws the shell, connects the preview bridge, loads the
  * documents the current page is drawn from, and wires every change to the
- * panels, the preview and autosave.
+ * panels, the layout board, the preview and autosave.
  */
 
 import { $, setSprite, toast } from './dom.js';
@@ -27,6 +27,7 @@ import { closePopover } from './popover.js';
 import { initLayouts } from './layouts.js';
 import { initStores } from './stores.js';
 import { initNeeds } from './needs.js';
+import { initBoard } from './board/board.js';
 import { h } from './dom.js';
 
 const STRUCTURAL = new Set(['remove', 'insert', 'move', 'rename', 'block-add', 'block-remove', 'block-move', 'visible', ...LAYOUT_TYPES]);
@@ -85,6 +86,9 @@ async function openPreview() {
     const opened = await ctx.api.openPreview();
     Object.assign(ctx.boot.preview, { nonce: opened.nonce, until: opened.until });
     if (opened.url && isSameOrigin(opened.url)) ctx.boot.preview.url = opened.url;
+    // The board's pictures and Open store preview both need the window.
+    ui.updatePreviewLink?.();
+    ui.renderBoard?.();
   } catch (error) {
     if (error.kind === 'unauthenticated' || error.kind === 'forbidden') {
       setFatal(error);
@@ -206,6 +210,7 @@ async function openPage(target, { url = null, frameNavigated = false, openLayout
   S.page = next;
   S.scope = next.kind === 'fixed' ? 'page' : scope;
   S.sel = null;
+  S.view = { type: 'board' };
   S.open.clear();
   S.addAt = null;
   S.renaming = null;
@@ -316,6 +321,7 @@ export function startEditor({ boot, api, mount = null }) {
   initStores();
   initPreview({ onNavigated });
   initNeeds();
+  initBoard();
   ctx.bridge.on('ready', onFrameReady);
   ui.openPage = openPage;
   ui.rememberPage = rememberPage;
