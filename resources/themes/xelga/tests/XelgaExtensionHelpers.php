@@ -33,6 +33,8 @@ trait XelgaExtensionHelpers
         CustomerGroup::create(['store_id' => $this->store->id, 'name' => 'Retail', 'is_default' => true]);
         // Core's visibility scope steps aside for console runs; these tests are storefront requests.
         (new \ReflectionProperty(Application::class, 'isRunningInConsole'))->setValue($this->app, false);
+        // Out of the console the token check runs again; these tests call the endpoints as the editor does.
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
         $this->forgetXelgaState();
     }
 

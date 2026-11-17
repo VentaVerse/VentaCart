@@ -381,6 +381,11 @@ final class TemplateManager
         foreach ($order as $id) {
             $section = $sections[$id] ?? null;
             $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
+            // A section kept while its extension is away goes with the copy, as it is.
+            if ($schema === null && Shape::isDormant($section)) {
+                $keep[] = $id;
+                continue;
+            }
             if ($schema === null || ! $schema->allowedIn($handle, 'template', $pageType)) {
                 if (is_array($section)) {
                     $leftOut[] = (string) (($section['label'] ?? '') !== '' ? $section['label'] : ($schema?->label ?? $section['type'] ?? $id));

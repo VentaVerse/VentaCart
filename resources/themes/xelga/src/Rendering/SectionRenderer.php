@@ -45,11 +45,16 @@ final class SectionRenderer
 
         if ($schema === null) {
             return $context->preview
-                ? $this->wrap($id, view('xelga::snippets.section-missing', ['id' => $id, 'type' => $type])->render())
+                ? $this->wrap($id, view('xelga::snippets.section-missing', ['id' => $id, 'type' => $type] + self::owner($type))->render())
                 : '';
         }
         if ($disabled && ! $context->preview) {
             return '';
+        }
+        // Stored while nothing could check it (its extension was away, or a
+        // placement put it there): cleaned now, so no view sees an unchecked value.
+        if (($section['unchecked'] ?? false) === true) {
+            $section = $this->checked($schema, $section);
         }
 
         $settings = array_merge($schema->defaults(), (array) ($section['settings'] ?? []));
@@ -105,6 +110,57 @@ final class SectionRenderer
         }
 
         return $this->wrap($id, $html);
+    }
+
+    /**
+     * Who a missing extension section belongs to, for the editor's note.
+     *
+     * @return array{extension: ?string, absence: ?string}
+     */
+    public static function owner(string $type): array
+    {
+        $name = \Themes\Xelga\Documents\Shape::extensionOf($type);
+        if ($name === null) {
+            return ['extension' => null, 'absence' => null];
+        }
+        $extensions = \Themes\Xelga\Extensions\Extensions::current();
+
+        return ['extension' => $extensions->titleOf($name), 'absence' => $extensions->absence($name)];
+    }
+
+    /** A section's settings and blocks run through the sanitizer, as a save would. */
+    private function checked(\Themes\Xelga\Catalog\SectionSchema $schema, array $section): array
+    {
+        $sanitizer = new \Themes\Xelga\Settings\Sanitizer($this->sanitizeContext());
+        $stored = (array) ($section['settings'] ?? []);
+        $section['settings'] = $sanitizer->cleanMap($schema->settings(), $stored, 'settings');
+        foreach ((array) ($section['blocks'] ?? []) as $blockId => $block) {
+            $type = is_array($block) ? (string) ($block['type'] ?? '') : '';
+            if ($schema->blockType($type) === null) {
+                unset($section['blocks'][$blockId]);
+                continue;
+            }
+            $section['blocks'][$blockId]['settings'] = $sanitizer->cleanMap(
+                $schema->blockSettings($type),
+                $schema->carryDown($type, $stored, (array) ($block['settings'] ?? [])),
+                "blocks.{$blockId}",
+            );
+        }
+
+        return $section;
+    }
+
+    private ?\Themes\Xelga\Settings\SanitizeContext $sanitizeContext = null;
+
+    private function sanitizeContext(): \Themes\Xelga\Settings\SanitizeContext
+    {
+        if ($this->sanitizeContext === null) {
+            $settings = app(DocumentRepository::class)->content(\Themes\Xelga\Documents\Handles::SETTINGS);
+            $ids = array_values(array_filter(array_column((array) ($settings['schemes'] ?? []), 'id'), 'is_string'));
+            $this->sanitizeContext = \Themes\Xelga\Settings\SanitizeContext::forStore($ids !== [] ? $ids : ['scheme-1']);
+        }
+
+        return $this->sanitizeContext;
     }
 
     private function wrap(string $id, string $html): string

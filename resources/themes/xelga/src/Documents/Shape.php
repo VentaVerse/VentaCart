@@ -26,6 +26,9 @@ final class Shape
 
     public const SCHEME_ID = '/^scheme-[1-9][0-9]?$/';
 
+    /** The most a dormant section (one whose extension is away) may hold, as stored. */
+    public const MAX_DORMANT_BYTES = 16384;
+
     /** @var array<string, list<string>> */
     private array $errors = [];
 
@@ -182,6 +185,20 @@ final class Shape
             $label = trim(SafeInput::text($section['label'] ?? '', 80));
             $disabled = $this->flag($section['disabled'] ?? false, "{$path}.disabled");
 
+            if ($schema === null && ($extension = self::extensionOf($type)) !== null) {
+                // An extension's section while the extension is switched off
+                // or removed: kept exactly as stored, settings and hidden
+                // flag included, so switching the extension back on brings it
+                // back as it was. Nothing checks its values now, so it is
+                // marked, and the renderer cleans them before any view sees
+                // them; the next save after the extension returns cleans it.
+                $dormant = $this->dormant($section, $extension, $label, $disabled, $path);
+                if ($dormant !== null) {
+                    $outSections[$id] = $dormant;
+                }
+                continue;
+            }
+
             if ($schema === null) {
                 // Kept so the editor can show it with Remove; its values are
                 // not kept, since nothing can check them. Only a type that
@@ -211,6 +228,9 @@ final class Shape
                 'disabled' => $disabled,
                 'settings' => (object) $this->sanitizer->cleanMap($schema->settings(), $section['settings'] ?? [], "{$path}.settings"),
             ] + $this->blocks($schema, $section, $path);
+            if ($schema->source() !== null) {
+                $outSections[$id]['source'] = $schema->source();
+            }
         }
 
         if ($kind === 'template' && $pageType !== null) {
@@ -315,6 +335,84 @@ final class Shape
         }
 
         return ['block_order' => array_values(array_filter($order, 'is_string')), 'blocks' => (object) $out];
+    }
+
+    /** The extension an extension type belongs to (`marketplace.seller-card`), or null for any other type. */
+    public static function extensionOf(string $type): ?string
+    {
+        return preg_match(Catalog::EXTENSION_TYPE, $type, $m) === 1 && strlen($m[2]) <= 40 ? $m[1] : null;
+    }
+
+    /** Whether a stored section is an extension section kept while its extension is away. */
+    public static function isDormant(mixed $section): bool
+    {
+        return is_array($section)
+            && is_string($section['type'] ?? null) && self::extensionOf($section['type']) !== null
+            && Catalog::section($section['type']) === null;
+    }
+
+    /**
+     * A dormant section as stored: its ids are still checked, its values
+     * are kept unread. The source is the type's own prefix, never what the
+     * client sent.
+     */
+    private function dormant(array $section, string $extension, string $label, bool $disabled, string $path): ?array
+    {
+        if (strlen((string) json_encode($section)) > self::MAX_DORMANT_BYTES) {
+            $this->fail($path, 'A section kept while its extension is away holds at most 16 KB.');
+
+            return null;
+        }
+
+        $order = $section['block_order'] ?? [];
+        $blocks = $section['blocks'] ?? [];
+        if (! is_array($order) || ! array_is_list($order)) {
+            $this->fail("{$path}.block_order", 'The block order must be a list.');
+            $order = [];
+        }
+        if (! is_array($blocks) || ($blocks !== [] && array_is_list($blocks))) {
+            $this->fail("{$path}.blocks", 'The blocks must be an object keyed by id.');
+            $blocks = [];
+        }
+        $this->sameKeys($path, $order, $blocks, 'block');
+
+        $out = [];
+        foreach ($order as $id) {
+            $block = is_string($id) ? ($blocks[$id] ?? null) : null;
+            if (! is_array($block)) {
+                continue;
+            }
+            $type = $block['type'] ?? null;
+            if (! is_string($type) || (preg_match(self::ID, $type) !== 1 && self::extensionOf($type) === null)) {
+                $this->fail("{$path}.blocks.{$id}.type", 'Not a block type.');
+                continue;
+            }
+            $out[$id] = [
+                'type' => $type,
+                'label' => trim(SafeInput::text($block['label'] ?? '', 80)),
+                'disabled' => $this->flag($block['disabled'] ?? false, "{$path}.blocks.{$id}.disabled"),
+                'settings' => (object) self::storedMap($block['settings'] ?? []),
+            ];
+        }
+
+        return [
+            'type' => (string) $section['type'],
+            'label' => $label,
+            'disabled' => $disabled,
+            'settings' => (object) self::storedMap($section['settings'] ?? []),
+            'block_order' => array_values(array_filter($order, 'is_string')),
+            'blocks' => (object) $out,
+            'source' => $extension,
+            'unchecked' => true,
+        ];
+    }
+
+    /** Stored values kept unread: a map, or nothing. */
+    private static function storedMap(mixed $values): array
+    {
+        $values = is_object($values) ? (array) $values : $values;
+
+        return is_array($values) && ($values === [] || ! array_is_list($values)) ? $values : [];
     }
 
     /** The order list and the map must name the same ids, each once, each well formed and new to the document. */
