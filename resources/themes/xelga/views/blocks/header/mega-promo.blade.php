@@ -5,7 +5,7 @@
        @if ($block['disabled']) hidden @endif>
         @if ($promo['picture'])
             <img data-setting="image" src="{{ $promo['picture']['src'] }}" alt=""
-                 @if ($promo['picture']['width']) width="{{ $promo['picture']['width'] }}" height="{{ $promo['picture']['height'] }}" @endif loading="lazy">
+                 @if ($promo['picture']['width']) width="{{ $promo['picture']['width'] }}" height="{{ $promo['picture']['height'] }}" @endif loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($promo['picture'], '320px') }}>
         @else
             <img data-setting="image" alt="" hidden>
         @endif

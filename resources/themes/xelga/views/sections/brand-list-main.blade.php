@@ -23,7 +23,7 @@
                         <{{ $tag }} class="brand-tile" @if ($item['url']) href="{{ $item['url'] }}" @endif>
                             <span class="brand-tile__logo">
                                 @if ($item['picture'])
-                                    <img src="{{ $item['picture']['src'] }}" alt="" loading="lazy" decoding="async"
+                                    <img src="{{ $item['picture']['src'] }}" alt="" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($item['picture'], '160px') }}
                                          @if ($item['picture']['width']) width="{{ $item['picture']['width'] }}" height="{{ $item['picture']['height'] }}" @endif>
                                 @else
                                     <span class="brand-tile__initial" aria-hidden="true">{{ mb_strtoupper(mb_substr($item['name'], 0, 1)) }}</span>

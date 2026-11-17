@@ -19,7 +19,7 @@
                         <p class="quote__rating">@include('xelga::snippets.stars', ['rating' => (int) $s['rating']])</p>
                         <blockquote class="quote__text"><p data-setting="text">{{ $s['text'] }}</p></blockquote>
                         <div class="quote__by">
-                            <img class="quote__photo" src="{{ $photo['src'] ?? '' }}" alt="" width="48" height="48" loading="lazy" data-setting="photo" @if (! $photo) hidden @endif>
+                            <img class="quote__photo" src="{{ $photo['src'] ?? '' }}" alt="" width="48" height="48" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($photo, '48px') }} data-setting="photo" @if (! $photo) hidden @endif>
                             <p class="quote__who"><span class="quote__name" data-setting="name">{{ $s['name'] }}</span><span class="quote__city" data-setting="city" data-optional @if ($s['city'] === '') hidden @endif>{{ $s['city'] }}</span></p>
                         </div>
                     </li>

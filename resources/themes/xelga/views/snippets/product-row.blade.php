@@ -3,7 +3,10 @@
     the related products and recently viewed sections draw the same way as
     the home page's product rows.
 --}}
-@php $cards = $data['cards']; @endphp
+@php
+    $cards = $data['cards'];
+    $cardSizes = \Themes\Xelga\Rendering\Picture::cardSizes($settings['mobile_cols'] ?? 2, $settings['cols'] ?? 4);
+@endphp
 @if ($cards !== [] || $context->preview)
     <section class="s {{ $section['class'] }} {{ $settings['scheme'] }}" @include('xelga::snippets.section-attrs')
              data-cols="{{ $settings['cols'] }}" data-mobile-cols="{{ $settings['mobile_cols'] }}"
@@ -17,7 +20,7 @@
             @else
                 <ul class="product-grid rail-track" aria-label="{{ $settings['heading'] !== '' ? $settings['heading'] : $section['label'] }}">
                     @foreach ($cards as $card)
-                        <li>@include('xelga::snippets.product-card', ['card' => $card, 'idPrefix' => $section['id']])</li>
+                        <li>@include('xelga::snippets.product-card', ['card' => $card, 'idPrefix' => $section['id'], 'sizes' => $cardSizes])</li>
                     @endforeach
                 </ul>
             @endif

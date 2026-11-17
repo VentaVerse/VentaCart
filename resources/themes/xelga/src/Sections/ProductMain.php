@@ -104,7 +104,7 @@ final class ProductMain implements SectionData
      * The product's photos in core's order: the main photo first, then the
      * gallery by sort order, then any variant photo not already shown.
      *
-     * @return list<array{path: string, src: string, alt: string}>
+     * @return list<array{path: string, src: string, srcset: string, alt: string}>
      */
     public static function images(Product $product): array
     {
@@ -131,6 +131,7 @@ final class ProductMain implements SectionData
         return array_map(fn (string $path, int $i) => [
             'path' => $path,
             'src' => storage_url($path),
+            'srcset' => image_srcset($path),
             'alt' => $count > 1 ? "{$product->name}, photo " . ($i + 1) . " of {$count}" : (string) $product->name,
         ], $paths, array_keys($paths));
     }

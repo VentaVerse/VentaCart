@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Catalog;
 use App\Exceptions\UnsafeUrlException;
 use App\Http\Controllers\Controller;
 use App\Services\SafeUrlFetcher;
+use App\Support\ImageRenditions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -287,6 +288,7 @@ class ProductImageController extends Controller
         $info = pathinfo($path);
         $thumbPath = $info['dirname'] . '/' . $info['filename'] . '_thumb.' . ($info['extension'] ?? 'jpg');
         Storage::disk('public')->delete($thumbPath);
+        ImageRenditions::forget($path);
 
         return response()->json(['ok' => true]);
     }
@@ -307,6 +309,8 @@ class ProductImageController extends Controller
 
     protected function generateThumbnail(string $path): void
     {
+        ImageRenditions::queue($path);
+
         try {
             $fullPath = Storage::disk('public')->path($path);
             $size = getimagesize($fullPath);

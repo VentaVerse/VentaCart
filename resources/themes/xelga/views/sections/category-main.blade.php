@@ -17,7 +17,7 @@
         <header class="listing-head @if ($data['picture']) listing-head--media @endif">
             @if ($data['picture'])
                 <div class="listing-head__media">
-                    <img src="{{ $data['picture']['src'] }}" alt="" loading="eager" decoding="async"
+                    <img src="{{ $data['picture']['src'] }}" alt="" loading="eager" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($data['picture'], '(min-width: 750px) 40vw, 100vw') }}
                          @if ($data['picture']['width']) width="{{ $data['picture']['width'] }}" height="{{ $data['picture']['height'] }}" @endif>
                 </div>
             @endif
@@ -33,7 +33,7 @@
             <nav class="subcats" aria-label="{{ $data['title'] }} categories">
                 <ul class="subcats__list">
                     @foreach ($data['subcategories'] as $sub)
-                        <li class="subcat"><a class="subcat__link" href="{{ $sub['url'] }}">@if ($sub['picture'])<span class="subcat__media"><img src="{{ $sub['picture']['src'] }}" alt="" loading="lazy" decoding="async"></span>@endif<span class="subcat__name">{{ $sub['name'] }}</span></a></li>
+                        <li class="subcat"><a class="subcat__link" href="{{ $sub['url'] }}">@if ($sub['picture'])<span class="subcat__media"><img src="{{ $sub['picture']['src'] }}" alt="" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($sub['picture'], '48px') }}></span>@endif<span class="subcat__name">{{ $sub['name'] }}</span></a></li>
                     @endforeach
                 </ul>
             </nav>

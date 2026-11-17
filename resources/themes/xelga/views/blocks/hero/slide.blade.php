@@ -19,14 +19,14 @@
     <div class="hero__media">
         @if ($picture && $phone)
             <picture>
-                <source media="(max-width: 749px)" srcset="{{ $phone['src'] }}" @if ($phone['width']) width="{{ $phone['width'] }}" height="{{ $phone['height'] }}" @endif>
-                <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}"
+                <source media="(max-width: 749px)" srcset="{{ $phone['srcset'] !== '' ? $phone['srcset'] : $phone['src'] }}" sizes="100vw" @if ($phone['width']) width="{{ $phone['width'] }}" height="{{ $phone['height'] }}" @endif>
+                <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Picture::sources($picture, '100vw') }}
                      @if ($picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif
                      data-setting="image" data-setting-attr="image_alt:alt"
                      @if ($first) fetchpriority="high" @else loading="lazy" @endif>
             </picture>
         @elseif ($picture)
-            <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}"
+            <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Picture::sources($picture, '100vw') }}
                  @if ($picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif
                  data-setting="image" data-setting-attr="image_alt:alt"
                  @if ($first) fetchpriority="high" @else loading="lazy" @endif>

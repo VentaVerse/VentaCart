@@ -195,4 +195,35 @@ class XelgaProductPhotosTest extends TestCase
         $this->assertStringNotContainsString('data-lightbox', $html);
         $this->assertStringNotContainsString('data-zoom-src', $html);
     }
+
+    public function test_photos_offer_their_smaller_copies_while_zoom_and_full_screen_keep_the_original(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        foreach (['front', 'back', 'side'] as $name) {
+            $im = imagecreatetruecolor(1400, 1400);
+            ob_start();
+            imagejpeg($im);
+            \Illuminate\Support\Facades\Storage::disk('public')->put("media/products/demo/{$name}.jpg", (string) ob_get_clean());
+            \App\Support\ImageRenditions::make("media/products/demo/{$name}.jpg");
+        }
+        $this->product();
+
+        $this->publishProductSettings(['zoom' => 'hover']);
+        $html = $this->page();
+
+        preg_match('/<figure class="gallery__slide"[^>]*>\s*(<img [^>]*>)/', $html, $main);
+        $this->assertStringContainsString('srcset="/storage/renditions/media/products/demo/front.jpg.320.webp 320w', $main[1]);
+        $this->assertStringContainsString('/storage/media/products/demo/front.jpg 1400w', $main[1]);
+        $this->assertStringContainsString('sizes="', $main[1]);
+        $this->assertStringContainsString('data-zoom-src="' . storage_url('media/products/demo/front.jpg') . '"', $main[1]);
+
+        preg_match('/<button type="button" class="gallery__thumb"[^>]*>(<img [^>]*>)/', $html, $thumb);
+        $this->assertStringContainsString('sizes="96px"', $thumb[1]);
+
+        preg_match_all('/<img class="lightbox__img"[^>]*>/', $html, $full);
+        $this->assertCount(3, $full[0]);
+        foreach ($full[0] as $tag) {
+            $this->assertStringNotContainsString('srcset', $tag);
+        }
+    }
 }

@@ -17,7 +17,7 @@
                     <li @if ($item['block']) data-block-id="{{ $item['block']['id'] }}" data-block-type="brand" @if ($item['block']['disabled']) hidden @endif @endif>
                         <{{ $tag }} class="brand" @if ($item['url']) href="{{ $item['url'] }}" @endif>
                             @if ($item['picture'])
-                                <img src="{{ $item['picture']['src'] }}" alt="{{ $item['name'] }}" loading="lazy" decoding="async"
+                                <img src="{{ $item['picture']['src'] }}" alt="{{ $item['name'] }}" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($item['picture'], '160px') }}
                                      @if ($item['picture']['width']) width="{{ $item['picture']['width'] }}" height="{{ $item['picture']['height'] }}" @endif>
                             @else
                                 <span @if ($item['block']) data-setting="name" @endif>{{ $item['name'] !== '' ? $item['name'] : 'Pick a brand' }}</span>

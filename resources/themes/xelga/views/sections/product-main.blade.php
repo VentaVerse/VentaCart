@@ -36,7 +36,7 @@
         @if ($settings['sticky_buy'] !== 'off' && ! $data['unavailable'])
             <div class="buybar {{ $settings['scheme'] }}" data-buybar inert>
                 @if ($data['images'] !== [])
-                    <img class="buybar__img" src="{{ $data['images'][0]['src'] }}" alt="" data-buybar-img>
+                    <img class="buybar__img" src="{{ $data['images'][0]['src'] }}" alt="" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($data['images'][0], '48px') }} data-buybar-img>
                 @endif
                 <div class="buybar__text">
                     <p class="buybar__name">{{ $product->name }}</p>

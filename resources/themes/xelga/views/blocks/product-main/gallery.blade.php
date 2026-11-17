@@ -8,7 +8,7 @@
             <div class="gallery__track" data-gallery-track @if ($count > 1) role="region" aria-roledescription="carousel" aria-label="Photos of {{ $product->name }}. Use the arrow keys to move between them." tabindex="0" @endif>
                 @foreach ($images as $i => $image)
                     <figure class="gallery__slide" @if ($count > 1) role="group" aria-roledescription="slide" aria-label="{{ $i + 1 }} of {{ $count }}" @endif data-index="{{ $i }}">
-                        <img src="{{ $image['src'] }}" alt="{{ $image['alt'] }}" @if ($settings['zoom'] === 'hover') data-zoom-src="{{ $image['src'] }}" @endif @if ($i === 0) fetchpriority="high" @else loading="lazy" @endif decoding="async">
+                        <img src="{{ $image['src'] }}" {{ \Themes\Xelga\Rendering\Picture::sources($image, '(min-width: 1320px) 720px, (min-width: 750px) 55vw, 100vw') }} alt="{{ $image['alt'] }}" @if ($settings['zoom'] === 'hover') data-zoom-src="{{ $image['src'] }}" @endif @if ($i === 0) fetchpriority="high" @else loading="lazy" @endif decoding="async">
                     </figure>
                 @endforeach
             </div>
@@ -26,7 +26,7 @@
         @if ($count > 1)
             <ul class="gallery__thumbs" aria-label="Choose a photo">
                 @foreach ($images as $i => $image)
-                    <li><button type="button" class="gallery__thumb" data-gallery-go="{{ $i }}" aria-label="Show photo {{ $i + 1 }} of {{ $count }}" @if ($i === 0) aria-current="true" @endif><img src="{{ $image['src'] }}" alt="" loading="lazy" decoding="async"></button></li>
+                    <li><button type="button" class="gallery__thumb" data-gallery-go="{{ $i }}" aria-label="Show photo {{ $i + 1 }} of {{ $count }}" @if ($i === 0) aria-current="true" @endif><img src="{{ $image['src'] }}" {{ \Themes\Xelga\Rendering\Picture::sources($image, '96px') }} alt="" loading="lazy" decoding="async"></button></li>
                 @endforeach
             </ul>
             <p class="visually-hidden" aria-live="polite" data-gallery-live></p>

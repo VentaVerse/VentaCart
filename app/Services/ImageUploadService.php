@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\MediaFolder;
 use App\Models\StoreMedia;
+use App\Support\ImageRenditions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -27,6 +28,7 @@ class ImageUploadService
 
         $dimensions = $this->getImageDimensions($file);
         $this->generateThumbnail($file, $directory, $filename);
+        ImageRenditions::queue($path);
 
         return StoreMedia::create([
             'store_id' => $storeId,
@@ -50,6 +52,7 @@ class ImageUploadService
         $info = pathinfo($media->path);
         $thumbPath = $info['dirname'] . '/' . $info['filename'] . '_thumb.' . ($info['extension'] ?? 'jpg');
         Storage::disk($media->disk)->delete($thumbPath);
+        ImageRenditions::forget($media->path);
 
         return $media->delete();
     }
@@ -73,6 +76,9 @@ class ImageUploadService
             if (Storage::disk($media->disk)->exists($oldThumb)) {
                 Storage::disk($media->disk)->move($oldThumb, $newThumb);
             }
+
+            ImageRenditions::forget($media->path);
+            ImageRenditions::queue($newPath);
 
             $media->update([
                 'path' => $newPath,

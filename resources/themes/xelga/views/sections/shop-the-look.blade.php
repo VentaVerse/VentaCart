@@ -21,7 +21,7 @@
         @include('xelga::snippets.section-bg')
         <div class="s__inner look">
             <div class="look__media">
-                <img src="{{ $picture['src'] ?? '' }}" alt="{{ $settings['image_alt'] }}" loading="lazy" decoding="async"
+                <img src="{{ $picture['src'] ?? '' }}" alt="{{ $settings['image_alt'] }}" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($picture, '(min-width: 750px) 50vw, 100vw') }}
                      data-setting="image" data-setting-attr="image_alt:alt"
                      @if ($picture && $picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif
                      @if (! $picture) hidden @endif>
@@ -40,7 +40,7 @@
                         <div class="hotspot__pop" id="{{ $popId }}" hidden>
                             @if ($card)
                                 @if ($card['image'])
-                                    <img src="{{ $card['image']['src'] }}" alt="" width="64" height="64" loading="lazy">
+                                    <img src="{{ $card['image']['src'] }}" alt="" width="64" height="64" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($card['image'], '64px') }}>
                                 @endif
                                 <div>
                                     <p class="hotspot__pop-title"><a href="{{ $card['url'] }}">{{ $card['name'] }}</a></p>
@@ -67,7 +67,7 @@
                         <li class="mini">
                             <span class="mini__num" aria-hidden="true">{{ $spot['n'] }}</span>
                             @if ($card['image'])
-                                <img src="{{ $card['image']['src'] }}" alt="" width="64" height="64" loading="lazy">
+                                <img src="{{ $card['image']['src'] }}" alt="" width="64" height="64" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($card['image'], '64px') }}>
                             @else
                                 <span class="mini__ph" aria-hidden="true"></span>
                             @endif

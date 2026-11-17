@@ -245,6 +245,7 @@ class MediaLibrary
 
         $info = pathinfo($path);
         $disk->delete($info['dirname'] . '/' . $info['filename'] . '_thumb.' . ($info['extension'] ?? 'jpg'));
+        ImageRenditions::forget($path);
     }
 
     /**
@@ -288,6 +289,8 @@ class MediaLibrary
 
     private static function thumbnail(string $path): void
     {
+        ImageRenditions::queue($path);
+
         if (! extension_loaded('gd')) {
             return;
         }

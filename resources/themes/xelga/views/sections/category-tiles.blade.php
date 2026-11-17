@@ -29,7 +29,7 @@
                         <a class="tile__link" href="{{ $tile['url'] ?? '#' }}">
                             <span class="tile__media">
                                 @if ($tile['picture'])
-                                    <img src="{{ $tile['picture']['src'] }}" alt="" loading="lazy" decoding="async"
+                                    <img src="{{ $tile['picture']['src'] }}" alt="" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($tile['picture'], '(min-width: 990px) 25vw, 50vw') }}
                                          @if ($tile['picture']['width']) width="{{ $tile['picture']['width'] }}" height="{{ $tile['picture']['height'] }}" @endif>
                                 @endif
                             </span>

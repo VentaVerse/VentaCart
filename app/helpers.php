@@ -91,6 +91,18 @@ if (!function_exists('thumb_url')) {
     }
 }
 
+if (!function_exists('image_srcset')) {
+    /**
+     * The srcset of a stored photo's smaller copies (see ImageRenditions),
+     * or an empty string when it has none yet; print it with a matching
+     * `sizes` and keep the original as the src.
+     */
+    function image_srcset(?string $path): string
+    {
+        return \App\Support\ImageRenditions::srcset($path);
+    }
+}
+
 if (!function_exists('theme_json')) {
     function theme_json(string $key, mixed $default = []): mixed
     {

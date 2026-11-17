@@ -10,13 +10,14 @@
     $cardId = ($idPrefix ?? 'card') . '-' . $card['id'];
     $level = $headingLevel ?? 'h3';
     $canWish = \Illuminate\Support\Facades\Route::has('wishlist.add');
+    $cardSizes = $sizes ?? \Themes\Xelga\Rendering\Picture::cardSizes();
 @endphp
 <article class="card{{ $card['sold_out'] ? ' is-soldout' : '' }}" aria-labelledby="{{ $cardId }}">
     <div class="card__media">
         @if ($card['image'])
-            <img class="card__img" src="{{ $card['image']['src'] }}" alt="" loading="lazy" decoding="async">
+            <img class="card__img" src="{{ $card['image']['src'] }}" {{ \Themes\Xelga\Rendering\Picture::sources($card['image'], $cardSizes) }} alt="" loading="lazy" decoding="async">
             @if ($card['alt_image'])
-                <img class="card__img card__img--alt" src="{{ $card['alt_image']['src'] }}" alt="" loading="lazy" decoding="async">
+                <img class="card__img card__img--alt" src="{{ $card['alt_image']['src'] }}" {{ \Themes\Xelga\Rendering\Picture::sources($card['alt_image'], $cardSizes) }} alt="" loading="lazy" decoding="async">
             @endif
         @else
             <span class="card__placeholder" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-bag"></use></svg></span>
