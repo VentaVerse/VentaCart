@@ -519,8 +519,9 @@ export function place(content, sid, target, rules) {
   SIDES.forEach((which) => { sides[which] = sides[which].filter((id) => id !== sid); });
 
   if (target.drop === 'gap') {
-    // The section's own row, emptied by the move, is gone after normalizing; its id is free again.
-    const taken = takenIds(content, rows.filter((r) => r.columns.some((column) => column.length)));
+    // A one-column row emptied by the move is gone after normalizing, so its
+    // id is free again; an empty row of columns stays and keeps its id.
+    const taken = takenIds(content, rows.filter((r) => r.split !== '12' || r.columns.some((column) => column.length)));
     const index = target.before === 'end' ? rows.length : rows.findIndex((r) => r.id === target.before);
     rows.splice(index, 0, makeRow(freshId(sid, taken), '12', [[sid]], { ...layout.row_defaults }));
   } else if (target.drop === 'column') {

@@ -1,0 +1,138 @@
+{
+  "name": "split-given-as-number",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "a",
+      "b",
+      "c"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      },
+      "c": {
+        "type": "wide"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": 12,
+        "columns": [
+          [
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-2",
+        "split": "6-6",
+        "columns": [
+          [
+            "b"
+          ],
+          [
+            "c"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "a",
+      "b",
+      "c"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      },
+      "c": {
+        "type": "wide"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-2",
+        "split": "6-6",
+        "columns": [
+          [
+            "b"
+          ],
+          []
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-84a51684",
+        "split": "12",
+        "columns": [
+          [
+            "c"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "moved": [
+    {
+      "path": "content.sections.c",
+      "reason": "too-wide",
+      "value": "row-84a51684"
+    }
+  ]
+}
