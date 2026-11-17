@@ -13,15 +13,17 @@ use Illuminate\Support\Facades\DB;
  *
  * A store with nothing in it cannot show what it does: no category page, no
  * brand strip, no variant picker, no product card. So an install lays down a
- * small electronics catalogue with its own photography, the way OpenCart has
- * always shipped one, and the merchant deletes it from the admin when they are
- * ready to put their own goods in.
+ * small electronics catalog with its own photography, and the merchant deletes
+ * it from the admin when they are ready to put their own goods in.
+ *
+ * Prices are in Philippine pesos at the level a local shop would ask for each
+ * kind of item, so a fresh store's cards, cart and checkout read as real.
  *
  * The names are invented. Nothing here borrows a real maker's name or mark,
  * and the photographs carry no logo or lettering, so the demo can be shipped
  * and sold without standing on anybody's trademark.
  *
- * It runs once, into an empty catalogue. A store that already holds a single
+ * It runs once, into an empty catalog. A store that already holds a single
  * product of the merchant's own is left alone for good.
  */
 class DemoCatalogSeeder extends Seeder
@@ -68,7 +70,7 @@ class DemoCatalogSeeder extends Seeder
         }
 
         if (! $empty) {
-            $this->command?->info('Catalogue is not empty, demo goods skipped.');
+            $this->command?->info('Catalog is not empty, demo goods skipped.');
 
             return;
         }
@@ -81,7 +83,7 @@ class DemoCatalogSeeder extends Seeder
         });
 
         $this->command?->info(sprintf(
-            'Demo catalogue: %d products, %d categories, %d brands.',
+            'Demo catalog: %d products, %d categories, %d brands.',
             Product::withoutGlobalScopes()->count(),
             Category::query()->count(),
             Brand::query()->count(),
@@ -126,10 +128,10 @@ class DemoCatalogSeeder extends Seeder
         $out = [];
 
         foreach ([
-            ['Aurora', 'Phones built to last a contract and then some. Aurora has made one flagship a year since 2011 and supports each for six.'],
-            ['Northwind', 'Portable computers for people who actually carry them. Thin, quiet, and repairable, which is rarer than it should be.'],
-            ['Lumen', 'Colour accurate displays for studios and desks. Every panel leaves the factory individually calibrated with its report in the box.'],
-            ['Kestrel', 'Tablets that are pleasant to draw on and simple to hand to somebody else. Nothing here needs a manual.'],
+            ['Aurora', 'Phones with bright displays, capable cameras and batteries that last the day, in a flagship and an everyday size.'],
+            ['Northwind', 'Portable computers for people who actually carry them: thin, light and quiet.'],
+            ['Lumen', 'Monitors for studios, offices and desks at home, from a screen that fits a laptop sleeve to a wide curved panel.'],
+            ['Kestrel', 'Tablets that are pleasant to draw on and simple to hand to somebody else.'],
             ['Vireo', 'The small things that make the big things work: hubs, cables, earbuds, keyboards.'],
         ] as $i => [$name, $description]) {
             $out[$name] = Brand::create([
@@ -170,10 +172,10 @@ class DemoCatalogSeeder extends Seeder
             ]);
         };
 
-        $make('Phones', 'phones.jpg', null, 'Flagship and everyday handsets, unlocked and ready for any network.');
+        $make('Phones', 'phones.jpg', null, 'Flagship and everyday phones, sold unlocked.');
         $computers = $make('Computers', 'computers.jpg', null, 'Laptops and the displays to put beside them.');
         $make('Laptops', 'laptops.jpg', $computers, 'Thin, quiet machines for work that moves around.');
-        $make('Monitors', 'monitors.jpg', $computers, 'Colour accurate panels from a tidy 27 inch to a very wide 34.');
+        $make('Monitors', 'monitors.jpg', $computers, 'Desk monitors from a sharp 27 inch to a very wide 34, and a portable screen for travel.');
         $make('Tablets', 'tablets.jpg', null, 'For drawing, reading and handing to somebody across a table.');
         $make('Accessories', 'accessories.jpg', null, 'Hubs, earbuds, keyboards and the cables that connect them.');
 
@@ -201,7 +203,7 @@ class DemoCatalogSeeder extends Seeder
             \App\Support\MainMenu::set($categories[$name], true);
 
             // Stated here rather than inherited from the category's own sort
-            // order, which is a catalogue ordering and says nothing about
+            // order, which is a catalog ordering and says nothing about
             // where a department belongs in a menu bar.
             \App\Models\NavMenuItem::where('type', 'category')
                 ->where('category_id', $categories[$name]->id)
@@ -224,77 +226,77 @@ class DemoCatalogSeeder extends Seeder
         $rows = [
             [
                 'name' => 'Aurora 15 Pro', 'brand' => 'Aurora', 'cats' => ['Phones'],
-                'price' => 1199, 'quantity' => 40, 'weight' => 0.221,
+                'price' => 67990, 'cost' => 55800, 'quantity' => 40, 'weight' => 0.221,
                 'image' => 'phone-pro-graphite.jpg',
                 'gallery' => ['phone-pro-blue.jpg', 'phone-pro-desert.jpg'],
                 'views' => 1840,
-                'description' => "A 6.7 inch display that stays readable in direct sun, a camera that does not need good light, and a battery that finishes the day with something left.\n\nBuilt from a single piece of titanium, so it is lighter than last year while being harder to bend. Six years of operating system updates from the day it ships.",
+                'description' => "A 6.7 inch display that stays readable outdoors, a main camera with a telephoto lens beside it, and a battery sized for a full day of use.\n\nA titanium frame keeps it light in the hand. Three colors, and storage from 256GB to 1TB.",
             ],
             [
                 'name' => 'Aurora 15', 'brand' => 'Aurora', 'cats' => ['Phones'],
-                'price' => 899, 'sale' => 799, 'quantity' => 65, 'weight' => 0.171,
+                'price' => 32990, 'cost' => 26400, 'sale' => 29990, 'quantity' => 65, 'weight' => 0.171,
                 'image' => 'phone-compact-pink.jpg', 'views' => 1320,
-                'description' => "The same processor and the same main camera as the Pro, in a 6.1 inch body that still fits a pocket properly.\n\nFor most people this is the phone. The Pro adds a telephoto lens and an hour of battery, and costs three hundred more to do it.",
+                'description' => "The same processor and the same main camera as the Pro, in a 6.1 inch body that still fits a pocket properly.\n\nThe Pro adds a telephoto lens and a larger battery.",
             ],
             [
                 'name' => 'Northwind Air 13', 'brand' => 'Northwind', 'cats' => ['Laptops', 'Computers'],
-                'price' => 949, 'quantity' => 30, 'weight' => 1.24,
+                'price' => 54990, 'cost' => 46200, 'quantity' => 30, 'weight' => 1.24,
                 'image' => 'laptop-air-13.jpg', 'views' => 1560,
-                'description' => "Fanless, so it makes no noise at all, and thin enough that you stop noticing it in a bag. Eighteen hours of real use between charges.\n\nThe keyboard is the good one, with proper travel, and the lid opens with one finger.",
+                'description' => "Fanless, so it makes no noise at all, and thin enough that you stop noticing it in a bag. A battery made for a full day of work or classes.\n\nA comfortable keyboard with proper travel, and a lid that opens with one finger.",
             ],
             [
                 'name' => 'Northwind Studio 14', 'brand' => 'Northwind', 'cats' => ['Laptops', 'Computers'],
-                'price' => 1599, 'sale' => 1439, 'quantity' => 18, 'weight' => 1.55,
+                'price' => 94990, 'cost' => 76500, 'sale' => 84990, 'quantity' => 18, 'weight' => 1.55,
                 'image' => 'laptop-pro-14.jpg', 'gallery' => ['laptop-closed-stack.jpg'], 'views' => 2100,
-                'description' => "For work that renders, compiles or exports. Sustained performance rather than a fast burst that throttles ten minutes in.\n\nThree USB-C ports, a card reader and a headphone socket, because dongles are somebody else's idea of progress.",
+                'description' => "For work that renders, compiles or exports, with cooling sized to keep it fast through long jobs rather than a short burst.\n\nThree USB-C ports, a card reader and a headphone jack, so most of what you plug in needs no adapter.",
             ],
             [
                 'name' => 'Lumen 27 inch 4K Display', 'brand' => 'Lumen', 'cats' => ['Monitors', 'Computers'],
-                'price' => 449, 'quantity' => 44, 'weight' => 6.1,
+                'price' => 24990, 'cost' => 18700, 'quantity' => 44, 'weight' => 6.1,
                 'image' => 'monitor-27-4k.jpg', 'views' => 980,
-                'description' => "A 27 inch 4K panel calibrated at the factory, with its measurement report in the box. 99 percent sRGB and 95 percent P3.\n\nOne USB-C cable carries picture, data and 90W of power, so a laptop needs nothing else on the desk.",
+                'description' => "A sharp 27 inch 4K panel with wide color coverage, for photo editing, design and everyday work.\n\nOne USB-C cable carries picture, data and power, so a laptop needs nothing else on the desk.",
             ],
             [
                 'name' => 'Lumen 34 inch Ultrawide', 'brand' => 'Lumen', 'cats' => ['Monitors', 'Computers'],
-                'price' => 699, 'quantity' => 22, 'weight' => 8.4,
+                'price' => 32990, 'cost' => 25400, 'quantity' => 22, 'weight' => 8.4,
                 'image' => 'monitor-34-ultrawide.jpg', 'views' => 1240,
-                'description' => "The width of two monitors without the bezel down the middle. Gently curved, so the far edges are the same distance from you as the centre.\n\nSplits into two independent inputs side by side when you need a second machine on screen.",
+                'description' => "The width of two monitors without the bezel down the middle. Gently curved, so the far edges are the same distance from you as the center.\n\nSplits into two independent inputs side by side when you need a second machine on screen.",
             ],
             [
                 'name' => 'Lumen Go 15 inch Portable', 'brand' => 'Lumen', 'cats' => ['Monitors', 'Computers'],
-                'price' => 229, 'sale' => 189, 'quantity' => 50, 'weight' => 0.79,
+                'price' => 11990, 'cost' => 8200, 'sale' => 9990, 'quantity' => 50, 'weight' => 0.79,
                 'image' => 'monitor-portable.jpg', 'views' => 640,
                 'description' => "A second screen that lives in a laptop sleeve. One cable, no power brick, and a cover that folds into a stand.\n\nBright enough for a hotel desk, and it turns to portrait for reading long documents.",
             ],
             [
                 'name' => 'Kestrel Tab 11 Pro', 'brand' => 'Kestrel', 'cats' => ['Tablets'],
-                'price' => 799, 'quantity' => 26, 'weight' => 0.466,
+                'price' => 52990, 'cost' => 43900, 'quantity' => 26, 'weight' => 0.466,
                 'image' => 'tablet-pro-11.jpg', 'gallery' => ['tablet-keyboard-case.jpg'], 'views' => 1450,
                 'description' => "A 120Hz screen that makes a stylus feel like it is leaving ink rather than reporting a position. Laminated, so the nib meets the line.\n\nTakes the keyboard case and becomes a small laptop when you need to answer email properly.",
             ],
             [
                 'name' => 'Kestrel Tab Air', 'brand' => 'Kestrel', 'cats' => ['Tablets'],
-                'price' => 499, 'quantity' => 38, 'weight' => 0.462,
+                'price' => 34990, 'cost' => 28600, 'quantity' => 38, 'weight' => 0.462,
                 'image' => 'tablet-stylus.jpg', 'views' => 870,
                 'description' => "The tablet most households actually want: light, fast enough for everything except professional video, and happy to be handed to a child.\n\nSupports the same stylus as the Pro.",
             ],
             [
                 'name' => 'Vireo Buds Pro', 'brand' => 'Vireo', 'cats' => ['Accessories'],
-                'price' => 159, 'sale' => 129, 'quantity' => 120, 'weight' => 0.061,
+                'price' => 7990, 'cost' => 4300, 'sale' => 6490, 'quantity' => 120, 'weight' => 0.061,
                 'image' => 'earbuds-case.jpg', 'views' => 2260,
-                'description' => "Noise cancelling you can turn down rather than only off, and a transparency mode that does not sound like a microphone.\n\nSix hours in the buds, twenty four more in the case, and a five minute charge gets an hour back.",
+                'description' => "Noise canceling you can turn down rather than only off, and a transparency mode for hearing the room around you.\n\nThe charging case tops the buds up between listens, so they last through a day out.",
             ],
             [
                 'name' => 'Vireo USB-C Hub', 'brand' => 'Vireo', 'cats' => ['Accessories'],
-                'price' => 69, 'quantity' => 200, 'weight' => 0.098,
+                'price' => 2490, 'cost' => 1150, 'quantity' => 200, 'weight' => 0.098,
                 'image' => 'hub-usbc.jpg', 'views' => 1130,
-                'description' => "HDMI, two USB-A, a card reader and 100W pass through charging, in a machined aluminium body that does not get hot.\n\nThe cable is short on purpose, so the hub sits next to the laptop rather than hanging off it.",
+                'description' => "HDMI, two USB-A, a card reader and pass-through charging, in a machined aluminum body.\n\nThe cable is short on purpose, so the hub sits next to the laptop rather than hanging off it.",
             ],
             [
                 'name' => 'Vireo Keys and Mouse', 'brand' => 'Vireo', 'cats' => ['Accessories'],
-                'price' => 99, 'quantity' => 85, 'weight' => 0.62,
+                'price' => 3990, 'cost' => 1950, 'quantity' => 85, 'weight' => 0.62,
                 'image' => 'keyboard-mouse-set.jpg', 'views' => 720,
-                'description' => "A low profile keyboard and a slim mouse that pair to three machines at once and switch between them with one key.\n\nRechargeable, and a full charge lasts about two months.",
+                'description' => "A low profile keyboard and a slim mouse that pair to three machines at once and switch between them with one key.\n\nBoth are rechargeable, so there are no batteries to replace.",
             ],
         ];
 
@@ -307,6 +309,10 @@ class DemoCatalogSeeder extends Seeder
                 'brand_id' => $brands[$row['brand']]->id,
                 'description' => $row['description'],
                 'price' => $row['price'],
+                // What the store paid for it. A store run without an ERP
+                // keeps its costs here, so figures built on cost have
+                // something believable to show from the first day.
+                'cost' => $row['cost'],
                 'quantity' => $row['quantity'],
                 'weight' => $row['weight'],
                 'weight_unit' => 'kg',
@@ -355,21 +361,23 @@ class DemoCatalogSeeder extends Seeder
 
     /**
      * The one product that shows the variant picker doing real work: three
-     * colours against three capacities, nine combinations, each with its own
-     * stock and its own photograph for the colour it is.
+     * colors against three capacities, nine combinations, each with its own
+     * stock and its own photograph for the color it is.
      */
     private function variants(Product $product): void
     {
-        $colours = [
+        $colors = [
             'Graphite' => 'phone-pro-graphite.jpg',
             'Blue' => 'phone-pro-blue.jpg',
             'Desert' => 'phone-pro-desert.jpg',
         ];
-        // Capacity is what costs money; the colour is free.
-        $storage = ['256GB' => 0, '512GB' => 100, '1TB' => 300];
+        // Capacity is what costs money; the color is free.
+        $storage = ['256GB' => 0, '512GB' => 10000, '1TB' => 22000];
+        // What each capacity adds to the store's cost, below what it adds to the price.
+        $storageCost = ['256GB' => 0, '512GB' => 8200, '1TB' => 18000];
 
-        $colourType = DB::table('variant_types')->insertGetId([
-            'product_id' => $product->id, 'name' => 'Colour', 'sort_order' => 0,
+        $colorType = DB::table('variant_types')->insertGetId([
+            'product_id' => $product->id, 'name' => 'Color', 'sort_order' => 0,
             'created_at' => now(), 'updated_at' => now(),
         ]);
         $storageType = DB::table('variant_types')->insertGetId([
@@ -377,10 +385,10 @@ class DemoCatalogSeeder extends Seeder
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        $colourValue = [];
-        foreach (array_keys($colours) as $n => $name) {
-            $colourValue[$name] = DB::table('variant_type_values')->insertGetId([
-                'variant_type_id' => $colourType, 'value' => $name, 'sort_order' => $n,
+        $colorValue = [];
+        foreach (array_keys($colors) as $n => $name) {
+            $colorValue[$name] = DB::table('variant_type_values')->insertGetId([
+                'variant_type_id' => $colorType, 'value' => $name, 'sort_order' => $n,
                 'created_at' => now(), 'updated_at' => now(),
             ]);
         }
@@ -395,19 +403,20 @@ class DemoCatalogSeeder extends Seeder
 
         $n = 0;
 
-        foreach ($colours as $colour => $file) {
+        foreach ($colors as $color => $file) {
             foreach ($storage as $size => $modifier) {
                 $variantId = DB::table('product_variants')->insertGetId([
                     'product_id' => $product->id,
-                    'sku' => sprintf('DEMO-001-%s-%s', strtoupper(substr($colour, 0, 2)), rtrim($size, 'GBTB')),
+                    'sku' => sprintf('DEMO-001-%s-%s', strtoupper(substr($color, 0, 2)), rtrim($size, 'GBTB')),
                     // Both columns are stored: price is what the variant costs,
                     // price_modifier is its distance from the product's base.
                     // The admin form writes the pair the same way.
                     'price' => (float) $product->price + $modifier,
                     'price_modifier' => $modifier,
+                    'cost' => (float) $product->cost + $storageCost[$size],
                     // Deliberately uneven, so the demo shows a variant picker
                     // with something actually out of stock in it.
-                    'quantity' => $size === '1TB' && $colour === 'Desert' ? 0 : 12 - $n,
+                    'quantity' => $size === '1TB' && $color === 'Desert' ? 0 : 12 - $n,
                     'image' => $this->img('products', $file),
                     'is_active' => true,
                     'created_at' => now(),
@@ -415,7 +424,7 @@ class DemoCatalogSeeder extends Seeder
                 ]);
 
                 DB::table('product_variant_values')->insert([
-                    ['product_variant_id' => $variantId, 'variant_type_value_id' => $colourValue[$colour]],
+                    ['product_variant_id' => $variantId, 'variant_type_value_id' => $colorValue[$color]],
                     ['product_variant_id' => $variantId, 'variant_type_value_id' => $storageValue[$size]],
                 ]);
 
