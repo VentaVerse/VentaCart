@@ -486,9 +486,11 @@ resources/xelga/
 ] }
 ```
 
-Applied when a page is read, for shoppers and in the editor, never written at install: insert only, once per document (the document records `placed`), never again after the merchant removes it.
+Applied when a page is read, for shoppers and in the editor, never written at install: insert only, once per document (the document records `placed`), never again after the merchant removes it. A save records only ids of placements that exist or were already recorded.
 
-**Switched off or removed.** Nothing draws for shoppers; the editor shows a note naming the extension; saved pages keep its sections and blocks with their settings and hidden flags across saves and publishes, and switching back on restores them. Its templates leave the editor and wait, untouched.
+**Switched off or removed.** Nothing draws for shoppers; the editor shows a note naming the extension; saved pages keep its sections and blocks with their settings and hidden flags across saves and publishes, and switching back on restores them. They can be moved and removed, never added: a save that brings a section or block of an absent extension the stored page did not have is refused. Its templates leave the editor and wait, untouched.
+
+**Where they draw.** Extension sections go in page templates only, never the header or footer. Whatever a stored page holds, an extension section is drawn only on a template its schema allows, a main one only on its own page type, and no more of a type than its `limit`; extension blocks no more than their `limit` and the section's maximum.
 
 **The stylesheet.** `xelga.json`'s `stylesheet` is a plain CSS file under the extension's `resources/`, loaded on every storefront page after Xelga's own. Xelga loads it from the store's build when that has the entry, else from the `build/` the package ships (section 1), else it serves the file itself, exactly as it ships, at `/xelga/extensions/{name}/{fingerprint}.css` (route `xelga.extension-css`, cached for a year, a new address for each new file, only while the extension is switched on). So an extension installed from an upload is styled without `npm run build`, provided the file is CSS a browser reads as it is: no `@import` of build-time sources, no Tailwind directives. That last case is logged once each time the catalog is compiled, not on every request.
 
