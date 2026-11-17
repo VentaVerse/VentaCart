@@ -36,38 +36,30 @@ class StoreLayout extends Component
             : ($seoDefaults['default_meta_title'] ?? $siteName);
 
         $wishlistIds = app(\App\Services\WishlistService::class)->ids();
+        $cart = $cartService->summary();
 
-        // Shared with every view the page draws, not only the layout: a
-        // theme's partials read the same bundle.
-        \Illuminate\Support\Facades\View::share([
-            'siteName' => $siteName,
-            'navTree' => \App\Support\NavTree::for(\App\Models\NavMenu::MAIN),
-            'currencies' => $theme->getActiveCurrencies(),
-            'defaultCurrency' => $theme->getDefaultCurrency(),
-            'activeCurrency' => $theme->getActiveCurrency(),
-            'cartCount' => $cartService->getCount(),
-            'cartSubtotal' => $cartService->getSubtotal(),
-            'customerLoggedIn' => auth('customer')->check(),
-            'customerUser' => auth('customer')->user(),
-            'wishlistIds' => $wishlistIds,
-            'wishlistCount' => count($wishlistIds),
-        ]);
-
-        return view('layouts.store', [
-            'theme' => $theme,
-            'pageTitle' => $pageTitle,
+        // Worked out once: the same bundle is shared with every view the
+        // page draws (a theme's partials read it) and handed to the layout.
+        $bundle = [
             'siteName' => $siteName,
             // The composed main menu, resolved: what the header draws now.
             'navTree' => \App\Support\NavTree::for(\App\Models\NavMenu::MAIN),
             'currencies' => $theme->getActiveCurrencies(),
             'defaultCurrency' => $theme->getDefaultCurrency(),
             'activeCurrency' => $theme->getActiveCurrency(),
-            'cartCount' => $cartService->getCount(),
-            'cartSubtotal' => $cartService->getSubtotal(),
+            'cartCount' => $cart['count'],
+            'cartSubtotal' => $cart['subtotal'],
             'customerLoggedIn' => auth('customer')->check(),
             'customerUser' => auth('customer')->user(),
             'wishlistIds' => $wishlistIds,
             'wishlistCount' => count($wishlistIds),
+        ];
+
+        \Illuminate\Support\Facades\View::share($bundle);
+
+        return view('layouts.store', $bundle + [
+            'theme' => $theme,
+            'pageTitle' => $pageTitle,
             'defaultMetaDescription' => $seoDefaults['default_meta_description'] ?? '',
             'defaultMetaKeywords' => $seoDefaults['default_meta_keywords'] ?? '',
             'googleSiteVerification' => $seoDefaults['google_site_verification'] ?? '',

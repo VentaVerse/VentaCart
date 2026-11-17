@@ -311,6 +311,23 @@ class CartService
         return (int) $cart->items()->sum('quantity');
     }
 
+    /**
+     * The cart's item count and subtotal from one read of its lines, for a
+     * page frame that shows both (getCount() and getSubtotal() would each
+     * look the cart up again).
+     *
+     * @return array{count: int, subtotal: float}
+     */
+    public function summary(): array
+    {
+        $items = $this->getItems();
+
+        return [
+            'count' => (int) $items->sum('quantity'),
+            'subtotal' => (float) $items->sum(fn ($item) => $item->price * $item->quantity),
+        ];
+    }
+
     public function getSubtotal(): float
     {
         $items = $this->getItems();
