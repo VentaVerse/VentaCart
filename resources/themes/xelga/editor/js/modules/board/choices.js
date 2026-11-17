@@ -35,8 +35,16 @@ export const ROW_TILE = 'row';
 
 const FULL_WIDTH = { drop: 'gap', before: 'end' };
 
-/** The narrowest spot a span needs, in words. */
-export function needsWords(span) {
+/** The words for a spot the sides made too narrow: its column would be wide enough on a page without sides. */
+export const NARROW_BESIDE_SIDES = 'Too narrow beside the sides';
+
+/**
+ * The narrowest spot a span needs, in words. `whole` is how wide the spot
+ * would be without sides: when that would be enough, the sides are why it
+ * is not, and the words say so rather than name a size the spot seems to have.
+ */
+export function needsWords(span, whole = null) {
+  if (whole !== null && span <= whole) return NARROW_BESIDE_SIDES;
   if (span >= 12) return 'Needs full width';
   if (span >= 8) return 'Needs two thirds';
   if (span >= 6) return 'Needs half or more';
@@ -55,6 +63,11 @@ export function choicesOf(def) {
   return [{ label: def?.label || '', variant: null, preset: null }];
 }
 
+/** How wide a spot would be on a page without sides: its column's own part. */
+export function wholeSpan(content, target, rules) {
+  return spanAt(content, target || FULL_WIDTH, { ...rules, sidesAllowed: false });
+}
+
 const spanOf = (type, variant, rules) => rules.minSpan({ type, settings: variant == null ? {} : { variant } });
 
 const countOf = (content, type) => (Array.isArray(content?.order) ? content.order : [])
@@ -65,16 +78,18 @@ const countOf = (content, type) => (Array.isArray(content?.order) ? content.orde
  * the types this page may hold) as `{type, disabled, reason?, need?}` for
  * a spot: a type at its limit on the page is disabled as already there,
  * one whose narrowest layout is wider than the spot as too wide (`need`
- * is that layout's span). Main sections are never added, so they are left
- * out. `now`, in replace mode, is the type in the spot now.
+ * is that layout's span, `whole` how wide the spot would be without sides).
+ * Main sections are never added, so they are left out. `now`, in replace
+ * mode, is the type in the spot now; `whole` may be given with `span`.
  */
-export function addableTypes(content, target, catalog, rules, { span = null, now = null } = {}) {
+export function addableTypes(content, target, catalog, rules, { span = null, now = null, whole = null } = {}) {
   const room = span ?? spanAt(content, target || FULL_WIDTH, rules);
+  const unnarrowed = whole ?? (span === null ? wholeSpan(content, target, rules) : span);
   return Object.entries(catalog || {}).filter(([, def]) => def && !def.main).map(([type, def]) => {
     if (type === now) return { type, disabled: true, reason: NOW_HERE };
     if (def.limit && countOf(content, type) >= def.limit) return { type, disabled: true, reason: ALREADY_THERE };
     const narrowest = Math.min(...choicesOf(def).map((c) => spanOf(type, c.variant, rules)));
-    if (narrowest > room) return { type, disabled: true, reason: TOO_WIDE, need: narrowest };
+    if (narrowest > room) return { type, disabled: true, reason: TOO_WIDE, need: narrowest, whole: unnarrowed };
     return { type, disabled: false };
   });
 }
@@ -82,7 +97,7 @@ export function addableTypes(content, target, catalog, rules, { span = null, now
 /** The words on a greyed tile: why it cannot go here. */
 export function pillWords(state) {
   if (!state?.disabled) return null;
-  if (state.reason === TOO_WIDE) return needsWords(state.need);
+  if (state.reason === TOO_WIDE) return needsWords(state.need, state.whole ?? null);
   return state.reason;
 }
 

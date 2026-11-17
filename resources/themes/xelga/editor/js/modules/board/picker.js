@@ -30,10 +30,10 @@ import { addSection, addRowAt, replaceSection } from '../actions.js';
 import { select, isPhone } from '../selection.js';
 import { rowsOf, spanAt, roomOf } from './model.js';
 import {
-  addableTypes, pickerGroups, matches, choicesOf, layoutsFor, pillWords, needsWords, replacedWords,
+  addableTypes, pickerGroups, matches, choicesOf, layoutsFor, pillWords, needsWords, replacedWords, wholeSpan, NARROW_BESIDE_SIDES,
   ROW_TILE, TOO_WIDE, NOW_HERE, ALREADY_THERE,
 } from './choices.js';
-import { pickerWhere, splitOf } from './words.js';
+import { pickerWhere, splitOf, movedBesideSideWords } from './words.js';
 import { targetKey } from './drag.js';
 
 const ROW_NAME = 'A row of columns';
@@ -78,10 +78,10 @@ export function openPicker(spot) {
     const s = sec(spot.replace);
     const room = roomOf(content(), spot.replace, rules);
     if (!s || room === null) return;
-    P = { mode: 'replace', sid: spot.replace, span: room, type: null };
+    P = { mode: 'replace', sid: spot.replace, span: room, whole: roomOf(content(), spot.replace, { ...rules, sidesAllowed: false }), type: null };
   } else {
     if (!spot.target) return;
-    P = { mode: 'add', target: spot.target, span: spanAt(content(), spot.target, rules), type: spot.target.drop === 'gap' ? ROW_TILE : null };
+    P = { mode: 'add', target: spot.target, span: spanAt(content(), spot.target, rules), whole: wholeSpan(content(), spot.target, rules), type: spot.target.drop === 'gap' ? ROW_TILE : null };
   }
   P.query = '';
   P.step = 'types';
@@ -129,7 +129,7 @@ function states() {
   const rules = rulesFor(template());
   const types = availableTypes();
   const now = P.mode === 'replace' ? sec(P.sid)?.type : null;
-  return addableTypes(content(), P.target || null, types, rules, { span: P.span, now });
+  return addableTypes(content(), P.target || null, types, rules, { span: P.span, now, whole: P.whole });
 }
 
 const typeName = (type) => (type === ROW_TILE ? ROW_NAME : sectionDef(type)?.label || type);
@@ -351,7 +351,11 @@ function statusWords(type, state) {
   const name = typeName(type);
   if (state.reason === NOW_HERE) return `${name} is in this spot now. Change its layout in its settings.`;
   if (state.reason === ALREADY_THERE) return `${name} is already on this page.`;
-  if (state.reason === TOO_WIDE) return `${name} needs a wider spot: ${needsWords(state.need).replace('Needs ', '')}.`;
+  if (state.reason === TOO_WIDE) {
+    const words = needsWords(state.need, state.whole ?? null);
+    if (words === NARROW_BESIDE_SIDES) return `${name} needs a wider spot: the sides leave this one too narrow.`;
+    return `${name} needs a wider spot: ${words.replace('Needs ', '')}.`;
+  }
   return null;
 }
 
@@ -381,7 +385,7 @@ function renderPane() {
     const fits = !state.disabled && layout.fits;
     if (fits && first === -1) first = i;
     const pic = type === ROW_TILE ? h('span', { class: 'lcard__split' }, splitPicture(layout.parts)) : drawing(type, layout.variant);
-    const why = !fits && !state.disabled ? needsWords(layout.need) : null;
+    const why = !fits && !state.disabled ? needsWords(layout.need, P.whole ?? null) : null;
     cards.append(h('button', {
       type: 'button', class: `lcard${fits ? '' : ' is-grey'}`, 'aria-disabled': fits ? null : 'true',
       tabindex: '-1',
@@ -481,12 +485,18 @@ function pick(type, layout) {
   }
   const options = { variant: layout.variant, preset: layout.preset };
   if (from.mode === 'add') {
-    const sid = addSection(type, { ...options, target: from.target });
-    if (!sid) {
+    const added = addSection(type, { ...options, target: from.target });
+    if (!added) {
       openerOf(from)?.focus({ preventScroll: true });
       return;
     }
-    toast(`${labelOf(sid)} added. Change its text and photos to your own.`);
+    const { sid, moved } = added;
+    // One message for one action: what was added, and what it moved.
+    const text = moved.length
+      ? `${labelOf(sid)} added.${movedBesideSideWords(moved)}`
+      : `${labelOf(sid)} added. Change its text and photos to your own.`;
+    toast(text, { action: { label: 'Undo', run: undo }, timeout: moved.length ? 8000 : 4200 });
+    if (moved.length) announce(text);
     openSettings(sid);
     return;
   }

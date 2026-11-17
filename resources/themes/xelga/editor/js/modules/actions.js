@@ -10,7 +10,6 @@ import { sectionDef, blockDef, blockTypes } from './catalog.js';
 import { commit, undo, hasLayout, layoutPayload, rulesFor } from './operations.js';
 import { rowsOf, checkAddSpot, freshRowId, replaceIn } from './board/model.js';
 import { schemeSetting } from './board/choices.js';
-import { listWords } from './board/words.js';
 import { clone, humanize } from './util.js';
 import { select } from './selection.js';
 import { flush, resolveConflict, setFatal } from './drafts.js';
@@ -224,7 +223,9 @@ const SPOT_WORDS = {
  * (`target`, a row model target): a preset (settings and blocks) or a
  * variant with the schema's defaults. The spot is checked against the page
  * as it is now; one that is gone, full or too narrow is refused with the
- * reason, and nothing is added somewhere else instead.
+ * reason, and nothing is added somewhere else instead. Answers
+ * `{sid, moved}` (the names of sections the add pushed out of their
+ * columns), or null.
  */
 export function addSection(type, { variant = null, preset = null, target = null } = {}) {
   const def = sectionDef(type);
@@ -250,13 +251,7 @@ export function addSection(type, { variant = null, preset = null, target = null 
   const op = { t: 'insert', kind: 'add', doc: handle, sid, group: 'template', index, snapshot, name: def.label, target: plain ? null : target };
   commit(op);
   // The first section of a side narrows the page: what no longer fits its column moves to a row of its own.
-  const moved = (op.moved || []).filter((id) => c.sections[id]).map((id) => labelOf(id));
-  if (moved.length) {
-    toast(moved.length === 1
-      ? `${moved[0]} needs a wider column beside the side, so it moved to a row of its own.`
-      : `${listWords(moved)} need wider columns beside the side, so they moved to rows of their own.`, { timeout: 8000 });
-  }
-  return sid;
+  return { sid, moved: (op.moved || []).filter((id) => c.sections[id]).map((id) => labelOf(id)) };
 }
 
 /**
