@@ -148,9 +148,11 @@ final class CartGroups
             ];
         }
 
+        // The lines no group took come first, so a theme never draws them
+        // under (and as if part of) the last named group.
         $rest = array_values(array_filter($lineIds, fn (int $id) => ! isset($placed[$id])));
         if ($rest !== []) {
-            $groups[] = ['key' => self::REST, 'label' => '', 'url' => null, 'lines' => $rest, 'shipping' => null];
+            array_unshift($groups, ['key' => self::REST, 'label' => '', 'url' => null, 'lines' => $rest, 'shipping' => null]);
         }
 
         return $groups;

@@ -313,15 +313,15 @@ One grouper per store: a second, different one is refused and logged. The groupe
 
 ```json
 [
+  { "key": "other", "label": "", "url": null, "lines": [43], "shipping": null },
   { "key": "shop-12", "label": "Demo Store", "url": "https://example.com/shops/demo-store",
     "lines": [41, 42],
-    "shipping": { "label": "Shipping from this shop", "amount": 120.0, "note": "Ships in 2 days" } },
-  { "key": "other", "label": "", "url": null, "lines": [43], "shipping": null }
+    "shipping": { "label": "Shipping from this shop", "amount": 120.0, "note": "Ships in 2 days" } }
 ]
 ```
 
-- Every cart line is in exactly one group, in cart order: the first group that names a line keeps it, and lines no group names are collected in a last group with the key `other` and an empty label, which a theme draws with no header.
-- `key` is 1 to 40 lower case letters, digits or hyphens, unique; `other` is core's. At most 50 groups (the last one being `other`); lines of groups past that go to `other`.
+- Every cart line is in exactly one group, in cart order: the first group that names a line keeps it, and lines no group names are collected in a first group with the key `other` and an empty label. A theme draws it first, under a neutral header of its own ("Other items") when other groups follow, so those lines never read as part of a seller's group; when `other` is the only group, it may draw it as the plain list.
+- `key` is 1 to 40 lower case letters, digits or hyphens, unique; `other` is core's. At most 50 groups (`other` among them); lines of groups past that go to `other`.
 - `label` is plain text up to 80 characters, `note` up to 160; `url` is a link `SafeInput::link` keeps, else null; `amount` is a non-negative number or null; `shipping` is null when it says nothing.
 - Shipping in a group is information for the shopper. What the order costs is still worked out by core's checkout.
 

@@ -64,13 +64,13 @@ class CartGroupsTest extends TestCase
         [$mug, $plain, $cup] = $this->fillCart();
 
         $this->getJson(route('cart.mini'))->assertOk()->assertJsonPath('groups', [
+            ['key' => 'other', 'label' => '', 'url' => null, 'lines' => [$plain], 'shipping' => null],
             [
                 'key' => 'demo-store', 'label' => 'Demo Store', 'url' => 'https://example.com/shops/demo-store',
                 'lines' => [$mug, $cup],
                 // JSON writes 120.0 as 120.
                 'shipping' => ['label' => 'Shipping from this shop', 'amount' => 120, 'note' => 'Ships in 2 days'],
             ],
-            ['key' => 'other', 'label' => '', 'url' => null, 'lines' => [$plain], 'shipping' => null],
         ]);
 
         $this->get(route('cart.index'))->assertOk()->assertViewHas('cartGroups', fn ($groups) => count($groups) === 2);
@@ -98,9 +98,9 @@ class CartGroupsTest extends TestCase
         ], [1, 2, 3]);
 
         $this->assertSame([
+            ['key' => 'other', 'label' => '', 'url' => null, 'lines' => [2], 'shipping' => null],
             ['key' => 'shop-1', 'label' => 'Demo  Store', 'url' => null, 'lines' => [1, 3],
                 'shipping' => ['label' => 'Ships', 'amount' => null, 'note' => str_repeat('n', 160)]],
-            ['key' => 'other', 'label' => '', 'url' => null, 'lines' => [2], 'shipping' => null],
         ], $groups);
     }
 
@@ -111,8 +111,8 @@ class CartGroupsTest extends TestCase
         $groups = CartGroups::clean($answer, range(1, 60));
 
         $this->assertCount(CartGroups::MAX_GROUPS, $groups);
-        $this->assertSame('other', end($groups)['key']);
-        $this->assertSame(range(50, 60), end($groups)['lines']);
+        $this->assertSame('other', $groups[0]['key'], 'The lines no group took come first.');
+        $this->assertSame(range(50, 60), $groups[0]['lines']);
     }
 
     public function test_a_failing_grouper_gives_the_plain_cart_and_is_reported(): void
