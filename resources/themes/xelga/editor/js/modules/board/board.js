@@ -36,7 +36,7 @@ import { openPicker, pickerSpot, pickerReplacing } from './picker.js';
 import { splitOf, listWords, columnName } from './words.js';
 import { barWords } from './labels.js';
 import {
-  startDrag, keyMove, keyMoveRow, keyMoves, rowKeyMoves, dragJustEnded, afterRender, targetKey, initDrag,
+  startDrag, keyMove, keyMoveRow, keyMoves, rowKeyMoves, dragJustEnded, afterRender, targetKey, initDrag, keyMoveBand, bandKeyMoves,
 } from './drag.js';
 import { renderPhoneBoard } from './phone.js';
 
@@ -77,7 +77,7 @@ function sectionShortcuts(sid) {
 /** A spot that takes a drop: the row model's target, kept on the element. */
 const dropData = (target) => ({ target: JSON.stringify(target), drop: target.drop });
 
-function piece(section, span, { movable = false, changeable = false } = {}) {
+function piece(section, span, { movable = false, changeable = false, band = null } = {}) {
   const def = sectionDef(section.type);
   const selected = S.sel?.kind === 'section' && S.sel.sid === section.id;
   const name = labelOf(section.id);
@@ -96,13 +96,14 @@ function piece(section, span, { movable = false, changeable = false } = {}) {
     class: `piece${selected ? ' is-selected' : ''}${main ? ' piece--main' : ''}${hidden ? ' is-hidden' : ''}`,
     dataset: { sid: section.id, type: section.type },
     'aria-pressed': String(selected),
-    'aria-keyshortcuts': movable ? sectionShortcuts(section.id) : null,
+    'aria-keyshortcuts': band ? shortcuts(bandKeyMoves(band, section.id)) : movable ? sectionShortcuts(section.id) : null,
     onclick: () => {
       if (dragJustEnded()) return;
       openSheet({ type: 'section', sid: section.id });
     },
-    onpointerdown: movable ? (e) => startDrag(e, { kind: 'section', sid: section.id }) : null,
-    onkeydown: movable ? (e) => keyMove(e, section.id) : null,
+    onpointerdown: band ? (e) => startDrag(e, { kind: 'band', group: band, sid: section.id })
+      : movable ? (e) => startDrag(e, { kind: 'section', sid: section.id }) : null,
+    onkeydown: band ? (e) => keyMoveBand(e, band, section.id) : movable ? (e) => keyMove(e, section.id) : null,
   },
   // Name, then the type when the section has a name of its own, then the layout.
   h('span', { class: 'piece__bar', title: words.title },
@@ -134,7 +135,13 @@ function sharedBand(group) {
   const list = groupList(group);
   const band = h('div', { class: `shared shared--${group}` },
     h('p', { class: 'shared__tag' }, icon('layers', 'icon--xs'), group === 'header' ? 'Header, on every page' : 'Footer, on every page'));
-  list.forEach((s) => band.append(piece(s, 12)));
+  // Its sections move within the band only: up and down, never into the page or the other band.
+  const movable = list.length > 1;
+  list.forEach((s) => {
+    if (movable) band.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData({ drop: 'band', group, before: s.id }) }));
+    band.append(piece(s, 12, { band: movable ? group : null }));
+  });
+  if (movable) band.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData({ drop: 'band', group, before: null }) }));
   return band;
 }
 
@@ -482,7 +489,7 @@ function boardKeys(event) {
   const sid = piece?.dataset.sid;
   if (sid && piece.closest('.shared')) {
     const band = piece.closest('.shared--header') ? 'header' : 'footer';
-    announce(`${labelOf(sid)} stays in the ${band}, on every page.`);
+    announce(`${labelOf(sid)} is the only section in the ${band}, so it stays where it is.`);
   } else if (sid) {
     announce(`${labelOf(sid)} cannot move from here.`);
   } else {

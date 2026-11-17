@@ -18,7 +18,7 @@ globalThis.document = globalThis.document || { addEventListener: noop, removeEve
 globalThis.window = globalThis.window || { addEventListener: noop, removeEventListener: noop, setTimeout, clearTimeout, location: { href: 'http://example.test/' } };
 
 const { useLayout } = await import('../../editor/js/modules/board/model.js');
-const { targetsFor, keyTarget, keyMoves, rowKeyMoves } = await import('../../editor/js/modules/board/drag.js');
+const { targetsFor, keyTarget, keyMoves, rowKeyMoves, bandTargets, bandKeyTarget, bandIndex, listDropIndex, targetKey } = await import('../../editor/js/modules/board/drag.js');
 const { addableTypes } = await import('../../editor/js/modules/board/choices.js');
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -145,6 +145,42 @@ test('rowKeyMoves offers up only below the first row and down only above the las
   assert.deepEqual(rowKeyMoves(rows, 'r2'), ['ArrowUp', 'ArrowDown']);
   assert.deepEqual(rowKeyMoves(rows, 'r3'), ['ArrowUp']);
   assert.deepEqual(rowKeyMoves(rows.slice(0, 1), 'r1'), []);
+});
+
+test('a header or footer section moves only within its own band', () => {
+  const order = ['bar', 'head', 'promo'];
+  // Every place in the band but the two around where it is now.
+  assert.deepEqual(bandTargets('header', order, 'bar'), [
+    { drop: 'band', group: 'header', before: 'promo' },
+    { drop: 'band', group: 'header', before: null },
+  ]);
+  assert.deepEqual(bandTargets('header', order, 'head'), [{ drop: 'band', group: 'header', before: 'bar' }, { drop: 'band', group: 'header', before: null }]);
+  assert.deepEqual(bandTargets('footer', ['foot'], 'foot'), []);
+  assert.deepEqual(bandTargets('header', order, 'missing'), []);
+  // The same spot in the other band is another target.
+  assert.notEqual(targetKey({ drop: 'band', group: 'header', before: null }), targetKey({ drop: 'band', group: 'footer', before: null }));
+});
+
+test('Alt with up or down moves a band section one place, and nothing past either end', () => {
+  const order = ['bar', 'head', 'promo'];
+  assert.equal(bandKeyTarget('header', order, 'bar', 'ArrowUp'), null);
+  assert.deepEqual(bandKeyTarget('header', order, 'bar', 'ArrowDown'), { drop: 'band', group: 'header', before: 'promo' });
+  assert.deepEqual(bandKeyTarget('header', order, 'promo', 'ArrowUp'), { drop: 'band', group: 'header', before: 'head' });
+  assert.equal(bandKeyTarget('header', order, 'promo', 'ArrowDown'), null);
+  assert.equal(bandKeyTarget('header', order, 'head', 'ArrowLeft'), null);
+  // The place in the order the move commits.
+  assert.equal(bandIndex(order, 'bar', 'promo'), 1);
+  assert.equal(bandIndex(order, 'bar', null), 2);
+  assert.equal(bandIndex(order, 'promo', 'head'), 1);
+});
+
+test('listDropIndex puts a held item where the finger is among the others', () => {
+  const mids = [20, 60, 100];
+  assert.equal(listDropIndex(mids, 10, 0), 0);
+  assert.equal(listDropIndex(mids, 70, 0), 1);
+  assert.equal(listDropIndex(mids, 200, 0), 2);
+  assert.equal(listDropIndex(mids, 10, 2), 0);
+  assert.equal(listDropIndex(mids, 80, 2), 2);
 });
 
 const CATALOG = {

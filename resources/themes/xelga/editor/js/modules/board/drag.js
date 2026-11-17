@@ -12,7 +12,7 @@
  */
 
 import { $, $$, h, icon, toast, announce } from '../dom.js';
-import { S, doc, groupHandle, labelOf } from '../state.js';
+import { S, doc, groupHandle, labelOf, locate as locateSection } from '../state.js';
 import { sectionIcon } from '../catalog.js';
 import { commit, undo, layoutPayload, rulesFor } from '../operations.js';
 import { rowsOf, fits, locate, spanAt } from './model.js';
@@ -30,7 +30,7 @@ const CLICK_GUARD_MS = 250;
    ------------------------------------------------------------------------ */
 
 /** A stable text for a target, to compare targets and to keep one on an element. */
-export const targetKey = (t) => JSON.stringify([t.drop, t.before ?? null, t.rowId ?? null, t.column ?? null, t.side ?? null]);
+export const targetKey = (t) => JSON.stringify([t.drop, t.before ?? null, t.rowId ?? null, t.column ?? null, t.side ?? null, t.group ?? null]);
 
 function gapsOf(rows) {
   return [...rows.map((r) => ({ drop: 'gap', before: r.id })), { drop: 'gap', before: 'end' }];
@@ -124,6 +124,45 @@ export function keyTarget(content, sid, arrow, rules) {
 
 const ARROW_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 
+/*
+ * The header and footer bands: a list of full-width sections each, on
+ * every page. A section in one moves only within it, never into the
+ * other band or the page. `order` is the band document's section order.
+ */
+
+/** Every place in its band a section may be dropped on: all but the two around where it is now. */
+export function bandTargets(group, order, sid) {
+  const index = order.indexOf(sid);
+  if (index < 0) return [];
+  return [...order, null]
+    .filter((before, k) => k !== index && k !== index + 1)
+    .map((before) => ({ drop: 'band', group, before }));
+}
+
+/** The place Alt and up or down moves a band section to, or null at either end. */
+export function bandKeyTarget(group, order, sid, arrow) {
+  const index = order.indexOf(sid);
+  if (index < 0) return null;
+  if (arrow === 'ArrowUp') return index > 0 ? { drop: 'band', group, before: order[index - 1] } : null;
+  if (arrow === 'ArrowDown') return index < order.length - 1 ? { drop: 'band', group, before: order[index + 2] ?? null } : null;
+  return null;
+}
+
+/** The index in the band's order a section dropped before `before` (null: the end) ends up at. */
+export function bandIndex(order, sid, before) {
+  const rest = order.filter((id) => id !== sid);
+  return before === null ? rest.length : rest.indexOf(before);
+}
+
+/**
+ * Where a held item of a vertical list goes: the number of the other
+ * items whose middle is above the finger. `mids` are the middles of every
+ * item, the held one (at `from`) included.
+ */
+export function listDropIndex(mids, y, from) {
+  return mids.filter((mid, i) => i !== from && mid < y).length;
+}
+
 /** The arrows Alt moves a section by from where it is now: only those that lead somewhere. */
 export function keyMoves(content, sid, rules) {
   return ARROW_KEYS.filter((arrow) => keyTarget(content, sid, arrow, rules) !== null);
@@ -145,7 +184,7 @@ const contentNow = () => doc(template())?.content || null;
 
 function itemName(item) {
   const content = contentNow();
-  if (item.kind === 'section') return labelOf(item.sid);
+  if (item.kind === 'section' || item.kind === 'band') return labelOf(item.sid);
   const r = content ? rowsOf(content, layoutPayload()).find((x) => x.id === item.rowId) : null;
   return r ? `The row of ${rowName(r)}` : 'The row';
 }
@@ -155,6 +194,7 @@ function itemName(item) {
  * moves with its row, so the row keeps its settings.
  */
 export function moveItem(item, target) {
+  if (item.kind === 'band') return moveInBand(item, target);
   const handle = template();
   const content = contentNow();
   if (!content || !target) return false;
@@ -181,9 +221,57 @@ export function moveItem(item, target) {
   return true;
 }
 
+const bandOrder = (group) => doc(group)?.content?.order || [];
+
+/* Where a band section goes, in words. */
+function bandWords(target) {
+  const band = target.group === 'header' ? 'header' : 'footer';
+  if (target.before === null) return `to the end of the ${band}`;
+  return `above ${labelOf(target.before)}, in the ${band}`;
+}
+
+/** Moves a header or footer section within its band, as one undo step. */
+function moveInBand(item, target) {
+  const order = bandOrder(item.group);
+  if (!target || target.group !== item.group || !bandTargets(item.group, order, item.sid).some((t) => targetKey(t) === targetKey(target))) return false;
+  const from = order.indexOf(item.sid);
+  const to = bandIndex(order, item.sid, target.before);
+  commit({ t: 'move', doc: item.group, sid: item.sid, from, to });
+  const text = `${labelOf(item.sid)} moved ${bandWords(target)}.`;
+  toast(text, { action: { label: 'Undo', run: undo } });
+  announce(text);
+  return true;
+}
+
+/** The arrows Alt moves a band section by. */
+export function bandKeyMoves(group, sid) {
+  const order = bandOrder(group);
+  return ['ArrowUp', 'ArrowDown'].filter((arrow) => bandKeyTarget(group, order, sid, arrow));
+}
+
 /* ------------------------------------------------------------------------
    Keyboard
    ------------------------------------------------------------------------ */
+
+/** Alt plus up or down on a header or footer section moves it within its band. */
+export function keyMoveBand(event, group, sid) {
+  if (!event.altKey || event.ctrlKey || event.metaKey || !ARROWS.includes(event.key)) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  const band = group === 'header' ? 'header' : 'footer';
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    announce(`${labelOf(sid)} stays in the ${band}: it moves up or down only.`);
+    return false;
+  }
+  const target = bandKeyTarget(group, bandOrder(group), sid, event.key);
+  if (!target) {
+    announce(`${labelOf(sid)} cannot move ${event.key === 'ArrowUp' ? 'up' : 'down'}: it is ${event.key === 'ArrowUp' ? 'first' : 'last'} in the ${band}.`);
+    return false;
+  }
+  const moved = moveItem({ kind: 'band', group, sid }, target);
+  if (moved) refocus(`#board .shared--${group} .piece[data-sid="${CSS.escape(sid)}"]`);
+  return moved;
+}
 
 const ARROWS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 
@@ -289,14 +377,15 @@ function onKey(event) {
 
 function begin() {
   const content = contentNow();
-  if (!content) {
+  if (!content && D.item.kind !== 'band') {
     cancel();
     return;
   }
   D.active = true;
-  D.keys = new Set(targetsFor(content, D.item, rulesFor(template())).map(targetKey));
+  const spots = D.item.kind === 'band' ? bandTargets(D.item.group, bandOrder(D.item.group), D.item.sid) : targetsFor(content, D.item, rulesFor(template()));
+  D.keys = new Set(spots.map(targetKey));
   document.body.classList.add('is-dragging');
-  const iconName = D.item.kind === 'row' ? 'grip' : sectionIcon(content.sections[D.item.sid]?.type);
+  const iconName = D.item.kind === 'row' ? 'grip' : sectionIcon(locateSection(D.item.sid)?.data?.type);
   D.where = h('span', { class: 'ghost__where' });
   D.ghost = h('div', { class: 'ghost', 'aria-hidden': 'true' },
     h('span', { class: 'ghost__name' }, icon(iconName, 'icon--sm'), h('span', { text: itemName(D.item) })),
@@ -452,7 +541,8 @@ function pickTarget() {
     best.classList.add('is-over');
     D.over = targetOf(best);
   }
-  D.where.textContent = D.over ? `Goes ${targetWords(D.over, D.item.kind === 'section' ? D.item.sid : null)}` : 'Move to a lit spot';
+  const words = D.over && (D.over.drop === 'band' ? bandWords(D.over) : targetWords(D.over, D.item.kind === 'section' ? D.item.sid : null));
+  D.where.textContent = words ? `Goes ${words}` : 'Move to a lit spot';
 }
 
 /** Near the top or bottom of the board, the board scrolls while the item is held. */
@@ -481,12 +571,92 @@ export function afterRender() {
   if (D?.active) markTargets();
 }
 
+/* ------------------------------------------------------------------------
+   A list in the drawer (a section's blocks) by touch: press its grip a
+   moment, then drag it up or down. A mouse or pen drags it natively.
+   ------------------------------------------------------------------------ */
+
+let L = null;
+
+/**
+ * Starts watching a finger on the grip of a list item.
+ *   items   () => the list's items, in order
+ *   from    the index of the item held
+ *   onDrop  (to) => called with the item's new index when it moved
+ * Answers whether the press is watched (a finger only).
+ */
+export function startListDrag(event, { items, from, onDrop }) {
+  if (L || D || event.pointerType !== 'touch' || !event.isPrimary) return false;
+  const held = items()[from];
+  if (!held) return false;
+  L = { items, from, onDrop, held, sx: event.clientX, sy: event.clientY, y: event.clientY, active: false, to: from, press: createPress({ delay: PRESS_DELAY }) };
+  L.press.down(performance.now());
+  held.classList.add('is-pressed');
+  L.timer = window.setTimeout(() => {
+    if (L && !L.active && L.press.move(performance.now(), 0, L.y - L.sy) === 'drag') liftList();
+  }, PRESS_DELAY);
+  window.addEventListener('pointermove', onListMove);
+  window.addEventListener('pointerup', onListUp);
+  window.addEventListener('pointercancel', endList);
+  return true;
+}
+
+function liftList() {
+  L.active = true;
+  navigator.vibrate?.(10);
+  L.held.classList.add('is-dragging');
+}
+
+function onListMove(event) {
+  if (!L) return;
+  L.y = event.clientY;
+  if (!L.active) {
+    const decided = L.press.move(performance.now(), event.clientX - L.sx, L.y - L.sy);
+    if (decided === 'scroll') {
+      endList();
+      return;
+    }
+    if (decided !== 'drag') return;
+    liftList();
+  }
+  event.preventDefault();
+  const list = L.items();
+  const mids = list.map((el) => {
+    const r = el.getBoundingClientRect();
+    return r.top + r.height / 2;
+  });
+  // The held item follows the finger; its own middle counts where it started.
+  mids[L.from] -= L.y - L.sy;
+  L.to = listDropIndex(mids, L.y, L.from);
+  L.held.style.translate = `0 ${L.y - L.sy}px`;
+}
+
+function onListUp() {
+  if (!L) return;
+  const { active, to, from, onDrop } = L;
+  endList();
+  if (!active) return;
+  lastDragEnd = Date.now();
+  if (to !== from) onDrop(to);
+}
+
+function endList() {
+  if (!L) return;
+  window.clearTimeout(L.timer);
+  L.held.classList.remove('is-pressed', 'is-dragging');
+  L.held.style.translate = '';
+  window.removeEventListener('pointermove', onListMove);
+  window.removeEventListener('pointerup', onListUp);
+  window.removeEventListener('pointercancel', endList);
+  L = null;
+}
+
 /*
  * While a finger holds an item, the page must not scroll under it, nor
  * open the browser's menu for a long press. The listener is there from the
  * start: a browser decides whether a touch may scroll when it begins.
  */
 export function initDrag() {
-  document.addEventListener('touchmove', (event) => { if (D?.active) event.preventDefault(); }, { passive: false });
-  document.addEventListener('contextmenu', (event) => { if (D?.touch) event.preventDefault(); });
+  document.addEventListener('touchmove', (event) => { if (D?.active || L?.active) event.preventDefault(); }, { passive: false });
+  document.addEventListener('contextmenu', (event) => { if (D?.touch || L) event.preventDefault(); });
 }

@@ -164,7 +164,25 @@
 }
 
 .blist__item.is-dragging {
-  opacity: .5;
+  position: relative;
+  z-index: 1;
+  opacity: .85;
+  box-shadow: var(--shadow-pop);
+}
+
+.blist__item.is-pressed {
+  background: var(--accent-soft);
+  transition: background-color .35s var(--ease);
+}
+
+/* A finger held on a grip picks the block up: no text selection or long-press menu there. */
+@media (pointer: coarse) {
+  .blist__grip {
+    width: 40px;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 .blist__grip {

@@ -20,6 +20,7 @@ import { select } from './selection.js';
 import { openMenu } from './popover.js';
 import { needTag } from './needs.js';
 import { buildForm, dependsOn, refreshVisibility, refreshFieldErrors } from './forms/form.js';
+import { startListDrag } from './board/drag.js';
 import {
   toggleVisible, startRename, rename, removeSection, removeBlock, canRemoveBlock, duplicateSection, canDuplicate, duplicateBlock, canDuplicateBlock,
   addableBlocks, addBlock, moveBlockBy, moveBlockTo,
@@ -242,7 +243,8 @@ function sectionInspector(sid, bid) {
 
 /* ------------------------------------------------------------------------
    A section's blocks: each opens its own settings; the grip moves it (drag,
-   or the up and down arrow keys); Add puts a new one at the end.
+   a press then drag by touch, or the up and down arrow keys); Add puts a
+   new one at the end.
    ------------------------------------------------------------------------ */
 
 function blocksField(sid) {
@@ -298,7 +300,15 @@ function blockItem(s, b, index, count) {
           window.requestAnimationFrame(() => $(`#drawer .blist__item[data-bid="${CSS.escape(b.id)}"] .blist__grip`)?.focus());
         }
       },
-      onpointerdown: () => { li.draggable = true; },
+      onpointerdown: (e) => {
+        // A finger presses a moment, then drags; a mouse or pen drags the item natively.
+        const touch = startListDrag(e, {
+          items: () => Array.from(li.parentElement?.children || []),
+          from: index,
+          onDrop: (to) => moveBlockTo(s.id, b.id, to),
+        });
+        if (!touch) li.draggable = true;
+      },
     }, icon('grip', 'icon--sm')));
   }
   li.append(h('button', {
