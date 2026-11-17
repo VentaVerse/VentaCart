@@ -602,14 +602,20 @@ class XelgaRowsRenderTest extends TestCase
         $this->assertContains(Picture::contentSizes(6, '(min-width: 1320px) 720px, (min-width: 750px) 55vw, 100vw'), $narrow);
         $this->assertStringStartsWith('(min-width: 1320px) 640px, (min-width: 990px) 50vw, ', Picture::contentSizes(6, '(min-width: 1320px) 720px, (min-width: 750px) 55vw, 100vw'));
 
-        // The category's cards: as many to a line as the content area holds, and sized for it.
+        // The category's cards keep the setting in the markup, which holds
+        // below 990 pixels where the sides stack (the styles cap the cards a
+        // line beside the sides); the photos are sized for the two a line a
+        // content area of six twelfths holds from 990 pixels, and for the
+        // setting below.
         $grid = fn (string $html) => (string) preg_replace('#^.*?(<section[^>]*data-section-type="category-main".*?</section>).*$#s', '$1', $html);
         $wide = $grid($this->drawnAt('/category/laptops', 12));
         $this->assertMatchesRegularExpression('#data-section-type="category-main"[^>]*data-cols="3"#s', $wide);
         $this->assertContains(Picture::cardSizes(), $this->sizesIn($wide));
         $six = $grid($this->drawnAt('/category/laptops', 6));
-        $this->assertMatchesRegularExpression('#data-section-type="category-main"[^>]*data-cols="2"#s', $six);
-        $this->assertContains(Picture::contentSizes(6, Picture::cardSizes(2, 2), .5), $this->sizesIn($six));
+        $this->assertMatchesRegularExpression('#data-section-type="category-main"[^>]*data-cols="3"#s', $six);
+        $sizes = Picture::contentSizes(6, Picture::cardSizes(2, 3), .5);
+        $this->assertContains($sizes, $this->sizesIn($six));
+        $this->assertStringStartsWith('(min-width: 1320px) 320px, (min-width: 990px) 25vw, ', $sizes);
         $this->assertNotContains(Picture::cardSizes(), $this->sizesIn($six));
     }
 

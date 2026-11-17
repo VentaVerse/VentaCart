@@ -91,9 +91,14 @@ export function initListing(section) {
     };
     place();
     if (typeof ResizeObserver === 'function') {
-      const observer = new ResizeObserver(place);
+      // Placed on the next frame: moving the form changes the section's height inside its own callback otherwise.
+      let frame = 0;
+      const observer = new ResizeObserver(() => {
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(place);
+      });
       observer.observe(section);
-      cleanups.push(() => observer.disconnect());
+      cleanups.push(() => { observer.disconnect(); cancelAnimationFrame(frame); });
     }
 
     // In the column a change is sent at once; in the drawer the shopper
