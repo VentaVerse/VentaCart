@@ -250,6 +250,26 @@ class XelgaSidesTest extends TestCase
         $this->assertSame(12, app(SectionRenderer::class)->contentSpan());
     }
 
+    public function test_a_side_whose_sections_show_nothing_is_not_drawn(): void
+    {
+        // Brand logos on a store with no brands prints nothing for a shopper.
+        $brands = ['type' => 'brand-logos', 'label' => '', 'disabled' => false, 'settings' => ['variant' => 'grid', 'source' => 'all'], 'block_order' => [], 'blocks' => []];
+        $home = $this->withSides(Defaults::content('home'), ['brands-side' => $brands]);
+        $this->publishedDocument('home', $home, $home);
+
+        $html = $this->page('/')->getContent();
+
+        $this->assertStringNotContainsString('class="xp"', $html);
+        $this->assertStringContainsString('<main id="main-content">', $html);
+        $this->assertSame(12, app(Storefront::class)->contentSpan());
+
+        // The editor's preview keeps the side, so the section can be reached there.
+        $nonce = $this->openEditor($this->admin());
+        $preview = $this->get('/?xelga_preview=' . $nonce)->assertOk()->getContent();
+        $this->assertStringContainsString('<div class="xp" data-sides="left">', $preview);
+        $this->assertStringContainsString('data-section-id="brands-side"', $preview);
+    }
+
     public function test_side_sections_are_sized_for_three_twelfths(): void
     {
         $this->fakePhoto();
@@ -258,8 +278,12 @@ class XelgaSidesTest extends TestCase
         $html = $this->page('/')->getContent();
 
         $side = $this->cut($html, 'promos-side');
-        $this->assertSame([Picture::spanSizes(3)], $this->sizesIn($side));
-        $this->assertStringContainsString('320px', Picture::spanSizes(3));
+        // Three twelfths from 990 pixels; below that the sides stack the
+        // whole page wide, so the section's own full-width sizes apply.
+        $sizes = Picture::contentSizes(3, '(min-width: 750px) 50vw, 100vw');
+        $this->assertSame([$sizes], $this->sizesIn($side));
+        $this->assertStringStartsWith('(min-width: 1320px) 320px, (min-width: 990px) 25vw, ', $sizes);
+        $this->assertStringEndsWith(', (min-width: 750px) 50vw, 100vw', $sizes);
         // The content beside it is nine twelfths.
         $this->assertStringContainsString('data-content="9"', $html);
     }

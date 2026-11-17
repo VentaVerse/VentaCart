@@ -20,8 +20,14 @@ final class SectionRenderer
     /** @var list<array> what the editor preview needs to know about the drawn sections */
     private array $pageData = [];
 
-    /** @var array<string, int> extension sections met so far in the document being drawn, by type */
-    private array $extensionCounts = [];
+    /**
+     * The extension sections of the document being drawn that may be drawn
+     * where they sit, decided once in reading order (see placeableIds()),
+     * so drawing the sides before the rows changes no limit.
+     *
+     * @var array<string, true>
+     */
+    private array $placeableIds = [];
 
     /** How wide the page's content area was drawn, in twelfths of the page. */
     private int $contentSpan = 12;
@@ -40,9 +46,8 @@ final class SectionRenderer
     public function render(array $content, RenderContext $context): string
     {
         $sections = (array) ($content['sections'] ?? []);
-        $drawn = $this->drawnIds($content, $context);
-        $context = $context->withTypes($this->typesOf($drawn, $sections));
-        $this->extensionCounts = [];
+        $this->placeableIds = $this->placeableIds($content, $context);
+        $context = $context->withTypes($this->drawnTypes($content, $context));
         $sides = self::sides($content);
 
         if ($context->group !== 'template') {
@@ -54,42 +59,53 @@ final class SectionRenderer
             return $html;
         }
 
-        // A side is drawn when one of its sections is (see drawnIds()); one
-        // whose sections are all hidden takes no room from the content.
-        $on = [];
-        foreach (Layout::SIDES as $which) {
-            $on[$which] = array_intersect($sides[$which], $drawn) !== [];
-        }
-        $this->contentSpan = Layout::contentSpan(count(array_filter($on)), $context->span);
-        $this->sides = ['left' => '', 'right' => ''];
-
+        // Both sides are drawn first: only what they show decides the
+        // content area every row is drawn in. Their entries in the preview's
+        // page data keep the reading order (left side, rows, right side).
         $this->sides['left'] = $this->side($sides['left'], $sections, $context);
+        $mark = count($this->pageData);
+        $this->sides['right'] = $this->side($sides['right'], $sections, $context);
+        $rightData = array_splice($this->pageData, $mark);
+
+        // A side that shows nothing (its sections hidden, or with nothing to
+        // show this shopper) is not drawn and takes no room. The editor's
+        // preview keeps every side that holds a section, so the editor can
+        // still reach a hidden one.
+        foreach (Layout::SIDES as $which) {
+            $shows = $context->preview ? $sides[$which] !== [] : self::shows($this->sides[$which]);
+            if (! $shows) {
+                $this->sides[$which] = '';
+            }
+        }
+        $drawn = count(array_filter($this->sides, fn (string $html) => $html !== ''));
+        $this->contentSpan = Layout::contentSpan($drawn, $context->span);
+
         $inner = $context->withSpan($this->contentSpan);
         $html = '';
         foreach (Layout::rows($content) as $row) {
             $html .= $this->row($row, $sections, $inner);
         }
-        $this->sides['right'] = $this->side($sides['right'], $sections, $context);
-        foreach (Layout::SIDES as $which) {
-            if (! $on[$which]) {
-                $this->sides[$which] = '';
-            }
-        }
+        array_push($this->pageData, ...$rightData);
 
         return $html;
     }
 
+    /** Whether drawn HTML shows anything: more than section markers and white space. */
+    private static function shows(string $html): bool
+    {
+        return trim((string) preg_replace('/<!--\/?xelga:[^>]*-->/', '', $html)) !== '';
+    }
+
     /**
-     * One side's sections, each drawn three twelfths wide. Every section
-     * is drawn even when the side is not, so extension limits count the
-     * page as drawnIds() counts it; render() drops a side that shows nothing.
+     * One side's sections, each drawn three twelfths wide. render() drops
+     * a side that shows nothing.
      *
      * @param  list<string>  $ids
      * @param  array<string, array>  $sections  the document's sections
      */
     private function side(array $ids, array $sections, RenderContext $context): string
     {
-        $context = $context->withSpan(Layout::SIDE_SPAN);
+        $context = $context->inSide();
         $html = '';
         foreach ($ids as $id) {
             $html .= $this->placed($id, $sections, $context);
@@ -120,17 +136,29 @@ final class SectionRenderer
      */
     public function drawnTypes(array $content, RenderContext $context): array
     {
-        return $this->typesOf($this->drawnIds($content, $context), (array) ($content['sections'] ?? []));
+        $sections = (array) ($content['sections'] ?? []);
+        $placeable = $this->placeableIds($content, $context);
+        $types = [];
+        foreach (self::drawOrder($content) as $id) {
+            $section = $sections[$id] ?? null;
+            $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
+            if ($schema === null || ($schema->source() !== null && ! isset($placeable[$id])) || (bool) ($section['disabled'] ?? false)) {
+                continue;
+            }
+            $types[$schema->type] = true;
+        }
+
+        return array_keys($types);
     }
 
     /**
-     * The ids of the sections the document will draw, in the order the page
-     * reads (see drawnTypes() for which ones). The section types a page
-     * draws and whether a side is drawn both come from this one list.
+     * The extension sections of the document that may be drawn where they
+     * sit, counted in reading order (left side, rows, right side), hidden
+     * ones included, as a save counts them.
      *
-     * @return list<string>
+     * @return array<string, true>
      */
-    private function drawnIds(array $content, RenderContext $context): array
+    private function placeableIds(array $content, RenderContext $context): array
     {
         $sections = (array) ($content['sections'] ?? []);
         $counts = [];
@@ -138,34 +166,12 @@ final class SectionRenderer
         foreach (self::drawOrder($content) as $id) {
             $section = $sections[$id] ?? null;
             $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
-            if ($schema === null) {
-                continue;
+            if ($schema !== null && $schema->source() !== null && $this->placeable($schema, $context, $counts)) {
+                $ids[$id] = true;
             }
-            // Counted before the hidden check, as render() counts it.
-            if ($schema->source() !== null && ! $this->placeable($schema, $context, $counts)) {
-                continue;
-            }
-            if ((bool) ($section['disabled'] ?? false)) {
-                continue;
-            }
-            $ids[] = $id;
         }
 
         return $ids;
-    }
-
-    /**
-     * @param  list<string>  $ids
-     * @return list<string>
-     */
-    private function typesOf(array $ids, array $sections): array
-    {
-        $types = [];
-        foreach ($ids as $id) {
-            $types[(string) $sections[$id]['type']] = true;
-        }
-
-        return array_keys($types);
     }
 
     /**
@@ -297,7 +303,7 @@ final class SectionRenderer
         // wrote the stored document: one that breaks its schema's rules is
         // not drawn, so its data class never runs on a page it was not
         // made for.
-        if ($schema->source() !== null && ! $this->placeable($schema, $context, $this->extensionCounts)) {
+        if ($schema->source() !== null && ! isset($this->placeableIds[$id])) {
             return '';
         }
         if ($disabled && ! $context->preview) {

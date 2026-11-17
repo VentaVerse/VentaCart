@@ -165,7 +165,7 @@
   }
 
   /* A section or row that paints its own background keeps its text off the edge. */
-  .xp__content > :is(.s:not(.scheme-1, .s-hero), .s[data-has-bg="true"]:not(.s-hero), .xr[class*="scheme-"]) {
+  .xp__content > :is(.s:not(.scheme-1, .s-hero), .s[data-has-bg="true"]:not(.s-hero), .xr[class*="scheme-"]:not(.scheme-1)) {
     padding-inline: clamp(1rem, 4%, 2.5rem);
     border-radius: var(--radius-card);
   }

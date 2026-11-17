@@ -111,10 +111,16 @@ final class Picture
      * The sizes of a photo that takes part of its section: $fullWidth (a
      * width written for a section the whole page wide) on a full-width
      * row, and the column's own share when the section sits in a column,
-     * where the photo can be as wide as the column.
+     * where the photo can be as wide as the column. In a page side
+     * ($inSide) it is the side's share from 990 pixels and $fullWidth
+     * below, where sides stack the whole page wide.
      */
-    public static function columnSizes(int $span, string $fullWidth): string
+    public static function columnSizes(int $span, string $fullWidth, bool $inSide = false): string
     {
+        if ($inSide) {
+            return self::contentSizes($span, $fullWidth);
+        }
+
         return $span >= 12 ? $fullWidth : self::spanSizes($span);
     }
 
@@ -142,10 +148,17 @@ final class Picture
      * The sizes of a photo in a grid of $cols to a line (one to a line on a
      * phone when $mobileCols is 1): $fullWidth (written for a section the
      * whole page wide) on a full-width row, and the column's own share of
-     * the grid when the section sits in a column.
+     * the grid when the section sits in a column. In a page side
+     * ($inSide), whose grids hold one to a line, it is the side's share
+     * from 990 pixels and $fullWidth below, where sides stack the whole
+     * page wide.
      */
-    public static function gridSizes(int $span, string $fullWidth, mixed $mobileCols, mixed $cols): string
+    public static function gridSizes(int $span, string $fullWidth, mixed $mobileCols, mixed $cols, bool $inSide = false): string
     {
+        if ($inSide) {
+            return self::contentSizes($span, $fullWidth);
+        }
+
         return $span >= 12 ? $fullWidth : self::cardSizes($mobileCols, $cols, $span);
     }
 
