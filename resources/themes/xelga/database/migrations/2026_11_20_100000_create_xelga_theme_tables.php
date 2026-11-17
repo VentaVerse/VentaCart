@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +18,10 @@ use Illuminate\Support\Facades\Storage;
  * page view, and the Clothes store's, which the section presets show. A
  * file already there is never replaced, and uninstalling leaves the
  * photos, which are the merchant's media from then on.
+ *
+ * A store that already shows an announcement line keeps it: the line
+ * becomes the only message of the theme's announcement bar, published as
+ * the store's header. Core's setting is only read.
  */
 return new class extends Migration
 {
@@ -65,6 +70,7 @@ return new class extends Migration
         });
 
         $this->copyStartingPhotos();
+        $this->carryTheAnnouncement();
     }
 
     public function down(): void
@@ -92,6 +98,57 @@ return new class extends Migration
             // The pages still render without their photos; the merchant
             // picks new ones in the editor.
             Log::warning('The starting store photos could not be copied into the media library.', ['error' => $e->getMessage()]);
+        }
+    }
+
+    private function carryTheAnnouncement(): void
+    {
+        try {
+            $line = DB::table('settings')->where('group', 'header')
+                ->whereIn('key', ['announcement_enabled', 'announcement_text', 'announcement_link'])
+                ->pluck('value', 'key');
+            $text = trim((string) ($line['announcement_text'] ?? ''));
+            if (($line['announcement_enabled'] ?? '0') !== '1' || $text === '') {
+                return;
+            }
+
+            $header = json_decode((string) file_get_contents(dirname(__DIR__, 2) . '/store-templates/_defaults/header.json'), true);
+            $block = 'announcement-1-b1';
+            if (! is_array($header) || ! isset($header['sections']['announcement-1']['blocks'][$block])) {
+                return;
+            }
+
+            $href = \App\Support\SafeInput::link((string) ($line['announcement_link'] ?? ''));
+            $header['sections']['announcement-1']['block_order'] = [$block];
+            $header['sections']['announcement-1']['blocks'] = [$block => array_replace_recursive(
+                $header['sections']['announcement-1']['blocks'][$block],
+                ['settings' => ['text' => mb_substr($text, 0, 120), 'link' => $href === '' ? null : ['type' => 'url', 'href' => $href]]]
+            )];
+            $header['sections']['announcement-1']['disabled'] = false;
+
+            $now = now();
+            $json = json_encode($header, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $id = DB::table('xelga_documents')->insertGetId([
+                'handle' => 'header',
+                'kind' => 'group',
+                'page_type' => null,
+                'published' => $json,
+                'published_version' => 1,
+                'published_at' => $now,
+                'draft_version' => 0,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            DB::table('xelga_revisions')->insert([
+                'document_id' => $id,
+                'version' => 1,
+                'content' => $json,
+                'source' => 'install',
+                'created_at' => $now,
+            ]);
+        } catch (\Throwable $e) {
+            // The shipped header shows instead; the merchant writes the line in the editor.
+            Log::warning('The store\'s announcement line could not be carried into the theme.', ['error' => $e->getMessage()]);
         }
     }
 };

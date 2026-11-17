@@ -15,6 +15,6 @@ return [
     |
     */
 
-    'bundled' => 'default',
+    'bundled' => 'xelga',
 
 ];
