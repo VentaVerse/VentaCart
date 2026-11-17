@@ -7,6 +7,7 @@ use App\Support\CartGroups;
 use App\Support\CheckoutPage;
 use App\Support\OrderPanels;
 use App\Support\StorefrontPageType;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -25,6 +26,19 @@ class SampleExtensionServiceProvider extends ServiceProvider
         $this->loadViewsFrom($root . '/resources/views', 'sample-extension');
         $this->loadRoutesFrom($root . '/routes/web.php');
 
+        // Xelga's hooks: no Xelga class is needed here, and without Xelga
+        // the event is never fired.
+        Event::listen('xelga.extend', function ($xelga) use ($root): void {
+            $xelga->parts('sample-extension', $root . '/resources/xelga');
+            $xelga->previewUrl(self::PAGE_TYPE, fn (): ?string => route('sample-extension.page.show', ['slug' => 'lamp']));
+        });
+
+        $this->registerHooks();
+    }
+
+    /** Core's hooks, which live in static lists. */
+    public function registerHooks(): void
+    {
         StorefrontPageType::register(self::PAGE_TYPE, 'Sample pages', ['sample-extension.page.']);
         CartGroups::use(Cart\SampleCartGrouper::class);
         AccountMenu::add('sample-extension.account', 'Sample things', 'store');

@@ -1,0 +1,12 @@
+/* The sample section's look inside Xelga. Range values reach CSS as data attributes. */
+.s-sample-extension--card[data-size="0"]{--size:0}
+.s-sample-extension--card[data-size="10"]{--size:10}
+.s-sample-extension--card[data-size="20"]{--size:20}
+.s-sample-extension--card[data-size="30"]{--size:30}
+.s-sample-extension--card[data-size="40"]{--size:40}
+.s-sample-extension--card[data-size="50"]{--size:50}
+.s-sample-extension--card[data-size="60"]{--size:60}
+.s-sample-extension--card[data-size="70"]{--size:70}
+.s-sample-extension--card[data-size="80"]{--size:80}
+.s-sample-extension--card[data-size="90"]{--size:90}
+.s-sample-extension--card[data-size="100"]{--size:100}

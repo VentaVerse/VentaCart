@@ -1,0 +1,13 @@
+{
+  "type": "sample-extension.main",
+  "label": "Sample page",
+  "description": "The thing this page is about.",
+  "group": "template",
+  "templates": ["sample_page"],
+  "main": true,
+  "limit": 1,
+  "settings": [
+    { "key": "show_name", "type": "toggle", "label": "Show the name", "default": true }
+  ],
+  "presets": [ { "key": "default", "label": "Sample page" } ]
+}

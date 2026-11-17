@@ -1,0 +1,5 @@
+{
+  "placements": [
+    { "key": "card", "section": "sample-extension.card", "preset": "default", "templates": ["product"], "custom_templates": true, "after": "product-main", "otherwise": "end" }
+  ]
+}

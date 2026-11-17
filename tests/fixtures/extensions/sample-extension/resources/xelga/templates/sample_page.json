@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "order": ["sample-main", "sample-text"],
+  "sections": {
+    "sample-main": { "type": "sample-extension.main", "label": "Sample page", "disabled": false, "settings": { "show_name": true }, "block_order": [], "blocks": {} },
+    "sample-text": { "type": "rich-text", "label": "Text", "disabled": false, "settings": { "heading": "About this thing" }, "block_order": [], "blocks": {} }
+  }
+}

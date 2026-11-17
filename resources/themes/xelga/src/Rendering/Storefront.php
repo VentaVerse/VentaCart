@@ -169,7 +169,7 @@ final class Storefront
     /** Drop what the last request loaded, so nothing carries over to the next one. */
     public static function forgetRequestState(): void
     {
-        foreach ([DocumentRepository::class, SectionRenderer::class, TemplateResolver::class, self::class] as $class) {
+        foreach ([DocumentRepository::class, SectionRenderer::class, TemplateResolver::class, self::class, \Themes\Xelga\Extensions\Extensions::class] as $class) {
             app()->forgetInstance($class);
         }
         Picture::flush();

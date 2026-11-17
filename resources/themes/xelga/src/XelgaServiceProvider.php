@@ -50,6 +50,8 @@ class XelgaServiceProvider extends ServiceProvider
         $this->app->scoped(SectionRenderer::class);
         $this->app->scoped(TemplateResolver::class);
         $this->app->scoped(Storefront::class);
+        // The parts extensions registered, collected once per request.
+        $this->app->scoped(\Themes\Xelga\Extensions\Extensions::class);
     }
 
     public function boot(): void

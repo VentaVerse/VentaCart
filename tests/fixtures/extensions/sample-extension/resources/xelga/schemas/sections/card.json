@@ -1,0 +1,26 @@
+{
+  "type": "sample-extension.card",
+  "label": "Sample card",
+  "description": "Who sells this.",
+  "group": "template",
+  "templates": ["product", "*custom", "sample_page"],
+  "limit": 1,
+  "icon": "user",
+  "data_class": "Tests\\Fixtures\\Extensions\\SampleExtension\\Xelga\\Sections\\Card",
+  "settings": [
+    { "key": "heading", "type": "text", "label": "Heading", "default": "Sold by Demo Store", "max": 80 },
+    { "key": "link", "type": "url", "label": "Goes to", "default": null },
+    { "key": "show_rating", "type": "toggle", "label": "Show the rating", "default": true },
+    { "key": "size", "type": "range", "label": "Size", "default": 50, "min": 0, "max": 100, "step": 10 }
+  ],
+  "blocks": {
+    "min": 0,
+    "max": 4,
+    "types": [
+      { "type": "line", "label": "Line", "settings": [ { "key": "text", "type": "text", "label": "Text", "default": "Ships in 2 days", "max": 80 } ] }
+    ]
+  },
+  "presets": [
+    { "key": "default", "label": "Sample card", "settings": { "heading": "Sold by Demo Store" }, "blocks": [ { "type": "line", "settings": { "text": "Ships in 2 days" } } ] }
+  ]
+}
