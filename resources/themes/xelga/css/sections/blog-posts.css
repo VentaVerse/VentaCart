@@ -2,16 +2,25 @@
    20. Blog posts (grid, featured, list)
    ========================================================================== */
 
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-blog {
+  container-type: inline-size;
+}
+
+.s-blog[data-cols="1"] { --cols: 1; }
+
 .posts {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: clamp(1.75rem, 1.2rem + 2vw, 2.75rem) var(--grid-gap);
+  gap: clamp(1.75rem, 1.2rem + 2cqi, 2.75rem) var(--grid-gap);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-@media (min-width: 750px) {
+@container (min-width: 750px) {
   .s-blog[data-variant="grid"] .posts {
     grid-template-columns: repeat(auto-fill, minmax(max(240px, (100% - (var(--cols, 3) - 1) * var(--grid-gap)) / var(--cols, 3)), 1fr));
   }
@@ -103,10 +112,10 @@
   display: none;
 }
 
-@media (min-width: 990px) {
+@container (min-width: 990px) {
   .s-blog[data-variant="featured"] .posts {
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-    column-gap: clamp(2rem, 4vw, 4rem);
+    column-gap: clamp(2rem, 4cqi, 4rem);
   }
   .s-blog[data-variant="featured"] .post:first-child {
     grid-row: span 2;
@@ -138,7 +147,7 @@
   border-block-start: 1px solid var(--c-border);
 }
 
-@media (min-width: 750px) {
+@container (min-width: 750px) {
   .s-blog[data-variant="list"] .post {
     grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
     align-items: center;

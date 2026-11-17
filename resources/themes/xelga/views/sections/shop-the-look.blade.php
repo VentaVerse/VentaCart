@@ -21,7 +21,7 @@
         @include('xelga::snippets.section-bg')
         <div class="s__inner look">
             <div class="look__media">
-                <img src="{{ $picture['src'] ?? '' }}" alt="{{ $settings['image_alt'] }}" {{ \Themes\Xelga\Rendering\Fold::attrs($context, (bool) $picture) }} {{ \Themes\Xelga\Rendering\Picture::sources($picture, '(min-width: 750px) 50vw, 100vw') }}
+                <img src="{{ $picture['src'] ?? '' }}" alt="{{ $settings['image_alt'] }}" {{ \Themes\Xelga\Rendering\Fold::attrs($context, (bool) $picture) }} {{ \Themes\Xelga\Rendering\Picture::sources($picture, \Themes\Xelga\Rendering\Picture::columnSizes($context->span, '(min-width: 750px) 50vw, 100vw')) }}
                      data-setting="image" data-setting-attr="image_alt:alt"
                      @if ($picture && $picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif
                      @if (! $picture) hidden @endif>

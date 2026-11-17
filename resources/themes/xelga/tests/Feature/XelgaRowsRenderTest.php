@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Tests\Support\UsesSampleExtension;
 use Tests\TestCase;
 use Themes\Xelga\Catalog\Catalog;
+use Themes\Xelga\Documents\Defaults;
 use Themes\Xelga\Documents\Layout;
 use Themes\Xelga\Documents\LayoutRules;
 use Themes\Xelga\Rendering\Picture;
@@ -218,6 +219,106 @@ class XelgaRowsRenderTest extends TestCase
         $wide['sections']['narrow-1'] = $this->narrowSection($type, $variant);
         $adjusted = $this->saveWithRows('home', $wide, 1)->assertOk()->json('data.adjusted');
         $this->assertSame([], array_values(array_filter($adjusted, fn ($a) => $a['reason'] === 'too-wide')));
+    }
+
+    /** A list of products in the given column of a row, as its own preset ships. */
+    private function productListSection(string $type, int $cols, string $variant = 'grid'): array
+    {
+        $preset = Catalog::section($type)->raw['presets'][0];
+
+        return ['type' => $type, 'label' => '', 'disabled' => false, 'settings' => ['cols' => $cols, 'variant' => $variant] + $preset['settings'], 'block_order' => [], 'blocks' => []];
+    }
+
+    public function test_product_lists_cap_cards_per_row_to_their_width(): void
+    {
+        $store = Store::firstOrCreate(['code' => 'demo'], ['name' => 'Demo Store']);
+        foreach (['Linen Shirt', 'Canvas Bag', 'Wool Cap', 'Denim Jacket'] as $i => $name) {
+            Product::create([
+                'store_id' => $store->id, 'name' => $name, 'slug' => 'demo-' . $i,
+                'sku' => 'DEMO-00' . $i, 'price' => 1250, 'quantity' => 5, 'is_active' => true,
+            ]);
+        }
+
+        // Four to a line asked for: a half-width column holds two, and so does a two-thirds one.
+        foreach (['6-6' => [6, '2'], '8-4' => [8, '2']] as $split => [$span, $cols]) {
+            $home = $this->homeWithRow($split, [['list-1'], ['tile-b']]);
+            $home['sections']['list-1'] = $this->productListSection('featured-products', 4);
+            $home['sections']['list-1']['settings']['source'] = 'newest';
+            $this->publishedDocument('home', $home);
+            $section = $this->cut($this->cut($this->page('/')->getContent(), 'row-tiles'), 'list-1');
+
+            $this->assertStringContainsString('data-cols="' . $cols . '"', $section);
+            $this->assertStringContainsString('class="s s-products ', $section);
+            // The cap reaches the card photos' sizes, as a share of the column.
+            if (str_contains($section, 'sizes="')) {
+                $this->assertStringContainsString('sizes="' . e(Picture::cardSizes(2, (int) $cols, $span)) . '"', $section);
+            }
+        }
+
+        // The same list on a full-width row keeps the setting.
+        $home = $this->defaults('home');
+        $home['sections']['list-1'] = $this->productListSection('featured-products', 4);
+        $home['sections']['list-1']['settings']['source'] = 'newest';
+        $home['order'][] = 'list-1';
+        $this->publishedDocument('home', $home);
+        $this->assertStringContainsString('data-cols="4"', $this->cut($this->page('/')->getContent(), 'list-1'));
+    }
+
+    public function test_card_sizes_count_the_columns_a_line_holds(): void
+    {
+        $this->assertSame('(min-width: 1320px) 640px, (min-width: 990px) 50vw, (min-width: 750px) 17vw, 50vw', Picture::cardSizes(2, 1, 6));
+        $this->assertSame('(min-width: 1320px) 320px, (min-width: 990px) 25vw, (min-width: 750px) 33vw, 50vw', Picture::cardSizes(2, 4, 12));
+    }
+
+    public function test_tiles_and_posts_fit_their_column(): void
+    {
+        $context = new RenderContext('home', 'home', 'template', false);
+
+        $this->assertSame(5, $context->fitColumns(5));
+        $this->assertSame(4, $context->fitColumns(null));
+        $this->assertSame(3, $context->fitColumns(0, 3));
+        $this->assertSame(2, $context->withSpan(6)->fitColumns(4));
+        $this->assertSame(2, $context->withSpan(8)->fitColumns(5));
+        $this->assertSame(1, $context->withSpan(4)->fitColumns(4));
+        $this->assertSame(1, $context->withSpan(3)->fitColumns(2));
+        $this->assertSame(2, $context->withSpan(12)->fitColumns(2));
+    }
+
+    public function test_wide_sections_sit_in_an_8_column(): void
+    {
+        // Shop the look, side by side with a tile: it stays in the wide column.
+        $home = $this->homeWithRow('8-4', [['look-1'], ['tile-b']]);
+        $home['sections']['look-1'] = $this->narrowSection('shop-the-look', 'side');
+        $response = $this->saveWithRows('home', $home, 0)->assertOk();
+        $this->assertSame([], array_values(array_filter($response->json('data.adjusted'), fn ($a) => $a['reason'] === 'too-wide')));
+
+        $this->publishedDocument('home', $home);
+        $row = $this->cut($this->page('/')->getContent(), 'row-tiles');
+        $this->assertMatchesRegularExpression('#<div class="xr__col" data-span="8"><!--xelga:look-1-->#', $row);
+
+        // The wide photo with its list below needs the whole page, so it leaves the column.
+        $home['sections']['look-1'] = $this->narrowSection('shop-the-look', 'full');
+        $adjusted = $this->saveWithRows('home', $home, 1)->assertOk()->json('data.adjusted');
+        $this->assertCount(1, array_filter($adjusted, fn ($a) => $a['reason'] === 'too-wide' && $a['path'] === 'content.sections.look-1'));
+
+        // Product details beside another section on the product page.
+        $product = $this->productWith(['tile-c' => $this->tile('Tile c')]);
+        $product['order'] = array_values(array_diff($product['order'], ['tile-c']));
+        array_splice($product['order'], array_search('product-details-1', $product['order'], true) + 1, 0, ['tile-c']);
+        $rows = [];
+        foreach (Layout::rows($product) as $row) {
+            if ($row['columns'][0] === ['tile-c']) {
+                continue;
+            }
+            $rows[] = $row['columns'][0] === ['product-details-1']
+                ? ['id' => 'row-details', 'split' => '8-4', 'columns' => [['product-details-1'], ['tile-c']], 'settings' => []]
+                : $row;
+        }
+        $product['rows'] = $rows;
+        $response = $this->saveWithRows('product', $product, 0)->assertOk();
+        $this->assertSame([], array_values(array_filter($response->json('data.adjusted'), fn ($a) => $a['reason'] === 'too-wide')));
+        $kept = collect($response->json('data.document.content.rows'))->firstWhere('id', 'row-details');
+        $this->assertSame([['product-details-1'], ['tile-c']], $kept['columns']);
     }
 
     public function test_a_plain_row_draws_no_wrapper(): void

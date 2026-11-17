@@ -32,7 +32,7 @@ final class BlogPosts implements SectionData
     public function resolve(array $settings, array $blocks, RenderContext $context): array
     {
         if (! self::enabled()) {
-            return ['enabled' => false, 'posts' => [], 'link' => null];
+            return ['enabled' => false, 'cols' => $context->fitColumns($settings['cols'] ?? 3, 3), 'posts' => [], 'link' => null];
         }
 
         $query = \Extensions\Blog\Models\BlogPost::query()->published()->with('category')
@@ -57,6 +57,7 @@ final class BlogPosts implements SectionData
 
         return [
             'enabled' => true,
+            'cols' => $context->fitColumns($settings['cols'] ?? 3, 3),
             'posts' => $posts,
             'link' => LinkValue::resolve($settings['link'] ?? null),
         ];

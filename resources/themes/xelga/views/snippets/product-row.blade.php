@@ -5,11 +5,11 @@
 --}}
 @php
     $cards = $data['cards'];
-    $cardSizes = \Themes\Xelga\Rendering\Picture::cardSizes($settings['mobile_cols'] ?? 2, $settings['cols'] ?? 4);
+    $cardSizes = \Themes\Xelga\Rendering\Picture::cardSizes($settings['mobile_cols'] ?? 2, $data['cols'], $context->span);
 @endphp
 @if ($cards !== [] || $context->preview)
     <section class="s {{ $section['class'] }} {{ $settings['scheme'] }}" @include('xelga::snippets.section-attrs')
-             data-cols="{{ $settings['cols'] }}" data-mobile-cols="{{ $settings['mobile_cols'] }}"
+             data-cols="{{ $data['cols'] }}" data-mobile-cols="{{ $settings['mobile_cols'] }}"
              data-show-rating="{{ $settings['show_rating'] ? 'true' : 'false' }}" data-show-quick-add="{{ $settings['show_quick_add'] ? 'true' : 'false' }}"
              data-show-brand="{{ $settings['show_brand'] ? 'true' : 'false' }}" data-head-align="{{ $settings['head_align'] }}"
              aria-labelledby="{{ $section['id'] }}-title">

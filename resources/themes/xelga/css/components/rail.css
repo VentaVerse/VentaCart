@@ -11,18 +11,27 @@
   display: flex;
 }
 
+/*
+ * The row answers to its section's width (a section that holds one is a size
+ * container), so a swipe row in a column draws as it would on a page of that
+ * width. It runs out to the screen's edge only where the section sits in the
+ * page's gutters, never inside a column.
+ */
 .s:is([data-variant="carousel"], [data-variant="large"]) .rail-track {
   grid-auto-flow: column;
   grid-template-columns: none;
   grid-auto-columns: calc((100% - (var(--cols, 4) - 1) * var(--grid-gap)) / var(--cols, 4));
-  margin-inline: calc(var(--gutter) * -1);
-  padding-inline: var(--gutter);
   padding-block-end: .5rem;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: var(--gutter);
   scrollbar-width: none;
+}
+
+:where(:not(.xr__col)) > .s:is([data-variant="carousel"], [data-variant="large"]) .rail-track {
+  margin-inline: calc(var(--gutter) * -1);
+  padding-inline: var(--gutter);
+  scroll-padding-inline: var(--gutter);
 }
 
 .s:is([data-variant="carousel"], [data-variant="large"]) .rail-track::-webkit-scrollbar {
@@ -33,15 +42,15 @@
   scroll-snap-align: start;
 }
 
-@media (min-width: 750px) {
-  .s:is([data-variant="carousel"], [data-variant="large"]) .rail-track {
+@container (min-width: 750px) {
+  :where(:not(.xr__col)) > .s:is([data-variant="carousel"], [data-variant="large"]) .rail-track {
     margin-inline: 0;
     padding-inline: 0;
     scroll-padding-inline: 0;
   }
 }
 
-@media (max-width: 749px) {
+@container (max-width: 749px) {
   .s[data-variant="carousel"] .rail-track {
     grid-auto-columns: 46%;
   }
@@ -50,13 +59,17 @@
   }
 }
 
-@media (min-width: 750px) and (max-width: 989px) {
+@container (min-width: 750px) and (max-width: 989px) {
   .s[data-variant="carousel"] .rail-track {
     grid-auto-columns: calc((100% - 2 * var(--grid-gap)) / 3);
+  }
+  /* A product row in a column holds no more cards than its setting allows. */
+  .xr__col > .s-products[data-variant="carousel"] .rail-track {
+    --per-view: min(3, var(--cols, 4));
+    grid-auto-columns: calc((100% - (var(--per-view) - 1) * var(--grid-gap)) / var(--per-view));
   }
 }
 
 .s[data-variant="large"] .rail-track {
   grid-auto-columns: 100%;
 }
-

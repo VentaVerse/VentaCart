@@ -2,13 +2,20 @@
    16. Shop the look (side, full)
    ========================================================================== */
 
+/*
+ * The section answers to its own width, so it reads the same in a column as on a page of that width. Rules below aim at its contents, never at the section itself.
+ */
+.s-look {
+  container-type: inline-size;
+}
+
 .look {
   display: grid;
-  gap: clamp(1.5rem, 1rem + 2.5vw, 3.5rem);
+  gap: clamp(1.5rem, 1rem + 2.5cqi, 3.5rem);
   align-items: start;
 }
 
-@media (min-width: 990px) {
+@container (min-width: 990px) {
   .s-look[data-variant="side"] .look {
     grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
     align-items: center;
@@ -111,7 +118,7 @@
   grid-template-columns: 64px minmax(0, 1fr);
   gap: .75rem;
   align-items: center;
-  width: min(270px, 72vw);
+  width: min(270px, 72cqi);
   padding: .625rem;
   color: var(--c-text);
   background: var(--c-bg);
@@ -240,7 +247,7 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 990px) {
+@container (min-width: 990px) {
   .s-look[data-variant="full"] .look__list {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     column-gap: var(--grid-gap);

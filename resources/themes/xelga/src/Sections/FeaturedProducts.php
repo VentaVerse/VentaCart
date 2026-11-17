@@ -20,6 +20,7 @@ final class FeaturedProducts implements SectionData
         $products = $criteria === null ? [] : ProductSource::get($criteria);
 
         return [
+            'cols' => $context->fitColumns($settings['cols'] ?? 4),
             'cards' => ProductCards::for($products, Swatches::wanted($context), CardLines::wanted($context)),
             'empty' => $this->emptyNote($settings, $criteria === null),
             'link' => LinkValue::resolve($settings['link'] ?? null),

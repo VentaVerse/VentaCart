@@ -11,7 +11,7 @@
 @endphp
 @if ($tiles !== [] || $context->preview)
     <section class="s {{ $section['class'] }} {{ $settings['scheme'] }}" @include('xelga::snippets.section-attrs')
-             data-cols="{{ $settings['cols'] }}" data-ratio="{{ $settings['ratio'] }}"
+             data-cols="{{ $data['cols'] }}" data-ratio="{{ $settings['ratio'] }}"
              data-show-note="{{ $settings['show_note'] ? 'true' : 'false' }}" data-mobile-layout="{{ $settings['mobile_layout'] }}"
              data-head-align="{{ $settings['head_align'] }}" data-count="{{ count($tiles) }}" aria-labelledby="{{ $section['id'] }}-title">
         @include('xelga::snippets.section-bg')
@@ -29,7 +29,7 @@
                         <a class="tile__link" href="{{ $tile['url'] ?? '#' }}">
                             <span class="tile__media">
                                 @if ($tile['picture'])
-                                    <img src="{{ $tile['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($tile['picture'], '(min-width: 990px) 25vw, 50vw') }}
+                                    <img src="{{ $tile['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($tile['picture'], \Themes\Xelga\Rendering\Picture::gridSizes($context->span, '(min-width: 990px) 25vw, 50vw', 2, $data['cols'])) }}
                                          @if ($tile['picture']['width']) width="{{ $tile['picture']['width'] }}" height="{{ $tile['picture']['height'] }}" @endif>
                                 @endif
                             </span>

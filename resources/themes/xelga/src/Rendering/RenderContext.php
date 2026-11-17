@@ -44,6 +44,18 @@ final class RenderContext
         return new self($this->pageType, $this->handle, $this->group, $this->preview, $this->subject, $this->page, max(1, min(12, $span)), $this->types);
     }
 
+    /**
+     * How many cards, tiles or posts a line holds: the section's setting on
+     * a full-width row, and at most a third of the span in a column, so a
+     * card keeps room for its photo and text (never fewer than one).
+     */
+    public function fitColumns(mixed $wanted, int $default = 4): int
+    {
+        $wanted = (int) $wanted ?: $default;
+
+        return $this->span >= 12 ? $wanted : max(1, min($wanted, intdiv($this->span, 3)));
+    }
+
     /** @param  list<string>  $types  the section types the document draws */
     public function withTypes(array $types): self
     {
