@@ -2,6 +2,7 @@
 
 namespace Extensions\StoreCredit;
 
+use App\Exceptions\OrderTotalChangedException;
 use App\Models\Order;
 use App\Services\OrderTotals\OrderTotalProviderInterface;
 use App\Services\OrderTotals\ReclaimResult;
@@ -52,11 +53,22 @@ class StoreCreditTotalProvider implements OrderTotalProviderInterface, Releasabl
 
     public function confirm(Order $order, array $line): void
     {
-        // Under the customer's credit lock, like every spend, so a reclaim
-        // for another order of theirs cannot read the balance meanwhile.
-        CreditService::lockedBalance((int) $line['extras']['customer_id']);
+        $customerId = (int) $line['extras']['customer_id'];
+
+        // The line was worked out from the balance before the order
+        // transaction began, so another order of this customer's may have
+        // spent it since. Read again under the customer's credit lock, the
+        // one every balance-dependent spend takes; when it no longer covers
+        // the line, the placement is refused and rolled back rather than
+        // driving the balance below zero.
+        $balance = (int) round(CreditService::lockedBalance($customerId) * 100);
+        $spend = (int) round(-(float) $line['amount'] * 100);
+        if ($spend > $balance) {
+            throw new OrderTotalChangedException('Your store credit balance changed. Please review your order.');
+        }
+
         CreditService::add(
-            $line['extras']['customer_id'],
+            $customerId,
             $line['amount'],
             'Order #' . $order->id,
             $order->id,
