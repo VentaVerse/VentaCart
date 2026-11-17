@@ -52,9 +52,6 @@ class ThemeSeeder extends Seeder
                 'show_view_count' => '1',
                 'show_related_articles' => '1',
             ],
-            'currency' => [
-                'show_selector' => '0',
-            ],
         ];
 
         // firstOrCreate, NOT updateOrCreate. These are DEFAULTS, and a store

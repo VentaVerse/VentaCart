@@ -8,7 +8,9 @@ use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\ThemeService;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
@@ -64,6 +66,29 @@ class StoreCurrencyTest extends TestCase
         }
 
         $this->assertStringContainsString('$1,234.50', $this->get(route('checkout.confirmation', $this->order->id))->getContent());
+    }
+
+    /**
+     * A theme's currency choice writes the cookie in the browser, so it
+     * arrives unencrypted. Encrypting it would make core read every choice
+     * as missing and always show the default currency.
+     */
+    public function test_a_currency_cookie_written_by_the_browser_is_read_as_is(): void
+    {
+        Route::middleware('web')->get('/testing/active-currency', fn () => (string) app(ThemeService::class)->getActiveCurrency()?->code . ' ' . money(10));
+
+        $this->withUnencryptedCookie('currency', 'EUR')->get('/testing/active-currency')->assertOk()->assertSeeText('EUR EUR 5.00');
+    }
+
+    public function test_a_currency_the_store_does_not_offer_falls_back_to_the_default(): void
+    {
+        Currency::create(['code' => 'GBP', 'name' => 'Pound Sterling', 'symbol' => 'GBP ', 'rate' => 0.4, 'is_default' => false, 'is_enabled' => false]);
+        Route::middleware('web')->get('/testing/active-currency', fn () => (string) app(ThemeService::class)->getActiveCurrency()?->code . ' ' . money(10));
+
+        foreach (['GBP', 'XYZ', '<b>'] as $code) {
+            $this->app->forgetInstance(ThemeService::class);
+            $this->withUnencryptedCookie('currency', $code)->get('/testing/active-currency')->assertOk()->assertSeeText('USD $10.00');
+        }
     }
 
     public function test_the_sample_theme_and_core_views_name_no_currency(): void
