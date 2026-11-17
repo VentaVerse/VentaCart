@@ -127,6 +127,35 @@ class OrderStatusChanger
     }
 
     /**
+     * An unpaid order given up on (UnpaidOrderAbandonment) gave back what
+     * it held; one whose payment went through after all, on a second try
+     * at the same payment page, takes it again. Never fatal: a confirmed
+     * payment must not fail over this bookkeeping, and a miss is reported
+     * for the merchant to settle by hand.
+     */
+    private static function reclaimReleasedTotals(Order $locked, int $orderStatusId): void
+    {
+        try {
+            // Its own savepoint, so a provider that fails halfway leaves
+            // none of its writes behind.
+            $notes = DB::transaction(fn () => \App\Services\OrderTotals\OrderTotals::reclaim($locked));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return;
+        }
+
+        if ($notes !== []) {
+            \App\Models\OrderHistory::create([
+                'order_id' => $locked->id,
+                'order_status_id' => $orderStatusId,
+                'comment' => implode(' ', $notes),
+                'notify_customer' => false,
+            ]);
+        }
+    }
+
+    /**
      * Claim an order for a target status when two independent requests can
      * both reach the same "confirm this payment" moment at nearly the same
      * instant, each having read the order before either wrote (HitPay's
@@ -140,6 +169,9 @@ class OrderStatusChanger
      * THAT. The loser of the race, whichever caller's transaction acquires
      * the lock second, sees the winner's already-committed status and
      * applies nothing, the same outcome a genuine duplicate webhook gets.
+     *
+     * An unpaid order that was given up on (UnpaidOrderAbandonment) and is
+     * paid after all takes again what it gave back, under the same lock.
      *
      * @return bool true if this call applied the status (the winner, or the
      *   only caller); false if the order holds it now or ever held it (the
@@ -163,7 +195,14 @@ class OrderStatusChanger
                 return false;
             }
 
+            // Read before apply() gives the order its status.
+            $wasUnpaid = UnpaidOrderAbandonment::isUnpaid($locked);
+
             self::apply($locked, $orderStatusId, $comment, $notify);
+
+            if ($wasUnpaid) {
+                self::reclaimReleasedTotals($locked, $orderStatusId);
+            }
 
             return true;
         });
