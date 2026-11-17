@@ -5,16 +5,17 @@ namespace Themes\Xelga\Console;
 use Illuminate\Console\Command;
 use Themes\Xelga\Catalog\CatalogLinter;
 
-/** php artisan xelga:lint: checks every schema file and the shipped defaults. */
+/** php artisan xelga:lint: checks every schema file and the shipped defaults; --extension=name checks one extension's parts. */
 class LintCatalog extends Command
 {
-    protected $signature = 'xelga:lint';
+    protected $signature = 'xelga:lint {--extension= : Check one extension\'s Xelga parts instead}';
 
     protected $description = 'Check the Xelga theme catalog: section schemas, theme settings, font pairs and shipped defaults.';
 
     public function handle(): int
     {
-        $problems = CatalogLinter::check();
+        $extension = $this->option('extension');
+        $problems = is_string($extension) && $extension !== '' ? CatalogLinter::checkExtension($extension) : CatalogLinter::check();
 
         if ($problems === []) {
             $this->info('The catalog is clean.');

@@ -21,6 +21,40 @@ final class SectionSchema
         $this->group = (string) ($raw['group'] ?? 'template');
     }
 
+    /** The extension the type comes from, or null for the theme's own. */
+    public function source(): ?string
+    {
+        $source = $this->raw['source'] ?? null;
+
+        return is_string($source) && $source !== '' ? $source : null;
+    }
+
+    /** The view that draws it: the theme's `xelga::sections.{type}`, or the extension's own. */
+    public function view(): string
+    {
+        $view = $this->raw['view'] ?? null;
+
+        return $this->source() !== null && is_string($view) ? $view : 'xelga::sections.' . $this->type;
+    }
+
+    /** Its data provider: named after the type for the theme's own, declared by an extension for its own. */
+    public function dataClass(): ?string
+    {
+        if ($this->source() !== null) {
+            $class = $this->raw['data_class'] ?? null;
+
+            return is_string($class) && $class !== '' ? $class : null;
+        }
+
+        return 'Themes\\Xelga\\Sections\\' . \Illuminate\Support\Str::studly($this->type);
+    }
+
+    /** The section's CSS class. */
+    public function cssClass(): string
+    {
+        return (string) ($this->raw['class'] ?? 's-' . $this->type);
+    }
+
     /** @return array<string, SettingSchema> */
     public function settings(): array
     {

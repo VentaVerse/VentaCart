@@ -3,6 +3,7 @@
 namespace Themes\Xelga\Catalog;
 
 use Themes\Xelga\Documents\Defaults;
+use Themes\Xelga\Extensions\ExtensionParts;
 use Themes\Xelga\Documents\Handles;
 use Themes\Xelga\Documents\Shape;
 use Themes\Xelga\Documents\ShapeException;
@@ -37,6 +38,69 @@ final class CatalogLinter
         return (new self())->run();
     }
 
+    /**
+     * Checks one registered extension's parts folder with the theme's own
+     * rules, plus the rules for extension parts.
+     *
+     * @return list<string>
+     */
+    public static function checkExtension(string $name): array
+    {
+        Catalog::flush();
+        $part = Catalog::extensions()->get($name);
+        if ($part === null) {
+            return ["{$name} has no Xelga parts registered: it is not installed and switched on, or its parts were refused (see the log)."];
+        }
+
+        return (new self())->runExtension($part);
+    }
+
+    /** @return list<string> */
+    private function runExtension(ExtensionParts $part): array
+    {
+        $css = $part->stylesheet !== null ? (string) @file_get_contents(base_path($part->stylesheet)) : '';
+        foreach ($part->schemaFiles() as $file) {
+            $name = basename($file, '.json');
+            $where = "{$part->name}: section {$name}";
+            $spec = Catalog::extensionSection($part, $file, fn (string $reason) => $this->problem("{$where}: {$reason}."));
+            if ($spec === null) {
+                continue;
+            }
+            $this->section($name, $spec, $part);
+            $this->extensionRanges($where, $spec, $css);
+        }
+
+        return $this->problems;
+    }
+
+    /** The extension's stylesheet must hold a rule for every range value of its sections. */
+    private function extensionRanges(string $where, array $spec, string $css): void
+    {
+        $class = Catalog::extensionClass($spec['type']);
+        $rules = [];
+        foreach ((array) ($spec['settings'] ?? []) as $raw) {
+            if (($raw['type'] ?? null) === 'range') {
+                $rules[] = [new SettingSchema($raw), ".{$class}"];
+            }
+        }
+        foreach ((array) ($spec['blocks']['types'] ?? []) as $type) {
+            foreach ((array) ($type['settings'] ?? []) as $raw) {
+                if (($raw['type'] ?? null) === 'range') {
+                    $rules[] = [new SettingSchema($raw), ".{$class} [data-block-type=\"{$type['type']}\"]"];
+                }
+            }
+        }
+        foreach ($rules as [$setting, $selector]) {
+            $attr = str_replace('_', '-', $setting->key);
+            foreach ($setting->rangeValues() as $value) {
+                if (! str_contains($css, "{$selector}[data-{$attr}=\"{$value}\"]{--{$attr}:{$value}}")) {
+                    $this->problem("{$where}: the stylesheet has no rule for {$setting->key} = {$value}; run node resources/themes/xelga/bin/ranges.mjs --schemas <its schemas folder> --out <its stylesheet>.");
+                    break 2;
+                }
+            }
+        }
+    }
+
     /** @return list<string> */
     private function run(): array
     {
@@ -62,10 +126,10 @@ final class CatalogLinter
         return $this->problems;
     }
 
-    private function section(string $name, array $spec): void
+    private function section(string $name, array $spec, ?ExtensionParts $part = null): void
     {
-        $where = "Section {$name}";
-        if (($spec['type'] ?? null) !== $name) {
+        $where = $part === null ? "Section {$name}" : "{$part->name}: section {$name}";
+        if ($part === null && ($spec['type'] ?? null) !== $name) {
             $this->problem("{$where}: type must equal the file name.");
         }
         foreach (['label', 'class', 'group'] as $key) {
@@ -78,7 +142,7 @@ final class CatalogLinter
         }
         if (($spec['group'] ?? null) === 'template') {
             foreach ((array) ($spec['templates'] ?? []) as $template) {
-                if (! in_array($template, [...Handles::TEMPLATES, '*', '*custom'], true)) {
+                if (! in_array($template, [...Handles::TEMPLATES, ...self::extensionPageTypes(), '*', '*custom', '*extension'], true)) {
                     $this->problem("{$where}: unknown template {$template}.");
                 }
             }
@@ -136,12 +200,25 @@ final class CatalogLinter
             }
         }
 
+        if ($part !== null) {
+            if (! is_file($part->path . "/views/sections/{$name}.blade.php")) {
+                $this->problem("{$where}: views/sections/{$name}.blade.php is missing.");
+            }
+
+            return;
+        }
         if (! is_file(Catalog::root("views/sections/{$name}.blade.php"))) {
             $this->problem("{$where}: views/sections/{$name}.blade.php is missing.");
         }
         if (! is_file(Catalog::root("css/sections/{$name}.css"))) {
             $this->problem("{$where}: css/sections/{$name}.css is missing.");
         }
+    }
+
+    /** @return list<string> page types extensions registered with core */
+    private static function extensionPageTypes(): array
+    {
+        return array_values(array_filter(array_keys(\App\Support\StorefrontPageType::all()), fn (string $type) => \App\Support\StorefrontPage::isExtensionType($type)));
     }
 
     private function settings(string $where, array $settings, array $section): void
@@ -488,6 +565,10 @@ final class CatalogLinter
     {
         $css = (string) @file_get_contents(Catalog::root('css/generated/ranges.css'));
         foreach (Catalog::sections() as $type => $spec) {
+            // An extension writes its own rules into its own stylesheet.
+            if (isset($spec['source'])) {
+                continue;
+            }
             foreach ((array) $spec['settings'] as $raw) {
                 if (($raw['type'] ?? null) !== 'range') {
                     continue;

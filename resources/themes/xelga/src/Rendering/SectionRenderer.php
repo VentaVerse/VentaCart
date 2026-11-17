@@ -2,7 +2,6 @@
 
 namespace Themes\Xelga\Rendering;
 
-use Illuminate\Support\Str;
 use Themes\Xelga\Catalog\Catalog;
 
 /**
@@ -86,13 +85,13 @@ final class SectionRenderer
 
         try {
             $data = [];
-            $provider = 'Themes\\Xelga\\Sections\\' . Str::studly($type);
-            if (class_exists($provider) && is_subclass_of($provider, SectionData::class)) {
+            $provider = $schema->dataClass();
+            if ($provider !== null && class_exists($provider) && is_subclass_of($provider, SectionData::class)) {
                 $data = app($provider)->resolve($settings, $blocks, $context);
             }
 
-            $html = view('xelga::sections.' . $type, [
-                'section' => ['id' => $id, 'type' => $type, 'label' => $label, 'disabled' => $disabled, 'class' => (string) ($schema->raw['class'] ?? 's-' . $type)],
+            $html = view($schema->view(), [
+                'section' => ['id' => $id, 'type' => $type, 'label' => $label, 'disabled' => $disabled, 'class' => $schema->cssClass()],
                 'settings' => $settings,
                 'blocks' => $blocks,
                 'data' => $data,

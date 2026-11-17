@@ -2,14 +2,21 @@
 
 namespace Themes\Xelga\Catalog;
 
+use Themes\Xelga\Extensions\ExtensionParts;
+use Themes\Xelga\Extensions\Extensions;
+use Themes\Xelga\Extensions\Registrar;
+use Themes\Xelga\Rendering\SectionData;
+
 /**
  * The one reader of the theme's schema files: section types, theme setting
  * groups and font pairs. Forms, validation and rendering all read this, so
  * adding a section type means adding a schema file and a view, nothing else.
  *
- * The compiled result is kept in bootstrap/cache, keyed by the theme version
- * and, while app.debug is on, by the newest schema file time. In production
- * a theme update changes the version, which is what rebuilds it.
+ * The compiled result is kept in bootstrap/cache, keyed by the theme version,
+ * the registered extensions and their versions, and, while app.debug is on,
+ * by the newest schema file time. In production a theme or extension update
+ * changes a version, and switching an extension changes the list, which is
+ * what rebuilds it.
  */
 final class Catalog
 {
@@ -28,6 +35,12 @@ final class Catalog
 
     private static ?array $compiled = null;
 
+    /** The extension fingerprint the memo was compiled for. */
+    private static ?string $compiledFor = null;
+
+    /** An extension section type: the extension's name, a dot, the section's own name. */
+    public const EXTENSION_TYPE = '/^([a-z][a-z0-9-]{0,39})\.([a-z0-9]+(?:-[a-z0-9]+)*)$/';
+
     public static function root(string $path = ''): string
     {
         $root = dirname(__DIR__, 2);
@@ -39,14 +52,17 @@ final class Catalog
     public static function flush(): void
     {
         self::$compiled = null;
+        self::$compiledFor = null;
     }
 
     /** @return array{version: string, sections: array<string, array>, theme_settings: list<array>, font_pairs: list<array>} */
     public static function all(): array
     {
-        if (self::$compiled !== null) {
+        $fingerprint = self::extensions()->fingerprint();
+        if (self::$compiled !== null && self::$compiledFor === $fingerprint) {
             return self::$compiled;
         }
+        self::$compiledFor = $fingerprint;
 
         $key = self::cacheKey();
         $file = self::cacheFile();
@@ -167,20 +183,23 @@ final class Catalog
             if (! is_array($spec) || empty($spec['type'])) {
                 continue;
             }
-            $renderKeys = (array) ($spec['render_keys'] ?? []);
-            $spec['settings'] = array_map(fn (array $s) => $s + ['live' => self::liveMode($s, $renderKeys)], (array) ($spec['settings'] ?? []));
-            $blocks = (array) ($spec['blocks'] ?? []);
-            $blocks += ['min' => 0, 'max' => 0, 'types' => []];
-            $blocks['types'] = array_map(function (array $type) use ($renderKeys) {
-                $type['settings'] = array_map(fn (array $s) => $s + ['live' => self::liveMode($s, $renderKeys)], (array) ($type['settings'] ?? []));
-
-                return $type + ['limit' => null];
-            }, (array) $blocks['types']);
-            $spec['blocks'] = $blocks;
-            $spec += ['templates' => [], 'limit' => null, 'main' => false, 'variants' => [], 'presets' => [], 'group' => 'template'];
-            $sections[$spec['type']] = $spec;
+            $sections[$spec['type']] = self::compileSection($spec);
         }
         ksort($sections);
+
+        // Extension sections come after the theme's own, never in their
+        // place: a type is always its extension's name, a dot and a name.
+        foreach (self::extensions()->all() as $part) {
+            $own = [];
+            foreach ($part->schemaFiles() as $file) {
+                $spec = self::extensionSection($part, $file);
+                if ($spec !== null) {
+                    $own[$spec['type']] = self::compileSection($spec);
+                }
+            }
+            ksort($own);
+            $sections += $own;
+        }
 
         $settings = json_decode((string) @file_get_contents(self::root('schemas/theme-settings.json')), true);
         $groups = array_map(function (array $group) {
@@ -197,6 +216,99 @@ final class Catalog
             'theme_settings' => $groups,
             'font_pairs' => array_values((array) ($pairs['pairs'] ?? [])),
         ];
+    }
+
+    private static function compileSection(array $spec): array
+    {
+        $renderKeys = (array) ($spec['render_keys'] ?? []);
+        $spec['settings'] = array_map(fn (array $s) => $s + ['live' => self::liveMode($s, $renderKeys)], (array) ($spec['settings'] ?? []));
+        $blocks = (array) ($spec['blocks'] ?? []);
+        $blocks += ['min' => 0, 'max' => 0, 'types' => []];
+        $blocks['types'] = array_map(function (array $type) use ($renderKeys) {
+            $type['settings'] = array_map(fn (array $s) => $s + ['live' => self::liveMode($s, $renderKeys)], (array) ($type['settings'] ?? []));
+
+            return $type + ['limit' => null];
+        }, (array) $blocks['types']);
+        $spec['blocks'] = $blocks;
+
+        return $spec + ['templates' => [], 'limit' => null, 'main' => false, 'variants' => [], 'presets' => [], 'group' => 'template'];
+    }
+
+    /**
+     * One extension schema file, checked and stamped with where it comes
+     * from, or null (logged) when it is not one Xelga accepts.
+     */
+    public static function extensionSection(ExtensionParts $part, string $file, ?callable $report = null): ?array
+    {
+        $name = basename($file, '.json');
+        $spec = json_decode((string) file_get_contents($file), true);
+        $refuse = function (string $reason) use ($part, $name, $report): ?array {
+            $report === null ? Registrar::refuse($part->name, "the section {$name}: {$reason}") : $report($reason);
+
+            return null;
+        };
+
+        if (! is_array($spec) || array_is_list($spec)) {
+            return $refuse('the schema is not a JSON object');
+        }
+        if (preg_match(self::EXTENSION_TYPE, (string) ($spec['type'] ?? ''), $m) !== 1 || $m[1] !== $part->name || $m[2] !== $name || strlen($name) > 40) {
+            return $refuse("its type must be {$part->name}.{$name}, named after its file");
+        }
+        if (($spec['group'] ?? 'template') !== 'template') {
+            return $refuse('extension sections go in page templates only');
+        }
+        $settings = [...(array) ($spec['settings'] ?? [])];
+        foreach ((array) ($spec['blocks']['types'] ?? []) as $type) {
+            $settings = [...$settings, ...(array) (is_array($type) ? ($type['settings'] ?? []) : [])];
+        }
+        foreach ($settings as $setting) {
+            $type = is_array($setting) ? ($setting['type'] ?? null) : null;
+            if (! in_array($type, self::TYPES, true) || $type === 'scheme-colors') {
+                return $refuse('a setting has a type extension sections cannot use');
+            }
+        }
+        $class = $spec['data_class'] ?? null;
+        if ($class !== null) {
+            if (! is_string($class) || $part->namespace === '' || ! str_starts_with(ltrim($class, '\\'), $part->namespace)) {
+                return $refuse('its data class must be in the extension\'s own namespace');
+            }
+            $class = ltrim($class, '\\');
+            if (! class_exists($class) || ! is_subclass_of($class, SectionData::class)) {
+                return $refuse('its data class must exist and implement ' . SectionData::class);
+            }
+        }
+
+        $spec['group'] = 'template';
+        $spec['source'] = $part->name;
+        $spec['source_label'] = $part->title;
+        $spec['view'] = $part->viewNamespace() . '::sections.' . $name;
+        $spec['data_class'] = $class;
+        $spec['class'] = self::extensionClass($spec['type']);
+
+        return $spec;
+    }
+
+    /** The CSS class of an extension section: `s-{extension}--{name}`, which no theme section uses. */
+    public static function extensionClass(string $type): string
+    {
+        return 's-' . str_replace('.', '--', $type);
+    }
+
+    /** The extension parts of this request. */
+    public static function extensions(): Extensions
+    {
+        return Extensions::current();
+    }
+
+    /** @return list<string> every registered extension's schema files */
+    public static function extensionSchemaFiles(): array
+    {
+        $files = [];
+        foreach (self::extensions()->all() as $part) {
+            $files = [...$files, ...$part->schemaFiles()];
+        }
+
+        return $files;
     }
 
     /** @return list<string> */
@@ -224,9 +336,12 @@ final class Catalog
                 array_filter([self::root('schemas/theme-settings.json'), self::root('schemas/font-pairs.json')], 'is_file'),
             ));
             $key .= '@' . ($times === [] ? 0 : max($times)) . '@' . count($times);
+            foreach (self::extensions()->all() as $part) {
+                $key .= '@' . $part->name . ':' . $part->fileStamp();
+            }
         }
 
-        return $key;
+        return $key . '|' . self::extensions()->fingerprint();
     }
 
     private static function cacheFile(): string
