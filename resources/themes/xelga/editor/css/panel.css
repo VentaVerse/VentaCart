@@ -1115,6 +1115,95 @@ a {
   list-style: none;
 }
 
+/* Opened at a gap of the board: a row of columns first, then one section. */
+.add-cols {
+  padding: 12px 12px 14px;
+  border-block-end: 1px solid var(--line);
+}
+
+.add-cols__label {
+  margin: 0 0 8px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.splits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.split-opt {
+  display: grid;
+  gap: 5px;
+  padding: 7px 6px 6px;
+  color: #7a8698;
+  background: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+}
+
+.split-opt:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.split-opt__label {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--text-2);
+}
+
+.splitpic--lg {
+  width: 100%;
+  height: 22px;
+  gap: 2px;
+}
+
+.add-search {
+  display: grid;
+  padding: 12px 12px 0;
+}
+
+.add-search .add-cols__label {
+  margin-block-end: 8px;
+}
+
+/* Section types that cannot be added at this spot, under the reason. */
+.add-grey {
+  margin: 0 8px 8px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid var(--line);
+}
+
+.add-grey__title {
+  margin: 4px 10px 2px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.add-list--grey {
+  padding: 0;
+}
+
+.add-list--grey .add-type__head {
+  align-items: center;
+  color: var(--text-3);
+  cursor: default;
+}
+
+.add-list--grey .add-type__head:hover {
+  background: none;
+}
+
+.add-variant.is-unfit {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
 .add-type__unavailable {
   margin: 0;
   padding: 0 10px 12px 36px;
