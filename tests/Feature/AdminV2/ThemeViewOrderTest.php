@@ -24,12 +24,12 @@ class ThemeViewOrderTest extends TestCase
         RegisterThemeViews::register();
         $this->assertSame(realpath(ThemeService::root('sample/views')), View::getFinder()->getPaths()[0]);
 
-        app(ThemeService::class)->activateTheme(ThemeService::THEME);
+        app(ThemeService::class)->activateTheme(ThemeService::bundled());
         app(ThemeService::class)->clearCache();
         RegisterThemeViews::register();
 
         $paths = View::getFinder()->getPaths();
-        $this->assertSame(realpath(ThemeService::root(ThemeService::THEME.'/views')), $paths[0]);
+        $this->assertSame(realpath(ThemeService::root(ThemeService::bundled().'/views')), $paths[0]);
         $this->assertSame(1, count(array_keys($paths, $paths[0], true)), 'Registered once, not again on every request.');
     }
 }

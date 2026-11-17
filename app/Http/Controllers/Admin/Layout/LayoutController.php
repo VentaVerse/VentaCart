@@ -33,7 +33,7 @@ class LayoutController extends Controller
         // touched" without opening each one.
         $slug = $theme->getActiveTheme();
         $installed = collect(\App\Http\Middleware\EditTheme::rideable($theme))->map(fn ($t, $k) => $t['name'] ?? $k)->all();
-        $live = (string) (\App\Models\Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?: \App\Services\ThemeService::THEME);
+        $live = (string) (\App\Models\Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?: \App\Services\ThemeService::bundled());
         // ?theme=… (applied by the EditTheme middleware) edits another
         // installed theme; every link and endpoint carries it along.
         $themeQuery = $slug === $live ? [] : ['theme' => $slug];

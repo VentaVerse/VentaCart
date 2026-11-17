@@ -27,12 +27,12 @@ class DefaultThemeLookIsFixedTest extends TestCase
 
     public function test_the_theme_declares_no_editable_look(): void
     {
-        $meta = json_decode((string) file_get_contents(resource_path('themes/'.ThemeService::THEME.'/theme.json')), true);
+        $meta = json_decode((string) file_get_contents(resource_path('themes/'.ThemeService::bundled().'/theme.json')), true);
 
         foreach (['colors', 'fonts', 'settings', 'vars'] as $key) {
             $this->assertArrayNotHasKey($key, $meta);
         }
-        $this->assertDirectoryDoesNotExist(resource_path('themes/'.ThemeService::THEME.'/presets'));
+        $this->assertDirectoryDoesNotExist(resource_path('themes/'.ThemeService::bundled().'/presets'));
     }
 
     public function test_stored_colors_and_fonts_do_not_reach_the_storefront(): void

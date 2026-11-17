@@ -13,7 +13,7 @@ class ThemeSeeder extends Seeder
 {
     public function run(): void
     {
-        $activeTheme = \App\Services\ThemeService::THEME;
+        $activeTheme = \App\Services\ThemeService::bundled();
 
         // Settings
         $settings = [

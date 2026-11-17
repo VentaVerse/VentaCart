@@ -9,20 +9,12 @@ use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 /**
- * Owner ruling 2026-08-20, revised 2026-08-21.
+ * A store keeps rendering whatever its settings say about the theme.
  *
- * The three legacy folders are still gone and still survive as presets: they
- * were one skeleton in three palettes, which is why switching them only ever
- * changed colour. What came back on 2026-08-21 is theme SELECTION, because a
- * theme is a folder of views and CSS again, and a second theme is meant to
- * look nothing like the first.
- *
- * The live hazard this pins down: a store that predates the consolidation still
- * has identity.active_theme = 'stage-ready' in its settings table. If view
- * resolution kept honouring that value, the first deploy after this release
- * would look for views in a directory the release deletes, and the storefront
- * would go white. Not a wrong colour, no storefront. That is the same shape of
- * failure as the order-snapshot outage: correct code, live data left behind.
+ * A store can still name a theme whose folder a release removed. If view
+ * resolution honoured that value, the storefront would look for views in a
+ * folder that no longer exists and go blank, so a missing or uninstalled
+ * theme falls back to the bundled one.
  */
 class OneThemeTest extends TestCase
 {
@@ -37,30 +29,30 @@ class OneThemeTest extends TestCase
     }
 
     /** A setting naming a theme that is not installed cannot take the shop down. */
-    public function test_a_theme_that_is_not_installed_falls_back_to_the_default(): void
+    public function test_a_theme_that_is_not_installed_falls_back_to_the_bundled_theme(): void
     {
         Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_theme'], ['value' => 'crimson-dusk']);
         app(ThemeService::class)->clearCache();
 
-        $this->assertSame(ThemeService::THEME, app(ThemeService::class)->getActiveTheme());
-        $this->assertStringEndsWith('themes/' . ThemeService::THEME, app(ThemeService::class)->getThemePath());
+        $this->assertSame(ThemeService::bundled(), app(ThemeService::class)->getActiveTheme());
+        $this->assertStringEndsWith('themes/' . ThemeService::bundled(), app(ThemeService::class)->getThemePath());
     }
 
     public function test_an_installed_theme_named_in_settings_is_honoured(): void
     {
-        Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_theme'], ['value' => ThemeService::THEME]);
+        Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_theme'], ['value' => ThemeService::bundled()]);
         app(ThemeService::class)->clearCache();
 
-        $this->assertSame(ThemeService::THEME, app(ThemeService::class)->getActiveTheme());
-        $this->assertArrayHasKey(ThemeService::THEME, app(ThemeService::class)->getInstalledThemes());
+        $this->assertSame(ThemeService::bundled(), app(ThemeService::class)->getActiveTheme());
+        $this->assertArrayHasKey(ThemeService::bundled(), app(ThemeService::class)->getInstalledThemes());
     }
 
-    /** The default theme is always installed; others may join it. */
-    public function test_the_default_theme_ships(): void
+    /** The bundled theme ships; others may join it. */
+    public function test_the_bundled_theme_ships(): void
     {
         $dirs = array_map('basename', File::directories(resource_path('themes')));
 
-        $this->assertContains(ThemeService::THEME, $dirs);
+        $this->assertContains(ThemeService::bundled(), $dirs);
         $this->assertNotContains('stage-ready', $dirs);
     }
 

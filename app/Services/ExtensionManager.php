@@ -96,7 +96,7 @@ class ExtensionManager
                     'title' => (string) ($meta['name'] ?? ucfirst(str_replace('-', ' ', $slug))),
                     // The default theme ships inside core and carries no
                     // version of its own: it is whatever core is.
-                    'version' => $slug === ThemeService::THEME
+                    'version' => $slug === ThemeService::bundled()
                         ? (string) config('app.version')
                         : (string) ($meta['version'] ?? '1.0.0'),
                     'description' => (string) ($meta['description'] ?? ''),
@@ -107,7 +107,7 @@ class ExtensionManager
                     'provider' => $meta['provider'] ?? null,
                     'icon' => 'tags',
                     'path' => dirname($json),
-                    'default_enabled' => $slug === ThemeService::THEME,
+                    'default_enabled' => $slug === ThemeService::bundled(),
                 ];
             })
             ->filter();

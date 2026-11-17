@@ -11,7 +11,13 @@ use Illuminate\Support\Facades\Cache;
 
 class ThemeService
 {
-    /** The only theme. Folder under resources/themes. */
+    /**
+     * The slug the first theme shipped under.
+     *
+     * @deprecated Read bundled() instead. Kept with its original value for
+     * the shipped migrations that name it, which must keep behaving exactly
+     * as they did when they first ran.
+     */
     public const THEME = 'default';
 
     protected array $settings = [];
@@ -26,6 +32,17 @@ class ThemeService
     public function __construct()
     {
         $this->reload();
+    }
+
+    /**
+     * The theme that ships inside VentaCart (config/themes.php): the one a
+     * fresh store runs and the storefront falls back to.
+     */
+    public static function bundled(): string
+    {
+        $slug = (string) config('themes.bundled', 'default');
+
+        return $slug !== '' ? $slug : 'default';
     }
 
     /**
@@ -139,25 +156,17 @@ class ThemeService
     }
 
     /**
-     * Which theme the storefront runs.
-     *
-     * Read from settings again (owner ruling 2026-08-21), because a theme is
-     * a folder of views and CSS once more, not a palette. Between 2026-08-20
-     * and that ruling this returned a constant: the three legacy folders were
-     * near-copies of one skeleton, so switching them only ever changed colour.
-     *
-     * The guard that made hardcoding tempting stays, and matters more now that
-     * the value is honoured: a stored theme whose FOLDER IS GONE falls back to
-     * the default. Resolving views into a directory that does not exist is a
-     * white storefront, not a wrong colour, and an uninstalled theme must not
-     * be able to take the shop down.
+     * Which theme the storefront runs: the stored choice, or the bundled
+     * theme when the stored theme's folder is gone. Resolving views into a
+     * folder that does not exist is a blank storefront, so an uninstalled
+     * theme must never be able to take the shop down.
      */
     public function getActiveTheme(): string
     {
-        $slug = (string) $this->get('identity.active_theme', self::THEME);
+        $slug = (string) $this->get('identity.active_theme', self::bundled());
 
         if ($slug === '' || ! is_file(self::root("{$slug}/theme.json"))) {
-            return self::THEME;
+            return self::bundled();
         }
 
         return $slug;
@@ -217,7 +226,7 @@ class ThemeService
             $meta = json_decode((string) file_get_contents($json), true) ?: [];
             $meta['slug'] = $slug;
             $meta['name'] = $meta['name'] ?? ucfirst(str_replace('-', ' ', $slug));
-            $meta['is_default'] = $slug === self::THEME;
+            $meta['is_default'] = $slug === self::bundled();
             $extensions = app(ExtensionManager::class);
             $meta['state'] = $extensions->state(self::registryName($slug));
             $meta['update_available'] = $meta['state'] === 'needs_migration';

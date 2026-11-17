@@ -61,7 +61,7 @@ final class ThemeContract
         }
 
         // The default theme ships inside core, so core's version is its own.
-        $required = basename(rtrim($path, '/')) === \App\Services\ThemeService::THEME
+        $required = basename(rtrim($path, '/')) === \App\Services\ThemeService::bundled()
             ? ['name']
             : ['name', 'version'];
 

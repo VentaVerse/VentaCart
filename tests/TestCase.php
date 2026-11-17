@@ -22,7 +22,7 @@ abstract class TestCase extends BaseTestCase
 
         if ($this->installsDefaultTheme && in_array(RefreshDatabase::class, class_uses_recursive(static::class), true)) {
             app(\App\Services\ExtensionManager::class)->install(
-                \App\Services\ThemeService::registryName(\App\Services\ThemeService::THEME)
+                \App\Services\ThemeService::registryName(\App\Services\ThemeService::bundled())
             );
             // Discovery was cached by that install; a test that points the
             // kernel at fixture extensions must not find a stale list.

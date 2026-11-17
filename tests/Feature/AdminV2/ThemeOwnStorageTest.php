@@ -31,7 +31,7 @@ class ThemeOwnStorageTest extends TestCase
         Setting::updateOrCreate(['group' => 'colors', 'key' => 'primary'], ['value' => '#123456']);
         Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_preset'], ['value' => 'merchant-look']);
         LayoutPlacement::create([
-            'theme' => ThemeService::THEME, 'page_type' => 'home', 'region' => 'content_top',
+            'theme' => ThemeService::bundled(), 'page_type' => 'home', 'region' => 'content_top',
             'widget' => 'catalog.brands', 'title' => 'Our brands', 'sort_order' => 0, 'is_enabled' => true,
         ]);
         app(ThemeService::class)->clearCache();
@@ -61,7 +61,7 @@ class ThemeOwnStorageTest extends TestCase
         // kept under its own name so it can come back.
         $after = $this->settingsSnapshot();
         $changed = array_keys(array_diff_assoc($after, $before) + array_diff_key($before, $after));
-        $changed = array_values(array_filter($changed, fn (string $key) => ! str_ends_with(strstr($key, '.', true), '__theme_'.ThemeService::THEME)));
+        $changed = array_values(array_filter($changed, fn (string $key) => ! str_ends_with(strstr($key, '.', true), '__theme_'.ThemeService::bundled())));
         $this->assertSame(['identity.active_theme'], $changed);
 
         $this->assertFalse(Setting::where('group', 'like', '%__theme_'.$this->sampleTheme)->exists());
@@ -72,13 +72,13 @@ class ThemeOwnStorageTest extends TestCase
 
         // Back to the core theme: its look and layout are as it left them,
         // and the self-storing theme left nothing behind.
-        $themes->activateTheme(ThemeService::THEME);
+        $themes->activateTheme(ThemeService::bundled());
 
-        $this->assertSame(ThemeService::THEME, $themes->getActiveTheme());
+        $this->assertSame(ThemeService::bundled(), $themes->getActiveTheme());
         $this->assertSame('#123456', Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
         $this->assertSame('merchant-look', Setting::where('group', 'identity')->where('key', 'active_preset')->value('value'));
         $this->assertFalse(Setting::where('group', 'like', '%__theme_'.$this->sampleTheme)->exists());
-        $this->assertSame(1, LayoutPlacement::where('theme', ThemeService::THEME)->count());
+        $this->assertSame(1, LayoutPlacement::where('theme', ThemeService::bundled())->count());
         $this->assertSame(0, LayoutPlacement::where('theme', $this->sampleTheme)->count());
     }
 

@@ -501,8 +501,8 @@ class PackageUploader
         $slug = $archive->slug();
         $where = $archive->kind() === 'theme' ? "resources/themes/{$slug}" : "extensions/{$slug}";
 
-        if ($archive->kind() === 'theme' && $slug === ThemeService::THEME) {
-            throw new PackageRefused("\"{$slug}\" is the store's own default theme. A theme upload needs a folder name of its own.");
+        if ($archive->kind() === 'theme' && $slug === ThemeService::bundled()) {
+            throw new PackageRefused("\"{$slug}\" is the theme that ships with VentaCart, and its updates come with VentaCart. A theme upload needs a folder name of its own.");
         }
 
         if ($archive->kind() === 'extension' && (in_array($slug, self::RESERVED_NAMES, true) || str_starts_with($slug, 'theme-'))) {

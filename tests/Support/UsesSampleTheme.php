@@ -24,7 +24,7 @@ trait UsesSampleTheme
     /** @param  array<string, mixed>  $overrides  keys laid over the sample's theme.json */
     protected function makeSampleTheme(array $overrides = []): void
     {
-        $default = resource_path('themes/'.ThemeService::THEME);
+        $default = resource_path('themes/'.ThemeService::bundled());
         $build = storage_path('framework/testing/themes/'.$this->sampleTheme);
         $link = resource_path('themes/'.$this->sampleTheme);
 

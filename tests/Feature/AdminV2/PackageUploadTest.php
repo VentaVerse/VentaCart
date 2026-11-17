@@ -240,15 +240,16 @@ class PackageUploadTest extends TestCase
         $this->assertNull(Extension::where('name', 'theme-' . self::SLUG)->first());
     }
 
-    public function test_the_default_theme_is_never_overwritten(): void
+    public function test_the_bundled_theme_is_never_overwritten(): void
     {
-        $before = md5_file(resource_path('themes/default/theme.json'));
+        $bundled = ThemeService::bundled();
+        $before = md5_file(resource_path("themes/{$bundled}/theme.json"));
 
-        $this->upload($this->themeZip('9.0.0', [], ThemeService::THEME));
+        $this->upload($this->themeZip('9.0.0', [], $bundled));
 
         $this->assertFalse($this->outcome()['ok']);
-        $this->assertStringContainsString('default theme', $this->outcome()['message']);
-        $this->assertSame($before, md5_file(resource_path('themes/default/theme.json')));
+        $this->assertStringContainsString('ships with VentaCart', $this->outcome()['message']);
+        $this->assertSame($before, md5_file(resource_path("themes/{$bundled}/theme.json")));
     }
 
     public function test_a_folder_the_store_did_not_get_from_an_upload_is_never_overwritten(): void

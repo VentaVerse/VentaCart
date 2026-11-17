@@ -29,7 +29,7 @@ class ThemeOptionsStorageTest extends TestCase
         }
         $this->installSampleTheme(manifest: $manifest);
         app(ExtensionManager::class)->bootEnabled();
-        app(ThemeService::class)->activateTheme($live ? $this->sampleTheme : ThemeService::THEME);
+        app(ThemeService::class)->activateTheme($live ? $this->sampleTheme : ThemeService::bundled());
         app(ThemeService::class)->clearCache();
         $this->withoutVite();
         $this->actingAs(User::factory()->create());

@@ -49,7 +49,7 @@ class EditTheme
     public function handle(Request $request, Closure $next)
     {
         $theme = app(ThemeService::class);
-        $live = (string) (Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?: ThemeService::THEME);
+        $live = (string) (Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?: ThemeService::bundled());
         $rideable = self::rideable($theme);
 
         // The asked-for theme when it rides this editor, else the live one

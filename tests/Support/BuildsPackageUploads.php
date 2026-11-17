@@ -43,7 +43,7 @@ trait BuildsPackageUploads
         $this->publicRoot = $this->scratch . '/public-packages';
         File::ensureDirectoryExists($this->extensionsRoot);
         File::ensureDirectoryExists($this->themesRoot);
-        symlink(resource_path('themes/' . ThemeService::THEME), $this->themesRoot . '/' . ThemeService::THEME);
+        symlink(resource_path('themes/' . ThemeService::bundled()), $this->themesRoot . '/' . ThemeService::bundled());
 
         config([
             'extensions.path' => $this->extensionsRoot,
@@ -74,7 +74,7 @@ trait BuildsPackageUploads
      */
     protected function themeZip(string $version = '1.0.0', array $extra = [], string $folder = self::SLUG, ?callable $manifest = null): string
     {
-        $default = resource_path('themes/' . ThemeService::THEME);
+        $default = resource_path('themes/' . ThemeService::bundled());
         $files = [];
 
         $items = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($default, \FilesystemIterator::SKIP_DOTS | \FilesystemIterator::FOLLOW_SYMLINKS));

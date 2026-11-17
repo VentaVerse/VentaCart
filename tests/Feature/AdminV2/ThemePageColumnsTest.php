@@ -91,8 +91,8 @@ class ThemePageColumnsTest extends TestCase
     public function test_core_themes_still_read_the_table(): void
     {
         LayoutColumns::register('another-theme', fn () => ['left' => 2]);
-        LayoutColumns::create(['theme' => ThemeService::THEME, 'page_type' => '*', 'left_width' => 3, 'right_width' => 0, 'settings' => []]);
+        LayoutColumns::create(['theme' => ThemeService::bundled(), 'page_type' => '*', 'left_width' => 3, 'right_width' => 0, 'settings' => []]);
 
-        $this->assertSame(3, LayoutColumns::forPage('home', ThemeService::THEME)['left']);
+        $this->assertSame(3, LayoutColumns::forPage('home', ThemeService::bundled())['left']);
     }
 }
