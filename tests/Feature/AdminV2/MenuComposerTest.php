@@ -236,6 +236,5 @@ class MenuComposerTest extends TestCase
 
         $this->get('/admin/storefront/header-footer/menu')->assertRedirect(route('admin.menus'))->assertStatus(301);
         $this->get('/admin/storefront/header-footer/menu/items/' . $item->id . '/edit')->assertRedirect(route('admin.menus.items.edit', $item));
-        $this->get(route('admin.header-footer', ['tab' => 'main-menu']))->assertRedirect(route('admin.menus'));
     }
 }

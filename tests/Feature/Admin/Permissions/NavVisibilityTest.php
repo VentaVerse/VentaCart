@@ -38,21 +38,21 @@ class NavVisibilityTest extends TestCase
         foreach (['dashboard', 'orders', 'couriers', 'products', 'customers'] as $key) {
             $this->assertContains($key, $keys);
         }
-        foreach (['categories', 'brands', 'header-footer', 'layout', 'all', 'modules', 'payments', 'settings'] as $key) {
+        foreach (['categories', 'brands', 'menus', 'themes', 'all', 'modules', 'payments', 'settings'] as $key) {
             $this->assertNotContains($key, $keys);
         }
         $this->assertSame([], SettingsNav::groups(User::factory()->role('staff')->create()));
     }
 
-    public function test_store_manager_sees_the_shop_but_not_extensions_layout_or_settings(): void
+    public function test_store_manager_sees_the_shop_but_not_extensions_themes_or_settings(): void
     {
         $manager = User::factory()->role('store-manager')->create();
         $keys = $this->navKeys($manager);
 
-        foreach (['orders', 'products', 'categories', 'brands', 'attributes', 'customers', 'groups', 'pages', 'header-footer'] as $key) {
+        foreach (['orders', 'products', 'categories', 'brands', 'attributes', 'customers', 'groups', 'pages', 'menus'] as $key) {
             $this->assertContains($key, $keys);
         }
-        foreach (['layout', 'all', 'modules', 'payments', 'shipping', 'order-totals', 'settings'] as $key) {
+        foreach (['themes', 'all', 'modules', 'payments', 'shipping', 'order-totals', 'settings'] as $key) {
             $this->assertNotContains($key, $keys);
         }
         $this->assertSame([], SettingsNav::groups($manager));

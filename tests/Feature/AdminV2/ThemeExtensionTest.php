@@ -44,9 +44,8 @@ class ThemeExtensionTest extends TestCase
 
     public function test_theme_tables_are_core_and_exist_without_the_extension(): void
     {
-        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('homepage_sections'));
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('nav_menus'));
         $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('nav_menu_items'));
-        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('footer_columns'));
     }
 
     public function test_not_installed_means_no_editor_routes(): void

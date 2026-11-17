@@ -2,7 +2,6 @@
 
 namespace Themes\Xelga\Tests\Feature;
 
-use App\Models\FooterColumn;
 use App\Models\NavMenu;
 use App\Models\NavMenuItem;
 use App\Models\Setting;
@@ -44,7 +43,7 @@ class XelgaUpgradeTest extends TestCase
         Setting::updateOrCreate(['group' => 'header', 'key' => 'announcement_text'], ['value' => 'Free delivery over 2,000 pesos']);
         Setting::updateOrCreate(['group' => 'header', 'key' => 'announcement_link'], ['value' => '/delivery']);
         NavMenuItem::create(['menu_id' => NavMenu::main()->id, 'label' => 'Guitars', 'type' => 'custom', 'url' => '/guitars', 'sort_order' => 1, 'is_enabled' => true]);
-        FooterColumn::create(['title' => 'Help', 'type' => 'links', 'sort_order' => 1, 'is_enabled' => true, 'config' => ['links' => [['label' => 'Returns policy', 'url' => '/returns']]]]);
+        $this->footerColumn(['title' => 'Help', 'type' => 'links', 'sort_order' => 1, 'is_enabled' => true, 'config' => ['links' => [['label' => 'Returns policy', 'url' => '/returns']]]]);
 
         (require database_path('migrations/2026_11_18_100000_move_footer_link_columns_into_a_footer_menu.php'))->up();
         (require database_path('migrations/2026_11_18_110000_switch_storefront_to_the_bundled_theme.php'))->up();
@@ -74,5 +73,26 @@ class XelgaUpgradeTest extends TestCase
         $this->installXelga();
 
         $this->assertSame(0, DB::table('xelga_documents')->count());
+    }
+
+    /**
+     * A footer column as the old Header & footer screen saved it, in the
+     * table an upgraded store still has when this release's migrations run.
+     */
+    private function footerColumn(array $column): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('footer_columns')) {
+            \Illuminate\Support\Facades\Schema::create('footer_columns', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('title');
+                $table->string('type', 30);
+                $table->json('config')->nullable();
+                $table->integer('sort_order')->default(0);
+                $table->boolean('is_enabled')->default(true);
+            });
+        }
+
+        \Illuminate\Support\Facades\DB::table('footer_columns')->insert(['title' => $column['title'], 'type' => $column['type'],
+            'config' => json_encode($column['config']), 'sort_order' => $column['sort_order'], 'is_enabled' => $column['is_enabled']]);
     }
 }

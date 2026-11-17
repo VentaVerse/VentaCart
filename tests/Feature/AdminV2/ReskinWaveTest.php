@@ -20,7 +20,6 @@ use App\Models\CustomerActivity;
 use App\Models\CustomerGroup;
 use App\Models\EmailTemplate;
 use Extensions\ShippingFlatRate\Models\FlatShippingRate;
-use App\Models\FooterColumn;
 use Extensions\ShippingFree\Models\FreeShippingRule;
 use App\Models\GeoZone;
 use App\Models\NavMenuItem;
@@ -943,7 +942,6 @@ class ReskinWaveTest extends TestCase
         $category = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals']);
 
         NavMenuItem::create(['label' => 'Pedals', 'type' => 'category', 'category_id' => $category->id, 'sort_order' => 1, 'is_enabled' => true]);
-        FooterColumn::create(['title' => 'Links', 'type' => 'links', 'config' => ['links' => []], 'sort_order' => 1, 'is_enabled' => true]);
 
         $courier = ShippingCourier::create(['store_id' => 1, 'name' => 'GoGo Express', 'tracking_url' => 'https://track.example.com/{tracking_number}', 'is_active' => true, 'sort_order' => 1]);
 

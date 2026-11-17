@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Themes;
 
-use App\Models\FooterColumn;
 use App\Models\NavMenu;
 use App\Models\Setting;
 use App\Services\ExtensionManager;
@@ -53,15 +52,15 @@ class StorefrontUpgradeTest extends TestCase
 
     public function test_footer_link_columns_become_the_footer_menu_in_order(): void
     {
-        FooterColumn::create(['title' => 'Help', 'type' => 'links', 'sort_order' => 2, 'is_enabled' => true, 'config' => ['links' => [
+        $this->footerColumn(['title' => 'Help', 'type' => 'links', 'sort_order' => 2, 'is_enabled' => true, 'config' => ['links' => [
             ['label' => 'Returns', 'url' => '/returns'],
             ['label' => 'Bad', 'url' => 'javascript:alert(1)'],
         ]]]);
-        FooterColumn::create(['title' => 'Information', 'type' => 'links', 'sort_order' => 1, 'is_enabled' => true, 'config' => ['items' => [
+        $this->footerColumn(['title' => 'Information', 'type' => 'links', 'sort_order' => 1, 'is_enabled' => true, 'config' => ['items' => [
             ['label' => 'About us', 'url' => '/about'],
         ]]]);
-        FooterColumn::create(['title' => 'Old', 'type' => 'links', 'sort_order' => 3, 'is_enabled' => false, 'config' => ['links' => [['label' => 'Hidden', 'url' => '/hidden']]]]);
-        FooterColumn::create(['title' => 'Say hello', 'type' => 'text', 'sort_order' => 4, 'is_enabled' => true, 'config' => ['content' => 'Hi']]);
+        $this->footerColumn(['title' => 'Old', 'type' => 'links', 'sort_order' => 3, 'is_enabled' => false, 'config' => ['links' => [['label' => 'Hidden', 'url' => '/hidden']]]]);
+        $this->footerColumn(['title' => 'Say hello', 'type' => 'text', 'sort_order' => 4, 'is_enabled' => true, 'config' => ['content' => 'Hi']]);
 
         $this->footerMenu();
         $this->footerMenu();
@@ -79,7 +78,7 @@ class StorefrontUpgradeTest extends TestCase
         $this->assertFalse(NavMenu::where('key', 'footer')->exists());
 
         $own = NavMenu::create(['key' => 'footer', 'name' => 'My footer']);
-        FooterColumn::create(['title' => 'Help', 'type' => 'links', 'sort_order' => 1, 'is_enabled' => true, 'config' => ['links' => [['label' => 'Returns', 'url' => '/returns']]]]);
+        $this->footerColumn(['title' => 'Help', 'type' => 'links', 'sort_order' => 1, 'is_enabled' => true, 'config' => ['links' => [['label' => 'Returns', 'url' => '/returns']]]]);
         $this->footerMenu();
         $this->assertSame(0, $own->items()->count(), 'A footer menu the merchant made is left as it is.');
     }
@@ -150,5 +149,26 @@ class StorefrontUpgradeTest extends TestCase
             \Illuminate\Support\Facades\File::deleteDirectory($build);
         });
         app()->forgetInstance(ExtensionManager::class);
+    }
+
+    /**
+     * A footer column as the old Header & footer screen saved it, in the
+     * table an upgraded store still has when this release's migrations run.
+     */
+    private function footerColumn(array $column): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('footer_columns')) {
+            \Illuminate\Support\Facades\Schema::create('footer_columns', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('title');
+                $table->string('type', 30);
+                $table->json('config')->nullable();
+                $table->integer('sort_order')->default(0);
+                $table->boolean('is_enabled')->default(true);
+            });
+        }
+
+        \Illuminate\Support\Facades\DB::table('footer_columns')->insert(['title' => $column['title'], 'type' => $column['type'],
+            'config' => json_encode($column['config']), 'sort_order' => $column['sort_order'], 'is_enabled' => $column['is_enabled']]);
     }
 }

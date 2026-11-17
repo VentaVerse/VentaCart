@@ -1,16 +1,7 @@
     {{-- Top Bar --}}
     <div class="topbar">
         <div class="container-store flex items-center justify-between">
-            <div class="flex items-center gap-5">
-                @php
-                    $topbarLinks = $theme->getJson('header.topbar_links', []);
-                @endphp
-                @foreach ($topbarLinks as $link)
-                    @if (is_array($link) && ($vTopbarUrl = \App\Support\SafeInput::link($link['url'] ?? '')) !== '')
-                        <a href="{{ $vTopbarUrl }}">{{ $link['label'] ?? '' }}</a>
-                    @endif
-                @endforeach
-            </div>
+            <div class="flex items-center gap-5"></div>
             <div class="flex items-center gap-5">
                 {{-- Currency Selector --}}
                 @if ($currencies->count() > 1)

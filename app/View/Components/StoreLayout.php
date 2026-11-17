@@ -42,7 +42,6 @@ class StoreLayout extends Component
         \Illuminate\Support\Facades\View::share([
             'siteName' => $siteName,
             'navTree' => \App\Support\NavTree::for(\App\Models\NavMenu::MAIN),
-            'footerColumns' => $theme->getFooterColumns(),
             'currencies' => $theme->getActiveCurrencies(),
             'defaultCurrency' => $theme->getDefaultCurrency(),
             'activeCurrency' => $theme->getActiveCurrency(),
@@ -60,7 +59,6 @@ class StoreLayout extends Component
             'siteName' => $siteName,
             // The composed main menu, resolved: what the header draws now.
             'navTree' => \App\Support\NavTree::for(\App\Models\NavMenu::MAIN),
-            'footerColumns' => $theme->getFooterColumns(),
             'currencies' => $theme->getActiveCurrencies(),
             'defaultCurrency' => $theme->getDefaultCurrency(),
             'activeCurrency' => $theme->getActiveCurrency(),

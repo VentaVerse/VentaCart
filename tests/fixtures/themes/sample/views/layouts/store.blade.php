@@ -109,19 +109,6 @@
         </div>
     @endif
 
-    {{-- Announcement Bar --}}
-    @if ($theme->get('header.announcement_enabled'))
-        <div class="announcement-bar">
-            @if ($vAnnouncementLink = \App\Support\SafeInput::link($theme->get('header.announcement_link')))
-                <a href="{{ $vAnnouncementLink }}">
-                    {{ $theme->get('header.announcement_text') }}
-                </a>
-            @else
-                {{ $theme->get('header.announcement_text') }}
-            @endif
-        </div>
-    @endif
-
     @include('partials.header.marketplace')
 
     {{-- Mobile Navigation --}}

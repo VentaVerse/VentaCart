@@ -323,9 +323,10 @@ foreach ([
     })->where('path', '.*');
 }
 
-// The theme's header and footer editing became Storefront > Header &
-// footer. The menu, edited for a while on Header & footer, is back at
-// Content > Menus.
+// The menu, edited for a while on Storefront > Header & footer, is at
+// Content > Menus. What else that screen held (announcement, top bar,
+// footer) is edited in the live theme's own editor, reached from Themes.
 adminLegacyRedirect('storefront/header-footer/menu', 'admin.menus');
 adminLegacyRedirect('storefront/header-footer/menu/items/{item}/edit', 'admin.menus.items.edit');
-adminLegacyRedirect('extensions/theme/customise', 'admin.header-footer');
+adminLegacyRedirect('storefront/header-footer', 'admin.theme.index');
+adminLegacyRedirect('extensions/theme/customise', 'admin.theme.index');

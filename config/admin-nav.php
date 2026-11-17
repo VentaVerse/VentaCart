@@ -82,7 +82,6 @@ return [
             // The theme extension's directory: choose and install themes. Its
             // pages live under extensions/theme and light this entry.
             ['key' => 'themes', 'label' => 'Themes', 'route' => 'admin.theme.index', 'icon' => 'tags', 'permission' => null, 'extension' => 'theme', 'keywords' => ['theme', 'design', 'look', 'skin', 'template']],
-            ['key' => 'header-footer', 'label' => 'Header & footer', 'route' => 'admin.header-footer', 'icon' => 'link', 'permission' => null, 'keywords' => ['announcement', 'top bar', 'footer', 'links', 'payment icons', 'social']],
         ],
     ],
     [

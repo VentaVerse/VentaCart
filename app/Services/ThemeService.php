@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Currency;
-use App\Models\FooterColumn;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Cache;
 
@@ -141,7 +140,6 @@ class ThemeService
         Cache::forget('nav_subcategories');
         \App\Support\NavTree::forget();
         \App\Support\ThemeOptions::forget();
-        Cache::forget('theme_footer_columns');
         Cache::forget('theme_currencies');
         Cache::forget('nav_subcategories');
 
@@ -327,15 +325,6 @@ class ThemeService
     public function getAllGrouped(): array
     {
         return $this->settings;
-    }
-
-    public function getFooterColumns()
-    {
-        return Cache::rememberForever('theme_footer_columns', function () {
-            return FooterColumn::where('is_enabled', true)
-                ->orderBy('sort_order')
-                ->get();
-        });
     }
 
     public function getActiveCurrencies()

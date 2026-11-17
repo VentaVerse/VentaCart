@@ -5,11 +5,9 @@ namespace Extensions\Theme;
 use Illuminate\Support\ServiceProvider;
 
 /**
- * The theme EDITOR as an extension. The theme system itself — rendering,
- * ThemeService, the homepage_sections / nav_menu_items / footer_columns
- * models and migrations — stays core, because the storefront cannot sell
- * without its look. Disabling this extension only closes the editing
- * surface; the storefront keeps rendering from stored settings.
+ * The theme directory as an extension: install themes and choose the one
+ * the store runs. The theme engine itself (ThemeService, view resolution,
+ * the menus) stays core, because the storefront cannot sell without it.
  */
 class ThemeExtensionServiceProvider extends ServiceProvider
 {

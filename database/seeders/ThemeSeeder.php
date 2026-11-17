@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Currency;
-use App\Models\FooterColumn;
 use App\Models\NavMenuItem;
 use App\Models\Setting;
 use Illuminate\Database\Seeder;
@@ -22,14 +21,6 @@ class ThemeSeeder extends Seeder
                 'logo' => null,
                 'favicon' => null,
                 'active_theme' => $activeTheme,
-            ],
-            'header' => [
-                'announcement_enabled' => '0',
-                'announcement_text' => '',
-                'announcement_link' => '',
-                'topbar_links' => json_encode([
-                    ['label' => 'Delivery & Payment', 'url' => '/delivery'],
-                ]),
             ],
             'badges' => [
                 'new_count' => '10',
@@ -120,47 +111,6 @@ class ThemeSeeder extends Seeder
                 'type' => 'custom',
                 'url' => '/blog',
                 'sort_order' => $sort,
-            ]);
-        }
-
-        // Footer Columns
-        if (FooterColumn::count() === 0) {
-            FooterColumn::create([
-                'title' => 'Information',
-                'type' => 'links',
-                'config' => [
-                    'items' => [
-                        ['label' => 'About Us', 'url' => '/about'],
-                        ['label' => 'Privacy Policy', 'url' => '/privacy'],
-                        ['label' => 'Terms & Conditions', 'url' => '/terms'],
-                    ],
-                ],
-                'sort_order' => 1,
-            ]);
-
-            FooterColumn::create([
-                'title' => 'Customer Service',
-                'type' => 'links',
-                'config' => [
-                    'items' => [
-                        ['label' => 'Contact Us', 'url' => '/contact'],
-                        ['label' => 'Returns', 'url' => '/returns'],
-                        ['label' => 'Sitemap', 'url' => '/sitemap'],
-                    ],
-                ],
-                'sort_order' => 2,
-            ]);
-
-            FooterColumn::create([
-                'title' => 'Follow Us',
-                'type' => 'social',
-                'config' => [
-                    'items' => [
-                        ['platform' => 'facebook', 'url' => '#'],
-                        ['platform' => 'instagram', 'url' => '#'],
-                    ],
-                ],
-                'sort_order' => 3,
             ]);
         }
 
