@@ -240,11 +240,12 @@ class CheckoutController extends Controller
             return redirect()->route('account.orders');
         }
 
-        // Customer didn't complete payment: send back to checkout. The
-        // unpaid order is given up on: its store credit goes back to the
-        // customer and the cart lets go of it, so placing again makes a new
-        // order and a new payment. A paid order is left alone, and one paid
-        // later after all takes its credit again.
+        // Customer didn't complete payment: send back to checkout. The cart
+        // lets go of the unpaid order, so placing again makes a new order and
+        // a new payment. The status in this address is typed by anyone, so
+        // it decides nothing about money: the order's store credit goes back
+        // only once its payment method has closed the payment with the
+        // gateway itself. A paid order is left alone.
         if ($status !== 'completed') {
             \App\Services\UnpaidOrderAbandonment::abandon($order);
 

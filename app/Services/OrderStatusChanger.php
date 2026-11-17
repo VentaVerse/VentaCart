@@ -128,30 +128,42 @@ class OrderStatusChanger
 
     /**
      * An unpaid order given up on (UnpaidOrderAbandonment) gave back what
-     * it held; one whose payment went through after all, on a second try
-     * at the same payment page, takes it again. Never fatal: a confirmed
-     * payment must not fail over this bookkeeping, and a miss is reported
-     * for the merchant to settle by hand.
+     * it held; one whose payment went through after all takes it again.
+     * What cannot be taken back in full is left alone and the order is
+     * marked for review instead. Never fatal: a confirmed payment must not
+     * fail over this bookkeeping, so a failure marks the order for review
+     * too and is reported.
      */
     private static function reclaimReleasedTotals(Order $locked, int $orderStatusId): void
     {
         try {
             // Its own savepoint, so a provider that fails halfway leaves
             // none of its writes behind.
-            $notes = DB::transaction(fn () => \App\Services\OrderTotals\OrderTotals::reclaim($locked));
+            $results = DB::transaction(fn () => \App\Services\OrderTotals\OrderTotals::reclaim($locked));
         } catch (\Throwable $e) {
             report($e);
+            $results = [new \App\Services\OrderTotals\ReclaimResult(
+                'Paid after what it held was returned, and taking it back failed. Check the customer\'s store credit.',
+                needsReview: true,
+            )];
+        }
 
+        if ($results === []) {
             return;
         }
 
-        if ($notes !== []) {
-            \App\Models\OrderHistory::create([
-                'order_id' => $locked->id,
-                'order_status_id' => $orderStatusId,
-                'comment' => implode(' ', $notes),
-                'notify_customer' => false,
-            ]);
+        \App\Models\OrderHistory::create([
+            'order_id' => $locked->id,
+            'order_status_id' => $orderStatusId,
+            'comment' => implode(' ', array_map(fn ($r) => $r->note, $results)),
+            'notify_customer' => false,
+        ]);
+
+        $review = array_values(array_filter($results, fn ($r) => $r->needsReview));
+        if ($review !== []) {
+            $locked->forceFill([
+                'review_reason' => mb_substr(implode(' ', array_map(fn ($r) => $r->note, $review)), 0, 500),
+            ])->save();
         }
     }
 

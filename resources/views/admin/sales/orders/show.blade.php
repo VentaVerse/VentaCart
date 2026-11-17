@@ -32,6 +32,17 @@
         {{-- LEFT: the order itself --}}
         <div class="v-settle">
 
+            @if ($order->review_reason)
+                <div class="v-notice" role="status">
+                    <p class="v-notice__title">This order needs review</p>
+                    <p class="v-notice__text">{{ $order->review_reason }}</p>
+                    <form method="POST" action="{{ route('admin.orders.review.clear', $order) }}" class="v-noticerow">
+                        @csrf
+                        <button type="submit" class="v-btn v-btn--secondary">Mark reviewed</button>
+                    </form>
+                </div>
+            @endif
+
             <x-admin.panel title="Order">
                 <div class="v-factrow">
                     <div>
