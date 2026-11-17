@@ -5,7 +5,7 @@
  * quantity only picks the matching row; nothing is calculated here. Adding
  * to the cart posts the chosen variant to core's cart.add.
  */
-import { $, $$, reduceMotion, inEditorPreview } from '../util.js';
+import { $, $$, reduceMotion, finePointer, inEditorPreview } from '../util.js';
 import { addItem, send, messageOf, toast } from '../cart.js';
 
 const scroll = () => (reduceMotion.matches ? 'auto' : 'smooth');
@@ -53,32 +53,119 @@ function initGallery(section, signal) {
   thumbs.forEach((t) => t.addEventListener('click', () => go(Number(t.dataset.galleryGo)), { signal }));
   prev?.addEventListener('click', () => go(index - 1), { signal });
   next?.addEventListener('click', () => go(index + 1), { signal });
-  track.addEventListener('keydown', (e) => {
-    const keys = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: slides.length - 1 };
-    if (e.key in keys) {
-      e.preventDefault();
-      go(keys[e.key]);
-    }
-  }, { signal });
   mark(0, false);
 
   const box = $('[data-lightbox]', section);
   const zoom = $('[data-gallery-zoom]', root);
-  if (box) initLightbox(box, {
+  const lightbox = box ? initLightbox(box, {
     openers: [zoom, ...slides],
     current: () => index,
     // Back on the page: show the photo last viewed and put focus on it.
     closed: (i, opener) => {
       go(i, false);
-      if (opener === zoom) zoom.focus();
+      if (opener === zoom || opener === track) opener.focus();
       else if (slides[i]) {
         slides[i].tabIndex = -1;
         slides[i].focus({ preventScroll: true });
       }
     },
-  }, signal);
+  }, signal) : null;
+
+  // Arrow keys change photo; Enter or Space on the slider opens the photo in
+  // view full screen.
+  track.addEventListener('keydown', (e) => {
+    const keys = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: slides.length - 1 };
+    if (e.key in keys) {
+      e.preventDefault();
+      go(keys[e.key]);
+    } else if ((e.key === 'Enter' || e.key === ' ') && e.target === track && lightbox) {
+      e.preventDefault();
+      lightbox.open(index, track);
+    }
+  }, { signal });
+
+  if (section.dataset.zoom === 'hover') initHoverZoom(section, slides, signal);
 
   return { go };
+}
+
+/*
+ * Zoom on hover, in place: with a mouse or trackpad, the photo under the
+ * pointer is magnified inside its own frame, centered on the spot under the
+ * pointer, and follows it. The magnified photo is a background on a layer
+ * over the frame, read from the photo's original file. It is at least 1.6
+ * times the photo shown and at most what that file can give without
+ * blurring; a photo too small to magnify that far keeps only the click to
+ * full screen. Touch and pen input never magnify: a tap opens full screen.
+ */
+const MIN_ZOOM = 1.6;
+const MAX_ZOOM = 2.5;
+
+function initHoverZoom(section, slides, signal) {
+  const on = () => section.dataset.zoom === 'hover' && finePointer.matches;
+
+  // The photo's drawn box inside the frame, for contain or cover.
+  const contentBox = (slide, img) => {
+    const fw = slide.clientWidth;
+    const fh = slide.clientHeight;
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    if (!fw || !fh || !nw || !nh) return null;
+    const cover = getComputedStyle(img).objectFit === 'cover';
+    const s = cover ? Math.max(fw / nw, fh / nh) : Math.min(fw / nw, fh / nh);
+    const cw = nw * s;
+    const ch = nh * s;
+    return { fw, fh, nw, cw, ch, ox: (fw - cw) / 2, oy: (fh - ch) / 2 };
+  };
+
+  const layerFor = (slide, img) => {
+    let layer = $('.gallery__magnify', slide);
+    if (!layer) {
+      const src = String(img.dataset.zoomSrc || img.currentSrc || img.src).replace(/["\\\n]/g, (c) => encodeURIComponent(c));
+      layer = document.createElement('span');
+      layer.className = 'gallery__magnify';
+      layer.setAttribute('aria-hidden', 'true');
+      layer.style.backgroundImage = `url("${src}")`;
+      slide.append(layer);
+    }
+    return layer;
+  };
+
+  const unmagnify = (slide) => slide.classList.remove('is-magnified');
+
+  const place = (slide, e) => {
+    const img = $('img', slide);
+    const b = img && contentBox(slide, img);
+    if (!b) return unmagnify(slide);
+    const most = Math.min(MAX_ZOOM, b.nw / b.cw);
+    if (most < MIN_ZOOM * 0.85) return unmagnify(slide);
+    const z = Math.max(MIN_ZOOM, most);
+    const rect = slide.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    // The point of the photo under the pointer, from 0 to 1 each way.
+    const u = Math.min(1, Math.max(0, (px - b.ox) / b.cw));
+    const v = Math.min(1, Math.max(0, (py - b.oy) / b.ch));
+    const zw = b.cw * z;
+    const zh = b.ch * z;
+    // Keep that point under the pointer, but never pull an edge of the
+    // magnified photo inside the frame when it is bigger than the frame.
+    const clamp = (pos, size, frame) => (size >= frame ? Math.min(0, Math.max(frame - size, pos)) : (frame - size) / 2);
+    const layer = layerFor(slide, img);
+    layer.style.backgroundSize = `${zw}px ${zh}px`;
+    layer.style.backgroundPosition = `${clamp(px - u * zw, zw, b.fw)}px ${clamp(py - v * zh, zh, b.fh)}px`;
+    slide.classList.add('is-magnified');
+  };
+
+  slides.forEach((slide) => {
+    slide.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse' || !on()) return unmagnify(slide);
+      place(slide, e);
+    }, { signal });
+    slide.addEventListener('pointerleave', () => unmagnify(slide), { signal });
+    // The full screen photos open on the same click; leave nothing magnified behind.
+    slide.addEventListener('click', () => unmagnify(slide), { signal });
+  });
 }
 
 /*
@@ -106,7 +193,7 @@ function initLightbox(box, { openers, current, closed }, signal) {
   const next = $('[data-lightbox-next]', box);
   const now = $('[data-lightbox-now]', box);
   const live = $('[data-lightbox-live]', box);
-  if (!track || !items.length) return;
+  if (!track || !items.length) return null;
   const n = items.length;
   const loops = n > 1;
 
@@ -213,10 +300,9 @@ function initLightbox(box, { openers, current, closed }, signal) {
   };
   const go = (i) => glide(i + offset);
 
-  const open = (e) => {
+  const show = (start, from) => {
     if (inEditorPreview() || box.open) return;
-    opener = e.currentTarget;
-    const start = opener.matches('.gallery__slide') ? Number(opener.dataset.index) : current();
+    opener = from;
     // Photos off to the side are never in view until they slide in, so a lazy
     // photo would arrive blank; load them all once the viewer is opened.
     $$('img', track).forEach((img) => { img.loading = 'eager'; });
@@ -226,6 +312,10 @@ function initLightbox(box, { openers, current, closed }, signal) {
     pos = aim = i + offset;
     paint();
     mark(i, false);
+  };
+  const open = (e) => {
+    const from = e.currentTarget;
+    show(from.matches('.gallery__slide') ? Number(from.dataset.index) : current(), from);
   };
   openers.filter(Boolean).forEach((el) => el.addEventListener('click', open, { signal }));
   box.addEventListener('close', () => {
@@ -318,6 +408,8 @@ function initLightbox(box, { openers, current, closed }, signal) {
     if (Math.abs(moved) > 6) return;
     if (!e.target.closest('.lightbox__img')) box.close();
   }, { signal });
+
+  return { open: show };
 }
 
 /* ------------------------------------------------------------ prices, variants, stock and buying */
