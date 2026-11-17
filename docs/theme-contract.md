@@ -469,4 +469,6 @@ Applied when a page is read, for shoppers and in the editor, never written at in
 
 **Switched off or removed.** Nothing draws for shoppers; the editor shows a note naming the extension; saved pages keep its sections and blocks with their settings and hidden flags across saves and publishes, and switching back on restores them. Its templates leave the editor and wait, untouched.
 
+**The stylesheet.** `xelga.json`'s `stylesheet` is a plain CSS file under the extension's `resources/`, loaded on every storefront page after Xelga's own. Xelga loads it from the store's build when that has the entry, else from the `build/` the package ships (section 1), else it serves the file itself, exactly as it ships, at `/xelga/extensions/{name}/{fingerprint}.css` (route `xelga.extension-css`, cached for a year, a new address for each new file, only while the extension is switched on). So an extension installed from an upload is styled without `npm run build`, provided the file is CSS a browser reads as it is: no `@import` of build-time sources, no Tailwind directives. That last case is logged once each time the catalog is compiled, not on every request.
+
 **Checks.** `php artisan xelga:lint --extension=marketplace`; range settings get their CSS rules from `node resources/themes/xelga/bin/ranges.mjs --schemas <parts>/schemas/sections --out <stylesheet>`.

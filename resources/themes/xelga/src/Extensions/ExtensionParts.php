@@ -19,6 +19,7 @@ final class ExtensionParts
      * @param  string  $path  real path of the parts folder
      * @param  string  $namespace  the namespace of its provider, with a trailing backslash; its data classes live under it
      * @param  string|null  $stylesheet  its stylesheet as a build entry (relative to the app), or null
+     * @param  string|null  $stylesheetFile  the real path of that file, served as it ships when no build has the entry
      */
     public function __construct(
         public readonly string $name,
@@ -27,7 +28,20 @@ final class ExtensionParts
         public readonly string $path,
         public readonly string $namespace,
         public readonly ?string $stylesheet,
+        public readonly ?string $stylesheetFile = null,
     ) {
+    }
+
+    /** A short fingerprint of the stylesheet as it ships, for its address; null without one. */
+    public function stylesheetHash(): ?string
+    {
+        $file = $this->stylesheetFile;
+        if ($file === null || ! is_file($file) || is_link($file)) {
+            return null;
+        }
+        $hash = @sha1_file($file);
+
+        return $hash === false ? null : substr($hash, 0, 12);
     }
 
     /** The view namespace of its section views: `xelga-{name}::sections.{name part of the type}`. */

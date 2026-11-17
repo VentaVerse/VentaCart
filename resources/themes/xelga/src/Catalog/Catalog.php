@@ -78,6 +78,7 @@ final class Catalog
         }
 
         $data = self::compile();
+        self::noteUnbuiltStylesheets();
 
         $dir = dirname($file);
         if (is_dir($dir) && is_writable($dir)) {
@@ -435,6 +436,19 @@ final class Catalog
         sort($files);
 
         return $files;
+    }
+
+    /**
+     * Said once each time the catalog is compiled, not on every request: an
+     * extension stylesheet no build has is served as the file ships.
+     */
+    private static function noteUnbuiltStylesheets(): void
+    {
+        foreach (self::extensions()->all() as $part) {
+            if ($part->stylesheet !== null && ! Extensions::built($part->stylesheet)) {
+                \Illuminate\Support\Facades\Log::notice("Xelga serves the stylesheet of the extension {$part->name} as it ships: no build has it.", ['extension' => $part->name, 'entry' => $part->stylesheet]);
+            }
+        }
     }
 
     public static function themeVersion(): string

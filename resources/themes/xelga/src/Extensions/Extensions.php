@@ -62,8 +62,11 @@ final class Extensions
 
     /**
      * The stylesheets of the registered extensions, after the theme's own,
-     * so a section added live in the editor is already styled. One the
-     * build does not know is logged and left out; the page still draws.
+     * so a section added live in the editor is already styled. The store's
+     * build (or the build a package ships, see App\Support\PackageAssets)
+     * comes first; an entry no build has is served as the file ships, from
+     * its own versioned address (route xelga.extension-css), so an
+     * extension installed from an upload is styled without a rebuild.
      */
     public function stylesheetTags(): \Illuminate\Support\HtmlString
     {
@@ -72,14 +75,29 @@ final class Extensions
             if ($part->stylesheet === null) {
                 continue;
             }
-            try {
+            if (self::built($part->stylesheet)) {
                 $html .= app(\Illuminate\Foundation\Vite::class)($part->stylesheet)->toHtml();
-            } catch (\Throwable $e) {
-                Registrar::refuse($part->name, 'its stylesheet is not in the build (run npm run build)', ['entry' => $part->stylesheet]);
+                continue;
+            }
+            $hash = $part->stylesheetHash();
+            if ($hash !== null) {
+                $html .= '<link rel="stylesheet" href="' . e(route('xelga.extension-css', ['extension' => $part->name, 'hash' => $hash], false)) . '">';
             }
         }
 
         return new \Illuminate\Support\HtmlString($html);
+    }
+
+    /** Whether the store's build, or a build a package ships, has this entry. */
+    public static function built(string $entry): bool
+    {
+        try {
+            app(\Illuminate\Foundation\Vite::class)($entry)->toHtml();
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**

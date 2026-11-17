@@ -69,12 +69,45 @@ class XelgaExtensionEditorTest extends TestCase
         $this->assertArrayNotHasKey('sample-extension', $this->boot()['extensions']);
     }
 
-    public function test_a_stylesheet_the_build_lacks_is_logged_and_the_page_still_draws(): void
+    public function test_a_stylesheet_no_build_has_is_served_as_it_ships(): void
     {
         $this->withVite();
+        $this->forgetXelgaState();
+        $file = base_path('tests/fixtures/extensions/sample-extension/resources/css/xelga.css');
+        $hash = substr(sha1_file($file), 0, 12);
+        $href = "/xelga/extensions/sample-extension/{$hash}.css";
+
+        $this->assertSame('<link rel="stylesheet" href="' . $href . '">', Extensions::current()->stylesheetTags()->toHtml());
+
+        $this->get($href)
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/css; charset=utf-8')
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('Cache-Control', 'immutable, max-age=31536000, public')
+            ->assertContent(file_get_contents($file));
+        $this->get('/xelga/extensions/sample-extension/000000000000.css')->assertRedirect($href);
+        $this->get('/xelga/extensions/blog/000000000000.css')->assertNotFound();
+
+        $this->switchOffSampleExtension();
+        $this->forgetXelgaState();
+        $this->get($href)->assertNotFound();
+    }
+
+    public function test_a_stylesheet_no_build_has_is_noted_once_per_catalog_build_not_per_request(): void
+    {
+        $this->withVite();
+        $this->forgetXelgaState();
         Log::spy();
 
-        $this->assertSame('', Extensions::current()->stylesheetTags()->toHtml());
-        Log::shouldHaveReceived('warning')->withArgs(fn ($message) => str_contains($message, 'not in the build'))->once();
+        foreach ([1, 2, 3] as $request) {
+            // A new request in a new process: nothing remembered but the compiled catalog file.
+            \Themes\Xelga\Rendering\Storefront::forgetRequestState();
+            \Themes\Xelga\Catalog\Catalog::flush();
+            \Themes\Xelga\Extensions\Registrar::forgetLogged();
+            $this->get('/')->assertOk();
+        }
+
+        Log::shouldHaveReceived('notice')->withArgs(fn ($message) => str_contains($message, 'as it ships'))->once();
+        Log::shouldNotHaveReceived('warning', [\Mockery::on(fn ($message) => str_contains((string) $message, 'stylesheet'))]);
     }
 }

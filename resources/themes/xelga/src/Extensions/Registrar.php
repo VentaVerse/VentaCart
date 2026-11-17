@@ -85,8 +85,9 @@ final class Registrar
         }
 
         $stylesheet = null;
+        $stylesheetFile = null;
         if (isset($meta['stylesheet'])) {
-            $stylesheet = self::stylesheet($root, (string) $manifest['path'], $meta['stylesheet']);
+            [$stylesheet, $stylesheetFile] = self::stylesheet($root, (string) $manifest['path'], $meta['stylesheet']);
             if ($stylesheet === null) {
                 $refuse('the stylesheet must be a .css file under the extension\'s resources folder');
 
@@ -104,6 +105,7 @@ final class Registrar
             path: $real,
             namespace: $namespace,
             stylesheet: $stylesheet,
+            stylesheetFile: $stylesheetFile,
         );
     }
 
@@ -170,22 +172,27 @@ final class Registrar
         return false;
     }
 
-    /** The stylesheet as a build entry relative to the app, or null when it is not one the extension may name. */
-    private static function stylesheet(string $root, string $folder, mixed $relative): ?string
+    /**
+     * The stylesheet as a build entry relative to the app and its real
+     * path, or nulls when it is not one the extension may name.
+     *
+     * @return array{0: ?string, 1: ?string}
+     */
+    private static function stylesheet(string $root, string $folder, mixed $relative): array
     {
         if (! is_string($relative) || ! str_ends_with($relative, '.css') || str_contains($relative, '..') || str_contains($relative, '\\')) {
-            return null;
+            return [null, null];
         }
         $relative = ltrim($relative, '/');
         $real = realpath($root . '/' . $relative);
-        if ($real === false || ! is_file($real) || ! str_starts_with($real, $root . '/resources/')) {
-            return null;
+        if ($real === false || ! is_file($real) || is_link($root . '/' . $relative) || ! str_starts_with($real, $root . '/resources/')) {
+            return [null, null];
         }
         // The build entry is the folder as the app sees it: an extension may
         // be a link to a package being developed elsewhere.
         $base = rtrim(base_path(), '/') . '/';
         $folder = rtrim($folder, '/');
 
-        return str_starts_with($folder . '/', $base) ? substr($folder, strlen($base)) . '/' . $relative : null;
+        return str_starts_with($folder . '/', $base) ? [substr($folder, strlen($base)) . '/' . $relative, $real] : [null, null];
     }
 }
