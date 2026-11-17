@@ -178,7 +178,8 @@ final class StoreTemplateApplier
                 }
                 $draft = $before['draft'];
                 if ($draft !== null) {
-                    $draft = DocumentWriter::clean($handle, json_decode((string) $draft, true))['json'];
+                    $decoded = json_decode((string) $draft, true);
+                    $draft = DocumentWriter::clean($handle, $decoded, [$decoded])['json'];
                 }
                 DB::table('xelga_documents')->where('id', $row->id)->update([
                     'draft' => $draft,

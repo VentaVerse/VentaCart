@@ -4,6 +4,8 @@ namespace Themes\Xelga\Rendering;
 
 use Illuminate\Support\HtmlString;
 use Themes\Xelga\Catalog\Catalog;
+use Themes\Xelga\Documents\Defaults;
+use Themes\Xelga\Documents\Handles;
 
 /**
  * Draws a document's sections in order. Settings are merged over the
@@ -16,10 +18,14 @@ final class SectionRenderer
     /** @var list<array> what the editor preview needs to know about the drawn sections */
     private array $pageData = [];
 
+    /** @var array<string, int> extension sections met so far in the document being drawn, by type */
+    private array $extensionCounts = [];
+
     public function render(array $content, RenderContext $context): string
     {
         $html = '';
         $sections = (array) ($content['sections'] ?? []);
+        $this->extensionCounts = [];
 
         foreach ((array) ($content['order'] ?? []) as $id) {
             $section = $sections[$id] ?? null;
@@ -49,6 +55,13 @@ final class SectionRenderer
                 ? $this->wrap($id, view('xelga::snippets.section-missing', ['id' => $id, 'type' => $type] + self::owner($type))->render())
                 : '';
         }
+        // Where an extension section sits is checked again here, whatever
+        // wrote the stored document: one that breaks its schema's rules is
+        // not drawn, so its data class never runs on a page it was not
+        // made for.
+        if ($schema->source() !== null && ! $this->placeable($schema, $context)) {
+            return '';
+        }
         if ($disabled && ! $context->preview) {
             return '';
         }
@@ -60,9 +73,21 @@ final class SectionRenderer
 
         $settings = array_merge($schema->defaults(), (array) ($section['settings'] ?? []));
         $blocks = [];
+        $liveBlocks = 0;
+        $perBlockType = [];
         foreach ((array) ($section['block_order'] ?? []) as $blockId) {
             $block = $section['blocks'][$blockId] ?? null;
-            if (! is_string($blockId) || ! is_array($block) || $schema->blockType((string) ($block['type'] ?? '')) === null) {
+            $blockSpec = is_array($block) ? $schema->blockType((string) ($block['type'] ?? '')) : null;
+            if (! is_string($blockId) || $blockSpec === null) {
+                continue;
+            }
+            // Counted as a save counts them, hidden ones included. An
+            // extension block (or any block of an extension section) past
+            // the section's maximum or its type's limit is not drawn.
+            $liveBlocks++;
+            $perBlockType[$block['type']] = ($perBlockType[$block['type']] ?? 0) + 1;
+            if (($schema->source() !== null || is_string($blockSpec['source'] ?? null))
+                && ($liveBlocks > $schema->blockMax() || (isset($blockSpec['limit']) && $perBlockType[$block['type']] > (int) $blockSpec['limit']))) {
                 continue;
             }
             $blockDisabled = (bool) ($block['disabled'] ?? false);
@@ -121,6 +146,48 @@ final class SectionRenderer
         }
 
         return $this->wrap($id, $html);
+    }
+
+    /**
+     * Whether an extension section may be drawn here: in a page template it
+     * is allowed in, as a main section only on its own page type, and no
+     * more of it than its limit allows.
+     */
+    private function placeable(\Themes\Xelga\Catalog\SectionSchema $schema, RenderContext $context): bool
+    {
+        $handle = $context->handle;
+        $pageType = Handles::pageType($handle);
+        if ($context->group !== 'template' || Handles::kind($handle) !== 'template' || ! $schema->allowedIn($handle, 'template', $pageType)) {
+            return false;
+        }
+
+        $main = ($schema->raw['main'] ?? false) === true;
+        if ($main && ! in_array($schema->type, self::mainTypes((string) $pageType), true)) {
+            return false;
+        }
+
+        $count = $this->extensionCounts[$schema->type] = ($this->extensionCounts[$schema->type] ?? 0) + 1;
+        $limit = $main ? 1 : $schema->limit();
+
+        return $limit === null || $count <= $limit;
+    }
+
+    /**
+     * The main section types of a page type, from its shipped template.
+     *
+     * @return list<string>
+     */
+    private static function mainTypes(string $pageType): array
+    {
+        $types = [];
+        foreach ((array) (Defaults::content($pageType)['sections'] ?? []) as $section) {
+            $schema = Catalog::section((string) (is_array($section) ? ($section['type'] ?? '') : ''));
+            if ($schema !== null && ($schema->raw['main'] ?? false) === true) {
+                $types[] = $schema->type;
+            }
+        }
+
+        return $types;
     }
 
     /**

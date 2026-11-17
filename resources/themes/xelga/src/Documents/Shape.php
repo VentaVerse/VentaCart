@@ -35,6 +35,12 @@ final class Shape
     /** @var array<string, true> every id seen in this document */
     private array $ids = [];
 
+    /** @var array<string, array<string, true>> section id => types it has in a stored document */
+    private array $storedSections = [];
+
+    /** @var array<string, array<string, array<string, true>>> section id => block id => types */
+    private array $storedBlocks = [];
+
     private Sanitizer $sanitizer;
 
     public function __construct(private readonly SanitizeContext $context)
@@ -45,15 +51,23 @@ final class Shape
     /**
      * The clean document and the values that were corrected.
      *
+     * An extension section or block whose extension is away can only be
+     * kept, never added: it stays when one of the stored documents (the
+     * draft and the published version being replaced, the revision being
+     * restored) already holds that id with that type. Anything else of an
+     * absent extension is refused, since nothing can check where it goes.
+     *
+     * @param  list<mixed>  $stored  documents whose dormant items may stay
      * @return array{content: array, adjusted: list<array>}
      *
      * @throws ShapeException
      */
-    public function normalize(string $handle, mixed $content): array
+    public function normalize(string $handle, mixed $content, array $stored = []): array
     {
         $this->errors = [];
         $this->ids = [];
         $this->sanitizer = new Sanitizer($this->context);
+        $this->remember($stored);
 
         if (! is_array($content) || ($content !== [] && array_is_list($content))) {
             throw new ShapeException(['content' => ['The document must be an object.']]);
@@ -181,18 +195,29 @@ final class Shape
                 continue;
             }
 
+            // Extension sections go on pages only; the header and the footer
+            // are drawn on every page, checkout and account included.
+            if ($kind !== 'template' && self::extensionOf($type) !== null) {
+                $this->fail("{$path}.type", 'An extension\'s section goes on a page, not in the header or footer.');
+                continue;
+            }
+
             $schema = Catalog::section($type);
             $label = trim(SafeInput::text($section['label'] ?? '', 80));
             $disabled = $this->flag($section['disabled'] ?? false, "{$path}.disabled");
 
             if ($schema === null && ($extension = self::extensionOf($type)) !== null) {
+                if (! isset($this->storedSections[$id][$type])) {
+                    $this->fail("{$path}.type", 'This section\'s extension is not available.');
+                    continue;
+                }
                 // An extension's section while the extension is switched off
                 // or removed: kept exactly as stored, settings and hidden
                 // flag included, so switching the extension back on brings it
                 // back as it was. Nothing checks its values now, so it is
                 // marked, and the renderer cleans them before any view sees
                 // them; the next save after the extension returns cleans it.
-                $dormant = $this->dormant($section, $extension, $label, $disabled, $path);
+                $dormant = $this->dormant($id, $section, $extension, $label, $disabled, $path);
                 if ($dormant !== null) {
                     $outSections[$id] = $dormant;
                 }
@@ -227,7 +252,7 @@ final class Shape
                 'label' => $label !== '' ? $label : $schema->label,
                 'disabled' => $disabled,
                 'settings' => (object) $this->sanitizer->cleanMap($schema->settings(), $section['settings'] ?? [], "{$path}.settings"),
-            ] + $this->blocks($schema, $section, $path);
+            ] + $this->blocks($id, $schema, $section, $path);
             if ($schema->source() !== null) {
                 $outSections[$id]['source'] = $schema->source();
             }
@@ -283,7 +308,7 @@ final class Shape
         }
     }
 
-    private function blocks(\Themes\Xelga\Catalog\SectionSchema $schema, array $section, string $path): array
+    private function blocks(string $sectionId, \Themes\Xelga\Catalog\SectionSchema $schema, array $section, string $path): array
     {
         $order = $section['block_order'] ?? [];
         $blocks = $section['blocks'] ?? [];
@@ -298,8 +323,10 @@ final class Shape
 
         $this->sameKeys($path, $order, $blocks, 'block');
 
-        // Blocks of an extension that is away are kept and take no room.
-        $live = count(array_filter($order, fn ($id) => ! (is_string($id) && is_array($blocks[$id] ?? null) && self::isDormantBlock($blocks[$id]))));
+        // Blocks of an extension that is away, kept from a stored document,
+        // take no room; any other dormant block is refused below.
+        $live = count(array_filter($order, fn ($id) => ! (is_string($id) && is_array($blocks[$id] ?? null)
+            && self::isDormantBlock($blocks[$id]) && $this->wasStoredBlock($sectionId, $id, (string) $blocks[$id]['type']))));
         if ($live < $schema->blockMin()) {
             $this->fail("{$path}.block_order", "{$schema->label} needs at least {$schema->blockMin()}.");
         }
@@ -320,6 +347,10 @@ final class Shape
                 continue;
             }
             if (self::isDormantBlock($blocks[$id])) {
+                if (! $this->wasStoredBlock($sectionId, $id, $type)) {
+                    $this->fail("{$bPath}.type", 'This block\'s extension is not available.');
+                    continue;
+                }
                 $dormant = $this->dormantBlock($blocks[$id], $bPath);
                 if ($dormant !== null) {
                     $out[$id] = $dormant;
@@ -376,7 +407,7 @@ final class Shape
      * are kept unread. The source is the type's own prefix, never what the
      * client sent.
      */
-    private function dormant(array $section, string $extension, string $label, bool $disabled, string $path): ?array
+    private function dormant(string $sectionId, array $section, string $extension, string $label, bool $disabled, string $path): ?array
     {
         if (strlen((string) json_encode($section)) > self::MAX_DORMANT_BYTES) {
             $this->fail($path, 'A section kept while its extension is away holds at most 16 KB.');
@@ -405,6 +436,11 @@ final class Shape
             $type = $block['type'] ?? null;
             if (! is_string($type) || (preg_match(self::ID, $type) !== 1 && self::extensionOf($type) === null)) {
                 $this->fail("{$path}.blocks.{$id}.type", 'Not a block type.');
+                continue;
+            }
+            // Nothing checks a dormant section's blocks, so it keeps only those it had.
+            if (! $this->wasStoredBlock($sectionId, $id, $type)) {
+                $this->fail("{$path}.blocks.{$id}.type", 'A block cannot be added while its section\'s extension is not available.');
                 continue;
             }
             $out[$id] = [
@@ -452,6 +488,42 @@ final class Shape
             'source' => (string) self::extensionOf((string) $block['type']),
             'unchecked' => true,
         ];
+    }
+
+    /**
+     * Index the ids and types of the stored documents, so a dormant item can
+     * be told apart from one the client made up.
+     *
+     * @param  list<mixed>  $documents
+     */
+    private function remember(array $documents): void
+    {
+        $this->storedSections = [];
+        $this->storedBlocks = [];
+        foreach ($documents as $document) {
+            if (is_object($document)) {
+                $document = json_decode((string) json_encode($document), true);
+            }
+            if (! is_array($document) || ! is_array($document['sections'] ?? null)) {
+                continue;
+            }
+            foreach ($document['sections'] as $sid => $section) {
+                if (! is_array($section) || ! is_string($section['type'] ?? null)) {
+                    continue;
+                }
+                $this->storedSections[(string) $sid][$section['type']] = true;
+                foreach ((array) ($section['blocks'] ?? []) as $bid => $block) {
+                    if (is_array($block) && is_string($block['type'] ?? null)) {
+                        $this->storedBlocks[(string) $sid][(string) $bid][$block['type']] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    private function wasStoredBlock(string $sectionId, string $blockId, string $type): bool
+    {
+        return isset($this->storedBlocks[$sectionId][$blockId][$type]);
     }
 
     /** Stored values kept unread: a map, or nothing. */

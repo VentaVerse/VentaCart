@@ -20,18 +20,26 @@ use Themes\Xelga\Settings\SanitizeContext;
 final class DocumentWriter
 {
     /**
+     * Sections and blocks of an extension that is away may stay only when
+     * the draft, the published version, the shipped default or one of
+     * $alsoStored (a revision being restored) already holds them. A save
+     * that raced a change to the row is refused by the version check, so
+     * reading the row before the transaction is safe.
+     *
+     * @param  list<mixed>  $alsoStored
      * @return array{document: Document, adjusted: list<array>, warnings: list<array>}
      *
      * @throws ShapeException|ConflictException
      */
-    public function saveDraft(string $handle, mixed $content, int $baseVersion, User $user): array
+    public function saveDraft(string $handle, mixed $content, int $baseVersion, User $user, array $alsoStored = []): array
     {
         if (! Handles::known($handle)) {
             throw new ShapeException(['handle' => ['There is no such document.']]);
         }
 
         $kind = Handles::kind($handle);
-        $result = self::clean($handle, $content);
+        $stored = Document::where('handle', $handle)->first();
+        $result = self::clean($handle, $content, [$stored?->draft, $stored?->published, Defaults::shipped($handle), ...$alsoStored]);
         $json = $result['json'];
         $warnings = $kind === 'settings' ? ContrastCheck::failures(json_decode($json, true)['schemes'] ?? []) : [];
 
@@ -99,17 +107,18 @@ final class DocumentWriter
      * back by other means (undoing a starting store) runs it through here
      * too, so nothing reaches a draft unchecked.
      *
+     * @param  list<mixed>  $stored  documents whose dormant sections and blocks may stay (Shape::normalize)
      * @return array{content: array, json: string, adjusted: list<array>}
      *
      * @throws ShapeException
      */
-    public static function clean(string $handle, mixed $content): array
+    public static function clean(string $handle, mixed $content, array $stored = []): array
     {
         if (! Handles::known($handle)) {
             throw new ShapeException(['handle' => ['There is no such document.']]);
         }
         $context = SanitizeContext::forStore(Handles::kind($handle) === 'settings' ? [] : self::schemeIds());
-        $result = (new Shape($context))->normalize($handle, $content);
+        $result = (new Shape($context))->normalize($handle, $content, $stored);
 
         return $result + ['json' => json_encode($result['content'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)];
     }

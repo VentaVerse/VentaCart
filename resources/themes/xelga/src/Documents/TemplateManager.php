@@ -398,7 +398,7 @@ final class TemplateManager
         }
 
         $copy = ['schema' => Shape::FORMAT, 'order' => $keep, 'sections' => array_intersect_key($sections, array_flip($keep)), 'placed' => $content['placed'] ?? []];
-        $clean = (new Shape(SanitizeContext::forStore(DocumentWriter::schemeIds())))->normalize($handle, $copy)['content'];
+        $clean = (new Shape(SanitizeContext::forStore(DocumentWriter::schemeIds())))->normalize($handle, $copy, [$content])['content'];
 
         return [json_decode(json_encode($clean, JSON_THROW_ON_ERROR), true), $leftOut];
     }

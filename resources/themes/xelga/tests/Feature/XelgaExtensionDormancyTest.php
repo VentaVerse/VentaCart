@@ -115,6 +115,7 @@ class XelgaExtensionDormancyTest extends TestCase
 
     public function test_a_dormant_section_must_stay_small_and_well_formed(): void
     {
+        $this->publishedDocument('product', $this->productWith(['card-1' => $this->card()]));
         $this->switchOffSampleExtension();
         $this->forgetXelgaState();
         $big = $this->card(['heading' => str_repeat('x', 17000)]);
