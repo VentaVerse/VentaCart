@@ -2,6 +2,7 @@
 
 namespace Tests\Fixtures\Extensions\SampleExtension;
 
+use App\Support\CartGroups;
 use App\Support\StorefrontPageType;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,5 +23,6 @@ class SampleExtensionServiceProvider extends ServiceProvider
         $this->loadRoutesFrom($root . '/routes/web.php');
 
         StorefrontPageType::register(self::PAGE_TYPE, 'Sample pages', ['sample-extension.page.']);
+        CartGroups::use(Cart\SampleCartGrouper::class);
     }
 }

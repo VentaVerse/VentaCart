@@ -55,6 +55,7 @@ abstract class TestCase extends BaseTestCase
     public static function forgetStorefrontHooks(): void
     {
         \App\Support\StorefrontPageType::forget('sample_page');
+        \App\Support\CartGroups::forget();
     }
 
     /**

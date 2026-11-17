@@ -273,6 +273,7 @@ Menus are core data, edited at Content > Menus (`nav_menus`, nested `nav_menu_it
 
 - Prices come from `App\Support\Pricing::display()` (section 5.2); the theme never computes a price.
 - Add-to-cart, variant selection and quantity post to core's `cart.add`, `cart.update` and `cart.remove`; a theme never changes a cart any other way.
+- A cart page or drawer draws the groups `CartGroups::for()` returns when they are not null (section 9.2), each line once, under its group.
 - The reviews block renders only when `\App\Support\Reviews::enabled()`.
 - SKU and model are internal and never shown.
 - Sale countdowns hide when the end date is more than a year away.
@@ -299,3 +300,29 @@ These names are API 1 of the hooks. Renaming or removing any of them, or changin
 ### 9.1 Pages of an extension's page type
 
 Section 3: the extension registers a page type and draws its pages with `StorefrontPage::render()`; a theme that wants to lay such pages out provides `extension-page` (section 4).
+
+### 9.2 Cart groups
+
+An extension may split the cart's lines into groups a theme draws under their own header, such as one group per seller. It implements `App\Contracts\CartLineGrouper` and registers the class from its provider's `boot()`:
+
+```php
+\App\Support\CartGroups::use(\Extensions\Marketplace\Cart\SellerGrouper::class);
+```
+
+One grouper per store: a second, different one is refused and logged. The grouper receives the cart's `CartItem` lines and returns a list of groups. Core checks the answer and hands themes `CartGroups::for($items)`, which is null for the plain cart (no grouper, a grouper that threw or answered nonsense, an empty cart) or:
+
+```json
+[
+  { "key": "shop-12", "label": "Demo Store", "url": "https://example.com/shops/demo-store",
+    "lines": [41, 42],
+    "shipping": { "label": "Shipping from this shop", "amount": 120.0, "note": "Ships in 2 days" } },
+  { "key": "other", "label": "", "url": null, "lines": [43], "shipping": null }
+]
+```
+
+- Every cart line is in exactly one group, in cart order: the first group that names a line keeps it, and lines no group names are collected in a last group with the key `other` and an empty label, which a theme draws with no header.
+- `key` is 1 to 40 lower case letters, digits or hyphens, unique; `other` is core's. At most 50 groups (the last one being `other`); lines of groups past that go to `other`.
+- `label` is plain text up to 80 characters, `note` up to 160; `url` is a link `SafeInput::link` keeps, else null; `amount` is a non-negative number or null; `shipping` is null when it says nothing.
+- Shipping in a group is information for the shopper. What the order costs is still worked out by core's checkout.
+
+Where it reaches a theme: the `cart.index` view receives `$cartGroups`, and `GET /cart/mini` (`cart.mini`) answers `groups` beside `items`. A theme that draws a cart draws a header per group when `groups` is not null (section 7); the totals, the coupon and the checkout button are unchanged.

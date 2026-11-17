@@ -49,7 +49,11 @@ class CartController extends Controller
         $hasOutOfStock = !empty($outOfStockIds);
         $hasUnavailable = !empty($unavailableIds);
 
-        return view('cart.index', compact('items', 'subtotal', 'hasOutOfStock', 'outOfStockIds', 'hasUnavailable', 'unavailableIds'));
+        // Lines grouped by an extension (one group per seller, say), or
+        // null for the plain list. Core checked the groups already.
+        $cartGroups = \App\Support\CartGroups::for($items);
+
+        return view('cart.index', compact('items', 'subtotal', 'hasOutOfStock', 'outOfStockIds', 'hasUnavailable', 'unavailableIds', 'cartGroups'));
     }
 
     public function add(Request $request): JsonResponse
@@ -162,6 +166,7 @@ class CartController extends Controller
             })->values(),
             'subtotal' => $items->sum(fn($i) => $i->price * $i->quantity),
             'count' => $items->sum('quantity'),
+            'groups' => \App\Support\CartGroups::for($items),
         ]);
     }
 
