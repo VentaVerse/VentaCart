@@ -1102,8 +1102,14 @@ a {
   color: var(--text-2);
 }
 
-.add-group:first-child {
+.add-list > li:first-child > .add-group {
   margin-block-start: 4px;
+}
+
+.add-sublist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .add-type__unavailable {
@@ -2534,6 +2540,11 @@ button.pick-row:hover {
   height: 1px;
   margin: 4px 6px;
   background: var(--line);
+}
+
+.menu__group {
+  display: grid;
+  gap: 1px;
 }
 
 .menu__heading {

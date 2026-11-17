@@ -62,22 +62,31 @@ export function reposition() {
   if (popover?.anchor && document.body.contains(popover.anchor)) place(popover.el, popover.anchor, popover.align);
 }
 
+let headingSeq = 0;
+
 export function openMenu(anchor, items, opts = {}) {
   const menu = h('div', { class: 'menu', role: 'menu' });
+  // Items after a heading sit in a group the heading names, so a screen
+  // reader announces "Pages" or an extension's name with them.
+  let into = menu;
   items.forEach((item) => {
     if (item.sep) {
+      into = menu;
       menu.append(h('div', { class: 'menu__sep', role: 'separator' }));
       return;
     }
     if (item.heading) {
-      menu.append(h('p', { class: 'menu__heading', text: item.heading }));
+      headingSeq += 1;
+      const id = `menu-heading-${headingSeq}`;
+      into = h('div', { class: 'menu__group', role: 'group', 'aria-labelledby': id });
+      menu.append(h('p', { class: 'menu__heading', id, role: 'presentation', text: item.heading }), into);
       return;
     }
     if (item.node) {
-      menu.append(item.node);
+      into.append(item.node);
       return;
     }
-    menu.append(h('button', {
+    into.append(h('button', {
       type: 'button', role: item.checked === undefined ? 'menuitem' : 'menuitemradio',
       class: `menu__item${item.danger ? ' menu__item--danger' : ''}`,
       'aria-checked': item.checked === undefined ? null : String(item.checked),

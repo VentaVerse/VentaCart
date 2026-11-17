@@ -56,38 +56,51 @@ export function renderAdd() {
 
 function renderList(listEl) {
   const q = S.addAt.query.trim().toLowerCase();
-  const handle = S.page?.handle;
   const items = available().filter(([, def]) => !q || def.label.toLowerCase().includes(q) || (def.description || '').toLowerCase().includes(q));
-  // The theme's own sections first, then one list per extension under its name.
-  const rows = [];
-  let heading = null;
+  // The theme's own sections first, then one list per extension, labelled
+  // by its name, so a screen reader announces whose sections they are.
   items.sort(([, a], [, b]) => (a.source ? 1 : 0) - (b.source ? 1 : 0) || String(a.source_label || '').localeCompare(String(b.source_label || '')));
+  const own = [];
+  const groups = new Map();
   items.forEach((item) => {
     const label = item[1].source ? item[1].source_label || item[1].source : null;
-    if (label && label !== heading) rows.push(h('li', { class: 'add-group', text: label }));
-    heading = label;
-    rows.push(item);
+    if (!label) own.push(item);
+    else {
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(item);
+    }
   });
-  listEl.replaceChildren(...rows.map((entry) => {
-    if (!Array.isArray(entry)) return entry;
-    const [type, def] = entry;
-    const open = S.addAt.open === type;
-    const atLimit = Boolean(def.limit) && countOfType(handle, type) >= def.limit;
-    const li = h('li', { class: `add-type${open ? ' is-open' : ''}${atLimit ? ' is-full' : ''}` },
-      h('button', {
-        type: 'button', class: 'add-type__head', 'aria-expanded': String(open),
-        onclick: () => {
-          S.addAt.open = open ? null : type;
-          renderList(listEl);
-        },
-      }, icon(sectionIcon(type), 'o-row__icon'),
-      h('span', { class: 'add-type__text' },
-        h('span', { class: 'add-type__name', text: def.label }),
-        h('span', { class: 'add-type__desc', text: atLimit ? `This page already has ${def.limit === 1 ? 'one' : def.limit}, the most it can hold.` : def.description || '' }))));
-    if (open && !atLimit) li.append(choices(type, def));
-    return li;
-  }));
+  let n = 0;
+  const grouped = [...groups].map(([label, list]) => {
+    n += 1;
+    const id = `add-group-${n}`;
+    return h('li', {},
+      h('h3', { class: 'add-group', id, text: label }),
+      h('ul', { class: 'add-sublist', role: 'list', 'aria-labelledby': id }, ...list.map((entry) => typeRow(entry, listEl))));
+  });
+  listEl.replaceChildren(...own.map((entry) => typeRow(entry, listEl)), ...grouped);
   if (!items.length) listEl.append(h('li', { class: 'add-type__unavailable', text: q ? 'No section matches that search.' : 'No more sections can be added to this page.' }));
+}
+
+/* One section type to add, opening to its starting layouts. */
+function typeRow(entry, listEl) {
+  const handle = S.page?.handle;
+  const [type, def] = entry;
+  const open = S.addAt.open === type;
+  const atLimit = Boolean(def.limit) && countOfType(handle, type) >= def.limit;
+  const li = h('li', { class: `add-type${open ? ' is-open' : ''}${atLimit ? ' is-full' : ''}` },
+    h('button', {
+      type: 'button', class: 'add-type__head', 'aria-expanded': String(open),
+      onclick: () => {
+        S.addAt.open = open ? null : type;
+        renderList(listEl);
+      },
+    }, icon(sectionIcon(type), 'o-row__icon'),
+    h('span', { class: 'add-type__text' },
+      h('span', { class: 'add-type__name', text: def.label }),
+      h('span', { class: 'add-type__desc', text: atLimit ? `This page already has ${def.limit === 1 ? 'one' : def.limit}, the most it can hold.` : def.description || '' }))));
+  if (open && !atLimit) li.append(choices(type, def));
+  return li;
 }
 
 function choices(type, def) {
