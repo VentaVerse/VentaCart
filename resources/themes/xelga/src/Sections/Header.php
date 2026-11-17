@@ -2,6 +2,7 @@
 
 namespace Themes\Xelga\Sections;
 
+use App\Services\ThemeService;
 use App\Support\NavTree;
 use App\Support\SafeInput;
 use App\Support\StoreIdentity;
@@ -12,8 +13,8 @@ use Themes\Xelga\Settings\LinkValue;
 
 /**
  * The header's data: the store's name, the chosen menu as core composes it
- * (shaped into the header's panels), and the menu photos matched to their
- * menu items.
+ * (shaped into the header's panels), the menu photos matched to their
+ * menu items, and the currencies prices can be shown in.
  */
 final class Header implements SectionData
 {
@@ -60,7 +61,35 @@ final class Header implements SectionData
             'logo' => Picture::of($settings['logo_image'] ?? ''),
             'items' => $items,
             'promos' => $promos,
+            'currencies' => $this->currencies(),
         ];
+    }
+
+    /**
+     * The currencies a shopper can view prices in, with the one in use
+     * marked. Empty when the store has fewer than two enabled currencies:
+     * there is nothing to choose. Core reads the choice back from the
+     * `currency` cookie and falls back to the default for any code it no
+     * longer offers, so the list only ever names enabled currencies.
+     *
+     * @return list<array{code: string, name: string, symbol: string, active: bool}>
+     */
+    private function currencies(): array
+    {
+        $themes = app(ThemeService::class);
+        $enabled = $themes->getActiveCurrencies();
+        if ($enabled->count() < 2) {
+            return [];
+        }
+
+        $active = $themes->getActiveCurrency()?->code;
+
+        return $enabled->map(fn ($currency) => [
+            'code' => (string) $currency->code,
+            'name' => (string) $currency->name,
+            'symbol' => trim((string) $currency->symbol),
+            'active' => $currency->code === $active,
+        ])->values()->all();
     }
 
     /**

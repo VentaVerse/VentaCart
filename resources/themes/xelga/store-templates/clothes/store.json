@@ -116,6 +116,7 @@
             "sticky": true,
             "show_search": true,
             "search_placeholder": "Search the shop",
+            "show_currency": true,
             "show_account": true,
             "show_wishlist": true,
             "scheme": "scheme-1"

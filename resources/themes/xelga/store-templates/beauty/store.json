@@ -166,6 +166,7 @@
             "sticky": true,
             "show_search": true,
             "search_placeholder": "Search sunscreen, tints...",
+            "show_currency": true,
             "show_account": true,
             "show_wishlist": true,
             "scheme": "scheme-1",

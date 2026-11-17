@@ -1,4 +1,4 @@
-/** Header: sticky state, search toggle, menu panels and the phone drawer. */
+/** Header: sticky state, search toggle, menu panels, currency choice and the phone drawer. */
 import { $, $$, root, finePointer } from '../util.js';
 
 export function initHeader(section) {
@@ -102,9 +102,116 @@ export function initHeader(section) {
     }, { signal });
   }
 
+  initCurrency(section, signal);
+
   return () => {
     ac.abort();
     resizeObserver.disconnect();
     window.clearTimeout(hoverTimer);
   };
+}
+
+/**
+ * Remember the shopper's display currency and show the page again in it.
+ * Core reads the `currency` cookie (left unencrypted for this) and falls back
+ * to the store's default for a code it does not offer.
+ */
+function chooseCurrency(code) {
+  if (!/^[A-Za-z0-9]{3}$/.test(code)) return;
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `currency=${code}; path=/; max-age=31536000; SameSite=Lax${secure}`;
+  window.location.reload();
+}
+
+/** The currency list: a button that opens a listbox, used with mouse or keys. */
+function initCurrency(section, signal) {
+  $$('.drawer__currency-choice', section).forEach((choice) => {
+    choice.addEventListener('click', () => {
+      if (choice.getAttribute('aria-pressed') !== 'true') chooseCurrency(choice.dataset.currency || '');
+    }, { signal });
+  });
+
+  const picker = $('[data-currency-picker]', section);
+  if (!picker) return;
+  const button = $('.currency-picker__button', picker);
+  const list = $('.currency-picker__list', picker);
+  const options = $$('[role="option"]', list);
+  if (!button || !list || options.length === 0) return;
+
+  let active = 0;
+  const selectedIndex = () => Math.max(0, options.findIndex((o) => o.getAttribute('aria-selected') === 'true'));
+
+  const highlight = (index) => {
+    active = (index + options.length) % options.length;
+    options.forEach((option, i) => option.classList.toggle('is-active', i === active));
+    list.setAttribute('aria-activedescendant', options[active].id);
+    options[active].scrollIntoView({ block: 'nearest' });
+  };
+
+  const open = (index = selectedIndex()) => {
+    list.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+    highlight(index);
+    list.focus();
+  };
+
+  const close = (refocus = true) => {
+    if (list.hidden) return;
+    list.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    list.removeAttribute('aria-activedescendant');
+    if (refocus) button.focus();
+  };
+
+  const pick = (index) => {
+    const option = options[index];
+    if (!option) return;
+    if (option.getAttribute('aria-selected') === 'true') {
+      close();
+      return;
+    }
+    chooseCurrency(option.dataset.currency || '');
+  };
+
+  button.addEventListener('click', () => (list.hidden ? open() : close()), { signal });
+  button.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      open(event.key === 'ArrowUp' ? options.length - 1 : selectedIndex());
+    }
+  }, { signal });
+
+  list.addEventListener('keydown', (event) => {
+    switch (event.key) {
+      case 'ArrowDown': event.preventDefault(); highlight(active + 1); break;
+      case 'ArrowUp': event.preventDefault(); highlight(active - 1); break;
+      case 'Home': event.preventDefault(); highlight(0); break;
+      case 'End': event.preventDefault(); highlight(options.length - 1); break;
+      case 'Enter':
+      case ' ': event.preventDefault(); pick(active); break;
+      case 'Escape': event.preventDefault(); close(); break;
+      case 'Tab': close(false); break;
+      default: {
+        // Type a letter to jump to the next code that starts with it.
+        if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return;
+        const letter = event.key.toUpperCase();
+        for (let step = 1; step <= options.length; step++) {
+          const i = (active + step) % options.length;
+          if ((options[i].dataset.currency || '').startsWith(letter)) { highlight(i); break; }
+        }
+      }
+    }
+  }, { signal });
+
+  options.forEach((option, index) => {
+    option.addEventListener('click', () => pick(index), { signal });
+    option.addEventListener('pointermove', () => { if (active !== index) highlight(index); }, { signal });
+  });
+
+  picker.addEventListener('focusout', (event) => {
+    if (!picker.contains(event.relatedTarget)) close(false);
+  }, { signal });
+  document.addEventListener('click', (event) => {
+    if (!picker.contains(event.target)) close(false);
+  }, { signal });
 }

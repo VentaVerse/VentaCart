@@ -156,6 +156,7 @@
             "sticky": true,
             "show_search": true,
             "search_placeholder": "Search 3PDT, B100K, 125B, DC jack...",
+            "show_currency": true,
             "show_account": true,
             "show_wishlist": true,
             "scheme": "scheme-2",
