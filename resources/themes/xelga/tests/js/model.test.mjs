@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   useLayout, normalize, rowsOf, rowIdFor, freshRowId, locate, spanAt, fits, place,
-  addRow, moveRow, removeRow, changeSplit, setRow, effectsOf, tidy,
+  addRow, moveRow, removeRow, changeSplit, setRow, effectsOf, tidy, checkAddSpot,
 } from '../../editor/js/modules/board/model.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -397,4 +397,41 @@ test('a copy sits under its original in a column with room, as the server puts i
 
   commit({ t: 'insert', kind: 'duplicate', source: 'c', doc: 'home', sid: 'c-copy', index: 3, snapshot: { type: 'text' }, name: 'C' });
   assert.deepEqual(rowsOf(S.docs.home.content).map((r) => r.columns), [[['a'], ['b']], [['c']], [['c-copy']]]);
+});
+
+/* Adding at a spot of the board: the spot is checked against the page as it is now. */
+const addPage = () => page({ a: 'text', b: 'text', c: 'text' }, {
+  rows: [row('r1', '12', [['a']]), row('r2', '6-6', [['b'], ['c']])],
+});
+
+test('a new section may go in the first gap of the page', () => {
+  assert.deepEqual(checkAddSpot(addPage(), { drop: 'gap', before: 'r1' }, { type: 'text' }, RULES), { ok: true });
+});
+
+test('a new section may go in the last gap of the page', () => {
+  assert.deepEqual(checkAddSpot(addPage(), { drop: 'gap', before: 'end' }, { type: 'text' }, RULES), { ok: true });
+});
+
+test('a full column takes no new section', () => {
+  const c = addPage();
+  const ids = Array.from({ length: LAYOUT.max_per_column }, (_, i) => `t${i}`);
+  ids.forEach((id) => { c.sections[id] = { type: 'text' }; c.order.push(id); });
+  c.rows[1].columns[0] = ids;
+  const target = { drop: 'column', rowId: 'r2', column: 0, before: null };
+  assert.deepEqual(checkAddSpot(c, target, { type: 'text' }, RULES), { ok: false, reason: 'full' });
+  assert.deepEqual(checkAddSpot(c, { ...target, column: 1 }, { type: 'text' }, RULES), { ok: true });
+});
+
+test('a spot that is no longer on the page is refused, never moved to the end', () => {
+  const c = addPage();
+  [
+    { drop: 'gap', before: 'r9' },
+    { drop: 'column', rowId: 'r9', column: 0, before: null },
+    { drop: 'column', rowId: 'r2', column: 0, before: 'gone' },
+    { drop: 'column', rowId: 'r2', column: 5, before: null },
+    { drop: 'beside', rowId: 'r9', side: 'left' },
+  ].forEach((target) => {
+    assert.deepEqual(checkAddSpot(c, target, { type: 'text' }, RULES), { ok: false, reason: 'gone' }, JSON.stringify(target));
+  });
+  assert.deepEqual(checkAddSpot(c, { drop: 'column', rowId: 'r2', column: 0, before: null }, { type: 'wide' }, RULES), { ok: false, reason: 'narrow' });
 });

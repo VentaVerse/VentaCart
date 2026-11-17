@@ -107,35 +107,6 @@ export function schematic(spec) {
   return svg;
 }
 
-/** The drawing on the empty inspector: a store page with a selected section. */
-export function emptyArt() {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('class', 'empty__art');
-  svg.setAttribute('viewBox', '0 0 220 120');
-  svg.setAttribute('aria-hidden', 'true');
-  const parts = [
-    ['rect', { x: 1, y: 1, width: 218, height: 118, rx: 8, class: 'art-page' }],
-    ['rect', { x: 14, y: 14, width: 40, height: 7, rx: 2, class: 'art-ink' }],
-    ['rect', { x: 150, y: 15, width: 56, height: 5, rx: 2, class: 'art-line' }],
-    ['rect', { x: 14, y: 32, width: 192, height: 46, rx: 4, class: 'art-fill' }],
-    ['rect', { x: 24, y: 46, width: 80, height: 7, rx: 2, class: 'art-mid' }],
-    ['rect', { x: 24, y: 58, width: 52, height: 4, rx: 2, class: 'art-line' }],
-    ['rect', { x: 12, y: 30, width: 196, height: 50, rx: 5, class: 'art-select' }],
-    ['rect', { x: 12, y: 22, width: 58, height: 10, rx: 2, class: 'art-tag' }],
-    ['rect', { x: 16, y: 25.5, width: 40, height: 3, rx: 1.5, class: 'art-tag-text' }],
-    ['rect', { x: 14, y: 88, width: 56, height: 22, rx: 3, class: 'art-fill' }],
-    ['rect', { x: 82, y: 88, width: 56, height: 22, rx: 3, class: 'art-fill' }],
-    ['rect', { x: 150, y: 88, width: 56, height: 22, rx: 3, class: 'art-fill' }],
-    ['path', { d: 'M128 66 l0 22 l6 -6 l5 10 l4 -2 l-5 -10 l8 0 z', class: 'art-pointer' }],
-  ];
-  parts.forEach(([tag, attrs]) => {
-    const node = document.createElementNS(SVG_NS, tag);
-    Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
-    svg.append(node);
-  });
-  return svg;
-}
-
 export function announce(text) {
   const el = $('#announcer');
   if (!el) return;

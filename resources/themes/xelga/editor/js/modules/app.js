@@ -1,59 +1,42 @@
 /*
- * Starts the editor: draws the shell, connects the preview bridge, loads the
- * documents the current page is drawn from, and wires every change to the
- * panels, the layout board, the preview and autosave.
+ * Starts the editor: draws the shell, opens this admin's preview window
+ * (for the board's pictures and Open store preview), loads the documents
+ * the current page is drawn from, and wires every change to the layout
+ * board, the settings drawer and autosave.
  */
 
-import { $, setSprite, toast } from './dom.js';
+import { $, h, setSprite, toast } from './dom.js';
 import {
-  S, ctx, ui, pageHandles, doc, addDocument, pageDef, templateOf, pageTitle, isFixed, anyDirty, isShared, scopeOfHandle, SHARED_PARAM,
+  S, ctx, ui, pageHandles, doc, addDocument, pageDef, templateOf, isFixed, anyDirty,
 } from './state.js';
 import { normalizeDocument, isSameOrigin } from './api.js';
 import { setCatalog } from './catalog.js';
 import { useLayout } from './board/model.js';
 import { installIcons } from './icons.js';
 import { onChange, resetHistory, LAYOUT_TYPES } from './operations.js';
-import { createBridge } from './bridge.js';
-import { buildShell, panelsLoading } from './shell.js';
-import { initPreview, loadFrame, setDevice, setAppState, canvasState, hideCanvasState } from './preview.js';
-import { initOutline } from './outline.js';
-import { initAdd } from './add-section.js';
+import { buildShell, setAppState, canvasState, hideCanvasState, showFatal } from './shell.js';
 import { initInspector } from './inspector.js';
 import { initRevisions } from './revisions.js';
 import { initTopbar } from './topbar.js';
 import { scheduleSave, flush, reloadDocuments, startPresence, watchLeaving, setFatal } from './drafts.js';
-import { setNav, isPhone, closeSheet } from './selection.js';
 import { closePopover } from './popover.js';
 import { initLayouts } from './layouts.js';
 import { initStores } from './stores.js';
-import { initNeeds } from './needs.js';
 import { initBoard } from './board/board.js';
 import { initDrawer } from './board/drawer.js';
 import { initPicker } from './board/picker.js';
-import { h } from './dom.js';
 
 const STRUCTURAL = new Set(['remove', 'insert', 'replace', 'move', 'rename', 'block-add', 'block-remove', 'block-move', 'visible', ...LAYOUT_TYPES]);
-
-/*
- * Undo and redo show the list the change belongs to, so it is never made out
- * of sight. Theme settings have no list, so they leave it as it is.
- */
-function followChange(op) {
-  if (op.t === 'theme' || op.t === 'color' || !op.doc) return;
-  if (ui.setScope(scopeOfHandle(op.doc))) ui.flashPicker();
-}
 
 function afterChange(op, { source }) {
   // The undo of a starting store applies to the draft as it was applied.
   ui.endApplyNote?.();
-  if (source !== 'commit') followChange(op);
   scheduleSave();
-  ui.renderOutline();
+  ui.renderBoard();
   // Typing into a field must keep its focus, so a plain value change only
   // refreshes the fields that depend on it. Undo and redo redraw the form.
   if (source !== 'commit' || STRUCTURAL.has(op.t)) {
     ui.renderInspector();
-    if (S.nav === 'theme') ui.renderThemeNav();
   } else {
     ui.refreshVisibility();
   }
@@ -76,19 +59,15 @@ async function loadPageDocuments() {
 
 /*
  * The preview window is opened here, by a POST, rather than by loading the
- * editor page; the frame loads once the nonce is known.
+ * editor page. Its nonce lets the board draw the sections from the draft
+ * and Open store preview show the draft in a tab of its own.
  */
 async function openPreview() {
-  if (!ctx.api.openPreview) {
-    loadFrame();
-    return;
-  }
-  setAppState('loading');
+  if (!ctx.api.openPreview) return;
   try {
     const opened = await ctx.api.openPreview();
     Object.assign(ctx.boot.preview, { nonce: opened.nonce, until: opened.until });
     if (opened.url && isSameOrigin(opened.url)) ctx.boot.preview.url = opened.url;
-    // The board's pictures and Open store preview both need the window.
     ui.updatePreviewLink?.();
     ui.renderBoard?.();
   } catch (error) {
@@ -96,16 +75,13 @@ async function openPreview() {
       setFatal(error);
       return;
     }
-    setAppState('error');
-    canvasState({
-      iconName: 'alert',
-      title: 'The preview could not be opened',
-      text: `${error.message} Nothing was changed.`,
-      actions: [h('button', { type: 'button', class: 'btn btn--primary', onclick: () => openPreview() }, 'Try again')],
+    // The board still works with the drawings of the layouts; only the pictures and the store preview wait.
+    toast(`The store preview could not be opened. ${error.message}`, {
+      tone: 'error',
+      timeout: 10000,
+      action: { label: 'Try again', run: () => openPreview() },
     });
-    return;
   }
-  loadFrame();
 }
 
 function documentsFailed(error) {
@@ -123,9 +99,9 @@ function documentsFailed(error) {
 }
 
 async function start() {
-  // A page with nothing to preview keeps its explanation over the frame.
-  if (S.page?.url) hideCanvasState();
-  panelsLoading();
+  hideCanvasState();
+  setAppState('loading');
+  ui.renderBoard();
   try {
     await loadPageDocuments();
   } catch (error) {
@@ -138,16 +114,13 @@ async function start() {
     return;
   }
   S.loaded = true;
-  if (S.frameReady) setAppState('ready');
-  else if (!S.page?.url) setAppState('empty');
-  ui.renderOutline();
-  ui.renderThemeNav();
+  if (!S.fatal) setAppState('ready');
+  ui.renderBoard();
   ui.renderInspector();
   ui.updateToolbar();
-  ui.updateDock();
 }
 
-/** The page and list open in this tab, kept in the address so a reload comes back to them. */
+/** The page open in this tab, kept in the address so a reload comes back to it. */
 function rememberPage() {
   try {
     const q = new URLSearchParams(window.location.search);
@@ -156,7 +129,6 @@ function rememberPage() {
     q.delete('edit');
     if (S.page?.type && S.page.type !== 'home') q.set('page', S.page.type);
     if (S.page?.layout) q.set('layout', S.page.handle);
-    if (isShared()) q.set('edit', SHARED_PARAM);
     const query = q.toString();
     window.history.replaceState(window.history.state, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
   } catch {
@@ -181,97 +153,35 @@ const samePage = (a, b) => Boolean(a && b) && a.type === b.type && (a.handle || 
  * Opens another page or special layout. Changes are saved first; when that
  * fails, the editor stays where it is. Undo history belongs to the page it
  * was made on, so it starts again.
- *   url             the address the preview already shows (a followed link)
- *   frameNavigated  the preview is already on that page
- *   openLayout      select the Layout row and open its chooser (a new layout)
- *   saved           the caller has just saved
- *   scope           the list to show: 'page', or 'shared' for the header and footer
+ *   openLayout  open the layout settings and their chooser (a new layout)
+ *   saved       the caller has just saved
  */
-async function openPage(target, { url = null, frameNavigated = false, openLayout = false, saved = false, scope = 'page' } = {}) {
+async function openPage(target, { openLayout = false, saved = false } = {}) {
   const next = resolvePage(target);
   if (!next) return false;
-  if (url) next.url = url;
-  if (samePage(next, S.page) && !openLayout) {
-    if (frameNavigated) S.page = { ...S.page, url: url || S.page.url };
-    // The page already in the preview: only the list changes.
-    ui.setScope(scope);
-    return true;
-  }
+  if (samePage(next, S.page) && !openLayout) return true;
   closePopover({ restoreFocus: false });
   const wasDirty = anyDirty();
   if (!saved) {
     const ok = await flush();
     if (!ok) {
       toast('Your changes are not saved yet, so the page was not switched. Check the status at the top.', { tone: 'error' });
-      // The preview went ahead on its own: bring it back to the page being edited.
-      if (frameNavigated) loadFrame();
       return false;
     }
     if (wasDirty) toast('Draft saved before switching pages.');
   }
   S.page = next;
-  S.scope = next.kind === 'fixed' ? 'page' : scope;
   S.sel = null;
   S.view = { type: 'board' };
-  S.open.clear();
-  S.addAt = null;
-  S.renaming = null;
   resetHistory();
   $('#app').dataset.fixed = String(isFixed());
   ui.updatePageButton();
   rememberPage();
-  setNav('sections');
-  if (isPhone()) closeSheet();
   S.loaded = false;
-  // A preview that followed a link drew the page before the save finished:
-  // load it again so it shows the saved draft.
-  if (!frameNavigated || wasDirty) loadFrame();
+  ui.syncDrawer?.();
   await start();
   if (openLayout && S.loaded) ui.selectLayout?.({ choose: true });
   return true;
-}
-
-/*
- * The merchant followed a link inside the preview (Alt and click). The new
- * page has already said `ready`; open its template (or the special layout
- * it uses), or say it has none.
- */
-function onNavigated(msg) {
-  S.navigatedAt = Date.now();
-  const page = msg.page || {};
-  const layout = page.handle ? templateOf(page.handle) : null;
-  const target = layout ? { type: layout.pageType, layout: layout.handle } : pageDef(page.type) ? { type: page.type } : null;
-  if (!target) {
-    toast('This page has no layout to edit. The preview shows it as shoppers see it.', {
-      timeout: 8000,
-      action: { label: `Back to ${pageTitle()}`, run: () => loadFrame() },
-    });
-    return;
-  }
-  const next = resolvePage(target);
-  if (samePage(next, S.page)) {
-    S.page = { ...S.page, url: msg.url || S.page.url };
-    // A link to the page shown while editing the header and footer goes back to the page's list.
-    if (ui.setScope('page')) return;
-    toast(`Already editing ${pageTitle()}.`);
-    return;
-  }
-  openPage(target, { url: msg.url || null, frameNavigated: true });
-}
-
-/*
- * The preview may open somewhere other than the page asked for: the store
- * sends an empty checkout to the cart, or a signed-in page to sign in.
- * Say so, so a change in the panel is not looked for on the wrong page.
- */
-function onFrameReady(msg) {
-  window.setTimeout(() => {
-    if (Date.now() - (S.navigatedAt || 0) < 2000) return;
-    const shown = msg.page?.type;
-    if (!shown || !S.page || shown === S.page.type) return;
-    const label = pageDef(shown)?.label || 'another page';
-    toast(`The store showed ${label === 'another page' ? label : `the ${label.toLowerCase()} page`} instead of ${pageTitle()}. Shoppers are sent there too in this case.`, { timeout: 8000 });
-  }, 400);
 }
 
 /**
@@ -298,7 +208,6 @@ export function startEditor({ boot, api, mount = null }) {
   const query = new URLSearchParams(window.location.search);
   S.page = resolvePage({ type: query.get('page') || 'home', layout: query.get('layout') })
     || resolvePage({ type: (boot.pages.find((p) => p.handle === boot.page) || boot.pages[0]).type });
-  S.scope = query.get('edit') === SHARED_PARAM && S.page.kind !== 'fixed' ? 'shared' : 'page';
   // When the address named a page the picker no longer lists (its
   // extension is away), the fallback page is written back to it, so a
   // reload or a shared link opens what is shown.
@@ -312,23 +221,17 @@ export function startEditor({ boot, api, mount = null }) {
   });
   $('#app').dataset.fixed = String(isFixed());
 
-  ctx.bridge = createBridge({ frame: $('#frame'), origin: boot.preview.origin });
-
   initTopbar();
-  initOutline();
-  initAdd();
   initInspector();
   initRevisions();
   initLayouts();
   initStores();
-  initPreview({ onNavigated });
-  initNeeds();
   initBoard();
   initDrawer();
   initPicker();
-  ctx.bridge.on('ready', onFrameReady);
   ui.openPage = openPage;
   ui.rememberPage = rememberPage;
+  ui.showFatal = showFatal;
   ui.updatePageButton();
   onChange(afterChange);
 
@@ -340,8 +243,6 @@ export function startEditor({ boot, api, mount = null }) {
     pub.dataset.denied = 'true';
   }
 
-  setDevice('desktop');
-  ui.updateDock();
   ui.updateToolbar();
   watchLeaving();
 

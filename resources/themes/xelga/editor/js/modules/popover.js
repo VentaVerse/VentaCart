@@ -18,7 +18,6 @@ export function closePopover({ restoreFocus = true } = {}) {
   if (!popover) return;
   const { el, anchor, onClose } = popover;
   anchor?.setAttribute('aria-expanded', 'false');
-  anchor?.closest('.o-row')?.classList.remove('menu-open');
   el.remove();
   popover = null;
   onClose?.();
@@ -59,7 +58,6 @@ export function openPopover(anchor, content, { wide = false, align = 'start', la
   const el = h('div', { class: `popover${wide ? ' popover--wide' : ''}`, role: 'dialog', 'aria-label': label }, content);
   $('#popover-layer').append(el);
   anchor?.setAttribute('aria-expanded', 'true');
-  anchor?.closest('.o-row')?.classList.add('menu-open');
   place(el, anchor, align);
   popover = { el, anchor, align, onClose };
   if (focus) {

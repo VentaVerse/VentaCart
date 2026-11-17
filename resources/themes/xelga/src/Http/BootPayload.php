@@ -118,7 +118,6 @@ final class BootPayload
         $kindToken = '__KIND__';
 
         return [
-            'protocol' => 1,
             'theme' => ['name' => 'Xelga', 'slug' => 'xelga', 'version' => Catalog::themeVersion()],
             'store' => ['name' => StoreIdentity::name(), 'url' => $home, 'origin' => $origin],
             'user' => [
@@ -160,7 +159,6 @@ final class BootPayload
                 'section_param' => \Themes\Xelga\Preview\SectionOnly::QUERY,
                 'nonce' => '',
                 'until' => 0,
-                'origin' => $origin,
             ],
             'routes' => [
                 'documents_show' => route('admin.xelga.documents.show', ['handle' => $handleToken]),

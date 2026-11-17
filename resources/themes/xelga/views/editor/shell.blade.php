@@ -1,9 +1,9 @@
 {{--
     The theme editor: a full-screen page outside the admin chrome. The editor
     app (editor/js/panel.js) reads its boot payload from #xelga-boot and draws
-    itself into #xelga-editor. Until the app is built, a plain page shows the
-    published store. Loading this page opens no preview window: the app opens
-    one with a POST once it starts.
+    itself into #xelga-editor. Until the app is built, a plain page links to
+    the published store. Loading this page opens no preview window: the app
+    opens one with a POST once it starts.
 --}}
 @php
     $panelJs = 'resources/themes/xelga/editor/js/panel.js';
@@ -35,7 +35,7 @@
                 <p><a href="{{ $boot['routes']['exit'] }}">Exit to Themes</a></p>
             </header>
             <main>
-                <iframe src="{{ $boot['preview']['url'] }}" title="Store preview" width="100%" height="800"></iframe>
+                <p>The theme editor's files are not built yet. <a href="{{ $boot['preview']['url'] }}" target="_blank" rel="noopener">Open the store</a> in a new tab.</p>
             </main>
         @endunless
     </div>

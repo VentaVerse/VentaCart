@@ -1,121 +1,53 @@
 /*
- * What is selected and which panel shows: the outline, theme settings, the
- * add section list or earlier versions on the left, the selection's settings
- * on the right. Under 1180px the two share one slot; on a phone they come up
- * as a bottom sheet.
+ * What is selected on the layout board, and the drawer its settings show
+ * in. On a phone the drawer is a sheet from the bottom, over the board, so
+ * opening it puts the focus inside it.
  */
 
 import { $, $$ } from './dom.js';
-import { S, ctx, ui, sec, blk, openOnly } from './state.js';
+import { S, ui, sec, blk } from './state.js';
 
 export const isPhone = () => window.matchMedia('(max-width: 719px)').matches;
-export const isNarrow = () => window.matchMedia('(max-width: 1179px)').matches;
 
-const app = () => $('#app');
-
-export function post(type, payload) {
-  if (!S.frameReady || !ctx.bridge) return false;
-  return ctx.bridge.post(type, payload);
-}
-
-export function showPanel(which) {
-  app().dataset.panel = which;
-}
-
-export function openSheet(which) {
-  showPanel(which);
-  app().dataset.sheet = 'open';
-  S.sheetOpen = true;
-}
-
-export function closeSheet() {
-  app().dataset.sheet = 'closed';
-  S.sheetOpen = false;
-}
-
-export function setNav(nav, { keepSelection = false } = {}) {
-  S.nav = nav;
-  $('#tab-sections').setAttribute('aria-selected', String(nav !== 'theme'));
-  $('#tab-theme').setAttribute('aria-selected', String(nav === 'theme'));
-  $('#tab-sections').tabIndex = nav === 'theme' ? -1 : 0;
-  $('#tab-theme').tabIndex = nav === 'theme' ? 0 : -1;
-  $('#nav-sections').hidden = nav !== 'sections';
-  $('#nav-theme').hidden = nav !== 'theme';
-  $('#nav-add').hidden = nav !== 'add';
-  $('#nav-revisions').hidden = nav !== 'revisions';
-  if (!keepSelection && nav === 'theme' && S.sel?.kind === 'section') {
-    S.sel = null;
-    post('select', { sectionId: null, blockId: null });
-    ui.renderOutline();
-    ui.renderInspector();
-  }
-  if (nav === 'theme') ui.renderThemeNav();
-  if (nav === 'add') ui.renderAdd();
-  if (nav === 'revisions') ui.renderRevisions();
-}
-
-function scrollRowIntoView(id) {
-  const nav = $('#nav-sections');
-  const row = nav.querySelector(`[data-row="${CSS.escape(id)}"]`);
-  if (!row) return;
-  // Scroll only the outline, never the editor page itself.
-  const box = nav.getBoundingClientRect();
-  const r = row.getBoundingClientRect();
-  if (r.top < box.top) nav.scrollTop -= box.top - r.top + 8;
-  else if (r.bottom > box.bottom) nav.scrollTop += r.bottom - box.bottom + 8;
-}
-
-export function select(sid, bid = null, { fromPreview = false, focusPanel = true, field = null } = {}) {
+/** Selects a section, or one of its blocks; its settings open in the drawer. */
+export function select(sid, bid = null) {
   if (!sec(sid) || (bid && !blk(sid, bid))) return;
-  S.sel = { kind: 'section', sid, bid, field };
-  openOnly(sid);
-  // A header or footer section clicked on a page (or a page section while
-  // editing the header and footer) shows the list it belongs to.
-  if (ui.setScope?.(ui.scopeOf(sid))) ui.flashPicker();
-  if (S.nav !== 'sections') setNav('sections', { keepSelection: true });
-  if (!fromPreview) post('select', { sectionId: sid, blockId: bid });
-  ui.renderOutline();
+  S.sel = { kind: 'section', sid, bid };
+  S.renaming = null;
+  ui.renderBoard();
   ui.renderInspector();
-  if (focusPanel) showPanel('inspector');
-  scrollRowIntoView(bid || sid);
-  ui.updateDock();
-  if (field) focusField(field);
-}
-
-/** Puts focus on the field the merchant clicked in the preview. */
-function focusField(key) {
-  window.setTimeout(() => {
-    const row = $(`#inspector-body [data-field="${CSS.escape(key)}"]`);
-    if (!row || row.hidden) return;
-    const details = row.closest('details');
-    if (details) details.open = true;
-    const control = row.querySelector('input:not([type="hidden"]), textarea, select, [contenteditable], button');
-    row.scrollIntoView({ block: 'nearest' });
-    control?.focus({ preventScroll: true });
-  }, 40);
 }
 
 export function deselect() {
   S.sel = null;
-  post('select', { sectionId: null, blockId: null });
-  ui.renderOutline();
-  ui.renderThemeNav();
+  S.renaming = null;
+  ui.renderBoard();
   ui.renderInspector();
-  showPanel('nav');
-  ui.updateDock();
 }
 
+/** Opens one theme settings group in the drawer, with the way back to Theme. */
 export function openThemeGroup(groupKey, extra = {}) {
   if (!groupKey) return;
+  S.view = { type: 'theme' };
   S.sel = { kind: 'theme', group: groupKey, ...extra };
-  post('select', { sectionId: null, blockId: null });
-  if (S.nav !== 'theme') setNav('theme', { keepSelection: true });
-  ui.renderThemeNav();
-  ui.renderOutline();
+  S.renaming = null;
+  ui.renderBoard();
   ui.renderInspector();
-  showPanel('inspector');
-  if (isPhone()) openSheet('inspector');
-  ui.updateDock();
+}
+
+/**
+ * Opens the drawer on one view (see openDrawer). On a phone the sheet
+ * covers the board, so the focus goes to its title.
+ */
+export function openSheet(view) {
+  if (!ui.openDrawer?.(view)) return false;
+  if (isPhone()) window.requestAnimationFrame(() => $('#drawer .insp-title')?.focus({ preventScroll: true }));
+  return true;
+}
+
+/** Closes the drawer, or the sheet on a phone, and puts the focus back where it was opened. */
+export function closeSheet() {
+  ui.closeDrawer?.();
 }
 
 /** Keeps the tab order of a radio group on its checked item. */

@@ -83,9 +83,6 @@ export function openPicker(spot) {
     if (!spot.target) return;
     P = { mode: 'add', target: spot.target, span: spanAt(content(), spot.target, rules), type: spot.target.drop === 'gap' ? ROW_TILE : null };
   }
-  // A control outside the board (the section list's Add section) gets the focus back on close.
-  const from = document.activeElement;
-  P.opener = from && from !== document.body && !from.closest('#board, #section-picker') ? from : null;
   P.query = '';
   P.step = 'types';
   ui.renderBoard?.();
@@ -111,7 +108,6 @@ export function closePicker({ focus = true } = {}) {
 
 /* The control that opened the window, found again after the board was drawn anew. */
 function openerOf(from) {
-  if (from.opener?.isConnected) return from.opener;
   if (from.mode === 'replace') return $(`#board .piece-wrap[data-sid="${CSS.escape(from.sid)}"] .piece__change`);
   const key = targetKey(from.target);
   const spot = $$('#board [data-target]').find((el) => {

@@ -1,7 +1,8 @@
 /*
  * The catalog: section schemas, theme setting groups and font pairs, as the
- * boot payload delivers them. Forms, the add section panel and live preview
- * rules are all read from here, so a new section type needs no editor code.
+ * boot payload delivers them. Forms, the section picker and the board's
+ * width rules are all read from here, so a new section type needs no
+ * editor code.
  */
 
 let catalog = { sections: {}, theme_settings: [], font_pairs: [] };
@@ -51,25 +52,6 @@ export function optionsOf(setting) {
 
 /* Hidden is stored as the section's `disabled` flag, never as a setting. */
 export const isFormSetting = (setting) => setting.key !== 'visible';
-
-const PICKER_TYPES = new Set(['product-picker', 'category-picker', 'brand-picker', 'menu-picker', 'page-picker', 'blog-post-picker']);
-const TEXT_TYPES = new Set(['text', 'textarea', 'richtext']);
-
-/**
- * How the preview applies a change to this setting: text, attr, css or
- * render (a server re-render of the section). A schema may say so with
- * `live`; otherwise picker types, links on data-driven sections and keys in
- * the section's `render_keys` re-render, text types write text, and the rest
- * set attributes.
- */
-export function liveMode(setting, def) {
-  if (setting.live) return setting.live;
-  if (PICKER_TYPES.has(setting.type)) return 'render';
-  if (def?.render_keys?.includes(setting.key)) return 'render';
-  if (setting.type === 'url' && def?.data) return 'render';
-  if (TEXT_TYPES.has(setting.type)) return 'text';
-  return 'attr';
-}
 
 /**
  * True when the schema allows this section type in the template being
@@ -133,13 +115,6 @@ export function absentLabel(item, extensions = {}) {
 
 export const sectionIcon = (type) => sectionDef(type)?.icon || SECTION_ICONS[type] || 'layout';
 export const blockIcon = (type, blockType) => blockDef(type, blockType)?.icon || BLOCK_ICONS[blockType] || 'layout';
-
-/* Which part of the store a theme settings group changes, for hover outlines. */
-export const THEME_GROUP_TARGETS = {
-  'product-cards': 'featured-products',
-  'social-contact': 'footer',
-  'cart-checkout': 'footer',
-};
 
 /*
  * Layout drawings for variant cards (see schematic() in dom.js). A schema may

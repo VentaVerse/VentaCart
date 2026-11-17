@@ -6,9 +6,9 @@
  * store draws it from the draft (see pictures.js); a section the page draws
  * nothing for shows the drawing of its layout instead.
  *
- * Clicking a section selects it, and its settings open as they do from the
- * section list. Every change redraws the board, then the pictures it
- * touched.
+ * Clicking a section selects it, and its settings open in the drawer.
+ * Every change redraws the board, then the pictures it touched. On a phone
+ * the page is drawn as a list instead (see phone.js).
  *
  * Sections are added where they will show: an Add line between rows (a
  * row of columns, or one section full width) and an Add under each column,
@@ -20,23 +20,25 @@
  * `data-target`.
  */
 
-import { $, h, icon, schematic, toast } from '../dom.js';
+import { $, h, icon, schematic, toast, announce } from '../dom.js';
 import {
   S, ctx, ui, doc, groupHandle, groupList, isFixed, labelOf, pageTitle, valueOf, schemes,
 } from '../state.js';
 import { sectionDef, sectionIcon, variantDrawing } from '../catalog.js';
-import { onChange, layoutPayload } from '../operations.js';
+import { onChange, layoutPayload, rulesFor } from '../operations.js';
 import { flush, setFatal } from '../drafts.js';
-import { select, setNav } from '../selection.js';
-import { fitFrame } from '../preview.js';
+import { openSheet, closeSheet, isPhone } from '../selection.js';
+import { refreshNeeds, needTag } from '../needs.js';
 import { rowsOf } from './model.js';
 import { createPictures } from './pictures.js';
-import { boardSource } from '../layouts.js';
+import { boardSource, layoutButton, fixedPanel } from '../layouts.js';
 import { openPicker, pickerSpot, pickerReplacing } from './picker.js';
 import { splitOf, listWords, columnName } from './words.js';
 import { barWords } from './labels.js';
-import { startDrag, keyMove, keyMoveRow, dragJustEnded, afterRender, targetKey } from './drag.js';
-import { openDrawer, closeDrawer } from './drawer.js';
+import {
+  startDrag, keyMove, keyMoveRow, keyMoves, rowKeyMoves, dragJustEnded, afterRender, targetKey, initDrag,
+} from './drag.js';
+import { renderPhoneBoard } from './phone.js';
 
 const REFRESH_WAIT_MS = 700;
 
@@ -61,7 +63,16 @@ function variantLabel(sid, type) {
    Pieces: one section on the board
    ------------------------------------------------------------------------ */
 
-const SHORTCUTS = 'Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight';
+const ARROWS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+
+/* The Alt and arrow keys a section or row really moves by, for aria-keyshortcuts; null when none. */
+const shortcuts = (arrows) => (arrows.length ? arrows.map((a) => `Alt+${a}`).join(' ') : null);
+
+function sectionShortcuts(sid) {
+  const handle = groupHandle('template');
+  const content = doc(handle)?.content;
+  return content ? shortcuts(keyMoves(content, sid, rulesFor(handle))) : null;
+}
 
 /** A spot that takes a drop: the row model's target, kept on the element. */
 const dropData = (target) => ({ target: JSON.stringify(target), drop: target.drop });
@@ -75,19 +86,20 @@ function piece(section, span, { movable = false, changeable = false } = {}) {
   const main = def?.main === true;
   const picture = pictures?.pictureFor(section.id, span) || null;
   const flags = [];
+  const need = def && !hidden ? needTag(section.id) : null;
   if (main) flags.push(['lock', 'Page content', 'The page content: it can be moved, never removed']);
   if (hidden) flags.push(['eye-off', 'Hidden', 'Hidden on the store']);
+  if (need && !need.quiet) flags.push(['alert', need.text, `${need.text}: the store shows this section once something is picked`]);
   if (!def) flags.push(['alert', 'Not shown', 'The part of the store this section belongs to is not installed']);
   const el = h('button', {
     type: 'button',
     class: `piece${selected ? ' is-selected' : ''}${main ? ' piece--main' : ''}${hidden ? ' is-hidden' : ''}`,
     dataset: { sid: section.id, type: section.type },
     'aria-pressed': String(selected),
-    'aria-keyshortcuts': movable ? SHORTCUTS : null,
+    'aria-keyshortcuts': movable ? sectionShortcuts(section.id) : null,
     onclick: () => {
       if (dragJustEnded()) return;
-      S.view = { type: 'section', sid: section.id };
-      select(section.id);
+      openSheet({ type: 'section', sid: section.id });
     },
     onpointerdown: movable ? (e) => startDrag(e, { kind: 'section', sid: section.id }) : null,
     onkeydown: movable ? (e) => keyMove(e, section.id) : null,
@@ -170,12 +182,12 @@ function rowEl(row, sections) {
     el.append(h('button', {
       type: 'button', class: 'row__tab', 'aria-pressed': String(selected),
       'aria-label': `Row, ${split.label.toLowerCase()}${named.length ? `: ${listWords(named)}` : ''}`,
-      'aria-keyshortcuts': 'Alt+ArrowUp Alt+ArrowDown',
+      'aria-keyshortcuts': shortcuts(rowKeyMoves(rowsOf(doc(groupHandle('template')).content, layoutPayload()), row.id)),
       title: 'Row settings. Drag to move the row.',
       onclick: () => {
         if (dragJustEnded()) return;
-        if (selected) closeDrawer();
-        else openDrawer({ type: 'row', rowId: row.id });
+        if (selected) closeSheet();
+        else openSheet({ type: 'row', rowId: row.id });
       },
       onpointerdown: (e) => startDrag(e, { kind: 'row', rowId: row.id }),
       onkeydown: (e) => keyMoveRow(e, row.id),
@@ -274,13 +286,15 @@ function pictureNote() {
     h('button', { type: 'button', class: 'link-btn', onclick: () => { loadedKey = ''; renderBoard(); } }, 'Try again'));
 }
 
-function head() {
+function head({ pictures: withPictures = true } = {}) {
   const source = boardSource();
+  const settings = layoutButton();
   return h('div', { class: 'boardhead' },
     h('div', { class: 'boardhead__text' },
       h('h1', { class: 'boardhead__title', text: pageTitle() }),
       source?.meta ? h('p', { class: 'boardhead__meta', text: source.meta }) : null,
-      pictureNote()),
+      withPictures ? pictureNote() : null),
+    settings ? h('div', { class: 'boardhead__actions' }, settings) : null,
     source?.note || null);
 }
 
@@ -289,7 +303,7 @@ export function renderBoard() {
   const board = $('#board');
   if (!board) return;
   app().dataset.loaded = String(Boolean(S.loaded));
-  // The board follows the selection made anywhere: the section list, the preview, undo.
+  // The board follows the selection made anywhere: the drawer, the picker, undo.
   if (S.sel?.kind === 'section') S.view = { type: 'section', sid: S.sel.sid };
   else if (S.view.type === 'section') S.view = { type: 'board' };
   if (S.view.type === 'row' && !rowExists(S.view.rowId)) S.view = { type: 'board' };
@@ -298,18 +312,23 @@ export function renderBoard() {
     board.replaceChildren(h('div', { class: 'board__inner' }, h('div', { class: 'sk-rows', 'aria-hidden': 'true' }, ...Array.from({ length: 6 }, () => h('div', { class: 'sk sk--piece' })))));
     return;
   }
-  ensurePictures();
+  refreshNeeds();
+  const phone = isPhone();
+  board.dataset.view = phone ? 'list' : 'board';
+  // A picture of a whole section is unreadable on a phone: the list shows the drawing of its layout.
+  if (!phone) ensurePictures();
   const keep = board.scrollTop;
   const focused = focusKey(board);
-  const sheet = h('div', { class: 'sheet', role: 'group', 'aria-label': `${pageTitle()}, drawn as the page` });
-  sheet.append(sharedBand('header'));
-  if (isFixed()) {
-    sheet.append(h('div', { class: 'fixed-page' }, icon('lock'), h('p', { text: S.page.note || 'This page keeps a fixed layout. Theme settings change how it looks.' })));
+  const page = isFixed() ? fixedPanel() : pageRows();
+  if (phone) {
+    board.replaceChildren(renderPhoneBoard({
+      title: pageTitle(), head: head({ pictures: false }), header: sharedBand('header'), page, footer: sharedBand('footer'),
+    }));
   } else {
-    sheet.append(pageRows());
+    const sheet = h('div', { class: 'sheet', role: 'group', 'aria-label': `${pageTitle()}, drawn as the page` },
+      sharedBand('header'), page, sharedBand('footer'));
+    board.replaceChildren(h('div', { class: 'board__inner' }, head(), sheet));
   }
-  sheet.append(sharedBand('footer'));
-  board.replaceChildren(h('div', { class: 'board__inner' }, head(), sheet));
   board.scrollTop = keep;
   if (focused) refocusKey(board, focused);
   afterRender();
@@ -356,6 +375,14 @@ function rowExists(rowId) {
    ------------------------------------------------------------------------ */
 
 const pageKey = () => `${S.page?.handle || ''}|${S.page?.url || ''}|${ctx.boot?.preview?.nonce || ''}`;
+
+/** Draws every picture again, from the saved draft: after a store is applied, a draft thrown away or a version restored. */
+export function redrawPictures() {
+  loadedKey = '';
+  pending = null;
+  window.clearTimeout(timer);
+  renderBoard();
+}
 
 /** Loads the pictures of the page open now, once per page and preview window. */
 function ensurePictures() {
@@ -440,50 +467,36 @@ async function runRefresh() {
 }
 
 /* ------------------------------------------------------------------------
-   Board or preview
+   Keys
    ------------------------------------------------------------------------ */
 
-export function setCanvas(which) {
-  S.canvas = which === 'preview' ? 'preview' : 'board';
-  // Beside the board, adding goes through the section picker only: the section list's add panel closes.
-  if (S.canvas === 'board' && S.nav === 'add') {
-    S.addAt = null;
-    setNav('sections');
+/*
+ * Alt with an arrow key never reaches the browser from the board, so it
+ * never goes back a page. Sections and rows that move handle it themselves;
+ * anything else says why nothing moved.
+ */
+function boardKeys(event) {
+  if (!event.altKey || event.ctrlKey || event.metaKey || !ARROWS.includes(event.key)) return;
+  event.preventDefault();
+  const piece = event.target.closest?.('.piece');
+  const sid = piece?.dataset.sid;
+  if (sid && piece.closest('.shared')) {
+    const band = piece.closest('.shared--header') ? 'header' : 'footer';
+    announce(`${labelOf(sid)} stays in the ${band}, on every page.`);
+  } else if (sid) {
+    announce(`${labelOf(sid)} cannot move from here.`);
+  } else {
+    announce('Alt and the arrow keys move a section or a row. Move the focus to one first.');
   }
-  app().dataset.canvas = S.canvas;
-  document.querySelectorAll('#canvas-switch [role="radio"]').forEach((b) => {
-    const on = b.dataset.canvas === S.canvas;
-    b.setAttribute('aria-checked', String(on));
-    b.tabIndex = on ? 0 : -1;
-  });
-  if (S.canvas === 'board') renderBoard();
-  else fitFrame();
-  // The settings move between the drawer (board) and the panel (preview).
-  ui.renderInspector();
 }
 
 export function initBoard() {
   pictures = createPictures({ api: ctx.api, stylesheets: [] });
   ui.renderBoard = renderBoard;
-  ui.setCanvas = setCanvas;
-  // Until the board replaces the section list, it follows each of its redraws.
-  const renderList = ui.renderOutline;
-  ui.renderOutline = () => {
-    renderList();
-    renderBoard();
-  };
+  ui.redrawPictures = redrawPictures;
   onChange((op, { effects }) => queueRefresh(op, effects));
-  const group = $('#canvas-switch');
-  group.addEventListener('click', (e) => {
-    const b = e.target.closest('[role="radio"]');
-    if (b) setCanvas(b.dataset.canvas);
-  });
-  group.addEventListener('keydown', (e) => {
-    if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
-    e.preventDefault();
-    const next = S.canvas === 'board' ? 'preview' : 'board';
-    setCanvas(next);
-    group.querySelector(`[data-canvas="${next}"]`)?.focus();
-  });
-  setCanvas('board');
+  $('#board')?.addEventListener('keydown', boardKeys);
+  initDrag();
+  // The board and the list are drawn differently: draw again when the window crosses the phone width.
+  window.matchMedia('(max-width: 719px)').addEventListener('change', () => renderBoard());
 }

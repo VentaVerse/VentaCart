@@ -492,8 +492,8 @@ export function createApi(boot, { fetchImpl } = {}) {
      * One section's HTML from a full preview render of the current page
      * (ARCHITECTURE 7.5). The draft must be saved first.
      *
-     * The HTML is put into the preview, which runs on the store's origin, so
-     * it is only taken from the store itself: the address must be on this
+     * The HTML is drawn on the board as a section's picture, so it is only
+     * taken from the store itself: the address must be on this
      * origin, a redirect (a store redirect rule, a sign-in page) is refused
      * rather than followed, and the answer must be the section-only response
      * for this section. Anything else throws `refused`.

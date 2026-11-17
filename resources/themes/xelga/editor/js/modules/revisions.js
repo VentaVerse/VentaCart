@@ -1,17 +1,15 @@
 /*
- * Earlier versions: every publish of the parts this page is drawn from
- * (theme settings, header, the page, footer), newest first. Restoring copies
- * a version into the draft so it can be checked before it goes live.
+ * Earlier versions, in the drawer: every publish of the parts this page is
+ * drawn from (theme settings, header, the page, footer), newest first.
+ * Restoring copies a version into the draft so it can be checked before it
+ * goes live.
  */
 
-import { $, h, icon } from './dom.js';
+import { h } from './dom.js';
 import { S, ctx, ui, pageHandles, docLabel, isDirty, doc } from './state.js';
-import { setNav } from './selection.js';
 import { openPopover, confirmBox } from './popover.js';
 import { restoreRevision } from './drafts.js';
 import { formatTime } from './util.js';
-
-const panel = () => $('#nav-revisions');
 
 const SOURCE_WORDS = {
   publish: null,
@@ -23,26 +21,26 @@ const SOURCE_WORDS = {
 let token = 0;
 
 export function openRevisions() {
-  setNav('revisions');
-  ui.showPanel?.('nav');
+  ui.openDrawer?.({ type: 'revisions' });
 }
 
-export async function renderRevisions() {
+const shown = () => S.view.type === 'revisions';
+
+/** Draws the list into the drawer's body, under the drawer's own head. */
+export async function renderRevisions(body = ui.drawerBody?.(), drawerHead = ui.drawerHead) {
+  if (!body || !drawerHead) return;
   const mine = ++token;
   const list = h('ul', { class: 'rev-list', role: 'list', 'aria-busy': 'true' },
     ...Array.from({ length: 5 }, () => h('li', { class: 'sk rev-sk', 'aria-hidden': 'true' })));
-  const head = h('div', { class: 'add-head' },
-    h('div', { class: 'add-head__top' },
-      h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Back to sections', onclick: () => setNav('sections') }, icon('arrow-left')),
-      h('h2', { class: 'add-head__title', text: 'Earlier versions' })),
-    h('p', { class: 'add-head__where', text: 'Every publish is kept, the newest 30 of each part. Restoring puts a version into your draft; nothing goes live until you publish.' }));
-  panel().replaceChildren(head, list);
+  body.replaceChildren(h('div', { class: 'inspector' },
+    drawerHead('Earlier versions', 'Every publish is kept, the newest 30 of each part. Restoring puts a version into your draft; nothing goes live until you publish.'),
+    h('div', { class: 'insp-body' }, list)));
 
   const handles = ['settings', ...pageHandles()];
   const results = await Promise.all(handles.map((handle) => ctx.api.revisions(handle)
     .then((items) => ({ handle, items }))
     .catch((error) => ({ handle, error }))));
-  if (mine !== token || S.nav !== 'revisions') return;
+  if (mine !== token || !shown()) return;
 
   const rows = results.flatMap((r) => (r.items || []).map((rev) => ({ ...rev, handle: r.handle })))
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -67,7 +65,7 @@ export async function renderRevisions() {
   }
   failed.forEach((r) => list.append(h('li', { class: 'rev-error' },
     h('p', { text: `Versions of ${docLabel(r.handle)} could not be loaded. ${r.error.message}` }),
-    h('button', { type: 'button', class: 'btn btn--secondary btn--sm', onclick: () => renderRevisions() }, 'Try again'))));
+    h('button', { type: 'button', class: 'btn btn--secondary btn--sm', onclick: () => renderRevisions(body, drawerHead) }, 'Try again'))));
 }
 
 function confirmRestore(anchor, rev) {
@@ -79,7 +77,7 @@ function confirmRestore(anchor, rev) {
     confirmLabel: 'Restore into draft',
     onConfirm: async () => {
       const ok = await restoreRevision(rev.handle, rev);
-      if (ok) setNav('sections');
+      if (ok) ui.closeDrawer?.();
     },
   }), { align: 'end' });
 }

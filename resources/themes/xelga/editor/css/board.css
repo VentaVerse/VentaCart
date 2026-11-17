@@ -1,64 +1,14 @@
 /*
  * The layout board: the page drawn in the shape of the storefront, at most
- * as wide as the store, in the canvas beside the panels. The header band
- * on top, the page's rows with their columns at their true proportions,
- * the footer band at the bottom. Each section is a name bar over a picture
- * of how the store draws it (or the drawing of its layout).
- *
- * The canvas shows either the board or the store preview; the switch at
- * the top of the canvas chooses.
+ * as wide as the store. The header band on top, the page's rows with their
+ * columns at their true proportions, the footer band at the bottom. Each
+ * section is a name bar over a picture of how the store draws it (or the
+ * drawing of its layout). Under 720px it is drawn as a list (phone.js).
  */
 
-/* ------------------------------------------------------------- canvas switch */
-
-.canvas .canvas-switch {
-  position: absolute;
-  inset-block-start: 10px;
-  inset-inline-start: 50%;
-  z-index: 3;
-  transform: translateX(-50%);
-  box-shadow: 0 0 0 1px var(--line);
-}
-
-.canvas .canvas-switch button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* The preview keeps the switch above it, so its frame is measured below it. */
-.app[data-canvas="preview"] .canvas {
-  padding-block-start: 52px;
-}
-
-.app[data-canvas="board"] .canvas {
-  display: block;
-  padding: 0;
-  overflow: hidden;
-}
-
-.app[data-canvas="board"] .frame-wrap,
-.app[data-canvas="board"] .frame-size,
-.app[data-canvas="preview"] .board,
-.app[data-canvas="board"] #device-toggle {
-  display: none;
-}
-
-/*
- * When the documents could not be loaded, or the editor cannot go on, the
- * explanation over the preview shows instead of the board.
- */
-.app[data-canvas="board"][data-state="error"][data-loaded="false"] .frame-wrap,
-.app[data-canvas="board"][data-state="fatal"] .frame-wrap {
-  display: block;
-  position: absolute;
-  inset: 56px 16px 16px;
-  width: auto;
-  height: auto;
-}
-
-.app[data-canvas="board"][data-state="error"][data-loaded="false"] .board,
-.app[data-canvas="board"][data-state="fatal"] .board {
+/* When the documents could not be loaded, or the editor cannot go on, the explanation shows instead. */
+.app[data-state="error"][data-loaded="false"] .board,
+.app[data-state="fatal"] .board {
   display: none;
 }
 
@@ -68,7 +18,7 @@
   position: absolute;
   inset: 0;
   overflow: auto;
-  padding: 56px 28px 96px;
+  padding: 28px 28px 96px;
   background: var(--canvas);
 }
 
@@ -294,9 +244,9 @@
   border-color: var(--accent);
 }
 
+/* A page with a fixed layout: why it has no rows, and the theme settings that style it. */
 .fixed-page {
-  display: flex;
-  align-items: center;
+  display: grid;
   gap: 10px;
   min-height: 160px;
   padding: 16px;
@@ -306,9 +256,43 @@
   border-radius: var(--radius-lg);
 }
 
+.fixed-page__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .fixed-page p {
   margin: 0;
   max-width: 60ch;
+}
+
+.fixed-page__sub {
+  margin: 6px 0 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fixed-page .tlist {
+  max-width: 420px;
+  margin: 0;
+}
+
+.fixed-page .tlist__item[aria-pressed="true"] {
+  background: var(--accent-soft);
+}
+
+/* The page's layout settings, beside its title. */
+.boardhead__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.boardhead__actions .btn[aria-pressed="true"] {
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 
 /* ---------------------------------------------------------------------- rows */
@@ -754,7 +738,7 @@ body.is-dragging .beside.is-over span { display: inline; }
 
 @media (max-width: 899px) {
   .board {
-    padding: 52px 12px 96px;
+    padding: 20px 12px 96px;
   }
 
   .sheet {
@@ -765,7 +749,11 @@ body.is-dragging .beside.is-over span { display: inline; }
 /* Phones: each section is one line with a small picture; columns stay side by side. */
 @media (max-width: 719px) {
   .board {
-    padding: 52px 8px 24px;
+    padding: 12px 8px 32px;
+  }
+
+  .boardhead {
+    gap: 8px 12px;
   }
 
   .boardhead__title {
@@ -906,5 +894,25 @@ body.is-dragging .beside.is-over span { display: inline; }
   .piece,
   .gap__add {
     transition: none;
+  }
+}
+
+/*
+ * Touch screens: a finger held on a section or a row's tab for a moment
+ * picks it up, so the browser's own long-press menu and text selection
+ * stay off them. The piece shows it is being held.
+ */
+@media (pointer: coarse) {
+  .piece,
+  .row__tab {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .piece.is-pressed,
+  .row__tab.is-pressed {
+    background: var(--accent-soft);
+    transition: background-color .35s var(--ease);
   }
 }

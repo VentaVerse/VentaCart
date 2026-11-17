@@ -8,7 +8,7 @@
  * grid or list choice is remembered for this shopper, and Load more adds
  * the next page's cards in place. Without it every part still works.
  */
-import { $, $$, inEditorPreview } from '../util.js';
+import { $, $$ } from '../util.js';
 
 const VIEW_KEY = 'xelga.listing-view';
 const WIDE = window.matchMedia('(min-width: 990px)');
@@ -57,7 +57,7 @@ export function initListing(section) {
     $$('[data-view]', section).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === value)));
     if (remember) saveView(value);
   };
-  if (toggle && section.dataset.switchView === 'true' && !inEditorPreview()) {
+  if (toggle && section.dataset.switchView === 'true') {
     const saved = readView();
     if (saved) setView(saved, false);
   }
@@ -69,7 +69,7 @@ export function initListing(section) {
   // Sort: send the form as soon as the choice changes.
   const sortForm = $('[data-sort-form]', section);
   on(sortForm, 'change', (event) => {
-    if (event.target.matches('[data-sort]') && !inEditorPreview()) sortForm.requestSubmit();
+    if (event.target.matches('[data-sort]')) sortForm.requestSubmit();
   });
 
   // Filters: in the column on large screens, in the drawer on phones or
@@ -94,7 +94,6 @@ export function initListing(section) {
     // picks several and sends them with the drawer's button.
     let timer = null;
     const send = () => {
-      if (inEditorPreview()) return;
       window.clearTimeout(timer);
       timer = window.setTimeout(() => form.requestSubmit(), 350);
     };
@@ -107,11 +106,7 @@ export function initListing(section) {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => form.requestSubmit(), 900);
     });
-    on(form, 'submit', (event) => {
-      if (inEditorPreview()) {
-        event.preventDefault();
-        return;
-      }
+    on(form, 'submit', () => {
       // Empty price boxes would otherwise reach the address as min_price=.
       $$('input[type=number]', form).forEach((input) => { input.disabled = input.value.trim() === ''; });
     });

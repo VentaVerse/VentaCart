@@ -1,10 +1,11 @@
 /*
  * The settings drawer at the right of the layout board. It shows what is
  * selected: a section or a block (their usual forms, drawn by the
- * inspector), a row of columns (its four settings, drawn here), or the
- * theme (its groups, then a group's form). The board narrows beside it and
- * keeps its shape. It closes with its X or Escape; nothing in it opens a
- * dialog.
+ * inspector), a row of columns (its four settings, drawn here), the theme
+ * (its groups, then a group's form), the layout settings of the page, or
+ * earlier versions. The board narrows beside it and keeps its shape; on a
+ * phone it is a sheet from the bottom. It closes with its X or Escape;
+ * nothing in it opens a dialog.
  *
  * A row's settings are its columns, width, background and the space
  * between its columns. A row of one column has none: the settings of the
@@ -15,7 +16,7 @@ import { $, h, icon, toast, announce } from '../dom.js';
 import { S, ui, doc, sec, groupHandle, labelOf, isFixed, templateOf, locate as locateSection } from '../state.js';
 import { ownThemeGroups } from '../catalog.js';
 import { commit, undo, layoutPayload, rulesFor } from '../operations.js';
-import { select, deselect, post, radioItems, radioKeys } from '../selection.js';
+import { select, deselect, radioItems, radioKeys } from '../selection.js';
 import { rowsOf, roomOf as roomIn } from './model.js';
 import { splitOf, listWords } from './words.js';
 import { schemePicker, schemeGroupKey, schemeChoices } from '../forms/schemes.js';
@@ -31,8 +32,6 @@ const SPACE_WORDS = { sm: 'Small', md: 'Medium', lg: 'Large' };
 const app = () => $('#app');
 const template = () => groupHandle('template');
 
-/** The drawer is used while the board is shown; the store preview keeps the settings panel. */
-export const inDrawer = () => S.canvas === 'board' && Boolean($('#drawer'));
 export const drawerBody = () => $('#drawer-body');
 
 /* ------------------------------------------------------------------------
@@ -67,12 +66,13 @@ function rowNow(rowId) {
   return row && splitOf(row.split).parts.length > 1 ? row : null;
 }
 
-/** What the drawer shows now: 'selection' (drawn by the inspector), 'row', 'theme', or null when closed. */
+/** What the drawer shows now: 'selection' (drawn by the inspector), 'row', 'theme', 'revisions', or null when closed. */
 function drawerView() {
-  if (!inDrawer() || !S.loaded) return null;
+  if (!drawerBody() || !S.loaded) return null;
   if (S.sel) return 'selection';
   if (S.view.type === 'row' && rowNow(S.view.rowId)) return 'row';
   if (S.view.type === 'theme') return 'theme';
+  if (S.view.type === 'revisions') return 'revisions';
   return null;
 }
 
@@ -92,6 +92,7 @@ export function renderDrawer() {
   const scroll = key === shownKey ? $('.insp-body', body)?.scrollTop || 0 : 0;
   if (view === 'row') body.replaceChildren(rowView(rowNow(S.view.rowId)));
   else if (view === 'theme') body.replaceChildren(themeList());
+  else if (view === 'revisions' && key !== shownKey) ui.renderRevisions?.(body, drawerHead);
   else if (!view) body.replaceChildren();
   shownKey = key;
   const inner = $('.insp-body', body);
@@ -108,7 +109,7 @@ export function syncDrawer() {
   const drawer = $('#drawer');
   if (drawer) drawer.hidden = !open;
   if (!open) shownKey = '';
-  $('#theme-btn')?.setAttribute('aria-pressed', String(open && (S.view.type === 'theme' || S.sel?.kind === 'theme')));
+  $('#theme-btn')?.setAttribute('aria-pressed', String(open && (S.view.type === 'theme' || S.sel?.kind === 'theme' || S.sel?.kind === 'stores')));
 }
 
 function reveal(selector) {
@@ -120,24 +121,22 @@ function openGroup(group, extra = {}) {
   if (!group) return;
   S.view = { type: 'theme' };
   S.sel = { kind: 'theme', group, ...extra };
-  post('select', { sectionId: null, blockId: null });
-  ui.renderOutline();
-  ui.renderThemeNav();
+  ui.renderBoard?.();
   ui.renderInspector();
-  ui.updateDock();
 }
 
 /**
- * Opens the drawer on one view. Answers false when the board is not shown,
- * so the caller uses the settings panel instead.
+ * Opens the drawer on one view. Answers false when there is nothing to
+ * show (the page is loading, the section or row is gone).
  *   {type: 'section', sid, bid?}  a section or one of its blocks
  *   {type: 'row', rowId}          a row of columns
  *   {type: 'theme'}               the theme's groups
  *   {type: 'theme-group', group}  one group's form
  *   {type: 'schemes', scheme?}    the color schemes, one of them open
+ *   {type: 'revisions'}           earlier versions
  */
 export function openDrawer(view) {
-  if (!inDrawer() || !S.loaded || !view) return false;
+  if (!drawerBody() || !S.loaded || !view) return false;
   if (view.type === 'section') {
     if (!sec(view.sid)) return false;
     S.view = { type: 'section', sid: view.sid };
@@ -161,6 +160,14 @@ export function openDrawer(view) {
     openGroup(view.group);
   } else if (view.type === 'schemes') {
     openGroup(schemeGroupKey(), view.scheme ? { scheme: String(view.scheme) } : {});
+  } else if (view.type === 'revisions') {
+    S.view = { type: 'revisions' };
+    shownKey = '';
+    if (S.sel) deselect();
+    else {
+      ui.renderBoard?.();
+      ui.renderInspector();
+    }
   } else {
     return false;
   }
@@ -179,7 +186,9 @@ export function closeDrawer() {
   let back = null;
   if (from.sel?.kind === 'section') back = $(`#board .piece[data-sid="${CSS.escape(from.sel.sid)}"]`);
   else if (from.view.type === 'row') back = $(`#board .row[data-row-id="${CSS.escape(from.view.rowId)}"] .row__tab`);
-  else if (from.sel?.kind === 'theme' || from.view.type === 'theme') back = $('#theme-btn');
+  else if (from.sel?.kind === 'theme' || from.sel?.kind === 'stores' || from.view.type === 'theme') back = $('#theme-btn');
+  else if (from.view.type === 'revisions') back = $('#more-btn');
+  else if (from.sel?.kind === 'layout') back = $('#layout-btn');
   back?.focus({ preventScroll: true });
 }
 
@@ -190,8 +199,6 @@ export function closeDrawer() {
  */
 export async function goToPlace(use) {
   if (!use?.handle) return;
-  // The places are on the board: show it if the store preview is up.
-  if (S.canvas !== 'board') ui.setCanvas?.('board');
   const shared = use.handle === 'header' || use.handle === 'footer';
   if (!shared && use.handle !== template()) {
     const custom = templateOf(use.handle);
@@ -209,10 +216,10 @@ export async function goToPlace(use) {
    Drawn here: the head, a row's settings, the theme list
    ------------------------------------------------------------------------ */
 
-function drawerHead(title, kind) {
+export function drawerHead(title, kind) {
   return h('div', { class: 'insp-head' },
     h('div', { class: 'insp-head__row' },
-      h('h2', { class: 'insp-title' }, h('span', { text: title })),
+      h('h2', { class: 'insp-title', tabindex: -1 }, h('span', { text: title })),
       h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Close settings', 'data-tip': 'Close (Esc)', onclick: closeDrawer }, icon('close'))),
     kind ? h('p', { class: 'insp-kind' }, h('span', { class: 'insp-kind__dot', 'aria-hidden': 'true' }), kind) : null);
 }
@@ -315,7 +322,8 @@ function rowView(row) {
 }
 
 function themeList() {
-  const list = h('ul', { class: 'tlist', role: 'list' }, ...ownThemeGroups().map((group) => h('li', null, h('button', {
+  const start = ui.storeStartRow?.();
+  const list = h('ul', { class: 'tlist', role: 'list' }, start ? h('li', null, start) : null, ...ownThemeGroups().map((group) => h('li', null, h('button', {
     type: 'button', class: 'tlist__item',
     onclick: () => openGroup(group.group),
   },
@@ -330,7 +338,8 @@ function themeList() {
 }
 
 export function initDrawer() {
-  ui.inDrawer = inDrawer;
+  ui.drawerBody = drawerBody;
+  ui.drawerHead = drawerHead;
   ui.renderDrawer = renderDrawer;
   ui.syncDrawer = syncDrawer;
   ui.openDrawer = openDrawer;

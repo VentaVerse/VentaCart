@@ -1,15 +1,12 @@
 /*
  * Theme editor: the store owner's tool for editing the storefront theme.
  *
- * Layout: a top bar, a left panel (page outline, theme settings, add section
- * or earlier versions), the store preview in the middle and the settings of
- * the selected thing on the right. Under 1180px the two panels share the
- * left slot; under 720px the preview fills the screen and the panels come up
- * as a bottom sheet.
+ * Layout: a top bar, the layout board (board.css) and, while something is
+ * selected, the settings drawer at the right (drawer.css). Under 720px the
+ * board becomes a list and the drawer a sheet from the bottom.
  *
- * One accent (the same blue as the selection outline drawn on the preview)
- * marks selection and primary actions only. Blocks use the preview's purple
- * so a row in the outline and its outline on the store always match.
+ * One accent blue marks selection and primary actions only; blocks are
+ * marked in purple.
  *
  * The UI face is IBM Plex Sans, shipped with the editor (latin, three
  * weights, SIL Open Font License in editor/fonts), so the editor reads the
@@ -92,8 +89,6 @@
   --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
 
   --topbar-h: 52px;
-  --nav-w: 272px;
-  --inspector-w: 328px;
   --ease: cubic-bezier(.2, .8, .2, 1);
 
   --sk-img: #cfd5dd;
@@ -221,23 +216,20 @@ a {
   position: fixed;
   inset: 0;
   display: grid;
-  grid-template-columns: var(--nav-w) var(--inspector-w) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 0;
   grid-template-rows: var(--topbar-h) minmax(0, 1fr);
   grid-template-areas:
-    "top top top"
-    "nav inspector canvas";
+    "top top"
+    "canvas drawer";
   height: 100vh;
   height: 100dvh;
 }
 
 .topbar { grid-area: top; }
-.panel--nav { grid-area: nav; }
-.canvas { grid-area: canvas; }
-.panel--inspector { grid-area: inspector; }
 
-.dock,
-.sheet-handle,
-.panel__tabs .sheet-close {
+.canvas { grid-area: canvas; }
+
+.sheet-handle {
   display: none;
 }
 
@@ -414,7 +406,7 @@ a {
   position: relative;
   z-index: 20;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 0 10px;
@@ -462,30 +454,6 @@ a {
 .picker-btn[aria-expanded="true"] {
   background: var(--surface-3);
   border-color: var(--line);
-}
-
-/* The editor switched lists after a click in the preview: a short tint, then back to normal. */
-.picker-btn.is-changed {
-  animation: picker-changed 1.4s ease-out;
-}
-
-@keyframes picker-changed {
-  0%,
-  35% {
-    background: var(--accent-soft);
-    border-color: var(--accent-line);
-  }
-
-  100% {
-    background: transparent;
-    border-color: transparent;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .picker-btn.is-changed {
-    animation: none;
-  }
 }
 
 .picker-btn__label {
@@ -565,18 +533,6 @@ a {
   box-shadow: var(--focus);
 }
 
-.seg--icons button {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  padding: 0;
-}
-
-.seg--icons .icon {
-  width: 18px;
-  height: 18px;
-}
-
 .seg--fill {
   display: flex;
 }
@@ -589,546 +545,8 @@ a {
 }
 
 /* --------------------------------------------------------------------------
-   Panels
+   Row splits: the pictured choices of a row's columns
    -------------------------------------------------------------------------- */
-
-.panel {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--surface);
-}
-
-.panel--nav {
-  background: var(--surface-2);
-  border-inline-end: 1px solid var(--line);
-}
-
-.panel--inspector {
-  border-inline-end: 1px solid var(--line);
-}
-
-.panel__tabs {
-  display: flex;
-  gap: 4px;
-  flex: none;
-  padding: 10px 10px 0;
-  border-block-end: 1px solid var(--line);
-}
-
-.panel__tabs [role="tab"] {
-  position: relative;
-  flex: 1 1 0;
-  min-height: 36px;
-  padding: 0 8px;
-  font-size: var(--fs-md);
-  font-weight: 500;
-  color: var(--text-2);
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius) var(--radius) 0 0;
-}
-
-.panel__tabs [role="tab"]:hover {
-  color: var(--text);
-}
-
-.panel__tabs [role="tab"][aria-selected="true"] {
-  color: var(--text);
-}
-
-.panel__tabs [role="tab"][aria-selected="true"]::after {
-  content: "";
-  position: absolute;
-  inset-inline: 8px;
-  inset-block-end: -1px;
-  height: 2px;
-  background: var(--accent);
-  border-radius: 2px 2px 0 0;
-}
-
-.panel__body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-/* --------------------------------------------------------------------------
-   Outline
-   -------------------------------------------------------------------------- */
-
-.outline {
-  padding: 8px 8px 24px;
-}
-
-.o-group + .o-group {
-  margin-block-start: 6px;
-  padding-block-start: 6px;
-  border-block-start: 1px solid var(--line);
-}
-
-.o-group__title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 8px 8px 4px;
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  color: var(--text-2);
-}
-
-.o-list {
-  position: relative; /* the drop line is placed against this list */
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.o-item {
-  position: relative;
-}
-
-.o-row {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  min-height: 34px;
-  padding-inline: 2px 4px;
-  border-radius: var(--radius);
-  transition: background-color .12s var(--ease);
-}
-
-.o-row:hover {
-  background: var(--hover);
-}
-
-.o-row.is-selected {
-  background: var(--accent-soft);
-}
-
-.o-row.is-selected .o-row__label {
-  color: var(--accent-hover);
-  font-weight: 600;
-}
-
-.o-row--block {
-  padding-inline-start: 26px;
-  min-height: 32px;
-}
-
-.o-row--block.is-selected {
-  background: var(--block-soft);
-}
-
-.o-row--block.is-selected .o-row__label {
-  color: #5b21b6;
-}
-
-.o-row__toggle,
-.o-row__spacer {
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  flex: none;
-  padding: 0;
-  color: var(--text-3);
-  background: none;
-  border: 0;
-  border-radius: var(--radius-sm);
-}
-
-.o-row__toggle:hover {
-  color: var(--text);
-  background: var(--press);
-}
-
-.o-row__toggle .icon {
-  width: 14px;
-  height: 14px;
-  transition: rotate .15s var(--ease);
-}
-
-.o-item.is-open > .o-row .o-row__toggle .icon {
-  rotate: 90deg;
-}
-
-.o-row__main {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 32px;
-  padding: 0 6px 0 4px;
-  text-align: start;
-  background: none;
-  border: 0;
-  border-radius: var(--radius-sm);
-}
-
-.o-row__icon {
-  width: 16px;
-  height: 16px;
-  color: var(--text-3);
-}
-
-.o-row.is-selected .o-row__icon { color: var(--accent); }
-.o-row--block.is-selected .o-row__icon { color: var(--block); }
-
-.o-row__label {
-  overflow: hidden;
-  font-size: var(--fs-md);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.o-row.is-hidden .o-row__label,
-.o-row.is-hidden .o-row__icon {
-  color: #9097a2;
-}
-
-.o-row.is-hidden .o-row__label {
-  text-decoration: line-through;
-  text-decoration-color: #b8bec7;
-}
-
-.o-row__actions {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  opacity: 0;
-  transition: opacity .12s var(--ease);
-}
-
-.o-row:hover .o-row__actions,
-.o-row:focus-within .o-row__actions,
-.o-row.is-selected .o-row__actions,
-.o-row.is-hidden .o-row__actions,
-.o-row.menu-open .o-row__actions {
-  opacity: 1;
-}
-
-.o-row.is-hidden:not(:hover):not(:focus-within) .o-row__actions .o-more {
-  visibility: hidden;
-}
-
-.o-grip {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 26px;
-  flex: none;
-  margin-inline-end: -2px;
-  padding: 0;
-  color: #a1a8b2;
-  background: none;
-  border: 0;
-  border-radius: var(--radius-sm);
-  cursor: grab;
-  opacity: 0;
-}
-
-.o-row:hover .o-grip,
-.o-grip:focus-visible {
-  opacity: 1;
-}
-
-.o-grip:hover {
-  color: var(--text);
-}
-
-.o-grip .icon {
-  width: 14px;
-  height: 14px;
-}
-
-.o-item.is-dragging > .o-row {
-  opacity: .45;
-}
-
-.o-drop {
-  position: absolute;
-  inset-inline: 6px;
-  height: 2px;
-  background: var(--accent);
-  border-radius: 2px;
-  pointer-events: none;
-}
-
-.o-drop::before {
-  content: "";
-  position: absolute;
-  inset-inline-start: -3px;
-  inset-block-start: -3px;
-  width: 8px;
-  height: 8px;
-  background: var(--surface-2);
-  border: 2px solid var(--accent);
-  border-radius: 50%;
-}
-
-.o-rename {
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 28px;
-  padding: 0 8px;
-  font-size: var(--fs-md);
-  background: var(--surface);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
-}
-
-.o-rename:focus-visible {
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.o-add {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 34px;
-  margin-block-start: 2px;
-  padding: 0 10px;
-  font-size: var(--fs-md);
-  font-weight: 500;
-  color: var(--accent);
-  background: none;
-  border: 0;
-  border-radius: var(--radius);
-}
-
-.o-add:hover {
-  background: var(--accent-soft);
-}
-
-.o-add .icon {
-  width: 18px;
-  height: 18px;
-}
-
-.o-blocks {
-  position: relative; /* the drop line is placed against this list */
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* A section's blocks folding away after it closed: seen, never used. */
-.o-blocks.is-leaving {
-  overflow: hidden;
-  pointer-events: none;
-}
-
-/* Theme settings group list */
-.t-list {
-  margin: 0;
-  padding: 8px;
-  list-style: none;
-}
-
-.t-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 52px;
-  padding: 8px 10px;
-  text-align: start;
-  background: none;
-  border: 0;
-  border-radius: var(--radius);
-}
-
-.t-item:hover {
-  background: var(--hover);
-}
-
-.t-item.is-selected {
-  background: var(--accent-soft);
-}
-
-.t-item.is-selected .t-item__title {
-  color: var(--accent-hover);
-}
-
-.t-item__icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  flex: none;
-  color: var(--text-2);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-}
-
-.t-item.is-selected .t-item__icon {
-  color: var(--accent);
-  border-color: var(--accent-line);
-}
-
-.t-item__icon .icon {
-  width: 18px;
-  height: 18px;
-}
-
-.t-item__text {
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-}
-
-.t-item__title {
-  font-weight: 500;
-}
-
-.t-item__desc {
-  overflow: hidden;
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.t-item > .icon {
-  margin-inline-start: auto;
-  width: 16px;
-  height: 16px;
-  color: var(--text-3);
-}
-
-/* Add section picker */
-.add-head {
-  position: sticky;
-  inset-block-start: 0;
-  z-index: 2;
-  display: grid;
-  gap: 10px;
-  padding: 10px 12px 12px;
-  background: var(--surface-2);
-  border-block-end: 1px solid var(--line);
-}
-
-.add-head__top {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.add-head__title {
-  margin: 0;
-  font-size: var(--fs-lg);
-  font-weight: 600;
-}
-
-.add-head__where {
-  margin: 0;
-  font-size: var(--fs-sm);
-  color: var(--text-2);
-}
-
-.add-list {
-  margin: 0;
-  padding: 8px;
-  list-style: none;
-}
-
-.add-type {
-  border-radius: var(--radius);
-}
-
-.add-type + .add-type {
-  margin-block-start: 2px;
-}
-
-.add-type__head {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  width: 100%;
-  padding: 9px 10px;
-  text-align: start;
-  background: none;
-  border: 0;
-  border-radius: var(--radius);
-}
-
-.add-type__head:hover {
-  background: var(--hover);
-}
-
-.add-type__head .o-row__icon {
-  margin-block-start: 2px;
-}
-
-.add-type__text {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.add-type__name {
-  font-weight: 500;
-}
-
-.add-type__desc {
-  font-size: var(--fs-sm);
-  color: var(--text-2);
-}
-
-.add-type.is-open {
-  background: var(--surface);
-  box-shadow: 0 0 0 1px var(--line);
-}
-
-.add-type.is-open .add-type__head:hover {
-  background: none;
-}
-
-.add-type__variants {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 2px 10px 12px;
-}
-
-/* The sections an extension adds, listed under its name after the theme's own. */
-.add-group {
-  margin: 14px 0 4px;
-  padding: 0 10px;
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  color: var(--text-2);
-}
-
-.add-list > li:first-child > .add-group {
-  margin-block-start: 4px;
-}
-
-.add-sublist {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* Opened at a gap of the board: a row of columns first, then one section. */
-.add-cols {
-  padding: 12px 12px 14px;
-  border-block-end: 1px solid var(--line);
-}
-
-.add-cols__label {
-  margin: 0 0 8px;
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  color: var(--text);
-}
 
 .splits {
   display: grid;
@@ -1164,132 +582,16 @@ a {
   gap: 2px;
 }
 
-.add-search {
-  display: grid;
-  padding: 12px 12px 0;
-}
-
-.add-search .add-cols__label {
-  margin-block-end: 8px;
-}
-
-/* Section types that cannot be added at this spot, under the reason. */
-.add-grey {
-  margin: 0 8px 8px;
-  padding-block-start: 8px;
-  border-block-start: 1px solid var(--line);
-}
-
-.add-grey__title {
-  margin: 4px 10px 2px;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--text-3);
-}
-
-.add-list--grey {
-  padding: 0;
-}
-
-.add-list--grey .add-type__head {
-  align-items: center;
-  color: var(--text-3);
-  cursor: default;
-}
-
-.add-list--grey .add-type__head:hover {
-  background: none;
-}
-
-.add-variant.is-unfit {
-  cursor: not-allowed;
-  opacity: .45;
-}
-
-.add-type__unavailable {
-  margin: 0;
-  padding: 0 10px 12px 36px;
-  font-size: var(--fs-sm);
-  color: var(--text-3);
-}
-
 /* --------------------------------------------------------------------------
-   Canvas and preview frame
+   Canvas: the board, and what shows instead of it when it cannot be drawn
    -------------------------------------------------------------------------- */
 
 .canvas {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* The scaled viewport and its caption, centred both ways. */
-  justify-content: safe center;
   min-width: 0;
   min-height: 0;
-  padding: 16px;
-  overflow: auto;
-  background: var(--canvas);
-}
-
-/* Sized by the editor script to the scaled viewport (preview.js fitFrame). */
-.frame-wrap {
-  position: relative;
-  flex: none;
-  width: 100%;
-  min-height: 0;
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-frame);
   overflow: hidden;
-}
-
-.app[data-device="phone"] .frame-wrap {
-  max-height: 844px;
-  border-radius: 18px;
-  box-shadow: var(--shadow-frame), 0 0 0 6px #1f2329;
-}
-
-.app[data-device="phone"] .canvas {
-  justify-content: center;
-  padding-block: 24px;
-}
-
-#frame {
-  display: block;
-  flex: none;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  background: var(--surface);
-}
-
-.frame-size {
-  flex: none;
-  margin: 8px 0 -6px;
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-}
-
-.frame-size:empty {
-  display: none;
-}
-
-/* Loading skeleton drawn in the shape of a store home page. */
-.frame-skeleton {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-rows: 28px 56px minmax(0, 46%) auto;
-  align-content: start;
-  gap: 14px;
-  padding: 0 0 24px;
-  background: var(--surface);
-  transition: opacity .2s var(--ease);
-}
-
-.app:not([data-state="loading"]) .frame-skeleton {
-  opacity: 0;
-  pointer-events: none;
+  background: var(--canvas);
 }
 
 .sk {
@@ -1298,26 +600,11 @@ a {
   animation: sk-pulse 1.4s ease-in-out infinite;
 }
 
-.sk--bar { border-radius: 0; }
-.sk--nav { margin: 0 24px; }
-.sk--hero { margin: 0 24px; border-radius: var(--radius); }
-
-.sk-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin: 0 24px;
-}
-
-.sk--card {
-  aspect-ratio: 4 / 5;
-}
-
 @keyframes sk-pulse {
   50% { opacity: .55; }
 }
 
-/* Not built, load error and nothing-on-page states over the frame. */
+/* The documents did not load, or the editor cannot go on: said over the board. */
 .canvas-state {
   position: absolute;
   inset: 0;
@@ -1394,13 +681,8 @@ a {
 }
 
 .insp-back {
-  display: none;
   margin-inline-start: -8px;
 }
-
-
-
-
 
 .insp-title {
   display: flex;
@@ -1823,38 +1105,13 @@ a {
 .sk-d { fill: var(--accent); }
 
 .opt-card:not([aria-checked="true"]) .sk-b,
-.opt-card:not([aria-checked="true"]) .sk-d,
-.add-variant .sk-b,
-.add-variant .sk-d {
+.opt-card:not([aria-checked="true"]) .sk-d {
   fill: #7a8698;
 }
 
 .opt-card[aria-checked="true"] .sk-b,
-.opt-card[aria-checked="true"] .sk-d,
-.add-variant:hover .sk-b,
-.add-variant:hover .sk-d {
+.opt-card[aria-checked="true"] .sk-d {
   fill: var(--accent);
-}
-
-.add-variant {
-  display: grid;
-  gap: 6px;
-  padding: 6px 6px 8px;
-  text-align: start;
-  background: var(--surface);
-  border: 1px solid var(--line-2);
-  border-radius: var(--radius);
-}
-
-.add-variant:hover {
-  border-color: var(--accent);
-}
-
-.add-variant span {
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  line-height: 1.3;
-  padding-inline: 2px;
 }
 
 /* Icon picker */
@@ -2428,114 +1685,6 @@ button.pick-row:hover {
   color: var(--text-3);
 }
 
-/* Blocks list inside section settings */
-
-
-
-
-
-
-
-/* Nothing selected: teach the interface. */
-.empty {
-  display: grid;
-  align-content: start;
-  gap: 16px;
-  padding: 28px 20px;
-}
-
-.empty__art {
-  width: 100%;
-  max-width: 220px;
-  height: auto;
-}
-
-/* A fixed page's padlock, as on the fixed-layout note in the left panel. */
-.empty__lock {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  color: var(--text-2);
-  background: var(--surface-3);
-  border-radius: var(--radius);
-}
-
-.empty h2 {
-  margin: 0;
-  font-size: var(--fs-lg);
-  font-weight: 600;
-}
-
-.empty p {
-  margin: 0;
-  color: var(--text-2);
-}
-
-.tips {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.tips li {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 10px;
-  font-size: var(--fs-sm);
-  color: var(--text-2);
-}
-
-.tips li strong {
-  display: block;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.tips__icon {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  color: var(--text-2);
-  background: var(--surface-3);
-  border-radius: var(--radius);
-}
-
-.tips__icon .icon {
-  width: 16px;
-  height: 16px;
-}
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  padding-block-start: 14px;
-  font-size: var(--fs-xs);
-  color: var(--text-2);
-  border-block-start: 1px solid var(--line);
-}
-
-.legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend i {
-  width: 14px;
-  height: 10px;
-  border: 2px solid var(--accent);
-  border-radius: 2px;
-}
-
-.legend i.is-block {
-  border-color: var(--block);
-}
-
 /* Skeleton rows in the panels while the store loads. */
 .sk-rows {
   display: grid;
@@ -2785,33 +1934,10 @@ button.pick-row:hover {
 }
 
 /* --------------------------------------------------------------------------
-   Tablet: one panel at a time in the left slot.
+   Narrower windows: the top bar keeps its buttons by dropping their words.
    -------------------------------------------------------------------------- */
 
 @media (max-width: 1179px) {
-  .app {
-    grid-template-columns: var(--inspector-w) minmax(0, 1fr);
-    grid-template-areas:
-      "top top"
-      "side canvas";
-  }
-
-  .panel--nav,
-  .panel--inspector {
-    grid-area: side;
-    border-inline: 0;
-    border-inline-end: 1px solid var(--line);
-  }
-
-  .app[data-panel="nav"] .panel--inspector,
-  .app[data-panel="inspector"] .panel--nav {
-    display: none;
-  }
-
-  .insp-back {
-    display: inline-grid;
-  }
-
   .status__text {
     display: none;
   }
@@ -2831,17 +1957,7 @@ button.pick-row:hover {
 }
 
 @media (max-width: 899px) {
-  .topbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .topbar__center {
-    display: none;
-  }
-
-  /* The page picker stays: it is the way to every page and to the header and footer. */
   .picker-btn--page {
-    display: inline-flex;
     min-width: 0;
   }
 
@@ -2850,161 +1966,38 @@ button.pick-row:hover {
   }
 }
 
+/*
+ * Phone: the board is a list and the drawer a sheet. Undo and redo are in
+ * the message after each change, and the draft saves itself, so the top bar
+ * keeps the page, Theme, the store preview, More and Publish.
+ */
 @media (max-width: 719px) {
-  .picker-btn--page {
-    padding-inline: 6px;
-  }
-
-  .picker-btn--page .picker-btn__value {
-    max-width: 9ch;
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Phone: preview fills the screen, panels are a bottom sheet.
-   -------------------------------------------------------------------------- */
-
-@media (max-width: 719px) {
-  .app {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: var(--topbar-h) minmax(0, 1fr) auto;
-    grid-template-areas:
-      "top"
-      "canvas"
-      "dock";
-  }
-
   .topbar {
-    gap: 6px;
+    gap: 4px;
     padding: 0 6px;
   }
 
   .topbar__rule,
-  .status,
-  .btn--preview,
-  #more-btn {
+  .picker-btn--static,
+  .btn-pair,
+  #save-btn {
     display: none;
   }
 
   .topbar__end {
-    gap: 4px;
+    gap: 2px;
   }
 
   .topbar .btn {
     padding: 0 10px;
   }
 
-  .canvas,
-  .app[data-device="phone"] .canvas {
-    padding: 0;
+  .picker-btn--page {
+    padding-inline: 6px;
   }
 
-  .frame-wrap,
-  .app[data-device] .frame-wrap {
-    flex: 1 1 auto;
-    width: 100%;
-    max-width: none;
-    max-height: none;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  .frame-size {
-    display: none;
-  }
-
-  .dock {
-    grid-area: dock;
-    display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr);
-    gap: 4px;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-    background: var(--surface);
-    border-block-start: 1px solid var(--line);
-  }
-
-  .dock__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-width: 0;
-    min-height: 40px;
-    padding: 0 12px;
-    font-size: var(--fs-md);
-    font-weight: 500;
-    color: var(--text-2);
-    background: none;
-    border: 0;
-    border-radius: var(--radius);
-  }
-
-  .dock__btn span {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  .dock__btn:hover:not(:disabled) {
-    background: var(--hover);
-  }
-
-  .dock__btn[data-dock="selected"]:not(:disabled) {
-    color: var(--accent-hover);
-    background: var(--accent-soft);
-  }
-
-  .dock__btn:disabled {
-    color: #9aa1ab;
-  }
-
-  .panel--nav,
-  .panel--inspector,
-  .app[data-panel] .panel--nav,
-  .app[data-panel] .panel--inspector {
-    position: fixed;
-    inset-inline: 0;
-    inset-block-end: 0;
-    z-index: 40;
-    display: flex;
-    height: min(66vh, 600px);
-    border: 0;
-    border-radius: 14px 14px 0 0;
-    box-shadow: 0 -8px 30px rgb(16 20 28 / .18);
-    translate: 0 105%;
-    visibility: hidden;
-    transition: translate .25s var(--ease), visibility 0s linear .25s;
-  }
-
-  .app[data-sheet="open"][data-panel="nav"] .panel--nav,
-  .app[data-sheet="open"][data-panel="inspector"] .panel--inspector {
-    translate: 0 0;
-    visibility: visible;
-    transition: translate .25s var(--ease), visibility 0s;
-  }
-
-  .sheet-handle {
-    display: block;
-    flex: none;
-    width: 36px;
-    height: 4px;
-    margin: 8px auto 0;
-    background: #c9ced6;
-    border-radius: 4px;
-  }
-
-  .panel__tabs .sheet-close {
-    display: inline-grid;
-    align-self: center;
-    margin-block-end: 4px;
-  }
-
-  .panel__tabs {
-    padding-block-start: 4px;
-  }
-
-  .insp-back {
-    display: inline-grid;
+  .picker-btn--page .picker-btn__value {
+    max-width: 11ch;
   }
 
   .popover {
@@ -3030,17 +2023,6 @@ button.pick-row:hover {
    refusals, pickers on real data, blocks and earlier versions.
    ========================================================================== */
 
-/* Empty inspector drawing, painted from the palette. */
-.empty__art .art-page { fill: var(--surface); stroke: #d9dde3; }
-.empty__art .art-ink { fill: var(--sk-ink); }
-.empty__art .art-line { fill: #c7ccd4; }
-.empty__art .art-fill { fill: #e3e7ec; }
-.empty__art .art-mid { fill: #8d96a3; }
-.empty__art .art-select { fill: none; stroke: var(--accent); stroke-width: 2; }
-.empty__art .art-tag { fill: var(--accent); }
-.empty__art .art-tag-text { fill: var(--on-accent); }
-.empty__art .art-pointer { fill: var(--text); stroke: var(--surface); stroke-width: 1.5; stroke-linejoin: round; }
-
 /* The editor's icon sprite, in the page but never shown. */
 .icon-sprite {
   position: absolute;
@@ -3064,11 +2046,6 @@ button.pick-row:hover {
 .topbar__end > .icon-btn,
 .topbar__end > .btn-pair {
   flex: none;
-}
-
-/* Tab names stay on one line whatever face the UI falls back to. */
-.panel__tabs [role="tab"] {
-  white-space: nowrap;
 }
 
 /* The store name is a label, not a menu. */
@@ -3183,84 +2160,7 @@ button.pick-row:hover {
   border-radius: var(--radius);
 }
 
-/* Outline: rows waiting for the server, refused values, missing types. */
-.o-grip--none {
-  visibility: hidden;
-}
-
-.o-row.is-busy .o-row__icon {
-  animation: sk-pulse 1.1s ease-in-out infinite;
-}
-
-.o-row__busy {
-  flex: none;
-  margin-inline-start: auto;
-  padding-inline-start: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-3);
-}
-
-.o-row__err {
-  display: inline-grid;
-  flex: none;
-  margin-inline-start: auto;
-  padding-inline-start: 6px;
-  color: var(--danger);
-}
-
-.o-row__err .icon {
-  width: 14px;
-  height: 14px;
-}
-
-.o-row.is-missing .o-row__label {
-  font-style: italic;
-  color: var(--text-3);
-}
-
-.o-row.is-missing .o-row__icon {
-  color: var(--warn);
-}
-
-.o-empty,
-.o-note {
-  margin: 2px 10px 4px;
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-}
-
-.o-note {
-  list-style: none;
-  padding: 4px 0 2px 28px;
-  margin: 0;
-}
-
-.o-add--block {
-  min-height: 30px;
-  padding-inline-start: 28px;
-  font-size: var(--fs-sm);
-  color: var(--block);
-}
-
-.o-add--block:hover {
-  background: var(--block-soft);
-}
-
-.o-add--block .icon {
-  width: 16px;
-  height: 16px;
-}
-
-.o-blocks .o-grip--block {
-  margin-inline-start: 4px;
-}
-
 /* Blocks inside section settings */
-
-
-
-
 
 /* Scheme editor: a scheme that fails the readability rule. */
 .scheme-row__warn {
@@ -3680,15 +2580,9 @@ button.pick-row:hover {
 }
 
 /* The editor cannot continue (signed out, no access). */
-.app[data-state="fatal"] .panel,
-.app[data-state="fatal"] .topbar__center,
 .app[data-state="fatal"] .btn-pair {
   opacity: .55;
   pointer-events: none;
-}
-
-.app[data-state="fatal"] .frame-skeleton {
-  opacity: 0;
 }
 
 /* Boot failure, drawn before the shell exists. */
@@ -3745,10 +2639,6 @@ button.pick-row:hover {
 
 .notice[hidden] {
   display: none;
-}
-
-.notice--busy .icon {
-  animation: spin 1.2s linear infinite;
 }
 
 @keyframes spin {
@@ -3936,87 +2826,6 @@ button.pick-row:hover {
    Pages and special layouts
    ------------------------------------------------------------------------ */
 
-/* The layout this page uses, at the top of the section list. */
-.o-group--layout {
-  padding-block-end: 4px;
-}
-
-.layout-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 48px;
-  padding: 7px 8px;
-  text-align: start;
-  color: var(--text);
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: border-color .15s var(--ease), background-color .15s var(--ease);
-}
-
-.layout-row:hover {
-  border-color: var(--line-2);
-  background: var(--hover);
-}
-
-.layout-row.is-selected {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.layout-row:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.layout-row__icon {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  flex: none;
-  color: var(--accent);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-}
-
-.layout-row__icon .icon {
-  width: 16px;
-  height: 16px;
-}
-
-.layout-row__text {
-  display: grid;
-  flex: 1;
-  min-width: 0;
-}
-
-.layout-row__name {
-  overflow: hidden;
-  font-weight: 600;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.layout-row__meta {
-  font-size: var(--fs-xs);
-  color: var(--text-2);
-}
-
-.layout-row.is-unused .layout-row__meta {
-  color: var(--warn);
-}
-
-.layout-row > .icon {
-  width: 14px;
-  height: 14px;
-  color: var(--text-3);
-}
-
 .layout-status {
   display: flex;
   align-items: flex-start;
@@ -4069,95 +2878,9 @@ button.pick-row:hover {
   padding-block-start: 0;
 }
 
-/* Fixed-layout pages: what the merchant can still change. */
-.fixed-note {
-  display: grid;
-  gap: 10px;
-  padding: 16px 16px 24px;
-}
-
-.fixed-note__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.fixed-note__head h2 {
-  margin: 0;
-  font-size: var(--fs-lg);
-  font-weight: 600;
-}
-
-.fixed-note__icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  flex: none;
-  color: var(--text-2);
-  background: var(--surface-3);
-  border-radius: var(--radius);
-}
-
-.fixed-note > p {
-  margin: 0;
-  font-size: var(--fs-sm);
-  line-height: 1.5;
-  color: var(--text-2);
-}
-
-.fixed-note__sub {
-  margin: 8px 0 0;
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  color: var(--text);
-}
-
-.fixed-note .t-list {
-  margin-inline: -8px;
-}
-
-.fixed-note .fixed-note__foot {
-  margin-block-start: 6px;
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-}
-
-.app[data-fixed="true"] #frame-wrap {
-  box-shadow: var(--shadow-frame), 0 0 0 1px var(--line);
-}
-
 /* --------------------------------------------------------------------------
    Start from a store
    -------------------------------------------------------------------------- */
-
-/* The entry row, first under Theme settings, shows the store the draft is based on. */
-.t-start {
-  padding: 8px 8px 0;
-}
-
-.t-start::after {
-  display: block;
-  height: 1px;
-  margin: 8px 2px 0;
-  content: "";
-  background: var(--line);
-}
-
-.t-item__thumb {
-  width: 48px;
-  height: 30px;
-  flex: none;
-  object-fit: cover;
-  object-position: top left;
-  background: var(--surface-3);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-}
-
-.t-item--store.is-selected .t-item__thumb {
-  border-color: var(--accent-line);
-}
 
 /* Cards: thumbnail, name, one line. */
 .store-grid {
@@ -4378,42 +3101,7 @@ button.pick-row:hover {
   gap: 8px;
 }
 
-/* A section waiting for a category or products. */
-.o-row__text {
-  display: grid;
-  min-width: 0;
-}
-
-.o-row__need {
-  overflow: hidden;
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  line-height: 1.3;
-  color: var(--warn);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.o-row__need::before {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-inline-end: 6px;
-  vertical-align: 1px;
-  content: "";
-  background: currentColor;
-  border-radius: 50%;
-}
-
-.o-row__need.is-quiet {
-  color: var(--text-3);
-}
-
-.o-row:has(.o-row__need) .o-row__main {
-  padding-block: 4px;
-}
-
-/* After Apply: a quiet notice over the preview with its one-step undo. */
+/* After Apply: a quiet notice over the board with its one-step undo. */
 .apply-note {
   position: absolute;
   inset-block-end: 44px;

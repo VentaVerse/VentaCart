@@ -526,40 +526,9 @@ All under `{admin}/extensions/theme/xelga`, names `admin.xelga.*`, JSON in and o
 
 Pickers return only what the picker shows: id, name, image thumbnail, price display string, active flag; 20 results per call, search by name through core's `NameSearch`. They run in the admin context, where core's visibility scope shows every product, so a merchant can pick a product reserved for a customer group; the storefront then shows it only to that group.
 
-### 7.4 Bridge protocol, version 1
+### 7.4 The store preview tab
 
-Messages are objects `{source: 'editor'|'theme', v: 1, type, ...}` sent with `postMessage` and the store's own origin as `targetOrigin`. Each side drops messages whose `event.origin` is not that origin or whose `event.source` is not the expected window. `frame.js` (the preview half) is loaded only in preview mode.
-
-Theme to editor:
-
-| type | payload | when |
-|---|---|---|
-| `ready` | `pageData`, `page: {type, handle, subject}`, `url` | page loaded; `pageData` lists sections and blocks with ids, types and labels |
-| `select` | `sectionId`, `blockId` or null, `key` or null | click on a section, block or an element with `data-setting` |
-| `navigated` | `url`, `page` | the merchant followed a link inside the preview; the editor switches to that page's template, or the custom template `page.handle` names. The followed address carries the preview nonce from the current one, since browsers send `Sec-Fetch-Dest` only on secure origins |
-| `duplicated` | `sectionId`, `newId` | after `duplicate` (kept from the draft) |
-| `error` | `sectionId`, `message` | a section failed to render or initialize |
-
-Editor to theme:
-
-| type | payload | notes |
-|---|---|---|
-| `highlight` | `sectionId`, `blockId?` | hover outline, as in the draft |
-| `select` | `sectionId`, `blockId?` | persistent outline, scroll into view |
-| `field` | `sectionId`, `blockId?`, `key` or null | new: outline the elements one field changes (replaces the editor drawing boxes inside the frame's document) |
-| `setting` | `sectionId`, `blockId?`, `key`, `value` | live apply per the setting's `live` mode |
-| `theme-setting` | `key`, `value` | token, attr, font-pair, scheme-colors, bind, toggle-each, icon (as the draft) |
-| `move` | `sectionId`, `toIndex` | index within the section's group |
-| `remove` / `restore` | `sectionId`, `toIndex?` | as the draft |
-| `duplicate` | `sectionId`, `newId`, `html` | new: the duplicate's HTML comes from the server so ids inside it are correct |
-| `insert` | `sectionId`, `group`, `index`, `html` | new: add section; replaces copying markup from a sample store |
-| `replace` | `sectionId`, `html` | new: swap a section for a server re-render, then re-run its initializer |
-| `block-insert` | `sectionId`, `blockId`, `index`, `html` | new: add a block |
-| `block-remove` / `block-restore` | `sectionId`, `blockId`, `index?` | new |
-| `block-move` | `sectionId`, `blockId`, `toIndex` | new |
-| `rename` | `sectionId`, `blockId?`, `label` | new: updates the outline label |
-
-Every message that changes structure is followed by the frame posting a fresh `pageData`, so the sidebar and the preview cannot drift.
+The editor has no preview frame and no message protocol: the layout board is the whole editor. "Open store preview" in the top bar opens the page being edited in a tab of its own, with the preview window's nonce in its address. `frame.js`, loaded only in preview mode, keeps that nonce on links and GET forms that stay on the store, so the tab keeps showing the draft while the merchant browses; other sites never receive it.
 
 ### 7.5 Server re-render
 

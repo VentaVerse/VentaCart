@@ -45,7 +45,7 @@
     {{ \Themes\Xelga\Extensions\Extensions::current()->stylesheetTags() }}
     <link rel="stylesheet" href="{{ $xelga->tokensUrl() }}">
     @if ($xelga->preview())
-        @vite(['resources/themes/xelga/editor/css/frame.css', 'resources/themes/xelga/editor/js/frame.js'])
+        @vite('resources/themes/xelga/editor/js/frame.js')
     @endif
     @stack('head')
 </head>

@@ -5,7 +5,7 @@
  * editor's preview a click selects instead of acting, so nothing here
  * runs on a click there.
  */
-import { $, $$, inEditorPreview } from '../util.js';
+import { $, $$ } from '../util.js';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,7 +16,7 @@ function viewSwitch(section) {
 
   const onClick = (event) => {
     const button = event.target.closest('[data-view]');
-    if (!button || !section.contains(button) || inEditorPreview()) return;
+    if (!button || !section.contains(button)) return;
     const view = button.dataset.view;
     section.dataset.variant = view;
     buttons.forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
@@ -67,10 +67,6 @@ function contactForm(section) {
   };
 
   const onSubmit = (event) => {
-    if (inEditorPreview()) {
-      event.preventDefault();
-      return;
-    }
     const fields = $$('[name="name"], [name="email"], [name="subject"], [name="message"]', form);
     const bad = fields.filter((field) => {
       const value = field.value.trim();

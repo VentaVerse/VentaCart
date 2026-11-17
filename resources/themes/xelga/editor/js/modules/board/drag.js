@@ -1,6 +1,7 @@
 /*
  * Moving sections and rows on the board: by dragging with a mouse or pen,
- * or with Alt plus the arrow keys. Both work out the same targets from the
+ * by pressing a moment then dragging on a touch screen, or with Alt plus
+ * the arrow keys. Both work out the same targets from the
  * row model (targetsFor), so a key never puts a section somewhere a drag
  * could not.
  *
@@ -16,6 +17,7 @@ import { sectionIcon } from '../catalog.js';
 import { commit, undo, layoutPayload, rulesFor } from '../operations.js';
 import { rowsOf, fits, locate, spanAt } from './model.js';
 import { rowName, targetWords } from './words.js';
+import { createPress, PRESS_DELAY } from './phone.js';
 
 const SIDES = ['left', 'right'];
 const START_DISTANCE = 5;
@@ -120,6 +122,20 @@ export function keyTarget(content, sid, arrow, rules) {
   return ok({ drop: 'gap', before: up ? r.id : rows[ri + 1]?.id ?? 'end' });
 }
 
+const ARROW_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+
+/** The arrows Alt moves a section by from where it is now: only those that lead somewhere. */
+export function keyMoves(content, sid, rules) {
+  return ARROW_KEYS.filter((arrow) => keyTarget(content, sid, arrow, rules) !== null);
+}
+
+/** The arrows Alt moves a row of columns by: up below the first row, down above the last. */
+export function rowKeyMoves(rows, rowId) {
+  const index = rows.findIndex((r) => r.id === rowId);
+  if (index < 0) return [];
+  return [index > 0 ? 'ArrowUp' : null, index < rows.length - 1 ? 'ArrowDown' : null].filter(Boolean);
+}
+
 /* ------------------------------------------------------------------------
    Making the move
    ------------------------------------------------------------------------ */
@@ -206,7 +222,10 @@ export function keyMoveRow(event, rowId) {
   const rows = rowsOf(content, layoutPayload());
   const index = rows.findIndex((r) => r.id === rowId);
   const before = event.key === 'ArrowUp' ? rows[index - 1]?.id : index < rows.length - 1 ? rows[index + 2]?.id ?? 'end' : null;
-  if (index < 0 || !before) return false;
+  if (index < 0 || !before) {
+    announce(`${index < 0 ? 'The row' : `The row of ${rowName(rows[index])}`} cannot move ${event.key === 'ArrowUp' ? 'up' : 'down'} from here.`);
+    return false;
+  }
   const moved = moveItem({ kind: 'row', rowId }, { drop: 'gap', before });
   if (moved) refocus(`#board .row[data-row-id="${CSS.escape(rowId)}"] .row__tab`);
   return moved;
@@ -228,13 +247,30 @@ export const dragging = () => Boolean(D?.active);
 /**
  * Starts watching a press on a section or a row's tab. A mouse or pen that
  * moves a few pixels while pressed picks the item up; a plain click stays
- * a click. Touch scrolls the board as usual.
+ * a click. On a touch screen a finger that moves at once scrolls the board
+ * as usual, and one held still for a moment picks the item up (see
+ * createPress); a short press stays a tap.
  */
 export function startDrag(event, item) {
-  if (D || event.button !== 0 || event.pointerType === 'touch' || !S.loaded) return;
+  if (D || event.button !== 0 || !S.loaded) return;
+  const touch = event.pointerType === 'touch';
   D = {
     item, sx: event.clientX, sy: event.clientY, x: event.clientX, y: event.clientY, active: false, keys: new Set(), over: null, refused: null,
+    touch, press: touch ? createPress({ delay: PRESS_DELAY }) : null, held: event.currentTarget,
   };
+  if (touch) {
+    D.press.down(performance.now());
+    D.held?.classList.add('is-pressed');
+    // Held still long enough: picked up before the finger moves.
+    D.timer = window.setTimeout(() => {
+      if (!D || D.active || D.press.move(performance.now(), D.x - D.sx, D.y - D.sy) !== 'drag') return;
+      begin();
+      if (!D) return;
+      navigator.vibrate?.(10);
+      moveGhost();
+      pickTarget();
+    }, PRESS_DELAY);
+  }
   window.addEventListener('pointermove', onMove);
   window.addEventListener('pointerup', onUp);
   window.addEventListener('pointercancel', cancel);
@@ -273,7 +309,17 @@ function onMove(event) {
   if (!D) return;
   D.x = event.clientX;
   D.y = event.clientY;
-  if (!D.active) {
+  if (!D.active && D.touch) {
+    const decided = D.press.move(performance.now(), D.x - D.sx, D.y - D.sy);
+    // The finger moved first: the board scrolls, nothing is held.
+    if (decided === 'scroll') {
+      cancel();
+      return;
+    }
+    if (decided !== 'drag') return;
+    begin();
+    if (!D) return;
+  } else if (!D.active) {
     if (Math.hypot(D.x - D.sx, D.y - D.sy) < START_DISTANCE) return;
     begin();
     if (!D) return;
@@ -297,6 +343,8 @@ function onUp() {
 function cancel() {
   if (!D) return;
   window.cancelAnimationFrame(D.frame || 0);
+  window.clearTimeout(D.timer || 0);
+  D.held?.classList.remove('is-pressed');
   D.ghost?.remove();
   window.removeEventListener('pointermove', onMove);
   window.removeEventListener('pointerup', onUp);
@@ -350,7 +398,8 @@ function markTargets() {
 function moveGhost() {
   const w = D.ghost.offsetWidth;
   const left = Math.max(8, Math.min(D.x + 14, window.innerWidth - w - 8));
-  D.ghost.style.translate = `${left}px ${D.y + 14}px`;
+  // Above a finger, so the finger does not hide where the item goes.
+  D.ghost.style.translate = `${left}px ${D.touch ? Math.max(8, D.y - 64) : D.y + 14}px`;
 }
 
 const inside = (el, x, y) => {
@@ -430,4 +479,14 @@ function autoScroll() {
 /** Keeps a drag's marks when the board is drawn again while an item is held. */
 export function afterRender() {
   if (D?.active) markTargets();
+}
+
+/*
+ * While a finger holds an item, the page must not scroll under it, nor
+ * open the browser's menu for a long press. The listener is there from the
+ * start: a browser decides whether a touch may scroll when it begins.
+ */
+export function initDrag() {
+  document.addEventListener('touchmove', (event) => { if (D?.active) event.preventDefault(); }, { passive: false });
+  document.addEventListener('contextmenu', (event) => { if (D?.touch) event.preventDefault(); });
 }

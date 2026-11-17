@@ -1,7 +1,7 @@
 // Run: node --test 'resources/themes/xelga/tests/js/**/*.test.mjs'
 
 /*
- * The cleaner the preview frame and the layout board both use on markup
+ * The cleaner the layout board uses on markup
  * from the server: nothing that can run or load code survives, and what a
  * storefront section needs (its links, photos, icons and data attributes)
  * stays.
@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { installDom } from './support/mini-dom.mjs';
 
 installDom({ href: 'https://shop.example.com/' });
-const { cleanFragment, pickOne, cleanTree, MAX_HTML } = await import('../../editor/js/modules/clean-html.js');
+const { cleanFragment, cleanTree, MAX_HTML } = await import('../../editor/js/modules/clean-html.js');
 
 const html = (fragment) => fragment.innerHTML;
 
@@ -82,16 +82,6 @@ test('markup over the size limit, or no markup at all, gives an empty fragment',
   assert.equal(html(cleanFragment('x'.repeat(MAX_HTML + 1))), '');
   assert.equal(html(cleanFragment('')), '');
   assert.equal(html(cleanFragment(null)), '');
-});
-
-test('pickOne answers the one top-level element asked for, cleaned', () => {
-  const markup = '<!--xelga:hero-1--><section data-section-id="hero-1" onclick="x()"><a href="javascript:x">Shop</a><div data-section-id="inner"></div></section><!--/xelga:hero-1--><section data-section-id="other"></section>';
-  const el = pickOne(markup, '[data-section-id]', 'hero-1', 'data-section-id');
-  assert.equal(el.outerHTML, '<section data-section-id="hero-1"><a>Shop</a><div data-section-id="inner"></div></section>');
-  // Nested elements are not top level; an id not in the markup answers null.
-  assert.equal(pickOne(markup, '[data-section-id]', 'inner', 'data-section-id'), null);
-  assert.equal(pickOne(markup, '[data-section-id]', 'missing', 'data-section-id'), null);
-  assert.equal(pickOne('', '[data-section-id]', 'hero-1', 'data-section-id'), null);
 });
 
 test('cleanTree cleans a tree in place and answers it', () => {
