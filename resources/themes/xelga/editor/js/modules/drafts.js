@@ -279,9 +279,10 @@ export async function reloadDocuments(handles = ['settings', ...pageHandles()]) 
 
 /** Schemes that fail the readability rule, worded for the merchant. */
 export function unreadableSchemes() {
+  // Schemes are shown by their colors, never by a stored name: a message names one by its number.
   return schemes().map((scheme) => {
     const low = readability(scheme.colors).filter((p) => !p.ok);
-    return low.length ? { id: scheme.id, label: scheme.label || scheme.id, pairs: low } : null;
+    return low.length ? { id: scheme.id, label: `Scheme ${String(scheme.id).replace(/^scheme-/, '')}`, pairs: low } : null;
   }).filter(Boolean);
 }
 

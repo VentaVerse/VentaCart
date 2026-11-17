@@ -111,6 +111,25 @@ class XelgaStoreTemplatesTest extends TestCase
         );
     }
 
+    public function test_store_templates_carry_no_scheme_labels(): void
+    {
+        // A color scheme is told apart by its colors and where it is used,
+        // never by a name, so no shipped scheme carries one.
+        $files = [Catalog::root('store-templates/_defaults/settings.json')];
+        foreach (self::STORES as $slug) {
+            $files[] = StoreTemplates::dir($slug) . '/store.json';
+        }
+        foreach ($files as $file) {
+            $data = json_decode((string) file_get_contents($file), true);
+            $schemes = $data['documents']['settings']['schemes'] ?? $data['schemes'] ?? null;
+            $this->assertIsArray($schemes, $file);
+            $this->assertNotSame([], $schemes, $file);
+            foreach ($schemes as $scheme) {
+                $this->assertSame(['id', 'colors'], array_keys($scheme), "{$file} {$scheme['id']}");
+            }
+        }
+    }
+
     public function test_every_store_saves_cleanly_as_a_merchant_draft(): void
     {
         // Core makes the main menu; a store usually adds a footer menu.
@@ -246,7 +265,7 @@ class XelgaStoreTemplatesTest extends TestCase
 
         $this->assertSame(['look' => 'coffee', 'sections' => 'coffee'], $response->json('data.based_on'));
         $this->assertSame('sofia-condensed', $this->draft('settings')['values']['font_pair']);
-        $this->assertSame('Bar wall', $this->draft('settings')['schemes'][0]['label']);
+        $this->assertSame(StoreTemplates::get('coffee')['documents']['settings']['schemes'][0]['colors'], $this->draft('settings')['schemes'][0]['colors']);
         $this->assertSame(StoreTemplates::get('coffee')['documents']['home']['order'], $this->draft('home')['order']);
         $this->assertNotNull($this->draft('header'));
         $this->assertNotNull($this->draft('footer'));
@@ -277,7 +296,7 @@ class XelgaStoreTemplatesTest extends TestCase
         foreach (StoreTemplates::lookKeys() as $key) {
             $this->assertSame($beauty['values'][$key] ?? null, $values[$key] ?? null, "The look key {$key} is not the Beauty store's.");
         }
-        $this->assertSame(array_column($beauty['schemes'], 'label'), array_column($this->draft('settings')['schemes'], 'label'));
+        $this->assertSame(array_column($beauty['schemes'], 'colors'), array_column($this->draft('settings')['schemes'], 'colors'));
         // The merchant's own settings stay.
         $this->assertSame('https://example.com/demo-store', $values['instagram_url']['href'] ?? $values['instagram_url']);
         $this->assertSame('Mon to Sat, 9 AM to 6 PM', $values['hours']);

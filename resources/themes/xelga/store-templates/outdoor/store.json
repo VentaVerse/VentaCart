@@ -25,7 +25,6 @@
       "schemes": [
         {
           "id": "scheme-1",
-          "label": "Morning fog",
           "colors": {
             "bg": "#f1f4ef",
             "text": "#16211a",
@@ -40,7 +39,6 @@
         },
         {
           "id": "scheme-2",
-          "label": "Clear sky",
           "colors": {
             "bg": "#ffffff",
             "text": "#16211a",
@@ -55,7 +53,6 @@
         },
         {
           "id": "scheme-3",
-          "label": "Pine at night",
           "colors": {
             "bg": "#1a281f",
             "text": "#eef2ea",
@@ -70,7 +67,6 @@
         },
         {
           "id": "scheme-4",
-          "label": "Signal red",
           "colors": {
             "bg": "#a42f1b",
             "text": "#ffffff",
@@ -85,7 +81,6 @@
         },
         {
           "id": "scheme-5",
-          "label": "Lichen",
           "colors": {
             "bg": "#dbe3d1",
             "text": "#16211a",

@@ -24,7 +24,7 @@ import {
 import { sectionDef, sectionIcon, variantDrawing } from '../catalog.js';
 import { onChange, layoutPayload } from '../operations.js';
 import { flush, setFatal } from '../drafts.js';
-import { select, deselect } from '../selection.js';
+import { select } from '../selection.js';
 import { fitFrame } from '../preview.js';
 import { rowsOf } from './model.js';
 import { createPictures } from './pictures.js';
@@ -32,6 +32,7 @@ import { boardSource } from '../layouts.js';
 import { openAdd } from '../add-section.js';
 import { splitOf, listWords, columnName } from './words.js';
 import { startDrag, keyMove, keyMoveRow, dragJustEnded, afterRender, targetKey } from './drag.js';
+import { openDrawer, closeDrawer } from './drawer.js';
 
 const REFRESH_WAIT_MS = 700;
 
@@ -161,10 +162,8 @@ function rowEl(row, sections) {
       title: 'Row settings. Drag to move the row.',
       onclick: () => {
         if (dragJustEnded()) return;
-        S.view = selected ? { type: 'board' } : { type: 'row', rowId: row.id };
-        // A row and a section are never selected together.
-        if (S.sel?.kind === 'section') deselect();
-        else renderBoard();
+        if (selected) closeDrawer();
+        else openDrawer({ type: 'row', rowId: row.id });
       },
       onpointerdown: (e) => startDrag(e, { kind: 'row', rowId: row.id }),
       onkeydown: (e) => keyMoveRow(e, row.id),
@@ -413,6 +412,8 @@ export function setCanvas(which) {
   });
   if (S.canvas === 'board') renderBoard();
   else fitFrame();
+  // The settings move between the drawer (board) and the panel (preview).
+  ui.renderInspector();
 }
 
 export function initBoard() {

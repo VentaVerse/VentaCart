@@ -51,7 +51,7 @@ class XelgaReadabilityTest extends TestCase
         $this->saveDraft($this->admin(), 'settings', $this->faintSettings(), 0)
             ->assertOk()
             ->assertJsonPath('data.warnings.0.scheme', 'scheme-2')
-            ->assertJsonPath('data.warnings.0.label', 'White')
+            ->assertJsonPath('data.warnings.0.label', 'Scheme 2')
             ->assertJsonPath('data.warnings.0.pair', 'text on background');
     }
 
@@ -65,7 +65,7 @@ class XelgaReadabilityTest extends TestCase
             ->assertJsonPath('code', 'readability')
             ->assertJsonPath('data.failures.0.scheme', 'scheme-2');
 
-        $this->assertStringContainsString('White', $response->json('message'));
+        $this->assertStringContainsString('Scheme 2', $response->json('message'));
         $this->assertStringContainsString('text on background', $response->json('message'));
         $this->assertNull(Document::where('handle', 'settings')->firstOrFail()->published);
 

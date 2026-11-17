@@ -37,7 +37,6 @@
       "schemes": [
         {
           "id": "scheme-1",
-          "label": "Studio wall",
           "colors": {
             "bg": "#ecedee",
             "text": "#121417",
@@ -52,7 +51,6 @@
         },
         {
           "id": "scheme-2",
-          "label": "White",
           "colors": {
             "bg": "#ffffff",
             "text": "#121417",
@@ -67,7 +65,6 @@
         },
         {
           "id": "scheme-3",
-          "label": "Screen off",
           "colors": {
             "bg": "#101214",
             "text": "#eef0f1",
@@ -82,7 +79,6 @@
         },
         {
           "id": "scheme-4",
-          "label": "Charge light",
           "colors": {
             "bg": "#5be39b",
             "text": "#06140d",
@@ -97,7 +93,6 @@
         },
         {
           "id": "scheme-5",
-          "label": "Studio gray",
           "colors": {
             "bg": "#d9d9db",
             "text": "#121417",

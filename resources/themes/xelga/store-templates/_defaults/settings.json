@@ -30,10 +30,10 @@
     "input_radius": 10
   },
   "schemes": [
-    { "id": "scheme-1", "label": "Studio wall", "colors": { "bg": "#ecedee", "text": "#121417", "muted": "#4c525a", "accent": "#0b6b45", "accent-text": "#ffffff", "button": "#121417", "button-text": "#ffffff", "border": "#d2d4d7", "card": "#d9d9db" } },
-    { "id": "scheme-2", "label": "White", "colors": { "bg": "#ffffff", "text": "#121417", "muted": "#50565e", "accent": "#0b6b45", "accent-text": "#ffffff", "button": "#0b6b45", "button-text": "#ffffff", "border": "#e2e3e6", "card": "#d9d9db" } },
-    { "id": "scheme-3", "label": "Screen off", "colors": { "bg": "#101214", "text": "#eef0f1", "muted": "#a3a9b0", "accent": "#5be39b", "accent-text": "#06140d", "button": "#5be39b", "button-text": "#06140d", "border": "#2a2e33", "card": "#1b1e22" } },
-    { "id": "scheme-4", "label": "Charge light", "colors": { "bg": "#5be39b", "text": "#06140d", "muted": "#1b4430", "accent": "#06140d", "accent-text": "#5be39b", "button": "#06140d", "button-text": "#ffffff", "border": "#3cc47e", "card": "#7deab0" } },
-    { "id": "scheme-5", "label": "Studio gray", "colors": { "bg": "#d9d9db", "text": "#121417", "muted": "#42474f", "accent": "#0b6b45", "accent-text": "#ffffff", "button": "#121417", "button-text": "#ffffff", "border": "#c3c5c9", "card": "#ececee" } }
+    { "id": "scheme-1", "colors": { "bg": "#ecedee", "text": "#121417", "muted": "#4c525a", "accent": "#0b6b45", "accent-text": "#ffffff", "button": "#121417", "button-text": "#ffffff", "border": "#d2d4d7", "card": "#d9d9db" } },
+    { "id": "scheme-2", "colors": { "bg": "#ffffff", "text": "#121417", "muted": "#50565e", "accent": "#0b6b45", "accent-text": "#ffffff", "button": "#0b6b45", "button-text": "#ffffff", "border": "#e2e3e6", "card": "#d9d9db" } },
+    { "id": "scheme-3", "colors": { "bg": "#101214", "text": "#eef0f1", "muted": "#a3a9b0", "accent": "#5be39b", "accent-text": "#06140d", "button": "#5be39b", "button-text": "#06140d", "border": "#2a2e33", "card": "#1b1e22" } },
+    { "id": "scheme-4", "colors": { "bg": "#5be39b", "text": "#06140d", "muted": "#1b4430", "accent": "#06140d", "accent-text": "#5be39b", "button": "#06140d", "button-text": "#ffffff", "border": "#3cc47e", "card": "#7deab0" } },
+    { "id": "scheme-5", "colors": { "bg": "#d9d9db", "text": "#121417", "muted": "#42474f", "accent": "#0b6b45", "accent-text": "#ffffff", "button": "#121417", "button-text": "#ffffff", "border": "#c3c5c9", "card": "#ececee" } }
   ]
 }

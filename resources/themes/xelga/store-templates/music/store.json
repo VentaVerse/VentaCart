@@ -30,7 +30,6 @@
       "schemes": [
         {
           "id": "scheme-1",
-          "label": "Grille cloth",
           "colors": {
             "bg": "#f2eadb",
             "text": "#1e1611",
@@ -45,7 +44,6 @@
         },
         {
           "id": "scheme-2",
-          "label": "Control panel",
           "colors": {
             "bg": "#fbf7ef",
             "text": "#1e1611",
@@ -60,7 +58,6 @@
         },
         {
           "id": "scheme-3",
-          "label": "Oxblood cabinet",
           "colors": {
             "bg": "#5b1b17",
             "text": "#f7ecdb",
@@ -75,7 +72,6 @@
         },
         {
           "id": "scheme-4",
-          "label": "Espresso cabinet",
           "colors": {
             "bg": "#2a201b",
             "text": "#f2e7d6",
@@ -90,7 +86,6 @@
         },
         {
           "id": "scheme-5",
-          "label": "Brass piping",
           "colors": {
             "bg": "#d6a64a",
             "text": "#21160e",

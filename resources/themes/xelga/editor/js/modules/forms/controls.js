@@ -5,11 +5,12 @@
  * native select.
  */
 
-import { h, icon, schematic } from '../dom.js';
+import { h, icon, schematic, toast } from '../dom.js';
 import { sec } from '../state.js';
 import { optionsOf, variantDrawing, SCHEMATICS, sectionDef } from '../catalog.js';
 import { humanize } from '../util.js';
 import { radioItems, radioKeys } from '../selection.js';
+import { variantFits } from '../board/drawer.js';
 import { richText } from './richtext.js';
 import { schemePicker, schemeEditor } from './schemes.js';
 import { fontPairPicker } from './fonts.js';
@@ -153,13 +154,23 @@ function selectControl(setting, value, change, id, fctx) {
     const hasDrawings = options.some((o) => drawingOf(o.value));
     const wrap = h('div', null);
     const group = h('div', { class: `cards${hasDrawings ? '' : ' cards--list'}`, role: 'radiogroup', 'aria-labelledby': `${id}-label` });
-    options.forEach((o) => group.append(h('button', {
-      type: 'button', role: 'radio', class: `opt-card${hasDrawings ? '' : ' opt-card--text'}`, dataset: { value: o.value },
-      onclick: () => {
-        radioItems(group, o.value);
-        change(o.value);
-      },
-    }, hasDrawings ? schematic(drawingOf(o.value)) : null, h('span', { class: 'opt-card__label', text: o.label }))));
+    // A layout wider than the section's column is shown, but says it needs a wider one.
+    options.forEach((o) => {
+      const fits = !isVariant || variantFits(fctx.sid, o.value);
+      group.append(h('button', {
+        type: 'button', role: 'radio', class: `opt-card${hasDrawings ? '' : ' opt-card--text'}`, dataset: { value: o.value },
+        'aria-disabled': fits ? null : 'true', title: fits ? null : 'Needs a wider column',
+        'aria-description': fits ? null : 'Needs a wider column',
+        onclick: () => {
+          if (!fits) {
+            toast(`${o.label} needs a wider column than this one.`, { tone: 'error' });
+            return;
+          }
+          radioItems(group, o.value);
+          change(o.value);
+        },
+      }, hasDrawings ? schematic(drawingOf(o.value)) : null, h('span', { class: 'opt-card__label', text: o.label })));
+    });
     radioItems(group, value);
     radioKeys(group);
     wrap.append(group);

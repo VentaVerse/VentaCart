@@ -37,6 +37,8 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
         icon('user', 'icon--sm'), h('span', { class: 'presence__text' })),
       h('p', { class: 'status', id: 'status', role: 'status', 'aria-live': 'polite' },
         h('span', { class: 'status__dot', 'aria-hidden': 'true' }), h('span', { class: 'status__text', text: 'Loading store' })),
+      h('button', { type: 'button', class: 'btn btn--ghost btn--theme', id: 'theme-btn', 'aria-pressed': 'false', 'data-tip': 'Colors, fonts and buttons for the whole store' },
+        icon('palette', 'icon--sm'), h('span', { text: 'Theme' })),
       h('a', {
         class: 'btn btn--ghost btn--preview', id: 'preview-link', href: storeUrl, target: '_blank', rel: 'noopener',
         'aria-disabled': 'true', 'aria-label': 'Open store preview in a new tab', 'data-tip': 'Your draft, as shoppers will see it',
@@ -86,6 +88,10 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
     h('div', { class: 'sheet-handle', 'aria-hidden': 'true' }),
     h('div', { class: 'inspector', id: 'inspector-body' }));
 
+  // Beside the board, the settings of what is selected open here instead of in the panel.
+  const drawer = h('aside', { class: 'drawer', id: 'drawer', 'aria-label': 'Settings', hidden: true },
+    h('div', { class: 'inspector', id: 'drawer-body' }));
+
   const dock = h('nav', { class: 'dock', 'aria-label': 'Editor panels' },
     h('button', { type: 'button', class: 'dock__btn', dataset: { dock: 'sections' } }, icon('layers'), h('span', { text: 'Sections' })),
     h('button', { type: 'button', class: 'dock__btn', dataset: { dock: 'theme' } }, icon('palette'), h('span', { text: 'Theme' })),
@@ -94,8 +100,8 @@ export function buildShell(mount, { storeName = '', exitUrl = '/', storeUrl = '/
 
   const app = h('div', {
     class: 'app', id: 'app',
-    dataset: { device: 'desktop', nav: 'sections', panel: 'nav', state: 'loading', sheet: 'closed', canvas: 'board', loaded: 'false' },
-  }, topbar, nav, canvas, inspector, dock);
+    dataset: { device: 'desktop', nav: 'sections', panel: 'nav', state: 'loading', sheet: 'closed', canvas: 'board', loaded: 'false', drawer: 'closed' },
+  }, topbar, nav, canvas, inspector, drawer, dock);
 
   mount.replaceChildren(app,
     h('div', { class: 'popover-layer', id: 'popover-layer' }),

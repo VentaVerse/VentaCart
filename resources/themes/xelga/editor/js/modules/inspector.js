@@ -11,7 +11,9 @@
 import { $, h, icon, emptyArt, helpTip } from './dom.js';
 import { S, ctx, ui, sec, blk, locate, valueOf, labelOf, themeValue, settingsDoc, isBusy, isFixed } from './state.js';
 import { sectionDef, blockDef, themeGroups, ownThemeGroups, themeGroupsIn, isFormSetting, extensionOf, absentName } from './catalog.js';
-import { commit } from './operations.js';
+import { commit, layoutPayload } from './operations.js';
+import { rowsOf, locate as locateIn } from './board/model.js';
+import { splitOf, columnName } from './board/words.js';
 import { same, humanize } from './util.js';
 import { select, deselect, showPanel } from './selection.js';
 import { buildForm, dependsOn, refreshVisibility, refreshFieldErrors } from './forms/form.js';
@@ -28,8 +30,18 @@ const selKey = (sel) => {
 let shownKey = null;
 
 export function renderInspector() {
-  const el = body();
   if (!S.loaded) return;
+  // Beside the board, settings show in the drawer; the panel stays empty
+  // so no element is drawn twice.
+  const drawer = ui.inDrawer?.() ? $('#drawer-body') : null;
+  const el = drawer || body();
+  (drawer ? body() : $('#drawer-body'))?.replaceChildren();
+  if (drawer && !S.sel) {
+    shownKey = null;
+    ui.renderDrawer();
+    ui.updateDock();
+    return;
+  }
   const scroll = $('.insp-body', el)?.scrollTop || 0;
   const key = S.sel ? selKey(S.sel) : null;
   const sameTarget = key && key === shownKey;
@@ -60,6 +72,7 @@ export function renderInspector() {
     if (b) b.scrollTop = scroll;
     if (focusedField) el.querySelector(`[data-field="${CSS.escape(focusedField)}"] input, [data-field="${CSS.escape(focusedField)}"] textarea, [data-field="${CSS.escape(focusedField)}"] select`)?.focus({ preventScroll: true });
   }
+  ui.syncDrawer?.();
   ui.updateDock();
 }
 
@@ -89,17 +102,25 @@ function emptyInspector() {
 
 export function inspectorHead({ title, help = null, kind, kindBlock = false, actions = [] }) {
   const head = h('div', { class: 'insp-head' });
+  const drawer = Boolean(ui.inDrawer?.());
+  // In the drawer, back goes from a block to its section and from a theme group to the theme list.
+  const backTo = S.sel?.kind === 'section' && S.sel.bid ? 'section' : S.sel?.kind === 'theme' && drawer ? 'theme' : null;
   const top = h('div', { class: 'insp-head__row' },
     h('button', {
-      type: 'button', class: 'icon-btn insp-back', 'aria-label': 'Back',
+      type: 'button', class: 'icon-btn insp-back', dataset: { back: backTo || '' },
+      'aria-label': backTo === 'section' ? `Back to ${labelOf(S.sel.sid)}` : backTo === 'theme' ? 'Back to Theme' : 'Back',
       onclick: () => {
         if (S.sel?.kind === 'section' && S.sel.bid) select(S.sel.sid);
+        else if (backTo === 'theme') ui.openDrawer({ type: 'theme' });
         else showPanel('nav');
       },
     }, icon('arrow-left')),
     h('h2', { class: 'insp-title' }, h('span', { text: title }), helpTip(help)),
     ...actions,
-    h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Close settings', 'data-tip': 'Close', onclick: deselect }, icon('close')));
+    h('button', {
+      type: 'button', class: 'icon-btn', 'aria-label': 'Close settings', 'data-tip': drawer ? 'Close (Esc)' : 'Close',
+      onclick: () => (drawer ? ui.closeDrawer() : deselect()),
+    }, icon('close')));
   head.append(top);
   if (kind) head.append(h('p', { class: 'insp-kind' }, h('span', { class: `insp-kind__dot${kindBlock ? ' insp-kind__dot--block' : ''}`, 'aria-hidden': 'true' }), kind));
   return head;
@@ -142,7 +163,7 @@ function sectionInspector(sid, bid) {
   const head = inspectorHead({
     title: labelOf(sid, bid) || humanize(target.type),
     help: bid ? bdef?.description || bdef?.info : def.description,
-    kind: bid ? `${bdef?.label || humanize(target.type)} in ${labelOf(sid)}` : `${def.label} section`,
+    kind: bid ? `${bdef?.label || humanize(target.type)} in ${labelOf(sid)}` : sectionKind(sid, def),
     kindBlock: Boolean(bid),
     actions: [eye],
   });
@@ -196,6 +217,19 @@ function sectionInspector(sid, bid) {
       }, icon('trash', 'icon--sm'), 'Remove block')));
   }
   return h('div', { class: 'inspector' }, head, content);
+}
+
+/** What a section is and, in a row of columns or a side, where it sits. */
+function sectionKind(sid, def) {
+  const at = locate(sid);
+  const layout = layoutPayload();
+  const where = at?.group === 'template' && layout ? locateIn(at.doc.content, sid, layout) : null;
+  if (where?.where === 'side') return `${def.label}, in the ${where.side} side`;
+  if (where?.where === 'row') {
+    const parts = splitOf(rowsOf(at.doc.content, layout).find((r) => r.id === where.rowId)?.split).parts;
+    if (parts.length > 1) return `${def.label}, in the ${columnName(parts, where.column).toLowerCase()} of a row`;
+  }
+  return `${def.label} section`;
 }
 
 /* A stored value is copied so the operation's "from" never shares memory with the document. */

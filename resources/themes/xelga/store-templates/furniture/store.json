@@ -29,7 +29,6 @@
       "schemes": [
         {
           "id": "scheme-1",
-          "label": "Plaster",
           "colors": {
             "bg": "#eef0ec",
             "text": "#18211c",
@@ -44,7 +43,6 @@
         },
         {
           "id": "scheme-2",
-          "label": "Linen white",
           "colors": {
             "bg": "#fafaf8",
             "text": "#18211c",
@@ -59,7 +57,6 @@
         },
         {
           "id": "scheme-3",
-          "label": "Forest",
           "colors": {
             "bg": "#213529",
             "text": "#f1f4ef",
@@ -74,7 +71,6 @@
         },
         {
           "id": "scheme-4",
-          "label": "Mustard throw",
           "colors": {
             "bg": "#e3ac3f",
             "text": "#1a1408",
@@ -89,7 +85,6 @@
         },
         {
           "id": "scheme-5",
-          "label": "Sage",
           "colors": {
             "bg": "#cfd8cc",
             "text": "#18211c",

@@ -28,6 +28,7 @@ import { initLayouts } from './layouts.js';
 import { initStores } from './stores.js';
 import { initNeeds } from './needs.js';
 import { initBoard } from './board/board.js';
+import { initDrawer } from './board/drawer.js';
 import { h } from './dom.js';
 
 const STRUCTURAL = new Set(['remove', 'insert', 'move', 'rename', 'block-add', 'block-remove', 'block-move', 'visible', ...LAYOUT_TYPES]);
@@ -322,6 +323,7 @@ export function startEditor({ boot, api, mount = null }) {
   initPreview({ onNavigated });
   initNeeds();
   initBoard();
+  initDrawer();
   ctx.bridge.on('ready', onFrameReady);
   ui.openPage = openPage;
   ui.rememberPage = rememberPage;
