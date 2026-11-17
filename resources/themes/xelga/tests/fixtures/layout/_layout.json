@@ -9,6 +9,7 @@
     "3-3-3-3": { "parts": [3, 3, 3, 3], "label": "Quarters" }
   },
   "row_defaults": { "width": "page", "scheme": "", "space": "md" },
+  "row_choices": { "width": ["page", "full"], "space": ["sm", "md", "lg"] },
   "max_rows": 40,
   "max_per_column": 6,
   "max_per_side": 6,

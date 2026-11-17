@@ -150,7 +150,11 @@ class XelgaLayoutTest extends TestCase
     {
         $shared = json_decode((string) file_get_contents(self::FIXTURES . '/_layout.json'), true, flags: JSON_THROW_ON_ERROR);
 
-        $this->assertSame($shared, Layout::payload());
+        // The fixture names the theme's own page types; with an extension installed the payload adds its page types.
+        $payload = Layout::payload();
+        $payload['sides_on'] = array_values(array_intersect($payload['sides_on'], Handles::TEMPLATES));
+        $this->assertSame($shared, $payload);
+        $this->assertSame(Layout::ROW_CHOICES, $shared['row_choices']);
         $this->assertSame(array_keys(Layout::SPLITS), array_keys($shared['splits']));
     }
 

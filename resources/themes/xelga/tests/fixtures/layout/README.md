@@ -19,6 +19,8 @@ A type not listed under `rules.min` asks for 12 twelfths. Every `expected`
 must also normalize to itself with `moved` empty.
 
 `_layout.json` is the editor's `layout` boot payload (`Layout::payload()`).
+Its `sides_on` lists the theme's own page types only; the real payload also
+lists the page types of installed extensions that may have sides.
 
 ## Reasons in `moved`
 
