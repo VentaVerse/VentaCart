@@ -60,6 +60,7 @@ abstract class TestCase extends BaseTestCase
         \App\Support\CheckoutPage::forget();
         \App\Support\OrderPanels::forget();
         \App\Support\ProductCardLines::forget();
+        \App\Support\SitemapUrls::forget();
     }
 
     /**

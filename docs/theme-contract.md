@@ -515,3 +515,32 @@ A theme calls `for()` once per list, where it has the list (a section's data, a 
 A theme that ignores this hook still works. A theme that draws lines may offer a setting to hide them (Xelga does: Product cards > Show details from extensions); hidden, it does not call `for()`, so no extension is asked.
 
 Where cards are drawn by script, in API 1 they do not show lines. The bundled theme draws every product card on the server (pages loaded with Load more included); the cart drawer and the cart page list cart lines, not product cards, and have no lines.
+
+### 9.10 Sitemap URLs
+
+An extension adds its own pages (a seller's shop at `/shop/{slug}`, say) to the store's XML sitemap from its provider's `boot()`. Themes take no part: the sitemap is written by the SEO extension's `sitemap:generate`.
+
+```php
+use App\Support\SitemapUrls;
+
+SitemapUrls::add('marketplace', function (): iterable {
+    foreach (Shop::where('is_active', true)->lazyById() as $shop) {
+        yield ['loc' => route('marketplace.shop', $shop->slug), 'lastmod' => $shop->updated_at, 'changefreq' => 'weekly', 'priority' => '0.6'];
+    }
+});
+```
+
+- `add(string $name, callable $fn)`: the name follows section 9.9's rule; a bad or taken name is refused and logged. `$fn()` returns any iterable of entries; a generator suits a large set, since entries are read one at a time and never kept.
+- An entry is `['loc' => …, 'lastmod' => …, 'changefreq' => …, 'priority' => …]`; only `loc` is required.
+  - `loc`: an absolute `http` or `https` address on the store's own host and port (`APP_URL`), at most 2,048 characters, with no login and no `#fragment`.
+  - `lastmod`: a `DateTimeInterface` or a date string, written as a W3C date.
+  - `changefreq`: one of `always`, `hourly`, `daily`, `weekly`, `monthly`, `yearly`, `never`.
+  - `priority`: a number, held between 0.0 and 1.0.
+  - An entry that fails a check (another site, `javascript:`, a priority that is not a number, an unknown `changefreq`, a date that does not read) is skipped, and each source's skipped count is logged once.
+- An address core already lists (home, categories, products, brands, blog posts, pages, contact) or that an earlier entry gave is listed once.
+- A callable that throws is reported; the entries it gave before that stay, and the other sources still run.
+- `SitemapUrls::all(array $listed = [])` yields the checked entries, `[loc, lastmod, changefreq, priority]` (unset values null). `$listed` holds addresses already written, as keys.
+
+The sitemap lists core's pages first, then these, in the order the sources were added. A file holds at most 50,000 addresses; past that, the entries go into `sitemap-1.xml`, `sitemap-2.xml`, … and `sitemap.xml` becomes their index. With no source registered, the sitemap is what it was.
+
+The storefront's `/sitemap` page (route `sitemap`) is a page for shoppers that the theme draws from named groups (categories, brands, pages, posts). Entries have no title to show there, so they reach the XML sitemap only.
