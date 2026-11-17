@@ -2,6 +2,7 @@
 
 namespace Tests\Fixtures\Extensions\SampleExtension;
 
+use App\Support\AccountMenu;
 use App\Support\CartGroups;
 use App\Support\StorefrontPageType;
 use Illuminate\Support\ServiceProvider;
@@ -24,5 +25,6 @@ class SampleExtensionServiceProvider extends ServiceProvider
 
         StorefrontPageType::register(self::PAGE_TYPE, 'Sample pages', ['sample-extension.page.']);
         CartGroups::use(Cart\SampleCartGrouper::class);
+        AccountMenu::add('sample-extension.account', 'Sample things', 'store');
     }
 }

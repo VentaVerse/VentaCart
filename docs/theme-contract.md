@@ -326,3 +326,16 @@ One grouper per store: a second, different one is refused and logged. The groupe
 - Shipping in a group is information for the shopper. What the order costs is still worked out by core's checkout.
 
 Where it reaches a theme: the `cart.index` view receives `$cartGroups`, and `GET /cart/mini` (`cart.mini`) answers `groups` beside `items`. A theme that draws a cart draws a header per group when `groups` is not null (section 7); the totals, the coupon and the checkout button are unchanged.
+
+### 9.3 Account menu
+
+An extension adds links to the customer's account menu from its provider's `boot()`:
+
+```php
+\App\Support\AccountMenu::add('marketplace.account.shops', 'My shops', 'store');
+// add(string $route, string $label, string $icon = 'file', ?string $match = null, int $position = 100)
+```
+
+A link is a route name, never an address. `AccountMenu::links()` returns, by position (then in the order added), the links whose route exists and needs no parameters: `[{url, label, icon, match, current}]`. `label` is plain text up to 40 characters, to be printed with `{{ }}`. `icon` is one of `file`, `wallet`, `return`, `store`, `star`, `gift`; a theme draws one it lacks as `file`. `match` is the route name pattern (`{route}*` by default) and `current` is true on a route it matches, for `aria-current`.
+
+Core's own links (dashboard, orders, addresses, wishlist, profile) are not in the list: a theme keeps drawing them, then draws these after them.

@@ -56,6 +56,7 @@ abstract class TestCase extends BaseTestCase
     {
         \App\Support\StorefrontPageType::forget('sample_page');
         \App\Support\CartGroups::forget();
+        \App\Support\AccountMenu::forget();
     }
 
     /**
