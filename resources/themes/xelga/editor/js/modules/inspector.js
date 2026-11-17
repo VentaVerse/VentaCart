@@ -9,7 +9,7 @@
  */
 
 import { $, h, icon, emptyArt, helpTip } from './dom.js';
-import { S, ui, sec, blk, locate, valueOf, labelOf, themeValue, settingsDoc, isBusy } from './state.js';
+import { S, ui, sec, blk, locate, valueOf, labelOf, themeValue, settingsDoc, isBusy, isFixed } from './state.js';
 import { sectionDef, blockDef, themeGroups, ownThemeGroups, themeGroupsIn, isFormSetting } from './catalog.js';
 import { commit } from './operations.js';
 import { same, humanize } from './util.js';
@@ -64,6 +64,14 @@ export function renderInspector() {
 }
 
 function emptyInspector() {
+  // Checkout, sign in and account keep a fixed layout: there are no
+  // sections to click, drag or hide, so the general tips would mislead.
+  if (isFixed()) {
+    return h('div', { class: 'empty', dataset: { empty: 'fixed' } },
+      h('span', { class: 'empty__lock' }, icon('lock')),
+      h('h2', { text: 'Nothing on this page to rearrange' }),
+      h('p', { text: 'This page keeps a fixed layout, and Theme settings still apply to it. Pick one on the left to change how it looks; the preview follows straight away.' }));
+  }
   return h('div', { class: 'empty' },
     emptyArt(),
     h('h2', { text: 'Click anything on your store to edit it' }),

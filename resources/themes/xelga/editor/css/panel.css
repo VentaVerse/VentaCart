@@ -2300,6 +2300,17 @@ button.pick-row:hover {
   height: auto;
 }
 
+/* A fixed page's padlock, as on the fixed-layout note in the left panel. */
+.empty__lock {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--text-2);
+  background: var(--surface-3);
+  border-radius: var(--radius);
+}
+
 .empty h2 {
   margin: 0;
   font-size: var(--fs-lg);
