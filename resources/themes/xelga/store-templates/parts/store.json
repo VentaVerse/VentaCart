@@ -19,7 +19,6 @@
       "schemes": [
         {
           "id": "scheme-1",
-          "label": "Graph paper",
           "colors": {
             "bg": "#f5f6f3",
             "text": "#121418",
@@ -34,7 +33,6 @@
         },
         {
           "id": "scheme-2",
-          "label": "Clean desk",
           "colors": {
             "bg": "#ffffff",
             "text": "#121418",
@@ -49,7 +47,6 @@
         },
         {
           "id": "scheme-3",
-          "label": "Night shift",
           "colors": {
             "bg": "#111317",
             "text": "#eef0f2",
@@ -64,7 +61,6 @@
         },
         {
           "id": "scheme-4",
-          "label": "Cutting mat",
           "colors": {
             "bg": "#1a4ea6",
             "text": "#ffffff",
@@ -79,7 +75,6 @@
         },
         {
           "id": "scheme-5",
-          "label": "Bare aluminum",
           "colors": {
             "bg": "#e6e9eb",
             "text": "#121418",

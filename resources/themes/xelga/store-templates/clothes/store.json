@@ -20,7 +20,6 @@
       "schemes": [
         {
           "id": "scheme-1",
-          "label": "Concrete mist",
           "colors": {
             "bg": "#eceeee",
             "text": "#15181c",
@@ -35,7 +34,6 @@
         },
         {
           "id": "scheme-2",
-          "label": "Gallery white",
           "colors": {
             "bg": "#f8f9f9",
             "text": "#15181c",
@@ -50,7 +48,6 @@
         },
         {
           "id": "scheme-3",
-          "label": "Night ink",
           "colors": {
             "bg": "#12161b",
             "text": "#eef0f1",
@@ -65,7 +62,6 @@
         },
         {
           "id": "scheme-4",
-          "label": "Dusk blue",
           "colors": {
             "bg": "#263a55",
             "text": "#f2f5f8",
@@ -80,7 +76,6 @@
         },
         {
           "id": "scheme-5",
-          "label": "Satin sage",
           "colors": {
             "bg": "#d5ddd4",
             "text": "#161d18",

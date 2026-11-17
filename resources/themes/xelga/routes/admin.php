@@ -5,6 +5,7 @@ use Themes\Xelga\Http\Controllers\DocumentController;
 use Themes\Xelga\Http\Controllers\EditorController;
 use Themes\Xelga\Http\Controllers\PickerController;
 use Themes\Xelga\Http\Controllers\PresenceController;
+use Themes\Xelga\Http\Controllers\SchemeController;
 use Themes\Xelga\Http\Controllers\StoreTemplateController;
 use Themes\Xelga\Http\Controllers\TemplateController;
 
@@ -41,6 +42,8 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // Starting stores: apply one to the draft, or take the last apply off again.
         Route::post('/store-templates/undo', [StoreTemplateController::class, 'undo'])->middleware('throttle:xelga-store-templates')->name('store-templates.undo');
         Route::post('/store-templates/{slug}/apply', [StoreTemplateController::class, 'apply'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->middleware('throttle:xelga-store-templates')->name('store-templates.apply');
+
+        Route::get('/schemes/usage', [SchemeController::class, 'usage'])->middleware('throttle:xelga-schemes')->name('schemes.usage');
 
         Route::get('/pick/{kind}', [PickerController::class, 'pick'])->where('kind', '[a-z\-]+')->middleware('throttle:xelga-pick')->name('pick');
     });

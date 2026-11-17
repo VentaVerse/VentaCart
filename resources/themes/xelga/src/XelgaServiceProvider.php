@@ -40,6 +40,7 @@ class XelgaServiceProvider extends ServiceProvider
         'xelga-templates' => 20,
         'xelga-assign' => 60,
         'xelga-store-templates' => 10,
+        'xelga-schemes' => 60,
     ];
 
     public function register(): void

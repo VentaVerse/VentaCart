@@ -291,7 +291,10 @@ export function onKeydown(e) {
     if (document.querySelector('dialog[open]')) return;
     if (isPopoverOpen()) closePopover();
     else if (ui.cancelStoreChoice?.()) e.preventDefault();
-    else if (S.sheetOpen) closeSheet();
+    else if (ui.isDrawerOpen?.()) {
+      e.preventDefault();
+      ui.closeDrawer();
+    } else if (S.sheetOpen) closeSheet();
   }
 }
 

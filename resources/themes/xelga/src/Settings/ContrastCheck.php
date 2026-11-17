@@ -35,7 +35,9 @@ final class ContrastCheck
 
         foreach ($schemes as $scheme) {
             $colors = (array) ($scheme['colors'] ?? []);
-            $label = (string) (($scheme['label'] ?? '') !== '' ? $scheme['label'] : $scheme['id']);
+            // Schemes are shown by their colors, never by a stored name, so a
+            // message names one by its number.
+            $label = 'Scheme ' . preg_replace('/^scheme-/', '', (string) $scheme['id']);
             foreach ($checks as $check) {
                 $fg = $colors[$check['fg']] ?? null;
                 $bg = $colors[$check['bg']] ?? null;

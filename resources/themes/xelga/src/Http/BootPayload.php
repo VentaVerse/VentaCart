@@ -171,6 +171,7 @@ final class BootPayload
                 'assignments_update' => route('admin.xelga.assignments.update'),
                 'store_templates_apply' => route('admin.xelga.store-templates.apply', ['slug' => '__SLUG__']),
                 'store_templates_undo' => route('admin.xelga.store-templates.undo'),
+                'schemes_usage' => route('admin.xelga.schemes.usage'),
                 'preview_open' => route('admin.xelga.preview.open'),
                 'preview_close' => route('admin.xelga.preview.close'),
                 'media_browse' => Route::has('admin.media.browse') ? route('admin.media.browse') : null,

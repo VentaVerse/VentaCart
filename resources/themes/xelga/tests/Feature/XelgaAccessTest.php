@@ -44,6 +44,7 @@ class XelgaAccessTest extends TestCase
             ['POST', route('admin.xelga.documents.duplicate', ['handle' => 'home']), ['section' => 'hero-1', 'draft_version' => 0]],
             ['GET', route('admin.xelga.pick', ['kind' => 'products']), []],
             ['GET', route('admin.xelga.pick', ['kind' => 'links']), ['q' => 'linen']],
+            ['GET', route('admin.xelga.schemes.usage'), []],
         ];
     }
 

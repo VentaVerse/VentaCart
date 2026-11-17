@@ -421,6 +421,26 @@ export function createApi(boot, { fetchImpl } = {}) {
       return { ...storeAnswer(unwrap(raw)), message: typeof raw?.message === 'string' ? raw.message : null };
     },
 
+    /**
+     * Where each color scheme is used across the store, read from the saved
+     * drafts: { schemeId: [{ handle, section, block, row, label }] }.
+     */
+    async schemeUsage() {
+      const json = unwrap(await send('GET', route('schemes.usage'), { retries: 1 }));
+      const usage = json?.usage && typeof json.usage === 'object' && !Array.isArray(json.usage) ? json.usage : {};
+      const out = {};
+      Object.entries(usage).forEach(([id, list]) => {
+        out[id] = (Array.isArray(list) ? list : []).filter((u) => u && typeof u.handle === 'string').map((u) => ({
+          handle: u.handle,
+          section: typeof u.section === 'string' ? u.section : null,
+          block: typeof u.block === 'string' ? u.block : null,
+          row: typeof u.row === 'string' ? u.row : null,
+          label: String(u.label || ''),
+        }));
+      });
+      return out;
+    },
+
     /** Heartbeat. Answers the other admins in the editor now. */
     async presence(handle) {
       const json = unwrap(await send('POST', route('presence'), { body: handle ? { handle } : {} }));

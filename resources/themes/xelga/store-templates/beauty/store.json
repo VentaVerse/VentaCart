@@ -29,7 +29,6 @@
       "schemes": [
         {
           "id": "scheme-1",
-          "label": "Rice paper",
           "colors": {
             "bg": "#fcf7f2",
             "text": "#2b121e",
@@ -44,7 +43,6 @@
         },
         {
           "id": "scheme-2",
-          "label": "Blush",
           "colors": {
             "bg": "#f4dcd8",
             "text": "#2b121e",
@@ -59,7 +57,6 @@
         },
         {
           "id": "scheme-3",
-          "label": "Plum",
           "colors": {
             "bg": "#2b121e",
             "text": "#fbeef0",
@@ -74,7 +71,6 @@
         },
         {
           "id": "scheme-4",
-          "label": "Guava",
           "colors": {
             "bg": "#a81f3d",
             "text": "#ffffff",
@@ -89,7 +85,6 @@
         },
         {
           "id": "scheme-5",
-          "label": "Calamansi butter",
           "colors": {
             "bg": "#f7e8b4",
             "text": "#2b121e",

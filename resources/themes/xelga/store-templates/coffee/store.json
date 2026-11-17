@@ -26,7 +26,6 @@
       "schemes": [
         {
           "id": "scheme-1",
-          "label": "Bar wall",
           "colors": {
             "bg": "#f3f3f1",
             "text": "#161616",
@@ -41,7 +40,6 @@
         },
         {
           "id": "scheme-2",
-          "label": "Paper filter",
           "colors": {
             "bg": "#ffffff",
             "text": "#161616",
@@ -56,7 +54,6 @@
         },
         {
           "id": "scheme-3",
-          "label": "Felt letterboard",
           "colors": {
             "bg": "#19191b",
             "text": "#f3f3ef",
@@ -71,7 +68,6 @@
         },
         {
           "id": "scheme-4",
-          "label": "Monstera",
           "colors": {
             "bg": "#22402e",
             "text": "#f1f4ee",
@@ -86,7 +82,6 @@
         },
         {
           "id": "scheme-5",
-          "label": "Bag sticker",
           "colors": {
             "bg": "#f07033",
             "text": "#141414",
