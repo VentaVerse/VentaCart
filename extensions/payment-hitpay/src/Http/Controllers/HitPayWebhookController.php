@@ -165,11 +165,12 @@ class HitPayWebhookController extends Controller
             'comment' => $comment,
         ]);
 
-        // An unpaid order whose payment failed or expired will not be paid
-        // on this page any more: the cart lets go of it, so the shopper's
-        // next Place order makes a new order and a new payment.
-        if ($order->order_status_id === null) {
-            app(\App\Services\CheckoutService::class)->releaseCart($order);
-        }
+        // An unpaid order whose payment failed or expired is given up on:
+        // the store credit it holds goes back to the customer, and the cart
+        // lets go of it, so the next Place order makes a new order and a
+        // new payment. The check runs under the order's row lock, so a
+        // repeated webhook or the shopper's browser landing at the same
+        // moment returns nothing twice; an order already paid is left alone.
+        \App\Services\UnpaidOrderAbandonment::abandon($order);
     }
 }

@@ -200,6 +200,21 @@ class CheckoutService
     }
 
     /**
+     * Give up on an order whose payment could not even start. A failure
+     * here must not hide the gateway's own answer, so it is reported and
+     * the cart is still let go of.
+     */
+    private function abandonUnpaid(Order $order): void
+    {
+        try {
+            UnpaidOrderAbandonment::abandon($order);
+        } catch (\Throwable $e) {
+            report($e);
+            $this->releaseCart($order);
+        }
+    }
+
+    /**
      * Run $place while holding this cart's placement lock, when the cache
      * store can lock. A request that cannot get the lock in time goes on
      * without it: the database check inside the order transaction still
@@ -475,14 +490,15 @@ class CheckoutService
         try {
             $paymentResult = $paymentMethod->processPayment($order);
         } catch (\Throwable $e) {
-            $this->releaseCart($order);
+            $this->abandonUnpaid($order);
             throw $e;
         }
 
         // Failed API call (e.g. HitPay rejected): return without clearing
         // cart, and unlinked from it, so placing again makes a new order.
+        // The order is never paid, so its store credit goes back.
         if (!$paymentResult->success) {
-            $this->releaseCart($order);
+            $this->abandonUnpaid($order);
             return ['order' => $order, 'payment' => $paymentResult, 'duplicate' => false];
         }
 

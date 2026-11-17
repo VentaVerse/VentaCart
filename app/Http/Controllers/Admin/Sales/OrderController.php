@@ -403,7 +403,13 @@ class OrderController extends Controller
 
     public function destroy(Order $order)
     {
-        $order->delete();
+        // An unpaid order gives back the store credit it holds before it
+        // goes; the ledger keeps the lines without the link. A placed
+        // order's credit stays the merchant's call, as on cancelling one.
+        DB::transaction(function () use ($order): void {
+            \App\Services\UnpaidOrderAbandonment::abandon($order);
+            $order->delete();
+        });
 
         return redirect()->route('admin.orders.index')
             ->with('success', 'Order deleted successfully.');

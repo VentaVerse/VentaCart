@@ -85,6 +85,73 @@ class OrderTotals
         }
     }
 
+    /**
+     * The order will not be paid: each releasable line gives back what it
+     * still holds. Call with the order's row locked, inside a transaction.
+     *
+     * @return list<string> notes for the order's history
+     */
+    public static function release(Order $order): array
+    {
+        $notes = [];
+        foreach (self::releasableLines($order) as [$provider, $line]) {
+            $note = $provider->release($order, $line);
+            if ($note !== null && $note !== '') {
+                $notes[] = $note;
+            }
+        }
+
+        return $notes;
+    }
+
+    /**
+     * The order was placed after it had been given up on: each releasable
+     * line takes again what it gave back. Call with the order's row
+     * locked, inside a transaction.
+     *
+     * @return list<string> notes for the order's history
+     */
+    public static function reclaim(Order $order): array
+    {
+        $notes = [];
+        foreach (self::releasableLines($order) as [$provider, $line]) {
+            $note = $provider->reclaim($order, $line);
+            if ($note !== null && $note !== '') {
+                $notes[] = $note;
+            }
+        }
+
+        return $notes;
+    }
+
+    /** @return list<array{0: ReleasableTotalInterface, 1: array}> */
+    private static function releasableLines(Order $order): array
+    {
+        $lines = array_filter(
+            (array) ($order->total_lines ?? []),
+            fn ($line) => is_array($line) && isset($line['code']),
+        );
+        if ($lines === []) {
+            return [];
+        }
+
+        $byKey = [];
+        foreach (self::providers() as $provider) {
+            if ($provider instanceof ReleasableTotalInterface) {
+                $byKey[$provider->getKey()] = $provider;
+            }
+        }
+
+        $out = [];
+        foreach ($lines as $line) {
+            if (isset($byKey[$line['code']])) {
+                $out[] = [$byKey[$line['code']], $line];
+            }
+        }
+
+        return $out;
+    }
+
     /** Test hook. */
     public static function reset(): void
     {
