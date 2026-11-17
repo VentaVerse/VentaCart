@@ -1,0 +1,117 @@
+{
+    "name": "column-fit-after-side-misfit",
+    "rules": {
+        "min": {
+            "text": 3,
+            "half": 6,
+            "four": 4,
+            "wide": 8
+        },
+        "main": [
+            "product-main"
+        ],
+        "sides": true
+    },
+    "input": {
+        "schema": 1,
+        "order": [
+            "s",
+            "h",
+            "a"
+        ],
+        "sections": {
+            "s": {
+                "type": "wide"
+            },
+            "h": {
+                "type": "half"
+            },
+            "a": {
+                "type": "text"
+            }
+        },
+        "rows": [
+            {
+                "id": "row-1",
+                "split": "6-6",
+                "columns": [
+                    [
+                        "h"
+                    ],
+                    [
+                        "a"
+                    ]
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            }
+        ],
+        "sides": {
+            "left": [
+                "s"
+            ]
+        }
+    },
+    "expected": {
+        "schema": 1,
+        "order": [
+            "h",
+            "a",
+            "s"
+        ],
+        "sections": {
+            "s": {
+                "type": "wide"
+            },
+            "h": {
+                "type": "half"
+            },
+            "a": {
+                "type": "text"
+            }
+        },
+        "rows": [
+            {
+                "id": "row-1",
+                "split": "6-6",
+                "columns": [
+                    [
+                        "h"
+                    ],
+                    [
+                        "a"
+                    ]
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-a0f1490a",
+                "split": "12",
+                "columns": [
+                    [
+                        "s"
+                    ]
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            }
+        ]
+    },
+    "moved": [
+        {
+            "path": "content.sections.s",
+            "reason": "too-wide",
+            "value": "row-a0f1490a"
+        }
+    ]
+}

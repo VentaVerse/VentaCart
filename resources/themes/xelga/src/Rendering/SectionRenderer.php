@@ -26,37 +26,87 @@ final class SectionRenderer
     /** How wide the page's content area was drawn, in twelfths of the page. */
     private int $contentSpan = 12;
 
+    /** @var array{left: string, right: string} the sides the last page template drew, empty when not drawn */
+    private array $sides = ['left' => '', 'right' => ''];
+
     /**
-     * Draws a document. For a page template the context's span is the
-     * width of the content area every row is drawn in: the whole page, or
-     * less when sides stand beside it. Header and footer are always the
-     * whole page wide and leave the content area as it was.
+     * Draws a document. For a page template, the context's span is the
+     * width of the page (12): its sides are drawn first, three twelfths
+     * each, kept for sideHtml(); every row is then drawn in the content area
+     * left between the sides that show something, and only the rows are
+     * returned. Header and footer are always the whole page wide and leave
+     * the content area and the sides as they were.
      */
     public function render(array $content, RenderContext $context): string
     {
-        if ($context->group === 'template') {
-            $this->contentSpan = $context->span;
-        }
         $sections = (array) ($content['sections'] ?? []);
-        $context = $context->withTypes($this->drawnTypes($content, $context));
+        $drawn = $this->drawnIds($content, $context);
+        $context = $context->withTypes($this->typesOf($drawn, $sections));
         $this->extensionCounts = [];
         $sides = self::sides($content);
 
-        // A side's sections draw at full width where they read, the left
-        // side's before the rows and the right side's after, until the page
-        // draws its sides beside the content.
+        if ($context->group !== 'template') {
+            $html = '';
+            foreach (Layout::rows($content) as $row) {
+                $html .= $this->row($row, $sections, $context);
+            }
+
+            return $html;
+        }
+
+        // A side is drawn when one of its sections is (see drawnIds()); one
+        // whose sections are all hidden takes no room from the content.
+        $on = [];
+        foreach (Layout::SIDES as $which) {
+            $on[$which] = array_intersect($sides[$which], $drawn) !== [];
+        }
+        $this->contentSpan = Layout::contentSpan(count(array_filter($on)), $context->span);
+        $this->sides = ['left' => '', 'right' => ''];
+
+        $this->sides['left'] = $this->side($sides['left'], $sections, $context);
+        $inner = $context->withSpan($this->contentSpan);
         $html = '';
-        foreach ($sides['left'] as $id) {
-            $html .= $this->placed($id, $sections, $context);
-        }
         foreach (Layout::rows($content) as $row) {
-            $html .= $this->row($row, $sections, $context);
+            $html .= $this->row($row, $sections, $inner);
         }
-        foreach ($sides['right'] as $id) {
+        $this->sides['right'] = $this->side($sides['right'], $sections, $context);
+        foreach (Layout::SIDES as $which) {
+            if (! $on[$which]) {
+                $this->sides[$which] = '';
+            }
+        }
+
+        return $html;
+    }
+
+    /**
+     * One side's sections, each drawn three twelfths wide. Every section
+     * is drawn even when the side is not, so extension limits count the
+     * page as drawnIds() counts it; render() drops a side that shows nothing.
+     *
+     * @param  list<string>  $ids
+     * @param  array<string, array>  $sections  the document's sections
+     */
+    private function side(array $ids, array $sections, RenderContext $context): string
+    {
+        $context = $context->withSpan(Layout::SIDE_SPAN);
+        $html = '';
+        foreach ($ids as $id) {
             $html .= $this->placed($id, $sections, $context);
         }
 
         return $html;
+    }
+
+    /**
+     * The HTML of a side the last page template drew, or an empty string
+     * when it drew none.
+     *
+     * @param  'left'|'right'  $which
+     */
+    public function sideHtml(string $which): string
+    {
+        return $this->sides[$which] ?? '';
     }
 
     /**
@@ -70,9 +120,21 @@ final class SectionRenderer
      */
     public function drawnTypes(array $content, RenderContext $context): array
     {
+        return $this->typesOf($this->drawnIds($content, $context), (array) ($content['sections'] ?? []));
+    }
+
+    /**
+     * The ids of the sections the document will draw, in the order the page
+     * reads (see drawnTypes() for which ones). The section types a page
+     * draws and whether a side is drawn both come from this one list.
+     *
+     * @return list<string>
+     */
+    private function drawnIds(array $content, RenderContext $context): array
+    {
         $sections = (array) ($content['sections'] ?? []);
         $counts = [];
-        $types = [];
+        $ids = [];
         foreach (self::drawOrder($content) as $id) {
             $section = $sections[$id] ?? null;
             $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
@@ -86,7 +148,21 @@ final class SectionRenderer
             if ((bool) ($section['disabled'] ?? false)) {
                 continue;
             }
-            $types[$schema->type] = true;
+            $ids[] = $id;
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param  list<string>  $ids
+     * @return list<string>
+     */
+    private function typesOf(array $ids, array $sections): array
+    {
+        $types = [];
+        foreach ($ids as $id) {
+            $types[(string) $sections[$id]['type']] = true;
         }
 
         return array_keys($types);

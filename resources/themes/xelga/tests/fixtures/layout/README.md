@@ -22,6 +22,27 @@ must also normalize to itself with `moved` empty.
 Its `sides_on` lists the theme's own page types only; the real payload also
 lists the page types of installed extensions that may have sides.
 
+## Columns beside the sides
+
+A column draws its part of the content area, and the content area is what
+the sides leave of the page: 12 twelfths without sides, 9 with one, 6 with
+both. So a column of part `p` is really `p x content / 12` twelfths of the
+page wide, and a section stays in it only when its span is no more than
+that (`span x 12 <= p x content`). An 8 column beside one side is 6
+twelfths wide; beside two, 4. A one-column row is always the whole content
+area wide, so only columns of a multi-column row are measured this way.
+
+The content area counts each side that still holds a section once the
+side's own misfits have left it, hidden sections included: a hidden section
+can be shown again without a save, and a section must never draw narrower
+than it was made for. (The storefront leaves out a side whose sections are
+all hidden, so the content is then wider than measured, never narrower.)
+A page that cannot have sides is measured at 12.
+
+These cases live in `content-width/`. The PHP test reads them with the
+rest. The editor's tests read only the top folder, so they skip these until
+the editor measures columns the same way; then the cases move up here.
+
 ## Reasons in `moved`
 
 | reason | when |
