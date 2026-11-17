@@ -89,11 +89,11 @@ export function createPictures({ api, stylesheets = [] }) {
       if (!response.ok) return '';
       return absoluteUrls(withoutImports(await response.text()), url);
     }));
-    const newFaces = texts.map(fontFaces).filter((f) => f && !faces.has(f));
-    if (newFaces.length) {
-      newFaces.forEach((f) => faces.add(f));
+    const unseenFaces = texts.map(fontFaces).filter((f) => f && !faces.has(f));
+    if (unseenFaces.length) {
+      unseenFaces.forEach((f) => faces.add(f));
       const sheet = new CSSStyleSheet();
-      sheet.replaceSync(newFaces.join('\n'));
+      sheet.replaceSync(unseenFaces.join('\n'));
       document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
     }
     const list = texts.filter(Boolean).map((text) => {

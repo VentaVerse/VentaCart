@@ -192,7 +192,7 @@ export function boardSource() {
   const name = subject.name;
   const button = h('button', {
     type: 'button', class: 'btn btn--secondary btn--sm', 'aria-haspopup': 'dialog',
-    onclick: (e) => newLayoutForm(e.currentTarget, base, { name }),
+    onclick: (e) => newLayoutForm(e.currentTarget, base, { name, subject }),
   }, `Make a layout for ${name} only`);
   const note = h('div', { class: 'source', role: 'note' },
     icon('layers', 'source__icon'),
@@ -533,8 +533,12 @@ function toggleSubject(handle, id, name, onChange) {
    Making and deleting layouts
    ------------------------------------------------------------------------ */
 
-/** Making a special layout: a name, and the layout it starts as a copy of. */
-export function newLayoutForm(anchor, page, { name = '' } = {}) {
+/**
+ * Making a special layout: a name, and the layout it starts as a copy of.
+ * With `subject` (a record shown on the board), the record is moved onto
+ * the new layout as soon as it exists, so "for {Name} only" holds.
+ */
+export function newLayoutForm(anchor, page, { name = '', subject = null } = {}) {
   const words = subjectWords(page.subjectType);
   if (!words) return;
   const existing = layoutsOf(page.type);
@@ -583,8 +587,24 @@ export function newLayoutForm(anchor, page, { name = '' } = {}) {
       const handle = res.template?.handle || res.document?.handle;
       const source = from.value === page.type ? `the default ${page.label.toLowerCase()} layout` : templateOf(from.value)?.label || 'the layout you chose';
       const leftOut = res.leftOut?.length ? ` ${res.leftOut.join(', ')} ${res.leftOut.length === 1 ? 'was' : 'were'} left out: special layouts cannot hold ${res.leftOut.length === 1 ? 'it' : 'them'}.` : '';
-      toast(`${label} made from ${source}. Choose which ${words.many} use it.${leftOut}`, { tone: 'success', timeout: leftOut ? 10000 : 6000 });
-      await ui.openPage({ type: page.type, layout: handle }, { openLayout: true, saved: true });
+      let assigned = false;
+      if (subject?.id && handle) {
+        try {
+          applyLayouts(await ctx.api.assign(page.subjectType, [Number(subject.id)], handle));
+          assigned = true;
+        } catch (error) {
+          if (error.kind === 'unauthenticated' || error.kind === 'forbidden') {
+            setFatal(error);
+            return;
+          }
+          // The layout exists; choosing what uses it stays open below.
+        }
+      }
+      const next = assigned
+        ? `${subject.name} uses it now.`
+        : `Choose which ${words.many} use it.`;
+      toast(`${label} made from ${source}. ${next}${leftOut}`, { tone: 'success', timeout: leftOut ? 10000 : 6000 });
+      await ui.openPage({ type: page.type, layout: handle }, { openLayout: !assigned, saved: true });
     } catch (e) {
       createBtn.disabled = false;
       createBtn.textContent = 'Create layout';

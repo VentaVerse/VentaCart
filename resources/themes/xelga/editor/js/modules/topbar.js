@@ -20,6 +20,7 @@ import { openRevisions } from './revisions.js';
 import { pageMenu } from './layouts.js';
 import { duplicateSection, duplicateBlock, canDuplicate, canDuplicateBlock } from './actions.js';
 import { schemeGroupKey } from './forms/schemes.js';
+import { isSameOrigin } from './api.js';
 import { formatTime, plural } from './util.js';
 
 /* ------------------------------------------------------------------------
@@ -69,7 +70,8 @@ export function updatePreviewLink() {
   if (!link) return;
   const { nonce, param } = ctx.boot?.preview || {};
   const base = S.page?.url || ctx.boot?.preview?.url || S.store?.url || '/';
-  if (!nonce) {
+  // The nonce only ever goes to the store's own address.
+  if (!nonce || !isSameOrigin(base)) {
     link.setAttribute('aria-disabled', 'true');
     return;
   }

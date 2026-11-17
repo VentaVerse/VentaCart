@@ -357,6 +357,31 @@ class XelgaTemplatesTest extends TestCase
     }
 
     /* --------------------------------------------------------------------
+       A layout for one record only
+       -------------------------------------------------------------------- */
+
+    public function test_a_layout_made_for_one_category_is_used_by_that_category_only(): void
+    {
+        config(['app.store_id' => $this->store->id]);
+        $phones = $this->category('Phones');
+        $laptops = $this->category('Laptops');
+
+        // The board's button: a copy of the shared layout, then the category moved onto it.
+        $this->make('Phones', 'category')->assertCreated();
+        $this->assign('category', [$phones->id], 'category.phones')->assertOk()->assertJsonPath('data.assigned', [$phones->id]);
+
+        $boot = BootPayload::build($this->admin());
+        $layout = collect($boot['templates'])->firstWhere('handle', 'category.phones');
+        $this->assertSame([$phones->id], $layout['assigned']);
+        $this->assertSame(1, $layout['count']);
+        // The shared layout keeps every other category: 2 in the store, 1 on its own layout.
+        $this->assertSame(2, collect($boot['pages'])->firstWhere('type', 'category')['subject_count']);
+        // Only that category uses it (shoppers see it once it is published).
+        $this->assertSame([$phones->id], Assignment::query()->where('subject_type', 'category')->pluck('subject_id')->map(fn ($id) => (int) $id)->all());
+        $this->assertNotContains($laptops->id, $layout['assigned']);
+    }
+
+    /* --------------------------------------------------------------------
        What the editor boots with
        -------------------------------------------------------------------- */
 
@@ -385,6 +410,9 @@ class XelgaTemplatesTest extends TestCase
         $this->assertContains('cart-checkout', $pages['checkout']['groups']);
         $this->assertSame('product', $pages['product']['subject_type']);
         // Every product counts; the editor takes the special layouts' own off it.
+        $this->assertSame(0, $pages['product']['subject_count'], 'Only the store\'s own records count.');
+        config(['app.store_id' => $this->store->id]);
+        $pages = collect(BootPayload::build($this->admin())['pages'])->keyBy('type');
         $this->assertSame(3, $pages['product']['subject_count']);
         $this->assertSame(0, $pages['category']['subject_count']);
         $this->assertArrayNotHasKey('subject_count', $pages['home']);
