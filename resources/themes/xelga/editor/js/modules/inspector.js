@@ -9,8 +9,8 @@
  */
 
 import { $, h, icon, emptyArt, helpTip } from './dom.js';
-import { S, ui, sec, blk, locate, valueOf, labelOf, themeValue, settingsDoc, isBusy, isFixed } from './state.js';
-import { sectionDef, blockDef, themeGroups, ownThemeGroups, themeGroupsIn, isFormSetting } from './catalog.js';
+import { S, ctx, ui, sec, blk, locate, valueOf, labelOf, themeValue, settingsDoc, isBusy, isFixed } from './state.js';
+import { sectionDef, blockDef, themeGroups, ownThemeGroups, themeGroupsIn, isFormSetting, extensionOf, absentName } from './catalog.js';
 import { commit } from './operations.js';
 import { same, humanize } from './util.js';
 import { select, deselect, showPanel } from './selection.js';
@@ -233,7 +233,25 @@ function themeErrors(keys = null) {
   return out;
 }
 
+/*
+ * A section the catalog lacks. One of an extension that is switched off or
+ * not installed is kept with its settings and comes back with the
+ * extension, so nothing here urges removing it. A type the theme dropped
+ * is gone for good.
+ */
 function missingSection(sid) {
+  const s = sec(sid);
+  const name = extensionOf(s?.type);
+  if (name) {
+    const ext = ctx.boot?.extensions?.[name] || { title: name, state: 'missing' };
+    const off = ext.state === 'off';
+    return h('div', { class: 'inspector' },
+      inspectorHead({ title: absentName(s), kind: `${ext.title || name} is ${off ? 'switched off' : 'not installed'}` }),
+      h('div', { class: 'insp-body' },
+        h('p', { class: 'insp-desc', text: `Shoppers do not see it for now. It is kept with its settings and comes back when ${ext.title || name} is ${off ? 'switched on' : 'installed'} again.` }),
+        h('div', { class: 'insp-foot' },
+          h('button', { type: 'button', class: 'btn btn--danger-text btn--sm', onclick: () => removeSection(sid) }, icon('trash', 'icon--sm'), 'Remove section'))));
+  }
   return h('div', { class: 'inspector' },
     inspectorHead({ title: 'Section no longer available', kind: 'Removed from the theme' }),
     h('div', { class: 'insp-body' },

@@ -116,6 +116,21 @@ export function absentNote(type, extensions = {}) {
   return `${ext.title || name} is ${ext.state === 'off' ? 'switched off' : 'not installed'}.`;
 }
 
+/** A section or block the catalog lacks, by its own name: its label, else its type made readable. */
+export function absentName(item) {
+  if (item?.label) return String(item.label);
+  const type = String(item?.type || '');
+  const name = type.includes('.') ? type.slice(type.indexOf('.') + 1) : type;
+  const words = name.replace(/-/g, ' ').trim();
+  return words ? words[0].toUpperCase() + words.slice(1) : 'Section';
+}
+
+/** "Seller card: Marketplace is switched off." for a row whose extension is away. */
+export function absentLabel(item, extensions = {}) {
+  const note = absentNote(item?.type, extensions);
+  return note ? `${absentName(item)}: ${note}` : null;
+}
+
 export const sectionIcon = (type) => sectionDef(type)?.icon || SECTION_ICONS[type] || 'layout';
 export const blockIcon = (type, blockType) => blockDef(type, blockType)?.icon || BLOCK_ICONS[blockType] || 'layout';
 
