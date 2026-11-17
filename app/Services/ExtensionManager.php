@@ -185,9 +185,26 @@ class ExtensionManager
      */
     public function registry(): Collection
     {
+        // Asked for by many parts of one page (is this extension on?): kept
+        // for the request, so the cache is read once rather than each time.
+        $memo = \App\Support\RequestCache::remember(self::REGISTRY_CACHE_KEY, fn () => $this->readRegistry());
+        if ($memo instanceof Collection) {
+            return $memo;
+        }
+        \App\Support\RequestCache::forget(self::REGISTRY_CACHE_KEY);
+
+        return collect();
+    }
+
+    /** @return Collection|false the registry, or false while the table does not exist yet */
+    private function readRegistry(): Collection|false
+    {
         try {
-            if (Cache::has(self::REGISTRY_CACHE_KEY)) {
-                return Cache::get(self::REGISTRY_CACHE_KEY);
+            // One read: a missing key comes back as the default, not as a
+            // has() query followed by a get() query.
+            $cached = Cache::get(self::REGISTRY_CACHE_KEY);
+            if ($cached instanceof Collection) {
+                return $cached;
             }
         } catch (\Throwable) {
             // Cache backend unavailable/unmigrated (e.g. `database` store
@@ -202,8 +219,9 @@ class ExtensionManager
             // run yet) must never persist past the moment the table starts
             // existing. Nothing would invalidate a bad cached-empty result —
             // install()/enable()/etc. are the only invalidation points, and
-            // none of them run during a bare `migrate`.
-            return collect();
+            // none of them run during a bare `migrate`. Not kept for the
+            // request either (registry() forgets a false).
+            return false;
         }
 
         $fresh = $this->hydrateRegistryRows(DB::table('extensions')->get());
@@ -510,6 +528,8 @@ class ExtensionManager
      */
     protected function invalidateRegistryCache(): void
     {
+        \App\Support\RequestCache::forget(self::REGISTRY_CACHE_KEY);
+
         try {
             Cache::forget(self::REGISTRY_CACHE_KEY);
         } catch (\Throwable) {

@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Cache;
  * every URL resolved and every dropdown's contents attached, so a theme
  * renders shape and never asks the database what a category is.
  *
- * Cached per menu; ThemeService::clearCache() drops it whenever a menu,
+ * Cached per menu and kept for the request (a page draws the main menu in
+ * more than one place); ThemeService::clearCache() drops it whenever a menu,
  * category, page or brand the tree reads is saved.
  */
 final class NavTree
@@ -23,7 +24,7 @@ final class NavTree
     /** @return list<array> */
     public static function for(string $menuKey = NavMenu::MAIN): array
     {
-        return Cache::rememberForever(self::CACHE_PREFIX . $menuKey, function () use ($menuKey) {
+        return RequestCache::remember(self::CACHE_PREFIX . $menuKey, fn () => Cache::rememberForever(self::CACHE_PREFIX . $menuKey, function () use ($menuKey) {
             $menu = NavMenu::where('key', $menuKey)->first();
             if (! $menu) {
                 return [];
@@ -44,11 +45,12 @@ final class NavTree
             };
 
             return $build(null);
-        });
+        }));
     }
 
     public static function forget(): void
     {
+        RequestCache::forget(self::CACHE_PREFIX, true);
         foreach (NavMenu::pluck('key') as $key) {
             Cache::forget(self::CACHE_PREFIX . $key);
         }

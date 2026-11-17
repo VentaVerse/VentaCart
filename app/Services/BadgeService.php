@@ -3,8 +3,14 @@
 namespace App\Services;
 
 use App\Models\Product;
+use App\Support\RequestCache;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * The New, Hot, Free shipping and Sale badges of a product card. The three
+ * lists behind them are cached across requests and kept for the request
+ * (RequestCache), so a page of cards reads each list once, not once a card.
+ */
 class BadgeService
 {
     private ThemeService $theme;
@@ -97,19 +103,19 @@ class BadgeService
 
     private function getNewProductIds(int $count): array
     {
-        return Cache::remember('badge_new_ids', 3600, function () use ($count) {
+        return RequestCache::remember('badge_new_ids', fn () => Cache::remember('badge_new_ids', 3600, function () use ($count) {
             return Product::where('is_active', true)
                 ->whereNotNull('date_available')
                 ->latest('date_available')
                 ->limit($count)
                 ->pluck('id')
                 ->toArray();
-        });
+        }));
     }
 
     private function getHotProductIds(int $count): array
     {
-        return Cache::remember('badge_hot_ids', 3600, function () use ($count) {
+        return RequestCache::remember('badge_hot_ids', fn () => Cache::remember('badge_hot_ids', 3600, function () use ($count) {
             // For now, use view count as proxy for popularity
             // Will switch to order count when orders are tracked
             return Product::where('is_active', true)
@@ -117,7 +123,7 @@ class BadgeService
                 ->limit($count)
                 ->pluck('id')
                 ->toArray();
-        });
+        }));
     }
 
     private function qualifiesForFreeShippingBadge(Product $product): bool
@@ -146,7 +152,7 @@ class BadgeService
 
     private function getFreeShippingBadgeRules()
     {
-        return Cache::remember('free_shipping_badge_rules', 3600, function () {
+        return RequestCache::remember('free_shipping_badge_rules', fn () => Cache::remember('free_shipping_badge_rules', 3600, function () {
             // Guarded: the model lives in the shipping-free extension;
             // no extension, no free shipping badges.
             if (! class_exists(\Extensions\ShippingFree\Models\FreeShippingRule::class)
@@ -157,11 +163,14 @@ class BadgeService
             return \Extensions\ShippingFree\Models\FreeShippingRule::where('is_active', true)
                 ->where('show_badge', true)
                 ->get();
-        });
+        }));
     }
 
     public static function clearCache(): void
     {
+        foreach (['badge_new_ids', 'badge_hot_ids', 'free_shipping_badge_rules'] as $key) {
+            RequestCache::forget($key);
+        }
         Cache::forget('badge_new_ids');
         Cache::forget('badge_hot_ids');
         Cache::forget('free_shipping_badge_rules');

@@ -141,6 +141,7 @@ class ThemeService
         \App\Support\NavTree::forget();
         \App\Support\ThemeOptions::forget();
         Cache::forget('theme_currencies');
+        \App\Support\RequestCache::forget('theme_currencies');
         Cache::forget('nav_subcategories');
 
         $this->settings = [];
@@ -329,12 +330,13 @@ class ThemeService
 
     public function getActiveCurrencies()
     {
-        return Cache::rememberForever('theme_currencies', function () {
+        // Every price on a page asks; read the cache once per request.
+        return \App\Support\RequestCache::remember('theme_currencies', fn () => Cache::rememberForever('theme_currencies', function () {
             return Currency::where('is_enabled', true)
                 ->orderByDesc('is_default')
                 ->orderBy('code')
                 ->get();
-        });
+        }));
     }
 
     public function getDefaultCurrency(): ?Currency

@@ -66,6 +66,26 @@ Add to your server's crontab for scheduled tasks (currency updates, stock alerts
 
 All default Venta automations (currency updates, back-in-stock notifications, review requests, SEO suggestions, sitemap, low-stock alerts, abandoned-cart reminders) run through this single `schedule:run` heartbeat. Edit their cadence, toggle them on/off, or trigger them manually from the admin at **Settings → Automations**.
 
+### 7. Production settings for speed
+
+**Cache store.** `.env.example` sets `CACHE_STORE=database` so a fresh install works with nothing else set up, but with that store every cache read is a database query. On a live store use the `file` store (one server) or `redis` (several servers, or when Redis is already running):
+
+```dotenv
+CACHE_STORE=file      # or: redis
+```
+
+A storefront page keeps each cached value for the rest of its request, so the database store costs one query per key rather than one per use, but a file or Redis read is still several times cheaper than a query. After changing the store, run `php artisan cache:clear`.
+
+**Smaller photos.** Storefront pages offer phones WebP copies of each photo (320 to 1920 pixels wide, kept under `storage/app/public/renditions`). Copies are made when a photo is uploaded, and a photo met without copies has them queued after the page is sent. For photos that arrived another way (an import, a copied folder, an upgrade), make them all once:
+
+```bash
+php artisan images:renditions
+```
+
+It skips photos whose copies are current, so it is safe to stop and run again. Queued copies are made by the queue, which the cron heartbeat above drains every minute.
+
+**Caches on deploy.** Run `php artisan optimize` after each deploy (config, routes, events and views), keep `APP_DEBUG=false`, and let the web server compress HTML, CSS and JavaScript (gzip or brotli).
+
 ## Upgrading
 
 Pull updates and run:
