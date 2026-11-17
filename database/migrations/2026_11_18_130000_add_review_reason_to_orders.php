@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Schema;
  * orders.review_reason: why the merchant must look at an order, shown on
  * its admin page until they mark it reviewed. Set when an order that gave
  * back its store credit (its payment was given up on) is paid after all,
- * and the customer's balance no longer covers taking the credit again.
+ * and the customer's balance no longer covers all of it: the note says
+ * how much was not recovered.
  *
  * Safe on a fresh install and on a store that already has orders: the
  * column starts empty, which reads as "nothing to review".
