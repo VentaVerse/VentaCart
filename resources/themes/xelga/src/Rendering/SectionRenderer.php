@@ -2,6 +2,7 @@
 
 namespace Themes\Xelga\Rendering;
 
+use Illuminate\Support\HtmlString;
 use Themes\Xelga\Catalog\Catalog;
 
 /**
@@ -68,7 +69,11 @@ final class SectionRenderer
             if ($blockDisabled && ! $context->preview) {
                 continue;
             }
-            $blocks[] = [
+            if (($block['unchecked'] ?? false) === true) {
+                $block['settings'] = (new \Themes\Xelga\Settings\Sanitizer($this->sanitizeContext()))
+                    ->cleanMap($schema->blockSettings((string) $block['type']), (array) ($block['settings'] ?? []), "blocks.{$blockId}");
+            }
+            $entry = [
                 'id' => $blockId,
                 'type' => (string) $block['type'],
                 'label' => (string) ($block['label'] ?? ''),
@@ -76,6 +81,12 @@ final class SectionRenderer
                 // A published page saved before a setting moved down to the blocks still draws as it was.
                 'settings' => array_merge($schema->blockDefaults((string) $block['type']), $schema->carryDown((string) $block['type'], (array) ($section['settings'] ?? []), (array) ($block['settings'] ?? []))),
             ];
+            $spec = $schema->blockType((string) $block['type']);
+            if (is_string($spec['source'] ?? null)) {
+                $entry['source'] = $spec['source'];
+                $entry['html'] = $this->extensionBlock($spec, $entry, $id, $context);
+            }
+            $blocks[] = $entry;
         }
 
         $label = (string) (($section['label'] ?? '') !== '' ? $section['label'] : $schema->label);
@@ -126,6 +137,45 @@ final class SectionRenderer
         $extensions = \Themes\Xelga\Extensions\Extensions::current();
 
         return ['extension' => $extensions->titleOf($name), 'absence' => $extensions->absence($name)];
+    }
+
+    /**
+     * An extension block drawn by its own view, inside the theme's block
+     * wrapper (which carries the ids the editor selects it by). A block that
+     * fails is logged and left out; the section still draws.
+     *
+     * @param  array{id: string, type: string, label: string, disabled: bool, settings: array}  $block
+     */
+    private function extensionBlock(array $spec, array $block, string $sectionId, RenderContext $context): HtmlString
+    {
+        $part = \Themes\Xelga\Extensions\Extensions::current()->get((string) $spec['source']);
+        $file = $part === null ? null : $part->path . '/views/blocks/' . $block['type'] . '.blade.php';
+        if ($file === null || ! is_file($file) || is_link($file)) {
+            return new HtmlString('');
+        }
+
+        try {
+            $data = [];
+            $class = $spec['data_class'] ?? null;
+            if (is_string($class) && class_exists($class) && is_subclass_of($class, SectionData::class)) {
+                $data = app($class)->resolve($block['settings'], [], $context);
+            }
+            $inner = view()->file($file, [
+                'block' => $block,
+                'settings' => $block['settings'],
+                'data' => $data,
+                'context' => $context,
+                'section' => ['id' => $sectionId],
+            ])->render();
+        } catch (\Throwable $e) {
+            report($e);
+            if (! $context->preview) {
+                return new HtmlString('');
+            }
+            $inner = '';
+        }
+
+        return new HtmlString(view('xelga::snippets.extension-block', ['block' => $block, 'class' => (string) $spec['class'], 'inner' => new HtmlString($inner)])->render());
     }
 
     /** A section's settings and blocks run through the sanitizer, as a save would. */

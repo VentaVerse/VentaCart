@@ -13,6 +13,8 @@
  *   node bin/ranges.mjs --schemas <its parts folder>/schemas/sections --out <its stylesheet>
  *
  * Its sections' class is s-{extension}--{name} (the type with its dot as --).
+ * Its blocks (schemas/blocks beside schemas/sections) get rules for an
+ * element inside the theme's wrapper, .b-{extension}--{name}.
  * The file named by --out is written whole, so keep the rules in a stylesheet
  * of their own and import it from the extension's main one.
  */
@@ -63,6 +65,22 @@ for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.json')).sort()
     }
   }
   if (rules.length) out.push(`\n/* ${schema.type} */`, ...rules);
+}
+
+// An extension's blocks: their views put the attribute on their own
+// element, inside the theme's block wrapper (.b-{extension}--{name}).
+const blocksDir = extensionDir ? path.join(dir, '..', 'blocks') : null;
+if (blocksDir && fs.existsSync(blocksDir)) {
+  for (const file of fs.readdirSync(blocksDir).filter((f) => f.endsWith('.json')).sort()) {
+    const schema = JSON.parse(fs.readFileSync(path.join(blocksDir, file), 'utf8'));
+    const cls = `b-${String(schema.type).replace('.', '--')}`;
+    const rules = [];
+    for (const s of schema.settings || []) {
+      if (s.type !== 'range') continue;
+      for (const v of values(s)) rules.push(`.${cls} [data-${dashed(s.key)}="${v}"]{--${dashed(s.key)}:${v}}`);
+    }
+    if (rules.length) out.push(`\n/* ${schema.type} */`, ...rules);
+  }
 }
 
 fs.mkdirSync(path.dirname(target), { recursive: true });

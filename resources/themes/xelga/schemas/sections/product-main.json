@@ -10,6 +10,7 @@
   "limit": 1,
   "main": true,
   "class": "s-product",
+  "extension_blocks": true,
   "render_keys": [
     "picker_color",
     "picker_size"

@@ -23,7 +23,11 @@
             @endif
             <div class="pmain__info" data-product-form>
                 @foreach ($info as $block)
-                    @includeIf('xelga::blocks.product-main.' . $block['type'], ['block' => $block])
+                    @if (isset($block['source']))
+                        {{ $block['html'] }}
+                    @else
+                        @includeIf('xelga::blocks.product-main.' . $block['type'], ['block' => $block])
+                    @endif
                 @endforeach
             </div>
         </div>

@@ -45,6 +45,15 @@ final class ExtensionParts
         return $files;
     }
 
+    /** @return list<string> its block schemas, `schemas/blocks/{type}.json` */
+    public function blockFiles(): array
+    {
+        $files = array_values(array_filter(glob($this->path . '/schemas/blocks/*.json') ?: [], fn (string $f) => is_file($f) && ! is_link($f)));
+        sort($files);
+
+        return $files;
+    }
+
     /**
      * The template defaults it ships, by page type.
      *
@@ -80,7 +89,7 @@ final class ExtensionParts
     /** The newest file time and the file count, for the catalog's cache key in debug. */
     public function fileStamp(): string
     {
-        $files = [...$this->schemaFiles(), ...array_values($this->templates()), $this->path . '/placements.json', $this->path . '/xelga.json'];
+        $files = [...$this->schemaFiles(), ...$this->blockFiles(), ...array_values($this->templates()), $this->path . '/placements.json', $this->path . '/xelga.json'];
         $times = array_map('filemtime', array_filter($files, 'is_file'));
 
         return ($times === [] ? 0 : max($times)) . '.' . count($times);

@@ -38,7 +38,10 @@ final class Catalog
     /** The extension fingerprint the memo was compiled for. */
     private static ?string $compiledFor = null;
 
-    /** An extension section type: the extension's name, a dot, the section's own name. */
+    /** How many more blocks extension blocks may add to one section. */
+    public const EXTENSION_BLOCK_ROOM = 8;
+
+    /** An extension section or block type: the extension's name, a dot, its own name. */
     public const EXTENSION_TYPE = '/^([a-z][a-z0-9-]{0,39})\.([a-z0-9]+(?:-[a-z0-9]+)*)$/';
 
     public static function root(string $path = ''): string
@@ -201,6 +204,32 @@ final class Catalog
             $sections += $own;
         }
 
+        // Extension blocks join the theme's sections that take them
+        // (`extension_blocks`) and that the block names in its `targets`.
+        $blocks = [];
+        foreach (self::extensions()->all() as $part) {
+            foreach ($part->blockFiles() as $file) {
+                $spec = self::extensionBlock($part, $file);
+                if ($spec !== null) {
+                    $blocks[$spec['type']] = $spec;
+                }
+            }
+        }
+        ksort($blocks);
+        foreach ($sections as $type => $section) {
+            if (($section['extension_blocks'] ?? false) !== true || isset($section['source'])) {
+                continue;
+            }
+            $room = 0;
+            foreach ($blocks as $block) {
+                if (in_array($type, $block['targets'], true) && $room < self::EXTENSION_BLOCK_ROOM) {
+                    $sections[$type]['blocks']['types'][] = $block;
+                    $room += (int) $block['limit'];
+                }
+            }
+            $sections[$type]['blocks']['max'] += min($room, self::EXTENSION_BLOCK_ROOM);
+        }
+
         $settings = json_decode((string) @file_get_contents(self::root('schemas/theme-settings.json')), true);
         $groups = array_map(function (array $group) {
             $group['settings'] = array_map(fn (array $s) => $s + ['live' => 'css'], (array) ($group['settings'] ?? []));
@@ -213,6 +242,7 @@ final class Catalog
         return [
             'version' => self::themeVersion(),
             'sections' => $sections,
+            'blocks' => $blocks,
             'theme_settings' => $groups,
             'font_pairs' => array_values((array) ($pairs['pairs'] ?? [])),
         ];
@@ -267,15 +297,9 @@ final class Catalog
                 return $refuse('a setting has a type extension sections cannot use');
             }
         }
-        $class = $spec['data_class'] ?? null;
-        if ($class !== null) {
-            if (! is_string($class) || $part->namespace === '' || ! str_starts_with(ltrim($class, '\\'), $part->namespace)) {
-                return $refuse('its data class must be in the extension\'s own namespace');
-            }
-            $class = ltrim($class, '\\');
-            if (! class_exists($class) || ! is_subclass_of($class, SectionData::class)) {
-                return $refuse('its data class must exist and implement ' . SectionData::class);
-            }
+        $class = self::dataClass($part, $spec['data_class'] ?? null, $refuse);
+        if ($class === false) {
+            return null;
         }
 
         $spec['group'] = 'template';
@@ -285,6 +309,94 @@ final class Catalog
         $spec['class'] = self::extensionClass($spec['type']);
 
         return $spec;
+    }
+
+    /**
+     * One extension block schema file, checked and stamped, or null
+     * (logged). A block names the theme's sections it may join in
+     * `targets`; a section takes it only when its own schema opts in.
+     */
+    public static function extensionBlock(ExtensionParts $part, string $file, ?callable $report = null): ?array
+    {
+        $fileType = basename($file, '.json');
+        $spec = json_decode((string) file_get_contents($file), true);
+        $refuse = function (string $reason) use ($part, $fileType, $report): ?array {
+            $report === null ? Registrar::refuse($part->name, "the block {$fileType}: {$reason}") : $report($reason);
+
+            return null;
+        };
+
+        if (! is_array($spec) || array_is_list($spec)) {
+            return $refuse('the schema is not a JSON object');
+        }
+        if (preg_match(self::EXTENSION_TYPE, (string) ($spec['type'] ?? ''), $m) !== 1 || $m[1] !== $part->name || $spec['type'] !== $fileType || strlen($m[2]) > 40) {
+            return $refuse("its type must be {$part->name}.{name}, and its file named after the type");
+        }
+        if (! is_string($spec['label'] ?? null) || trim($spec['label']) === '') {
+            return $refuse('it needs a label');
+        }
+        $targets = $spec['targets'] ?? null;
+        if (! is_array($targets) || $targets === [] || ! array_is_list($targets) || array_filter($targets, fn ($t) => ! is_string($t)) !== []) {
+            return $refuse('targets must list the theme\'s section types it may join');
+        }
+        foreach ((array) ($spec['settings'] ?? []) as $setting) {
+            $type = is_array($setting) ? ($setting['type'] ?? null) : null;
+            if (! in_array($type, self::TYPES, true) || $type === 'scheme-colors') {
+                return $refuse('a setting has a type extension blocks cannot use');
+            }
+        }
+        $class = self::dataClass($part, $spec['data_class'] ?? null, $refuse);
+        if ($class === false) {
+            return null;
+        }
+
+        $limit = $spec['limit'] ?? 1;
+
+        return [
+            'type' => $spec['type'],
+            'label' => trim($spec['label']),
+            'description' => is_string($spec['description'] ?? null) ? $spec['description'] : '',
+            'icon' => is_string($spec['icon'] ?? null) ? $spec['icon'] : null,
+            // The preview draws an extension block again on the server after
+            // a change, unless its schema says how the change shows.
+            'settings' => array_map(fn (array $s) => $s + ['live' => 'render'], array_values(array_filter((array) ($spec['settings'] ?? []), 'is_array'))),
+            'limit' => is_int($limit) && $limit >= 1 && $limit <= 4 ? $limit : 1,
+            'targets' => array_values(array_unique($targets)),
+            'source' => $part->name,
+            'source_label' => $part->title,
+            'data_class' => $class,
+            'class' => 'b-' . str_replace('.', '--', $spec['type']),
+        ];
+    }
+
+    /**
+     * An extension's data class, checked: null when it names none, false
+     * (refused) when it is not one the extension may use.
+     */
+    private static function dataClass(ExtensionParts $part, mixed $class, callable $refuse): string|false|null
+    {
+        if ($class === null) {
+            return null;
+        }
+        if (! is_string($class) || $part->namespace === '' || ! str_starts_with(ltrim($class, '\\'), $part->namespace)) {
+            $refuse('its data class must be in the extension\'s own namespace');
+
+            return false;
+        }
+        $class = ltrim($class, '\\');
+        if (! class_exists($class) || ! is_subclass_of($class, SectionData::class)) {
+            $refuse('its data class must exist and implement ' . SectionData::class);
+
+            return false;
+        }
+
+        return $class;
+    }
+
+    /** An extension block's schema, or null when no registered extension has the type. */
+    public static function extensionBlockSpec(string $type): ?array
+    {
+        return self::all()['blocks'][$type] ?? null;
     }
 
     /** The CSS class of an extension section: `s-{extension}--{name}`, which no theme section uses. */

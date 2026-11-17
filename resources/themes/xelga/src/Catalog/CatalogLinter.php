@@ -70,17 +70,41 @@ final class CatalogLinter
             $this->extensionRanges($where, $spec, $css);
         }
 
+        foreach ($part->blockFiles() as $file) {
+            $name = basename($file, '.json');
+            $where = "{$part->name}: block {$name}";
+            $spec = Catalog::extensionBlock($part, $file, fn (string $reason) => $this->problem("{$where}: {$reason}."));
+            if ($spec === null) {
+                continue;
+            }
+            $this->settings($where, $spec['settings'], $spec);
+            foreach ($spec['targets'] as $target) {
+                $section = Catalog::section($target);
+                if ($section === null || $section->source() !== null) {
+                    $this->problem("{$where}: targets {$target}, which is not one of the theme's sections.");
+                } elseif (($section->raw['extension_blocks'] ?? false) !== true) {
+                    $this->problem("{$where}: targets {$target}, which does not take extension blocks.");
+                }
+            }
+            $view = $part->path . "/views/blocks/{$name}.blade.php";
+            if (! is_file($view) || is_link($view)) {
+                $this->problem("{$where}: views/blocks/{$name}.blade.php is missing.");
+            }
+            // A block's view puts the attribute on its own element, inside the theme's wrapper.
+            $this->extensionRanges($where, ['type' => $name, 'settings' => $spec['settings']], $css, 'b-', ' ');
+        }
+
         return $this->problems;
     }
 
     /** The extension's stylesheet must hold a rule for every range value of its sections. */
-    private function extensionRanges(string $where, array $spec, string $css): void
+    private function extensionRanges(string $where, array $spec, string $css, string $prefix = 's-', string $join = ''): void
     {
-        $class = Catalog::extensionClass($spec['type']);
+        $class = $prefix . str_replace('.', '--', $spec['type']);
         $rules = [];
         foreach ((array) ($spec['settings'] ?? []) as $raw) {
             if (($raw['type'] ?? null) === 'range') {
-                $rules[] = [new SettingSchema($raw), ".{$class}"];
+                $rules[] = [new SettingSchema($raw), ".{$class}{$join}"];
             }
         }
         foreach ((array) ($spec['blocks']['types'] ?? []) as $type) {

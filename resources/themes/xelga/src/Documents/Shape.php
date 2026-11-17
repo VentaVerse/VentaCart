@@ -291,10 +291,12 @@ final class Shape
 
         $this->sameKeys($path, $order, $blocks, 'block');
 
-        if (count($order) < $schema->blockMin()) {
+        // Blocks of an extension that is away are kept and take no room.
+        $live = count(array_filter($order, fn ($id) => ! (is_string($id) && is_array($blocks[$id] ?? null) && self::isDormantBlock($blocks[$id]))));
+        if ($live < $schema->blockMin()) {
             $this->fail("{$path}.block_order", "{$schema->label} needs at least {$schema->blockMin()}.");
         }
-        if (count($order) > $schema->blockMax()) {
+        if ($live > $schema->blockMax()) {
             $this->fail("{$path}.block_order", $schema->blockMax() === 0 ? "{$schema->label} has no blocks." : "{$schema->label} holds at most {$schema->blockMax()}.");
         }
 
@@ -306,12 +308,20 @@ final class Shape
             }
             $bPath = "{$path}.blocks.{$id}";
             $type = $blocks[$id]['type'] ?? null;
-            if (! is_string($type) || preg_match(self::ID, $type) !== 1) {
+            if (! is_string($type) || (preg_match(self::ID, $type) !== 1 && self::extensionOf($type) === null)) {
                 $this->fail("{$bPath}.type", 'Not a block type: 1 to 40 lowercase letters, digits or hyphens.');
                 continue;
             }
+            if (self::isDormantBlock($blocks[$id])) {
+                $dormant = $this->dormantBlock($blocks[$id], $bPath);
+                if ($dormant !== null) {
+                    $out[$id] = $dormant;
+                }
+                continue;
+            }
             // The section's schema is known here, so a block type it does
-            // not hold is refused rather than kept.
+            // not hold (an extension block it does not take, too) is refused
+            // rather than kept.
             $spec = $schema->blockType($type);
             if ($spec === null) {
                 $this->fail("{$bPath}.type", "Not a kind of block {$schema->label} holds.");
@@ -332,6 +342,9 @@ final class Shape
                     "{$bPath}.settings",
                 ),
             ];
+            if (is_string($spec['source'] ?? null)) {
+                $out[$id]['source'] = $spec['source'];
+            }
         }
 
         return ['block_order' => array_values(array_filter($order, 'is_string')), 'blocks' => (object) $out];
@@ -403,6 +416,33 @@ final class Shape
             'block_order' => array_values(array_filter($order, 'is_string')),
             'blocks' => (object) $out,
             'source' => $extension,
+            'unchecked' => true,
+        ];
+    }
+
+    /** Whether a stored block is an extension block kept while no registered extension has its type. */
+    public static function isDormantBlock(array $block): bool
+    {
+        $type = $block['type'] ?? null;
+
+        return is_string($type) && self::extensionOf($type) !== null && Catalog::extensionBlockSpec($type) === null;
+    }
+
+    /** A dormant block as stored, like a dormant section: values kept unread, marked for cleaning. */
+    private function dormantBlock(array $block, string $path): ?array
+    {
+        if (strlen((string) json_encode($block)) > self::MAX_DORMANT_BYTES) {
+            $this->fail($path, 'A block kept while its extension is away holds at most 16 KB.');
+
+            return null;
+        }
+
+        return [
+            'type' => (string) $block['type'],
+            'label' => trim(SafeInput::text($block['label'] ?? '', 80)),
+            'disabled' => $this->flag($block['disabled'] ?? false, "{$path}.disabled"),
+            'settings' => (object) self::storedMap($block['settings'] ?? []),
+            'source' => (string) self::extensionOf((string) $block['type']),
             'unchecked' => true,
         ];
     }

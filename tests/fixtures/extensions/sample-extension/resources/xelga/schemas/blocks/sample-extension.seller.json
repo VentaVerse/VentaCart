@@ -1,0 +1,13 @@
+{
+  "type": "sample-extension.seller",
+  "label": "Seller",
+  "description": "Who sells this product.",
+  "icon": "user",
+  "targets": ["product-main"],
+  "limit": 1,
+  "data_class": "Tests\\Fixtures\\Extensions\\SampleExtension\\Xelga\\Blocks\\Seller",
+  "settings": [
+    { "key": "label", "type": "text", "label": "Text before the name", "default": "Sold by", "max": 40 },
+    { "key": "link", "type": "url", "label": "Goes to", "default": null }
+  ]
+}
