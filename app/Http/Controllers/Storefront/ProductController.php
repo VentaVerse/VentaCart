@@ -42,8 +42,12 @@ class ProductController extends Controller
             $product->load('approvedReviews.images');
         }
 
-        // Increment views
-        $product->increment('views');
+        // Count the view with one UPDATE that leaves updated_at alone and fires
+        // no model events: a page view is not an edit, so it must not read as
+        // a change to anything keyed on updated_at (sitemaps, sync jobs) or
+        // clear the badge caches every other page relies on.
+        Product::withoutTimestamps(fn () => Product::withoutGlobalScopes()->whereKey($product->getKey())->increment('views'));
+        $product->setRawAttributes(['views' => (int) $product->views + 1] + $product->getAttributes(), true);
 
         // What the shopper can actually buy. A parent's stored quantity is the
         // sum of all its variants, switched-off ones included, so the page
