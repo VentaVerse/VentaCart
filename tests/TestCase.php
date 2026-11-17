@@ -50,6 +50,10 @@ abstract class TestCase extends BaseTestCase
     private function linkSampleTheme(): void
     {
         $link = resource_path('themes/' . self::SAMPLE_THEME);
+        // A checkout with every shipped theme removed has no themes folder.
+        if (! is_dir(dirname($link))) {
+            mkdir(dirname($link), 0775, true);
+        }
         if (! is_link($link) && ! file_exists($link)) {
             symlink(base_path('tests/fixtures/themes/' . self::SAMPLE_THEME), $link);
         }

@@ -38,6 +38,8 @@ class CoreWithoutBundledThemeTest extends TestCase
             'themes.bundled' => 'a-theme-that-is-not-on-disk',
         ]);
         app()->forgetInstance(ExtensionManager::class);
+        // Pages render without built assets, as on a checkout that never ran npm.
+        $this->withoutVite();
     }
 
     public function test_the_admin_boots_and_lists_the_themes_on_disk(): void
@@ -59,7 +61,6 @@ class CoreWithoutBundledThemeTest extends TestCase
         app(ExtensionManager::class)->install(ThemeService::registryName('sample'));
         app(ThemeService::class)->activateTheme('sample');
         app(ThemeService::class)->clearCache();
-        $this->withoutVite();
 
         $this->get('/')->assertOk();
     }
