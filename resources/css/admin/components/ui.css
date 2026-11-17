@@ -456,21 +456,19 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
 
 .v-cell-name { min-width: 15rem; }
 .v-namerow { display: flex; align-items: center; gap: 8px; }
-.v-w-sort { max-width: 84px; }
+.v-w-sort { max-width: 84px; min-width: 4.5rem; }
 /* The status tone select: five short words, so it keeps the statuses
    table inside the measure instead of pushing Sort and Default off it. */
 .v-w-tone { width: 7.25rem; min-width: 7.25rem; }
 /* "Customer may cancel" and where the cancellation goes share one cell:
-   the switch, then its destination on the same line once it is on. */
-.v-cell-cancel { min-width: 17.5rem; }
-.v-cancelto { display: flex; align-items: center; gap: 10px; }
-.v-cancelto__to { display: flex; align-items: center; gap: 8px; }
+   the switch, then its destination under it once it is on. Stacked, the
+   cell stays narrow enough for the whole statuses table, Delete included,
+   to fit the settings measure. */
+.v-cell-cancel { min-width: 9.5rem; }
+.v-cancelto { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.v-cancelto__to { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .v-cancelto__label { font-size: 12.5px; color: var(--v-ink-2); white-space: nowrap; }
 .v-w-cancelto { width: 9.5rem; min-width: 9.5rem; }
-@media (max-width: 640px) {
-    .v-cell-cancel { min-width: 11rem; }
-    .v-cancelto { flex-direction: column; align-items: flex-start; }
-}
 /* A table with more columns than the measure has room for at one line
    per header: headers wrap to two lines and the name cell gives up its
    slack, so Sort, Default and the row actions stay on screen. */
