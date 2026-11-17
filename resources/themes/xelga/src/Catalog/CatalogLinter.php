@@ -25,7 +25,6 @@ final class CatalogLinter
     /** @var list<int> the widths, in twelfths of a row, a section may ask for */
     private const SPANS = [3, 4, 6, 8, 12];
 
-
     private const LIVE = ['text', 'attr', 'css', 'render'];
 
     /** `render`: the setting is read by the views, so a change shows when the page is drawn again. */
@@ -373,12 +372,16 @@ final class CatalogLinter
 
     /**
      * Which group of tiles the section picker shows one of the theme's own
-     * sections in. Every section that can be added names one of the four
-     * groups; an extension's sections are grouped under the extension's
-     * name, so theirs is not read.
+     * sections in, and where in it. Every section that can be added names
+     * one of the four groups; `picker_order`, when given, is a whole number
+     * above 0. An extension's sections are grouped under the extension's
+     * name, so theirs are not read.
      */
     private function pickerGroup(string $where, array $spec): void
     {
+        if (array_key_exists('picker_order', $spec) && (! is_int($spec['picker_order']) || $spec['picker_order'] < 1)) {
+            $this->problem("{$where}: picker_order must be a whole number above 0.");
+        }
         $words = 'banners, products, categories or text';
         if (array_key_exists('picker_group', $spec) && in_array($spec['picker_group'], SectionSchema::PICKER_GROUPS, true)) {
             return;

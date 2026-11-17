@@ -50,6 +50,18 @@ final class SectionSchema
         return in_array($group, self::PICKER_GROUPS, true) ? $group : self::DEFAULT_PICKER_GROUP;
     }
 
+    /**
+     * Where the section picker shows the section within its group: lower
+     * first, the most used types leading. Null when the schema gives no
+     * order, or for an extension's section; those follow in catalog order.
+     */
+    public function pickerOrder(): ?int
+    {
+        $order = $this->raw['picker_order'] ?? null;
+
+        return $this->source() === null && is_int($order) && $order > 0 ? $order : null;
+    }
+
     /** The theme's view that draws one of its own sections. */
     public function view(): string
     {

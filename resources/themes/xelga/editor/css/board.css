@@ -580,12 +580,18 @@ body.is-dragging .beside.is-over span { display: inline; }
   box-shadow: 0 0 0 2px var(--accent);
 }
 
+/*
+ * The name bar: name, then the type when the section has a name of its
+ * own, then the layout. The bar is a container, so what it shows follows
+ * its own width: the layout gives way first, then the type moves under
+ * the name. The name never takes more than 60% of a line it shares.
+ */
 .piece__bar {
   display: flex;
   align-items: center;
-  gap: 8px;
   min-width: 0;
   padding: 7px 10px;
+  container: piece-bar / inline-size;
   font-size: var(--fs-sm);
   font-weight: 600;
   line-height: 1.25;
@@ -603,15 +609,53 @@ body.is-dragging .beside.is-over span { display: inline; }
   color: var(--text-3);
 }
 
-.piece__name {
+.piece__line {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
+}
+
+.piece__name {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 60%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+.piece__line:not(:has(.piece__type)) .piece__name {
+  max-width: 75%;
+}
+
+.piece__type {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-2);
+}
+
+.piece__type::before,
+.piece__variant::before {
+  content: "\00B7";
+  margin-inline-end: 6px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.piece.is-selected .piece__type {
+  color: var(--text-2);
+}
+
+/* The layout gives way before the name or the type. */
 .piece__variant {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   font-size: var(--fs-xs);
@@ -678,14 +722,26 @@ body.is-dragging .beside.is-over span { display: inline; }
   opacity: .35;
 }
 
-/* Narrow columns drop the layout name, then the flag words. */
-@container (max-width: 260px) {
+/* A bar of 340px or less drops the layout; it is always in the settings. */
+@container piece-bar (max-width: 340px) {
   .piece__variant { display: none; }
 }
 
-@container (max-width: 170px) {
+/* Too narrow for name and type side by side: the type moves under the name instead of being cut. */
+@container piece-bar (max-width: 300px) {
+  .piece__line { flex-wrap: wrap; row-gap: 0; }
+
+  .piece__name,
+  .piece__line:not(:has(.piece__type)) .piece__name { flex: 1 1 0; max-width: none; }
+
+  .piece__type { order: 3; flex: 1 0 100%; max-width: none; padding-inline-start: 24px; }
+
+  .piece__type::before { content: none; }
+}
+
+@container piece-bar (max-width: 150px) {
   .piece__flagtext { display: none; }
-  .piece__bar { gap: 6px; padding-inline: 8px; }
+  .piece__line { gap: 6px; }
 }
 
 .sk--piece {
@@ -750,6 +806,35 @@ body.is-dragging .beside.is-over span { display: inline; }
     display: none;
   }
 
+  /* One line per section: the name, with the type under it when the section is renamed. */
+  .piece__line {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .piece__name,
+  .piece__line:not(:has(.piece__type)) .piece__name {
+    flex: 1 1 0;
+    max-width: none;
+  }
+
+  .piece__type {
+    order: 3;
+    flex: 1 0 100%;
+    max-width: none;
+    padding-inline-start: 0;
+  }
+
+  .piece__type::before {
+    content: none;
+  }
+
+  .row--multi .piece__type,
+  .side .piece__type {
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+
   .row--multi .piece {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -768,7 +853,7 @@ body.is-dragging .beside.is-over span { display: inline; }
   .side .piece__name {
     font-size: var(--fs-xs);
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   .row--multi .row__cols {

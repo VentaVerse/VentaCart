@@ -132,6 +132,68 @@ class XelgaRowsDocumentTest extends TestCase
         $this->assertSame(Layout::ROW_DEFAULTS, $this->rowOf($this->draft('home'), 'tile-a')['settings']);
     }
 
+    /**
+     * The document as the editor sends it after the section picker put a
+     * section of another type in a section's place: a new id in the same
+     * slot of its row, order and section map, with the new type's starting
+     * settings and the old section's color scheme.
+     */
+    private function replaced(array $content, string $old, string $new, array $section): array
+    {
+        $swap = fn ($id) => $id === $old ? $new : $id;
+        $sections = [];
+        foreach ($content['sections'] as $id => $data) {
+            $sections[$swap($id)] = $id === $old ? $section : $data;
+        }
+        $content['sections'] = $sections;
+        $content['order'] = array_map($swap, $content['order']);
+        foreach ($content['rows'] ?? [] as $r => $row) {
+            $content['rows'][$r]['columns'] = array_map(fn ($column) => array_map($swap, $column), $row['columns']);
+        }
+
+        return $content;
+    }
+
+    public function test_a_replaced_section_saves_in_its_place(): void
+    {
+        $this->saveWithRows('home', $this->withTileRow($this->defaults('home'), 'hero-1'), 0)->assertOk();
+        $before = $this->draft('home');
+
+        $text = [
+            'type' => 'rich-text', 'label' => 'Text', 'disabled' => false,
+            'settings' => ['variant' => 'center', 'heading' => 'Made slowly, worn often', 'scheme' => 'scheme-3'],
+            'block_order' => [], 'blocks' => [],
+        ];
+        $content = $this->replaced($before, 'tile-b', 'rich-text-k2m9', $text);
+        $this->saveWithRows('home', $content, 1)->assertOk()->assertJsonPath('data.adjusted', []);
+
+        $draft = $this->draft('home');
+        $this->assertArrayNotHasKey('tile-b', $draft['sections']);
+        $this->assertSame('rich-text', $draft['sections']['rich-text-k2m9']['type']);
+        $this->assertSame('scheme-3', $draft['sections']['rich-text-k2m9']['settings']['scheme'], 'The old color scheme is kept.');
+        $this->assertSame([['tile-a'], ['rich-text-k2m9']], $this->rowOf($draft, 'tile-a')['columns'], 'Same row, same column.');
+        $this->assertSame('row-tiles', $this->rowOf($draft, 'tile-a')['id']);
+        $this->assertSame(array_search('tile-b', $before['order'], true), array_search('rich-text-k2m9', $draft['order'], true));
+
+        // A full-width section swapped for another keeps its row.
+        $heroRow = $this->rowOf($draft, 'hero-1')['id'];
+        $photo = [
+            'type' => 'image-with-text', 'label' => 'Image with text', 'disabled' => false,
+            'settings' => ['variant' => 'split', 'scheme' => 'scheme-1'], 'block_order' => [], 'blocks' => [],
+        ];
+        $this->saveWithRows('home', $this->replaced($draft, 'hero-1', 'image-with-text-p4x7', $photo), 2)
+            ->assertOk()->assertJsonPath('data.adjusted', []);
+        $after = $this->draft('home');
+        $this->assertSame($heroRow, $this->rowOf($after, 'image-with-text-p4x7')['id']);
+        $this->assertSame('image-with-text-p4x7', $after['order'][0]);
+
+        // The server still holds the rules: a section too wide for the column moves to a row of its own.
+        $banner = $this->defaults('home')['sections']['hero-1'];
+        $response = $this->saveWithRows('home', $this->replaced($after, 'rich-text-k2m9', 'hero-w8q1', $banner), 3)->assertOk();
+        $this->assertSame('too-wide', $response->json('data.adjusted.0.reason'));
+        $this->assertSame([['tile-a'], []], $this->rowOf($this->draft('home'), 'tile-a')['columns']);
+    }
+
     public function test_a_section_too_wide_for_its_column_moves_to_its_own_row_and_is_reported(): void
     {
         $home = $this->homeRows($this->withTileRow($this->defaults('home'), 'hero-1'));

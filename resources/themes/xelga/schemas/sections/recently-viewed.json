@@ -4,6 +4,7 @@
   "description": "Hidden until the shopper has viewed a product.",
   "group": "template",
   "picker_group": "products",
+  "picker_order": 130,
   "templates": [
     "*"
   ],

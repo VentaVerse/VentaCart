@@ -3,6 +3,7 @@
   "label": "Text",
   "group": "template",
   "picker_group": "text",
+  "picker_order": 70,
   "templates": [
     "*"
   ],

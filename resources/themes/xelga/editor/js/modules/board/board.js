@@ -27,13 +27,14 @@ import {
 import { sectionDef, sectionIcon, variantDrawing } from '../catalog.js';
 import { onChange, layoutPayload } from '../operations.js';
 import { flush, setFatal } from '../drafts.js';
-import { select } from '../selection.js';
+import { select, setNav } from '../selection.js';
 import { fitFrame } from '../preview.js';
 import { rowsOf } from './model.js';
 import { createPictures } from './pictures.js';
 import { boardSource } from '../layouts.js';
 import { openPicker, pickerSpot, pickerReplacing } from './picker.js';
 import { splitOf, listWords, columnName } from './words.js';
+import { barWords } from './labels.js';
 import { startDrag, keyMove, keyMoveRow, dragJustEnded, afterRender, targetKey } from './drag.js';
 import { openDrawer, closeDrawer } from './drawer.js';
 
@@ -69,6 +70,7 @@ function piece(section, span, { movable = false, changeable = false } = {}) {
   const def = sectionDef(section.type);
   const selected = S.sel?.kind === 'section' && S.sel.sid === section.id;
   const name = labelOf(section.id);
+  const words = barWords(name, def?.label || '', variantLabel(section.id, section.type));
   const hidden = Boolean(section.disabled);
   const main = def?.main === true;
   const picture = pictures?.pictureFor(section.id, span) || null;
@@ -90,11 +92,14 @@ function piece(section, span, { movable = false, changeable = false } = {}) {
     onpointerdown: movable ? (e) => startDrag(e, { kind: 'section', sid: section.id }) : null,
     onkeydown: movable ? (e) => keyMove(e, section.id) : null,
   },
-  h('span', { class: 'piece__bar' },
-    icon(sectionIcon(section.type), 'icon--sm piece__icon'),
-    h('span', { class: 'piece__name', text: name }),
-    h('span', { class: 'piece__variant', text: variantLabel(section.id, section.type) }),
-    ...flags.map(([iconName, text, title]) => h('span', { class: 'piece__flag', title }, icon(iconName, 'icon--xs'), h('span', { class: 'piece__flagtext', text })))),
+  // Name, then the type when the section has a name of its own, then the layout.
+  h('span', { class: 'piece__bar', title: words.title },
+    h('span', { class: 'piece__line' },
+      icon(sectionIcon(section.type), 'icon--sm piece__icon'),
+      h('span', { class: 'piece__name', text: words.name }),
+      words.type ? h('span', { class: 'piece__type', text: words.type }) : null,
+      words.layout ? h('span', { class: 'piece__variant', text: words.layout }) : null,
+      ...flags.map(([iconName, text, title]) => h('span', { class: 'piece__flag', title }, icon(iconName, 'icon--xs'), h('span', { class: 'piece__flagtext', text }))))),
   h('span', { class: 'piece__shot' },
     h('span', { class: 'piece__sketch' }, schematic(variantDrawing(section.type, variantOf(section.id)))),
     picture));
@@ -440,6 +445,11 @@ async function runRefresh() {
 
 export function setCanvas(which) {
   S.canvas = which === 'preview' ? 'preview' : 'board';
+  // Beside the board, adding goes through the section picker only: the section list's add panel closes.
+  if (S.canvas === 'board' && S.nav === 'add') {
+    S.addAt = null;
+    setNav('sections');
+  }
   app().dataset.canvas = S.canvas;
   document.querySelectorAll('#canvas-switch [role="radio"]').forEach((b) => {
     const on = b.dataset.canvas === S.canvas;

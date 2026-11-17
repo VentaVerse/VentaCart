@@ -3,6 +3,7 @@
   "label": "Category tiles",
   "group": "template",
   "picker_group": "categories",
+  "picker_order": 30,
   "templates": [
     "*"
   ],

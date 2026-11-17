@@ -10,10 +10,9 @@
 
 import { $, h, icon, emptyArt, helpTip } from './dom.js';
 import { S, ctx, ui, sec, blk, locate, valueOf, labelOf, themeValue, settingsDoc, isBusy, isFixed } from './state.js';
-import { sectionDef, blockDef, themeGroups, ownThemeGroups, themeGroupsIn, isFormSetting, extensionOf, absentName } from './catalog.js';
+import { sectionDef, sectionIcon, blockDef, themeGroups, ownThemeGroups, themeGroupsIn, isFormSetting, extensionOf, absentName } from './catalog.js';
 import { commit, layoutPayload } from './operations.js';
-import { rowsOf, locate as locateIn } from './board/model.js';
-import { splitOf, columnName } from './board/words.js';
+import { typeLine, placeWords } from './board/labels.js';
 import { same, humanize } from './util.js';
 import { select, deselect, showPanel } from './selection.js';
 import { buildForm, dependsOn, refreshVisibility, refreshFieldErrors } from './forms/form.js';
@@ -100,7 +99,7 @@ function emptyInspector() {
       h('span', null, h('i', { class: 'is-block' }), 'Block outline')));
 }
 
-export function inspectorHead({ title, help = null, kind, kindBlock = false, actions = [] }) {
+export function inspectorHead({ title, help = null, kind, kindBlock = false, type = null, actions = [] }) {
   const head = h('div', { class: 'insp-head' });
   const drawer = Boolean(ui.inDrawer?.());
   // In the drawer, back goes from a block to its section and from a theme group to the theme list.
@@ -123,6 +122,12 @@ export function inspectorHead({ title, help = null, kind, kindBlock = false, act
     }, icon('close')));
   head.append(top);
   if (kind) head.append(h('p', { class: 'insp-kind' }, h('span', { class: `insp-kind__dot${kindBlock ? ' insp-kind__dot--block' : ''}`, 'aria-hidden': 'true' }), kind));
+  if (type) {
+    head.append(h('p', { class: 'insp-type' },
+      type.type ? icon(type.icon, 'icon--sm insp-type__icon') : null,
+      type.type ? h('span', { class: 'insp-type__name', text: type.type }) : null,
+      type.where ? h('span', { class: `insp-type__where${type.type ? '' : ' insp-type__where--alone'}`, text: type.where }) : null));
+  }
   return head;
 }
 
@@ -163,7 +168,8 @@ function sectionInspector(sid, bid) {
   const head = inspectorHead({
     title: labelOf(sid, bid) || humanize(target.type),
     help: bid ? bdef?.description || bdef?.info : def.description,
-    kind: bid ? `${bdef?.label || humanize(target.type)} in ${labelOf(sid)}` : sectionKind(sid, def),
+    kind: bid ? `${bdef?.label || humanize(target.type)} in ${labelOf(sid)}` : null,
+    type: bid ? null : sectionType(sid, def),
     kindBlock: Boolean(bid),
     actions: [eye],
   });
@@ -220,16 +226,15 @@ function sectionInspector(sid, bid) {
 }
 
 /** What a section is and, in a row of columns or a side, where it sits. */
-function sectionKind(sid, def) {
+/*
+ * The second line of a section's header: its type, when the section has a
+ * name of its own, and where it sits. Changing the type is done on the
+ * board, so there is no Change here.
+ */
+function sectionType(sid, def) {
   const at = locate(sid);
-  const layout = layoutPayload();
-  const where = at?.group === 'template' && layout ? locateIn(at.doc.content, sid, layout) : null;
-  if (where?.where === 'side') return `${def.label}, in the ${where.side} side`;
-  if (where?.where === 'row') {
-    const parts = splitOf(rowsOf(at.doc.content, layout).find((r) => r.id === where.rowId)?.split).parts;
-    if (parts.length > 1) return `${def.label}, in the ${columnName(parts, where.column).toLowerCase()} of a row`;
-  }
-  return `${def.label} section`;
+  const line = typeLine(labelOf(sid), def.label, placeWords(at?.doc?.content, sid, layoutPayload(), at?.group));
+  return line ? { ...line, icon: sectionIcon(at?.data?.type) } : null;
 }
 
 /* A stored value is copied so the operation's "from" never shares memory with the document. */

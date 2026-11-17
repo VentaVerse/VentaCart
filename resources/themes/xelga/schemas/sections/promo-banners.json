@@ -3,6 +3,7 @@
   "label": "Promo banners",
   "group": "template",
   "picker_group": "banners",
+  "picker_order": 50,
   "templates": [
     "*"
   ],

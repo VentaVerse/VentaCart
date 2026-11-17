@@ -4,6 +4,7 @@
   "description": "Quotes you type in yourself. Product reviews have their own section.",
   "group": "template",
   "picker_group": "text",
+  "picker_order": 100,
   "templates": [
     "*"
   ],

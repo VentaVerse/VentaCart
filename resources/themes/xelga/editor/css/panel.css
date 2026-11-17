@@ -1443,6 +1443,43 @@ a {
   border-radius: 50%;
 }
 
+/* A section's type and where it sits, under its name. */
+.insp-type {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 2px;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  color: var(--text-2);
+}
+
+.insp-type__icon {
+  flex: none;
+  color: var(--text-3);
+}
+
+.insp-type__name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.insp-type__where {
+  flex-basis: 100%;
+  padding-inline-start: 22px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.insp-type__where--alone {
+  padding-inline-start: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
 .insp-body {
   flex: 1 1 auto;
   min-height: 0;

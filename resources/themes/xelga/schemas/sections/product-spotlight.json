@@ -3,6 +3,7 @@
   "label": "Product spotlight",
   "group": "template",
   "picker_group": "products",
+  "picker_order": 60,
   "templates": [
     "*"
   ],
