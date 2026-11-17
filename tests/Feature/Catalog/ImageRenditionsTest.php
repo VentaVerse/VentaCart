@@ -44,18 +44,33 @@ class ImageRenditionsTest extends TestCase
     {
         $this->seedImage('media/products/board.jpg', 1400, 1000);
 
-        $this->assertSame(2, ImageRenditions::make('media/products/board.jpg'));
+        $this->assertSame(4, ImageRenditions::make('media/products/board.jpg'));
 
         $disk = Storage::disk('public');
-        $disk->assertExists('renditions/media/products/board.jpg.320.webp');
-        $disk->assertExists('renditions/media/products/board.jpg.640.webp');
-        $disk->assertMissing('renditions/media/products/board.jpg.1280.webp');
+        foreach ([320, 640, 1280, 1400] as $width) {
+            $disk->assertExists("renditions/media/products/board.jpg.{$width}.webp");
+        }
+        $disk->assertMissing('renditions/media/products/board.jpg.1920.webp');
         $this->assertSame(640, getimagesize($disk->path('renditions/media/products/board.jpg.640.webp'))[0]);
 
+        // The same-width WebP copy is smaller than the JPEG, so it stands in for it.
         $this->assertSame(
-            '/storage/renditions/media/products/board.jpg.320.webp 320w, /storage/renditions/media/products/board.jpg.640.webp 640w, /storage/media/products/board.jpg 1400w',
+            '/storage/renditions/media/products/board.jpg.320.webp 320w, /storage/renditions/media/products/board.jpg.640.webp 640w, '
+            . '/storage/renditions/media/products/board.jpg.1280.webp 1280w, /storage/renditions/media/products/board.jpg.1400.webp 1400w',
             image_srcset('media/products/board.jpg')
         );
+    }
+
+    public function test_a_webp_original_gets_no_same_width_copy_and_stays_in_srcset(): void
+    {
+        $im = imagecreatetruecolor(900, 600);
+        ob_start();
+        imagewebp($im);
+        Storage::disk('public')->put('media/products/photo.webp', (string) ob_get_clean());
+
+        $this->assertSame(2, ImageRenditions::make('media/products/photo.webp'));
+        Storage::disk('public')->assertMissing('renditions/media/products/photo.webp.900.webp');
+        $this->assertStringEndsWith('/storage/media/products/photo.webp 900w', image_srcset('media/products/photo.webp'));
     }
 
     public function test_a_huge_original_is_left_out_of_srcset(): void
@@ -98,13 +113,15 @@ class ImageRenditionsTest extends TestCase
         $this->assertSame('', image_srcset('media/products/swap.jpg'));
     }
 
-    public function test_small_photos_gifs_and_unsafe_paths_get_no_copies(): void
+    public function test_small_photos_gifs_and_unsafe_paths_get_no_smaller_copies(): void
     {
         $this->seedImage('media/products/tiny.jpg', 200, 200);
         Storage::disk('public')->put('media/products/anim.gif', 'GIF89a');
 
-        $this->assertSame(0, ImageRenditions::make('media/products/tiny.jpg'));
-        $this->assertSame('', image_srcset('media/products/tiny.jpg'));
+        // No smaller widths; at most the same-width WebP copy.
+        $this->assertLessThanOrEqual(1, ImageRenditions::make('media/products/tiny.jpg'));
+        Storage::disk('public')->assertMissing('renditions/media/products/tiny.jpg.320.webp');
+        $this->assertStringNotContainsString('320w', image_srcset('media/products/tiny.jpg'));
         $this->assertSame(0, ImageRenditions::make('media/products/anim.gif'));
         $this->assertSame('', image_srcset('../.env'));
         $this->assertSame('', image_srcset('renditions/media/products/tiny.jpg.320.webp'));
@@ -124,6 +141,7 @@ class ImageRenditionsTest extends TestCase
 
         ImageRenditions::forget('media/products/a.jpg');
         $disk->assertMissing('renditions/media/products/a.jpg.640.webp');
+        $disk->assertMissing('renditions/media/products/a.jpg.1000.webp');
         $disk->assertMissing('renditions/media/products/a.jpg.json');
     }
 }

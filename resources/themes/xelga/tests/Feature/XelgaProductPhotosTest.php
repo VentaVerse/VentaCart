@@ -213,7 +213,7 @@ class XelgaProductPhotosTest extends TestCase
 
         preg_match('/<figure class="gallery__slide"[^>]*>\s*(<img [^>]*>)/', $html, $main);
         $this->assertStringContainsString('srcset="/storage/renditions/media/products/demo/front.jpg.320.webp 320w', $main[1]);
-        $this->assertStringContainsString('/storage/media/products/demo/front.jpg 1400w', $main[1]);
+        $this->assertMatchesRegularExpression('#/storage/(renditions/)?media/products/demo/front\.jpg(\.1400\.webp)? 1400w#', $main[1]);
         $this->assertStringContainsString('sizes="', $main[1]);
         $this->assertStringContainsString('data-zoom-src="' . storage_url('media/products/demo/front.jpg') . '"', $main[1]);
 

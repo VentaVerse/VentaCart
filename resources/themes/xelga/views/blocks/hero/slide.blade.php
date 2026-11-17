@@ -36,13 +36,13 @@
                 <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Picture::sources($picture, '100vw') }}
                      @if ($picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif
                      data-setting="image" data-setting-attr="image_alt:alt"
-                     {{ $loading }}>
+                     {{ $loading }} @if (! $first) fetchpriority="low" @endif>
             </picture>
         @elseif ($picture)
             <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Picture::sources($picture, '100vw') }}
                  @if ($picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif
                  data-setting="image" data-setting-attr="image_alt:alt"
-                 {{ $loading }}>
+                 {{ $loading }} @if (! $first) fetchpriority="low" @endif>
         @else
             <img alt="" data-setting="image" data-setting-attr="image_alt:alt" hidden>
         @endif

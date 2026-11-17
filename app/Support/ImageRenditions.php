@@ -17,6 +17,10 @@ use Illuminate\Support\Facades\Storage;
  * copies at fixed widths, and srcset() names them so the browser picks the
  * smallest one that is sharp at its own size and pixel density.
  *
+ * A JPEG or PNG original no wider than ORIGINAL_MAX also gets a WebP copy at
+ * its own width, kept only when it is the smaller file; srcset then names
+ * that copy in place of the original.
+ *
  * The copies live under renditions/, mirroring the original's path, so the
  * media library never lists them as photos of their own. Beside them sits a
  * small manifest recording which widths were made, the original's width and
@@ -46,9 +50,6 @@ final class ImageRenditions
 
     /** Formats copied. GIF is left alone: a copy would keep only its first frame. */
     public const EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
-
-    /** A width is made only when the original is at least this much wider. */
-    private const MIN_GAIN = 1.2;
 
     /** Larger photos are not decoded: the memory needed would stall a web server. */
     private const MAX_PIXELS = 64_000_000;
@@ -108,7 +109,7 @@ final class ImageRenditions
         foreach ($manifest['widths'] as $width) {
             $parts[] = storage_url(self::path($path, $width)) . ' ' . $width . 'w';
         }
-        if ($manifest['width'] <= self::ORIGINAL_MAX) {
+        if ($manifest['width'] <= self::ORIGINAL_MAX && ! in_array($manifest['width'], $manifest['widths'], true)) {
             $parts[] = storage_url($path) . ' ' . $manifest['width'] . 'w';
         }
 
@@ -121,10 +122,21 @@ final class ImageRenditions
         return self::FOLDER . '/' . ltrim($original, '/') . '.' . $width . '.webp';
     }
 
-    /** The widths worth making for an original this wide. */
-    public static function widthsFor(int $width): array
+    /**
+     * The widths worth making for an original this wide: each fixed width
+     * below it and, for an original that is not WebP already, its own width
+     * (the same photo in a smaller format), unless it is too wide to offer.
+     *
+     * @return list<int>
+     */
+    public static function widthsFor(int $width, bool $sameWidth = false): array
     {
-        return array_values(array_filter(self::WIDTHS, fn (int $w) => $width >= $w * self::MIN_GAIN));
+        $widths = array_values(array_filter(self::WIDTHS, fn (int $w) => $w < $width));
+        if ($sameWidth && $width <= self::ORIGINAL_MAX) {
+            $widths[] = $width;
+        }
+
+        return $widths;
     }
 
     /**
@@ -178,7 +190,8 @@ final class ImageRenditions
         $made = [];
 
         try {
-            foreach (self::widthsFor($width) as $target) {
+            $original = (int) @filesize($full);
+            foreach (self::widthsFor($width, (int) $meta[2] !== IMAGETYPE_WEBP) as $target) {
                 $targetHeight = max(1, (int) round($height * $target / $width));
                 $copy = imagecreatetruecolor($target, $targetHeight);
                 imagealphablending($copy, false);
@@ -195,6 +208,11 @@ final class ImageRenditions
                 if (! $ok || ! @rename($temp, $out)) {
                     @unlink($temp);
                     break;
+                }
+                // A same-width copy earns its place only by being smaller.
+                if ($target === $width && $original > 0 && (int) @filesize($out) >= $original) {
+                    @unlink($out);
+                    continue;
                 }
                 $made[] = $target;
             }
@@ -218,7 +236,8 @@ final class ImageRenditions
             return;
         }
 
-        $disk->delete([...array_map(fn (int $w) => self::path($path, $w), self::WIDTHS), self::manifestPath($path)]);
+        $widths = array_unique([...self::WIDTHS, ...(self::readManifest($disk, $path)['widths'] ?? [])]);
+        $disk->delete([...array_map(fn (int $w) => self::path($path, $w), $widths), self::manifestPath($path)]);
         unset(self::$memo[$path]);
     }
 
@@ -295,7 +314,7 @@ final class ImageRenditions
         if (! is_array($data) || ! is_int($data['source_mtime'] ?? null) || ! is_int($data['width'] ?? null) || ! is_array($data['widths'] ?? null)) {
             return null;
         }
-        $widths = array_values(array_filter($data['widths'], fn ($w) => is_int($w) && in_array($w, self::WIDTHS, true)));
+        $widths = array_values(array_filter($data['widths'], fn ($w) => is_int($w) && $w > 0 && $w <= self::ORIGINAL_MAX));
 
         return ['source_mtime' => $data['source_mtime'], 'width' => $data['width'], 'widths' => $widths];
     }
