@@ -14,7 +14,7 @@
         ['route' => 'account.profile', 'match' => 'account.profile', 'icon' => 'user', 'label' => 'Profile and password'],
     ];
     // Then the links extensions added (App\Support\AccountMenu), with the theme's icon for each of the contract's names.
-    $xelgaIcons = ['file' => 'list', 'wallet' => 'cash', 'return' => 'rotate-ccw', 'store' => 'bag', 'star' => 'star', 'gift' => 'tag'];
+    $xelgaIcons = ['file' => 'list', 'wallet' => 'wallet', 'return' => 'rotate-ccw', 'store' => 'bag', 'star' => 'star', 'gift' => 'tag'];
     $extensionLinks = class_exists(\App\Support\AccountMenu::class) ? \App\Support\AccountMenu::links() : [];
 @endphp
 <nav class="acct__nav" aria-label="Your account">
