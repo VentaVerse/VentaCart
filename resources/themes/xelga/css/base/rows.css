@@ -110,3 +110,63 @@
     --fs-h1: var(--fs-h2);
   }
 }
+
+/*
+ * Sides. A page with sections in its left or right side draws a wrapper:
+ * the left side, main (the content area) and the right side, in that
+ * order. Below 990px the wrapper is plain blocks, so the sides stack in
+ * the order the page reads (left side above the content, right side
+ * below it) and the content draws as it does on a page without sides.
+ *
+ * From 990px the wrapper is the page's width on twelve tracks: each side
+ * takes three and the content takes what is left (data-content on main).
+ * Everything inside already sits within the page's gutters, so sections
+ * and rows inside drop their own (a full-width row fills the content
+ * area, never the window). A side's sections are tiles, as in a column.
+ */
+@media (min-width: 990px) {
+  .xp {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--grid-gap);
+    align-items: start;
+    width: min(100% - 2 * var(--gutter), var(--page-width));
+    margin-inline: auto;
+  }
+
+  .xp__side {
+    display: grid;
+    grid-column: span 3;
+    align-content: start;
+    gap: var(--grid-gap);
+    min-width: 0;
+    padding-block: calc(var(--space-section) * .5);
+  }
+
+  .xp__content {
+    grid-column: span 9;
+    min-width: 0;
+  }
+
+  .xp__content[data-content="6"] {
+    grid-column: span 6;
+  }
+
+  .xp :is(.s__inner, .xr__inner),
+  .xp .xr[data-width="full"] .xr__inner,
+  .xp .s-hero[data-variant="collage"] .hero__slides {
+    width: 100%;
+  }
+
+  .xp__side > .s {
+    padding-block: calc(var(--pad) * .5);
+    padding-inline: clamp(1rem, 6%, calc(var(--space-section) * .5));
+    border-radius: var(--radius-card);
+  }
+
+  /* A section or row that paints its own background keeps its text off the edge. */
+  .xp__content > :is(.s:not(.scheme-1, .s-hero), .s[data-has-bg="true"]:not(.s-hero), .xr[class*="scheme-"]) {
+    padding-inline: clamp(1rem, 4%, 2.5rem);
+    border-radius: var(--radius-card);
+  }
+}

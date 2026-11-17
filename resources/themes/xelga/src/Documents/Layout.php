@@ -57,6 +57,17 @@ final class Layout
     }
 
     /**
+     * How wide the page's content area is, in twelfths of a page $page
+     * twelfths wide, when $sides sides stand beside it: 12, 9 or 6 on a
+     * whole page. The renderer counts the sides it draws; the normalizer
+     * counts the sides that hold a section, which is never fewer.
+     */
+    public static function contentSpan(int $sides, int $page = 12): int
+    {
+        return max(1, $page - self::SIDE_SPAN * max(0, min(count(self::SIDES), $sides)));
+    }
+
+    /**
      * What the editor needs to build rows and sides, so the splits, the
      * defaults and the limits have one source.
      *
@@ -129,8 +140,11 @@ final class Layout
      *   of the nearest section before it in `order`, or first.
      * - A section too wide for its column or side, or a main section in a
      *   column or side, gets its own full-width row: after its row, or at
-     *   the end when it came from a side. A theme update that narrows a
-     *   section's span can so never make a stored page invalid.
+     *   the end when it came from a side. A column is measured at the width
+     *   it really draws: its part of the content area left between the
+     *   sides (part x content / 12), so a section never draws narrower than
+     *   it was made for. A theme update that narrows a section's span can
+     *   so never make a stored page invalid.
      * - Sides on a page that cannot have them go to rows at the end.
      * - Ids that name no section are dropped, a one-column row holds one
      *   section, an empty one-column row goes; an empty multi-column row
@@ -186,6 +200,23 @@ final class Layout
                 }
             }
         }
+
+        // What stays in the sides decides the content area every column is measured in.
+        $sidesAllowed = $rules->sidesAllowed();
+        $sideMisfits = [];
+        foreach (self::SIDES as $which) {
+            $keep = [];
+            foreach ($sides[$which] as $sid) {
+                $reason = $sidesAllowed ? self::misfit($sections[$sid], self::SIDE_SPAN, $rules) : 'no-sides';
+                if ($reason === null) {
+                    $keep[] = $sid;
+                } else {
+                    $sideMisfits[] = [$sid, $reason];
+                }
+            }
+            $sides[$which] = $keep;
+        }
+        $contentSpan = self::contentSpan(count(array_filter($sides, fn (array $ids) => $ids !== [])));
 
         // The rows as given, or one per section when only sides were given.
         if (is_array($content['rows'] ?? null)) {
@@ -250,7 +281,7 @@ final class Layout
             foreach ($columns as $c => $column) {
                 $keep = [];
                 foreach ($column as $sid) {
-                    $reason = self::misfit($sections[$sid], $parts[$c], $rules);
+                    $reason = self::misfit($sections[$sid], $parts[$c], $rules, $contentSpan);
                     if ($reason === null) {
                         $keep[] = $sid;
                     } else {
@@ -270,19 +301,9 @@ final class Layout
         }
 
         // Sides: what cannot sit in one goes to its own row at the end.
-        $sidesAllowed = $rules->sidesAllowed();
-        foreach (self::SIDES as $which) {
-            $keep = [];
-            foreach ($sides[$which] as $sid) {
-                $reason = $sidesAllowed ? self::misfit($sections[$sid], self::SIDE_SPAN, $rules) : 'no-sides';
-                if ($reason === null) {
-                    $keep[] = $sid;
-                    continue;
-                }
-                $rows[] = $plain = self::plainRow($sid, $taken);
-                $moved[] = self::moved($sid, $reason, $plain['id']);
-            }
-            $sides[$which] = $keep;
+        foreach ($sideMisfits as [$sid, $reason]) {
+            $rows[] = $plain = self::plainRow($sid, $taken);
+            $moved[] = self::moved($sid, $reason, $plain['id']);
         }
 
         // Sections in no row and no side: after the row of the nearest one before them.
@@ -363,14 +384,19 @@ final class Layout
         return array_values($rows);
     }
 
-    /** Why a section cannot sit in a column or side this wide, or null when it can. */
-    private static function misfit(array $section, int $span, LayoutRules $rules): ?string
+    /**
+     * Why a section cannot sit in a column or side $span twelfths wide, or
+     * null when it can. A column's span is its part of a content area
+     * $content twelfths wide, so it really draws $span x $content / 12
+     * twelfths of the page; a side is always measured on the whole page.
+     */
+    private static function misfit(array $section, int $span, LayoutRules $rules, int $content = 12): ?string
     {
         if ($rules->isMain($section)) {
             return 'main-section';
         }
 
-        return $rules->minSpan($section) > $span ? 'too-wide' : null;
+        return $rules->minSpan($section) * 12 > $span * $content ? 'too-wide' : null;
     }
 
     /** @return array{path: string, reason: string, value: string} */

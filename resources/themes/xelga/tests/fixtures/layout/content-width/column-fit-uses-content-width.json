@@ -1,0 +1,134 @@
+{
+    "name": "column-fit-uses-content-width",
+    "rules": {
+        "min": {
+            "text": 3,
+            "half": 6,
+            "four": 4,
+            "wide": 8
+        },
+        "main": [
+            "product-main"
+        ],
+        "sides": true
+    },
+    "input": {
+        "schema": 1,
+        "order": [
+            "f",
+            "h",
+            "a",
+            "g"
+        ],
+        "sections": {
+            "f": {
+                "type": "text"
+            },
+            "h": {
+                "type": "half"
+            },
+            "a": {
+                "type": "text"
+            },
+            "g": {
+                "type": "text"
+            }
+        },
+        "rows": [
+            {
+                "id": "row-1",
+                "split": "6-6",
+                "columns": [
+                    [
+                        "h"
+                    ],
+                    [
+                        "a"
+                    ]
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            }
+        ],
+        "sides": {
+            "left": [
+                "f"
+            ],
+            "right": [
+                "g"
+            ]
+        }
+    },
+    "expected": {
+        "schema": 1,
+        "order": [
+            "f",
+            "a",
+            "h",
+            "g"
+        ],
+        "sections": {
+            "f": {
+                "type": "text"
+            },
+            "h": {
+                "type": "half"
+            },
+            "a": {
+                "type": "text"
+            },
+            "g": {
+                "type": "text"
+            }
+        },
+        "rows": [
+            {
+                "id": "row-1",
+                "split": "6-6",
+                "columns": [
+                    [],
+                    [
+                        "a"
+                    ]
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            },
+            {
+                "id": "row-27d5482e",
+                "split": "12",
+                "columns": [
+                    [
+                        "h"
+                    ]
+                ],
+                "settings": {
+                    "width": "page",
+                    "scheme": "",
+                    "space": "md"
+                }
+            }
+        ],
+        "sides": {
+            "left": [
+                "f"
+            ],
+            "right": [
+                "g"
+            ]
+        }
+    },
+    "moved": [
+        {
+            "path": "content.sections.h",
+            "reason": "too-wide",
+            "value": "row-27d5482e"
+        }
+    ]
+}

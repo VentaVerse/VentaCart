@@ -10,12 +10,13 @@
   "limit": null,
   "main": false,
   "span": {
-    "min": 4
+    "min": 3
   },
   "class": "s-promos",
   "variants": [
     {
       "value": "overlay",
+      "span": 4,
       "label": "Text on the photo"
     },
     {

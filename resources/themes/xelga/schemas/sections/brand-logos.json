@@ -10,12 +10,13 @@
   "limit": null,
   "main": false,
   "span": {
-    "min": 4
+    "min": 3
   },
   "class": "s-brands",
   "variants": [
     {
       "value": "row",
+      "span": 4,
       "label": "Row"
     },
     {

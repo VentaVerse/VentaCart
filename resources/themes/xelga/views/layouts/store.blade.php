@@ -4,7 +4,10 @@
     which hands it the page title, the store's name and the cart count.
     The page's sections are drawn before this frame, so main can name the
     width of the content area (data-content, in twelfths) when sides
-    narrow it; a page the whole page wide carries none.
+    narrow it; a page the whole page wide carries none. Sides stand beside
+    main in a page wrapper, left before it and right after it, so the
+    reading order, the phone's stacking order and the skip link's target
+    all agree. Header and footer stay outside, the whole page wide.
 --}}
 @php
     $xelga = app(\Themes\Xelga\Rendering\Storefront::class);
@@ -58,9 +61,23 @@
 
     {{ $xelga->group('header') }}
 
+    @if ($xelgaSides = $xelga->sides())
+    <div class="xp" data-sides="{{ $xelgaSides }}">
+        @if ($xelgaSides !== 'right')
+        <aside class="xp__side xp__side--left" aria-label="{{ __('Left side') }}">{{ $xelga->side('left') }}</aside>
+        @endif
+        <main id="main-content" class="xp__content" data-content="{{ $xelga->contentSpan() }}">
+            {{ $slot }}
+        </main>
+        @if ($xelgaSides !== 'left')
+        <aside class="xp__side xp__side--right" aria-label="{{ __('Right side') }}">{{ $xelga->side('right') }}</aside>
+        @endif
+    </div>
+    @else
     <main id="main-content"@if ($xelga->contentSpan() < 12) data-content="{{ $xelga->contentSpan() }}"@endif>
         {{ $slot }}
     </main>
+    @endif
 
     {{ $xelga->group('footer') }}
 
