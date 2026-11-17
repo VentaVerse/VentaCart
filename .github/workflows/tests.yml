@@ -1,0 +1,51 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Core
+            suite: Unit,Feature
+            without_bundled_theme: false
+          - name: Xelga
+            suite: Xelga
+            without_bundled_theme: false
+          # Core must boot and pass with the bundled theme removed.
+          - name: Core without Xelga
+            suite: Unit,Feature
+            without_bundled_theme: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_sqlite, zip, intl, gd, bcmath
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Prepare the environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Remove the bundled theme
+        if: matrix.without_bundled_theme
+        run: rm -rf resources/themes/xelga
+
+      - name: Run the tests
+        run: php artisan test --testsuite=${{ matrix.suite }}

@@ -92,6 +92,24 @@ crontab -e
 # Delete any lines containing `cart:notify` or `seo:generate`. Save.
 ```
 
+### Upgrading to the bundled Xelga theme
+
+This release ships the Xelga theme inside VentaCart (`resources/themes/xelga`) and removes the default theme, the Layout editor, the Storefront > Header & footer screen and the Banners extension. Menus move to **Content → Menus**, and the theme directory is the single **Themes** entry in the admin sidebar.
+
+Before you upgrade:
+
+1. Take a full database dump (`mysqldump --single-transaction your_database > before-upgrade.sql`) and a copy of `storage/app/public`. The upgrade also writes an export of what it removes, but the dump is the real way back.
+2. If the store has a theme installed that is not part of VentaCart, uninstall it from the Themes page first while its folder still exists, unless you mean to keep running it.
+3. Rehearse the upgrade on a copy of the database first.
+
+`php artisan migrate --force` then, in order:
+
+1. turns the links of the footer columns into the store's `footer` menu (skipped when a `footer` menu exists);
+2. installs Xelga and makes it the live theme, when the store's theme can no longer draw (its folder is gone, or it is not installed). The announcement line, when shown, becomes the only message of Xelga's announcement bar. If the install fails, the migration stops and nothing is removed;
+3. writes `storage/app/backups/storefront-export-{time}.json` with every row it removes, then removes the Layout rows, placements, page columns, drafts, saved templates and style presets, the homepage sections, the footer columns, the announcement and top bar settings, the banner groups and slides, the default theme's settings, the two Layout permissions and the registry rows of the removed packages. It refuses to run while the store has no installed live theme.
+
+Menus, products, categories, pages, the blog, customers, orders and prices are not touched. After the upgrade, open **Themes → Xelga → Customize**, check the look against your catalog, and pick the products and categories its home page sections show.
+
 ## License
 
 MIT

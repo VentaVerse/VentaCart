@@ -27,12 +27,11 @@ A permission slug is `{group}.{action}`. Group names match the admin screens.
 | Catalog | `media` | view, create, delete |
 | Customers | `customers` | view, create, edit, delete, impersonate |
 | Customers | `customer-groups` | view, create, edit, delete |
-| Marketing | `marketing` | view, create, edit, delete (coupons, email campaigns, abandoned carts, banners, stock alerts, SEO work) |
+| Marketing | `marketing` | view, create, edit, delete (coupons, email campaigns, abandoned carts, stock alerts, SEO work) |
 | Content | `pages` | view, create, edit, delete |
 | Content | `blog` | view, create, edit, delete (posts and blog categories) |
 | Content | `menus` | view, create, edit, delete |
-| Layout and themes | `layout` | view, edit |
-| Layout and themes | `themes` | view, edit (also every theme's own editor) |
+| Themes | `themes` | view, edit (also every theme's own editor) |
 | Extensions | `extensions` | view, edit (the directory, modules, payments, shipping, and each module's settings page), upload (Extensions > Upload: installs a package's PHP code on the server, so no shipped role but Super Admin holds it) |
 | System | `settings` | view, edit |
 | System | `users` | view, create, edit, delete |
@@ -53,7 +52,7 @@ The catalog lives in `App\Support\AdminPermissions::GROUPS`.
 | customer-groups | all | all | none |
 | marketing | all | all | none |
 | pages, blog, menus | all | all | none |
-| layout, themes | all | none | none |
+| themes | all | none | none |
 | extensions | all | none | none |
 | settings | all | none | none |
 | users | all | none | none |
@@ -75,10 +74,9 @@ These stay with Super Admin whatever a role holds:
   lets a role read the lists);
 - installing and uninstalling extensions, and installing or removing theme
   packages;
-- importing a theme preset or a layout template (both can carry HTML);
 - revealing a stored secret, and issuing or revoking API keys;
-- writing raw HTML, CSS or script that the storefront prints: the HTML
-  layout block, a custom HTML menu item, and any theme's custom code field.
+- writing raw HTML, CSS or script that the storefront prints: a custom
+  HTML menu item, and any theme's custom code field.
   This is the `storefront.code` gate.
 
 Rich text (a product's or category's description, a page's body, a blog

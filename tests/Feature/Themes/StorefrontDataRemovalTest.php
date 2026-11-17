@@ -62,7 +62,7 @@ class StorefrontDataRemovalTest extends TestCase
         Setting::create(['group' => 'header', 'key' => 'topbar_links', 'value' => '[]']);
         Setting::create(['group' => 'theme_settings', 'key' => 'default_hero', 'value' => '1']);
         Setting::create(['group' => 'theme_settings', 'key' => 'sample_hero', 'value' => '1']);
-        foreach (['banners', 'theme-default', 'theme-plaza'] as $name) {
+        foreach (['banners', 'theme-default'] as $name) {
             DB::table('extensions')->insert(['name' => $name, 'version' => '1.0.0', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
         }
         DB::table('migrations')->insert(['migration' => '2026_03_30_100001_create_banner_groups_table', 'batch' => 1]);
@@ -92,7 +92,7 @@ class StorefrontDataRemovalTest extends TestCase
         $this->assertSame([], Setting::where('group', 'header')->pluck('key')->all());
         $this->assertFalse(Setting::where('group', 'theme_settings')->where('key', 'default_hero')->exists());
         $this->assertTrue(Setting::where('group', 'theme_settings')->where('key', 'sample_hero')->exists(), 'Other themes keep their settings.');
-        $this->assertSame([], DB::table('extensions')->whereIn('name', ['banners', 'theme-default', 'theme-plaza'])->pluck('name')->all());
+        $this->assertSame([], DB::table('extensions')->whereIn('name', ['banners', 'theme-default'])->pluck('name')->all());
         $this->assertTrue(DB::table('extensions')->where('name', 'theme-sample')->exists(), 'The live theme stays installed.');
         $this->assertFalse(DB::table('migrations')->where('migration', '2026_03_30_100001_create_banner_groups_table')->exists());
         $this->assertFalse(DB::table('permissions')->where('slug', 'layout.edit')->exists());

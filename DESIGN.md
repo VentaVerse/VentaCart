@@ -277,8 +277,7 @@ the populate-above Add panel is gone.
 
 The courier-fulfillment admin surfaces now wear v: the module hub,
 status placement, per-courier pages (schema-field partial rewritten in
-v vocabulary), and pickup addresses (index + form). The banners GROUP
-form is v and is the first consumer of the full-rail x-admin.shell.
+v vocabulary), and pickup addresses (index + form).
 Pickup addresses were also DECOUPLED from core Shipping (owner: core
 shipping is the manual process; the module hub owns the link), and
 ShippingPageTest now guards the decoupling.
@@ -430,10 +429,6 @@ heals its own missing row on every hub load.
   fits form-action confirms; JS-callback confirms hand-roll the
   same v-overlay/v-modal structure.
 
-- Banners: groups index, slides list (bg colour as an SVG rect
-  presentation attribute), and the slide editor as a doctrine form
-  around an inner-div Alpine canvas; layer JSON and image picks
-  signal dirty through bubbled change events.
 
 - Orders: index with a GET filter bar and tone-mapped status badges;
   order view as v-editcols (facts, addresses, products + ledger,

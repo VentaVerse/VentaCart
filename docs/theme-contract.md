@@ -1,8 +1,8 @@
-# Venta Theme Contract
+# Theme contract
 
-A theme is a package that draws the storefront. Core owns the data (products, layout rows, menus, settings) and the routes; the theme owns every view, its stylesheet, its script and its look. Any package that keeps this contract works with Layout, the widget catalogue and every storefront route. The contract is enforced in code by `App\Support\ThemeContract::check()` at install time; this document is the written form of the same rules.
+A theme is a package that draws the storefront. Core owns the data (products, prices, menus, settings) and the routes; the theme owns every view, its stylesheet, its script and its look, and draws its pages itself. Any package that keeps this contract works with every storefront route. The contract is enforced in code by `App\Support\ThemeContract::check()` at install time; this document is the written form of the same rules.
 
-The default theme, `default`, ships with core and is the reference implementation. Its look is fixed: a merchant arranges its pages in Layout and edits nothing else about it.
+VentaCart bundles one theme, Xelga (`resources/themes/xelga`), named in `config/themes.php` (`'bundled' => 'xelga'`). It is a theme package like any other: core never loads its classes, and core boots and passes its tests with the folder removed. A fresh store installs and runs the bundled theme; when the stored live theme's folder is gone, the storefront falls back to it; and an upload may not replace it, because its updates ship with VentaCart. Other themes can still be installed beside it.
 
 ## 1. Package
 
@@ -10,11 +10,10 @@ A theme lives at `resources/themes/{slug}/`. The slug is lowercase letters, digi
 
 ```
 resources/themes/{slug}/
-  theme.json          identity, regions, page settings, and settings for a theme's own editor
+  theme.json          identity, and settings for a theme's own editor
   css/theme.css       the stylesheet (compiled by Vite)
   js/theme.js         the script (optional, compiled by Vite)
   views/              every view in section 4
-  layouts/*.json      shipped arrangements the Layout editor offers as templates (optional)
   build/              the compiled stylesheets and scripts, for a theme sold as a download (optional)
 ```
 
@@ -24,7 +23,7 @@ A theme sold as a download cannot count on the store running that build, so it m
 
 ### Install, uninstall, live
 
-Themes are discovered like extensions and recorded in the same registry under the name `theme-{slug}`. The Themes page (Storefront > Themes) lists every package on disk with Install, Use this theme and Uninstall. Installing runs the contract check and refuses a package that fails it, naming what is missing. Uninstalling rolls back every migration the theme ran (whichever batch each ran in, so tables from an earlier version go too) and removes the registry row. The folder, the theme's layout rows in core and its settings in core stay, so installing it again finds them. A theme's own extensions follow the same rule when they are uninstalled.
+Themes are discovered like extensions and recorded in the same registry under the name `theme-{slug}`. The Themes page (Themes, in the admin sidebar) lists every package on disk with Install, Use this theme and Uninstall. Installing runs the contract check and refuses a package that fails it, naming what is missing. Uninstalling rolls back every migration the theme ran (whichever batch each ran in, so tables from an earlier version go too) and removes the registry row. The folder and the theme's settings in core stay, so installing it again finds them. A theme's own extensions follow the same rule when they are uninstalled.
 
 ### Upload
 
@@ -33,7 +32,7 @@ An admin holding the `extensions.upload` permission ("Upload Extensions" in User
 1. The upload is recorded in `package_uploads` as `pending` before anything on disk changes.
 2. The archive is read without unpacking it (`App\Support\PackageArchive`) and refused when it is not a zip, holds an absolute path, a backslash, a `..`, `.` or empty segment, a control character, a name with `:` `*` `?` `"` `<` `>` `|`, a trailing dot or space, a Windows device name (`CON`, `NUL`, `COM1`), two entries whose names differ only in case, a link, a device file or an encrypted entry, more entries than `extensions.upload.max_files`, a file over `max_file_mb` or more than `max_unpacked_mb` in all, or more than one top folder, or when its manifest is missing, is not JSON, or has no version of at most 40 characters (`1.2.3`, `1.2.3-beta.1`). An entry that unpacks to more bytes than the archive declares is stopped while it is written. The upload itself is capped at `max_size_mb` (`config/extensions.php`) and by PHP's own upload limits.
 3. A provider (`"provider"` in the manifest) must be in a namespace of the package's own: never one of the application's, the framework's or any library Composer loads (`App\`, `Illuminate\`, `GuzzleHttp\`, `Psr\` and the rest), and never one another package's provider is in, or that holds or sits inside it. Namespaces are compared without regard to case, as PHP compares them.
-4. The target folder is checked: the default theme, a name core keeps for its own pages under `extensions/`, a folder that is a link, a folder on disk that no earlier upload put there, and a version older than the one on disk are refused. An extension the package brings is checked like an uploaded one (name, provider, version) and must not take a name another package already uses, nor be older than the version of it installed.
+4. The target folder is checked: the bundled theme, a name core keeps for its own pages under `extensions/`, a folder that is a link, a folder on disk that no earlier upload put there, and a version older than the one on disk are refused. An extension the package brings is checked like an uploaded one (name, provider, version) and must not take a name another package already uses, nor be older than the version of it installed.
 5. A migration file may not share its name with one of core's, one of another package's, or one that already ran on the store from somewhere else: Laravel knows a migration by its file name alone, so it would be skipped as already run, and uninstalling the package would roll back the other one.
 6. The archive is unpacked byte by byte into a hidden `.upload-*` folder beside the target. A theme is checked against the contract (`ThemeContract::check`), and a `build/` folder holding a file a web server could run or read as its settings (any part of the name being `php`, `phtml`, `phar`, `cgi` and the like, `.htaccess`, `.user.ini`, any name starting with a dot) or that can run script in the browser (`.svg`, `.html`, `.xml`) is refused.
 7. The target is checked again, since unpacking takes time and a deploy may have put a folder there. Then the folder is moved into place with a rename (the previous files are moved aside), and the package is installed through `ExtensionManager::install`, the same code as the Install and Update buttons, which runs its migrations and publishes its `build/`. The extensions a theme brings that are already installed are updated with it, so their migrations run and their version is recorded.
@@ -58,7 +57,7 @@ When a theme's files carry a higher `version` than the one installed, the theme 
 
 Exactly one installed theme is live (`identity.active_theme`). When the live theme is not installed, the storefront answers every GET with core's plain "No theme installed" page (HTTP 503); the admin keeps working, and POSTs (webhooks, callbacks) pass through.
 
-The shipped default theme is installed with the other essentials on a fresh store. Stores updated from before this contract get their default and live themes registered by a continuity migration.
+The bundled theme is installed with the other essentials on a fresh store. A store whose live theme can no longer draw (its folder is gone, or it is not installed) is moved onto the bundled theme by the upgrade migration `2026_11_18_110000_switch_storefront_to_the_bundled_theme`.
 
 ### 1.1 Extensions a theme brings
 
@@ -79,17 +78,18 @@ cannot be uninstalled while one of its extensions is still installed.
   "author": "Venta",
   "description": "…",
   "thumbnail": "thumbnail.png",
-  "settings": { "header_layout": { "type": "layout", "label": "Header", "default": "marketplace", "options": { … } } },
-  "regions": { "header_top": { "label": "Above the header" }, … },
-  "page_settings": { … }
+  "provider": "Themes\\Demo\\DemoThemeServiceProvider",
+  "editor": "admin.demo.editor",
+  "storage": "own",
+  "settings": { "header_layout": { "type": "layout", "label": "Header", "default": "marketplace", "options": { … } } }
 }
 ```
 
-Required: `name`, `version`, and `regions` with every key in section 3.1. Every entry in `settings` needs a `type` and a `label`.
+Required: `name` and `version`; every theme carries its own version, the bundled one included. Every entry in `settings` needs a `type` and a `label`. Keys from older themes (`regions`, `widgets`, `page_settings`, `grid`, `layouts/*.json`) are ignored.
 
 ### 2.1 Colors and fonts
 
-A theme's colors and fonts are its own. It sets them in its stylesheet (the default theme declares them as CSS custom properties on `:root` in `css/theme.css`) and loads its fonts itself. Core neither stores nor prints them. A theme that lets the merchant change them does so in an editor of its own (section 2.5), keeping the values in its own storage.
+A theme's colors and fonts are its own. It sets them in its stylesheet (as CSS custom properties on `:root` in `css/theme.css`, for example) and loads its fonts itself. Core neither stores nor prints them. A theme that lets the merchant change them does so in an editor of its own (section 2.5), keeping the values in its own storage.
 
 ### 2.2 Settings
 
@@ -103,12 +103,12 @@ Settings are for a theme with an editor of its own (`editor` in theme.json): eac
 | `text` | one line |
 | `textarea` | many lines (for example `custom_css`) |
 | `number` | a number (`min`, `max`, optional `unit`) |
-| `color` | a colour swatch |
+| `color` | a color swatch |
 | `font` | a font family name; empty inherits the theme's heading or body font |
 | `media` | a storage path chosen from the media library |
 | `box` | four numbers in px as one value, `"top right bottom left"` |
 | `multi` | a set of keys from `options`, stored comma separated |
-| `rules` | a JSON list of rows whose columns are named in `fields` (colour rules, page backgrounds) |
+| `rules` | a JSON list of rows whose columns are named in `fields` (color rules, page backgrounds) |
 | `images` | a JSON list of storage paths chosen from the media library (payment marks) |
 
 Every setting may also carry `section`, `tab` and `heading` to say where the theme's editor shows it.
@@ -117,7 +117,7 @@ Read a setting from any view with `\App\Support\ThemeOptions::get('key', $defaul
 
 ### 2.3 Demo products and posts
 
-A theme may install demo `products` and `posts` with `App\Services\DemoContentService::install($slug, $definition)`, which adds them only while the catalogue is empty or entirely demo content. A product entry takes `name`, `price`, `sale`, `quantity`, `views`, `image` and `description`, and may also carry:
+A theme may install demo `products` and `posts` with `App\Services\DemoContentService::install($slug, $definition)`, which adds them only while the catalog is empty or entirely demo content. A product entry takes `name`, `price`, `sale`, `quantity`, `views`, `image` and `description`, and may also carry:
 
 - `images`: more pictures after the main one (storage paths);
 - `categories`: category names; a category the store lacks is made and removed again with the demo;
@@ -125,110 +125,19 @@ A theme may install demo `products` and `posts` with `App\Services\DemoContentSe
 
 A theme or extension adds its own extras with `DemoContentService::afterProduct(fn (Product $product, array $definition, string $slug) => …)`.
 
-### 2.4 Shipped arrangements
-
-`layouts/{name}.json` is an exported Layout template (the same format Layout exports): a list of rows with columns, style and placements. The Layout editor offers them under Templates as `theme:{name}`, and the merchant loads one into a region. A theme should ship at least a `home` arrangement so a store that switches to it has a homepage.
-
-### 2.5 A theme with storage of its own
+### 2.4 A theme with storage of its own
 
 ```json
 { "editor": "admin.example.panel", "storage": "own" }
 ```
 
-By default a theme keeps its layouts in core, in `layout_rows`, `layout_placements` and `layout_columns`, keyed by the theme's slug. Switching to such a theme installs its `layouts/home.json`, or copies the outgoing theme's rows when it ships none.
+A theme that declares `"storage": "own"` keeps its settings and page designs in tables of its own (from its `database/migrations`, named with its own prefix) and only reads core. Switching to it sets `identity.active_theme` and nothing else. Uninstalling it rolls its migrations back, so its tables go with it.
 
-A theme that declares `"storage": "own"` keeps its settings and layouts in tables of its own (from its `database/migrations`) and only reads core. Switching to it sets `identity.active_theme` and nothing else: core writes no layout rows for it, and a theme switched to from it does not take its rows.
+`editor` names the route of the theme's own editor; the Themes page links to it. A theme that brings code of its own (an editor, routes, listeners) names its `provider`; its `src/` is autoloaded at runtime by the extension kernel, not by Composer, and the provider boots whenever the theme is installed, live or not, so it must act only while the theme is live and never write data as it boots. Xelga is the worked example of all three.
 
-`editor` and `storage` are separate: a theme may bring an editor of its own and still keep its data in core. A theme with storage of its own needs an editor of its own, since core's Layout editor writes core's tables. Without the key, or with any other value, a theme keeps today's behaviour.
+## 3. Page types
 
-Such a theme hands its rows to core's region renderer through `App\Support\LayoutHooks::units()`, and its pages' side column widths and page settings (the `page_settings` it declares) through `App\Models\LayoutColumns::register()`. Core's `x-storefront.columns` and `PageSetting::on()` then read the theme's answer instead of `layout_columns`:
-
-```php
-LayoutColumns::register('my-theme', fn (?string $pageKey) => [
-    'left' => 2,            // parts of the page's eight; 0 for none
-    'right' => 0,
-    'settings' => ['show_breadcrumbs' => false],
-]);
-```
-
-The resolver gets the page key being drawn (a page type such as `category`, or a more specific key such as `category:12`) and returns null when it has nothing for it. Widths are clamped so the content keeps at least three parts, and a side column is drawn only when its region has something in it.
-
-## 3. Regions and Layout
-
-Layout is core. The merchant arranges rows of widgets per page type and region; the theme declares which regions it draws and draws them with the `x-storefront.region` component.
-
-### 3.1 Required regions
-
-Every theme declares and draws these four, so a merchant's placements survive a switch between themes:
-
-| region | where |
-|---|---|
-| `header_top` | above the header, in `layouts/store.blade.php` |
-| `content_top` | above the page content |
-| `content_bottom` | below the page content |
-| `footer_top` | above the footer, in `layouts/store.blade.php` |
-
-`column_left` and `column_right` are optional; a theme that draws them wraps the page in `x-storefront.columns`, and the merchant's column widths (eighths) apply.
-
-### 3.2 System regions
-
-A region may declare its shipped contents:
-
-```json
-"header": { "label": "Header", "system": true, "page": "*", "defaults": ["system.header"] },
-"product_main": { "label": "Product page", "system": true, "page": "product",
-                  "defaults": [
-                      { "columns": [4, 4], "cols": [["system.product_images"],
-                                                    ["system.product_name", "system.product_price", "system.product_add_to_cart"]] },
-                      "system.product_tabs", "system.product_related"
-                  ] }
-```
-
-Until the merchant arranges such a region, the storefront renders the defaults as if they were placed, and the Layout editor shows them as "As shipped" rows that saving makes the merchant's own. `page` is the page type the region belongs to (`*` for every page). The widgets named in `defaults` are the theme's own pieces (section 5.2) or any core widget, with an optional `{ "widget": "…", "title": "…", "config": { … } }` form.
-
-An entry with `columns` and `cols` is a row of its own: widths in eighths that add up to eight, and one list of pieces per column (an optional `responsive` takes the same `tablet` and `phone_order` lists a saved row does). Plain entries next to each other share one full-width row. `App\Support\Regions::defaultRows()` returns the rows; `defaults()` returns every piece in order. A one-category or one-level page shows the shipped rows while nothing up its chain has been arranged.
-
-### 3.3 Rendering a region
-
-```blade
-<x-storefront.region name="content_top" />
-```
-
-renders the rows for the current page type plus the rows placed on every page. Rows with columns or a style render as `.layout-row.layout-row--{n}` with `.layout-col.layout-col--{w}` children; plain rows render bare. The theme imports the shared stylesheet at the top of `css/theme.css`:
-
-```css
-@import '../../../css/storefront/layout-rows.css';
-```
-
-Row style (background colour keyed to the vocabulary, background image, padding, text tone, full bleed) is written as custom properties on the row; the shared stylesheet applies them.
-
-### 3.3.1 Column grids
-
-Rows sit on eight parts unless the theme declares its own grid, which only a theme that brings its own row editor should do (core's Layout editor offers eighths). Declare it in `theme.json`:
-
-```json
-"grid": {"units": 12, "fill": true, "auto": true, "max_columns": 12, "shapes": [[12], [6, 6], [4, 4, 4], ["fill", "auto"]]}
-```
-
-or from the theme's provider, which wins over the manifest:
-
-```php
-ColumnGrid::register('my-theme', ColumnGrid::make([...]));
-```
-
-`App\Support\ColumnGrid` settings: `units` (the parts a row splits into), `widths` (the numbers a column may take, 1 to units by default), `fill` (a column may take the space left), `auto` (a column may fit its content), `wrap` (false: numbers add up to units exactly, or to at most units when the row holds a fill or auto column; true: any total, extra columns wrap to the next line), `shares` (a width's true share where width / units is not it, e.g. `{"33": 0.333333, "66": 0.666667}` on a percent grid), `max_columns` and `shapes`. Tablet and phone widths follow the same rules. A percentage builder, for example: `{"units": 100, "widths": [100, 95, 90, 85, 80, 75, 70, 66, 60, 55, 50, 45, 40, 33, 30, 25, 20, 15, 10, 5], "wrap": true, "shares": {"33": 0.333333, "66": 0.666667}, "max_columns": 20}`.
-
-What reads it: `ColumnGrid::forTheme($slug)` returns the grid; `$grid->normalizeColumns()`, `normalizeResponsive()`, `isResponsive()`, `width()`, `share()` and `flex()` are the rules; `LayoutSaver::save($page, $data, $trusted, $grid)`, `LayoutTemplate::cleanRows($rows, $grid)` and `toUnits($rows, $grid)` take a grid and default to the scoped theme's; `LayoutRow::forRegion()`, `Regions::defaultRows()`, the layout inventory and the install check use the theme's grid. The `LayoutRow` statics and constants keep the eight-part grid for code that names none.
-
-On the storefront a row on a declared grid is `layout-row layout-row--flex`, a wrapping flex row; each column carries `--col-flex` (and `--col-flex-tablet`, `--col-flex-phone` when set) and fill and auto columns add `layout-col--fill` or `layout-col--auto`. The gutter is `--layout-gap`. A row on the default grid keeps its span classes.
-
-### 3.4 Page types
-
-`home`, `category`, `product`, `search`, `brand`, `blog`, `page`, `cart`, `checkout`, `account`, `auth`, and `*` for everywhere. `App\Support\StorefrontPageType::current()` resolves the current one from the route.
-
-A layout may also be arranged for a page more specific than a type. The keys are `*` (every page), a type (`category`), a level of categories (`category:level1` to `category:level3`), one category (`category:12`), one content page (`page:3`) and `quickview` (the product quick view fragment). `App\Support\LayoutPage` names them: `valid`, `label`, `type` (the page type a key belongs to), `chain` (from the most specific key down to `*`) and `currentKey` (the key the request is on).
-
-A region shows every page's rows plus the rows of the most specific key in the chain that has any there: a category's own rows replace its level's, which replace all categories'. Columns follow the same chain. The core Layout editor offers the page types; a theme's own editor may offer the rest.
+`home`, `category`, `product`, `search`, `brand`, `blog`, `page`, `cart`, `checkout`, `account`, `auth`. `App\Support\StorefrontPageType::current()` resolves the current one from the route, so a theme can tell its pages apart.
 
 An extension with storefront pages of its own adds a page type for them from its service provider's `boot()`:
 
@@ -236,11 +145,7 @@ An extension with storefront pages of its own adds a page type for them from its
 \App\Support\StorefrontPageType::register('shop', 'Shop pages', ['marketplace.shop.']);
 ```
 
-The first argument is the type (lower case letters, digits and underscores; core's own types are refused), the second its label, the third the route name prefixes it covers. Core's prefixes are matched first, so an extension never takes over a core page. The type then appears in every Layout page list (`StorefrontPageType::all()`, `LayoutPage::fixed()`), `LayoutPage::currentKey()` returns it on those routes, and page settings can target it. The extension's views draw the layout regions like any other page. A type whose extension is switched off is not registered: it leaves the lists, and the rows saved for it stay in place, unused, until it returns.
-
-### 3.5 The intro area
-
-A theme that declares an `intro` region draws the page's trail and title as arranged. Core registers `system.breadcrumbs` and `system.page_title` for it; a page view says what it is with `\App\Support\PageIntro::set($title, [['label' => …, 'url' => …], …])` and the theme's two widget views draw it. A theme with a `quickview` region (page `quickview`, default `system.quick_view`) lets the merchant arrange the quick view like any page.
+The first argument is the type (lower case letters, digits and underscores; core's own types are refused), the second its label, the third the route name prefixes it covers. Core's prefixes are matched first, so an extension never takes over a core page. `StorefrontPageType::all()` lists it and `current()` returns it on those routes. A type whose extension is switched off is not registered.
 
 ## 4. Views the theme must provide
 
@@ -260,11 +165,9 @@ While the extension exists on disk: `blog.index`, `blog.show` (blog); `review.su
 
 Optional: `product.quick-view` (the quick view fragment; core answers 404 without it), `maintenance`, `sitemap`, `wishlist.index` (core draws its own inside the theme's layout with `partials.product-card`).
 
-Every widget in the catalogue (section 5) needs its view.
-
 ### 4.1 The layout
 
-`layouts/store.blade.php` is rendered through the core component `x-store-layout` (`App\View\Components\StoreLayout`), which hands it `siteName`, `navTree` (the composed main menu), `currencies`, `defaultCurrency`, `activeCurrency`, `cartCount`, `cartSubtotal`, `customerLoggedIn`, `customerUser`, `footerColumns`, fonts and the page title. The same bundle is shared with widget views.
+`layouts/store.blade.php` is rendered through the core component `x-store-layout` (`App\View\Components\StoreLayout`), which hands it `siteName`, `navTree` (the composed main menu), `currencies`, `defaultCurrency`, `activeCurrency`, `cartCount`, `cartSubtotal`, `customerLoggedIn`, `customerUser`, `wishlistIds`, `wishlistCount` and the page title. The same bundle is shared with every view the page draws.
 
 Pages start with `<x-store-layout :title="…">` and yield their content inside it.
 
@@ -278,63 +181,19 @@ Pages start with `<x-store-layout :title="…">` and yield their content inside 
 @endpush
 ```
 
-## 5. Widgets
+## 5. Reading core data
 
-Core keeps the catalogue (`App\Support\Widgets`, registered by `App\Storefront\Widgets\CoreWidgets` and by extensions). A widget is a key, a title, a schema for its settings, and a view name; the theme supplies the view under `views/widgets/{module}/{key}.blade.php`, receiving `$config` (the placement's settings, resolved against the schema) and `$placement`.
+Product pages publish their data through `App\Support\PageContext` (`extract(\App\Support\PageContext::all(), EXTR_SKIP)`), which `ProductController::show` fills: `product`, `variantMatrix`, `variantTypes`, `effectivePrice`, `priceTiers`, `relatedProducts`, `sameBrandProducts`, `belowModules`, `reviewCount`, `averageRating`, and the rest of the product view's data. `CategoryController::show` publishes the category page's: `category`, `products` (the paginator), `subcategories`, `sort`, `settings`, `breadcrumbs` and the filter data. The price, variants, volume pricing and add to cart parts of a product page change together when a variant or a quantity is chosen, so a theme gives them one shared script scope.
 
-Core's and the extensions' widgets are shared: every theme can place them. A theme may also register widgets of its own, by naming itself in the widget's spec (`'theme' => '{slug}'`). Those are kept with that theme: the catalogue, the Layout editor, the storefront and the install check of every other theme never see them, so two themes installed side by side cannot reach each other's widgets, and a theme's own widget may even share a key with another theme's. `Widgets::all()`, `get()` and `has()` read the shared widgets plus the current theme's own; the current theme is the live one, or the one a theme's editor scopes its admin requests to (`ThemeService::overlay(['identity' => ['active_theme' => '{slug}']])`).
-
-### 5.1 Core widgets
-
-| key | view |
-|---|---|
-| `catalog.products` | `widgets/catalog/products` |
-| `catalog.brands` | `widgets/catalog/brands` |
-| `catalog.categories` | `widgets/catalog/categories` |
-| `catalog.recently_viewed` | `widgets/catalog/recently_viewed` |
-| `catalog.product_tabs` | `widgets/catalog/product_tabs` |
-| `catalog.also_bought` | `widgets/catalog/also_bought` (product pages only) |
-| `content.text` | `widgets/content/text` |
-| `content.cta` | `widgets/content/cta` |
-| `content.icon_list` | `widgets/content/icon_list` |
-| `content.separator` | `widgets/content/separator` |
-| `content.gallery` | `widgets/content/gallery` |
-| `content.accordion` | `widgets/content/accordion` |
-| `social.facebook` | `widgets/social/facebook` |
-| `social.twitter` | `widgets/social/twitter` |
-| `nav.menu` | `widgets/nav/menu` |
-| `blog.posts` | `widgets/blog/posts` |
-| `banners.group` (banners extension) | `widgets/banners/group` |
-| `reviews.latest` (reviews extension) | `widgets/reviews/latest` |
-
-The install check requires a view for every widget registered at the time, except system pieces for regions the theme does not declare.
-
-A placement's `config` holds only the keys its widget's `schema` declares, each in its field type's shape (`App\Support\WidgetConfig`): numbers clamped to `min`/`max`, selects from their options, `url` fields (and text fields named `url`, `link`, `href` or `*_url`) as safe links, colours as hex or a palette name, images as storage paths. This applies to the layout editor's Save, templates, copies and a theme's own layout files alike. A value that does not fit falls back to the field's `default`, or is left out. A widget that reads a setting must declare it, or the setting is dropped on the next save. A `toggle` field is a true/false checkbox in the editor. A theme's own field types keep bounded plain data; clean them for their own use, and cast in the view anyway (`(int)`, `@js()`).
-
-### 5.2 System pieces
-
-A theme's own parts become widgets when the theme declares the region they belong to. Core names them; the theme draws them.
-
-| region | keys |
-|---|---|
-| `header` | `system.header` (the whole header as arranged), `system.topbar`, `system.logo`, `system.search`, `system.cart`, `system.nav` |
-| `product_main` | `system.product_images`, `system.product_name`, `system.product_rating`, `system.product_info` (brand, free shipping note and stock, each shown or hidden by its settings), `system.product_price`, `system.product_countdown` (the sale's end), `system.product_variants`, `system.product_volume_pricing` (quantity tiers), `system.product_add_to_cart`, `system.product_tags`, `system.product_share`, `system.product_description`, `system.product_reviews`, `system.product_attributes` (the specifications: the product's attribute groups), `system.product_related`, `system.product_brand` (more from the brand); and two pieces that hold several of these at once, `system.product_buy` (gallery and buy box) and `system.product_tabs` (description and reviews) |
-| `category_main` | `system.category_image`, `system.category_description`, `system.category_subcategories`, `system.category_products` (the paginated listing with its sort and view) |
-| `intro` | `system.breadcrumbs` and `system.page_title` (section 3.5), which may also sit in `product_main` (breadcrumbs only) and `category_main` |
-
-Views live at `views/widgets/system/{key}.blade.php`. A piece registered as `optional` (today `system.product_attributes`) has a plain view in core (`resources/views/widgets/system/`), which draws when the theme ships none; the contract does not ask for it, and a theme draws its own by shipping the view. Product pieces read the page's bundle from `App\Support\PageContext` (`extract(\App\Support\PageContext::all(), EXTR_SKIP)`), which `ProductController::show` publishes: `product`, `variantMatrix`, `variantTypes`, `effectivePrice`, `priceTiers`, `relatedProducts`, `sameBrandProducts`, `belowModules`, `reviewCount`, `averageRating`, and the rest of the product view's data. `CategoryController::show` publishes the category page's: `category`, `products` (the paginator), `subcategories`, `sort`, `settings`, `breadcrumbs` and the filter data.
-
-The price, variants, volume pricing and add to cart pieces change together when a variant or a quantity is chosen. A theme that draws them as separate pieces gives them one shared script scope around the whole `product_main` region, so they keep working in whatever rows and columns the merchant puts them.
-
-## 5.3 Product attributes
+### 5.1 Product attributes
 
 Products carry attributes (Catalog > Attributes): named facts in groups, one value per product. Themes read them through `App\Support\ProductAttributes`:
 
 - `ProductAttributes::card($product)`: the attributes marked "show on product cards", in order, as `[['name' => 'Origin', 'value' => 'Sagada'], …]`. Core's listings (category, search, brand, product grids, related products) eager load the `cardAttributes` relation (`ProductAttributes::CARD_RELATION`), so a grid costs no extra query.
-- `$attributeGroups` on the product page (and in `PageContext`): `[['name' => 'Farm', 'attributes' => [['name' => 'Origin', 'value' => 'Sagada'], …]], …]`. The `system.product_attributes` piece (section 5.2) draws them in a theme's product page region.
+- `$attributeGroups` on the product page (and in `PageContext`): `[['name' => 'Farm', 'attributes' => [['name' => 'Origin', 'value' => 'Sagada'], …]], …]`.
 - `$availableAttributes` on category pages: the filterable attributes among the category's products, `[['slug' => 'origin', 'name' => 'Origin', 'values' => [['value' => 'Sagada', 'count' => 3], …]], …]`. A filter form sends `attr[{slug}][]={value}`; values of one attribute widen the match, different attributes narrow it.
 
-## 5.4 Prices
+### 5.2 Prices
 
 A theme never picks a special itself. `App\Support\Pricing::display(Product $product, ?int $variantId = null, int $quantity = 1)` answers what the cart will charge and why, using the cart's own rule (`CartService::winningSpecial()`): among the specials that apply now to the shopper's customer group (the default group for guests), the deepest quantity tier at or below the quantity wins, then the lower priority value, then the lower price. A variant's price carries the product's special through its difference from the product price, as the cart does.
 
@@ -367,18 +226,18 @@ A special runs from `date_start` to `date_end` (both datetimes, store time, eith
 
 Core's listings eager load `specials`, so a grid costs no extra query. The product page also publishes the result as `$displayPrice` (and in `PageContext`), with `$activeSpecial` set when it is a sale and `$overrideSpecial` for any other special.
 
-## 5.5 Wishlist
+### 5.3 Wishlist
 
 The wishlist is stored for signed-in customers and kept in the session for guests; signing in merges the guest's list into the account (`App\Services\WishlistService`).
 
 - Page: `GET /wishlist` (`wishlist.index`), view `wishlist.index` with `$products`.
 - State: `GET /wishlist/state` (`wishlist.state`) answers `{"ids": [12, 7], "count": 2}`.
 - Add: `POST /wishlist/items` (`wishlist.add`) with `product_id`; remove: `DELETE /wishlist/items/{product}` (`wishlist.remove`). Both need the CSRF token, are limited to 30 a minute, and answer `{"in": true|false, "count": n}`. Only an active product the shopper may see can be added.
-- Every storefront view has `$wishlistIds` and `$wishlistCount` (shared by `x-store-layout`). The default theme prints the ids as `window.__wishlist` and its `wishlistBtn` Alpine component dispatches `wishlist-updated` with `{productId, in, count}` after each change.
+- Every storefront view has `$wishlistIds` and `$wishlistCount` (shared by `x-store-layout`).
 
-## 5.6 Product listings
+### 5.4 Product listings
 
-A theme that lists products outside a category, brand or search page (a carousel, a tab, a block of its own) gets them from `App\Support\ProductFeed::get(array $criteria): Collection`, never from its own query. The product grid and product tabs widgets use it too.
+A theme that lists products outside a category, brand or search page (a carousel, a tab, a block of its own) gets them from `App\Support\ProductFeed::get(array $criteria): Collection`, never from its own query.
 
 | criterion | meaning |
 |---|---|
@@ -389,30 +248,29 @@ A theme that lists products outside a category, brand or search page (a carousel
 | `limit` | 1 to 48, default 12, clamped. |
 | `variants` | true also loads the active variants. |
 
-Only active products are listed, through the customer-group visibility scope: a product kept for a group never reaches a guest or another group. The products carry `images`, `specials`, `brand` and the card attributes, plus `reviews_avg_rating` and `reviews_count` while reviews are enabled. Prices still come from `Pricing::display()` (section 5.4).
+Only active products are listed, through the customer-group visibility scope: a product kept for a group never reaches a guest or another group. The products carry `images`, `specials`, `brand` and the card attributes, plus `reviews_avg_rating` and `reviews_count` while reviews are enabled. Prices still come from `Pricing::display()` (section 5.2).
 
 ## 6. Menus
 
-The main menu is composed in Layout > Menus (`nav_menus`, nested `nav_menu_items` with ten item kinds and mega menu options). The theme draws it from `$navTree` (`App\Support\NavTree::for('main')`), a list of resolved nodes with `label`, `url`, `children`, `accent`, `mega`, `banner`, `html`. Other menus are placed with the `nav.menu` widget.
+Menus are core data, edited at Content > Menus (`nav_menus`, nested `nav_menu_items` with ten item kinds and mega menu options). The theme draws the main menu from `$navTree` (`App\Support\NavTree::for('main')`), a list of resolved nodes with `label`, `url`, `children`, `accent`, `mega`, `banner`, `html`, and any other menu from `NavTree::for($key)`, for example the `footer` menu. A theme links its "Edit menus" button to `route('admin.menus')` behind `Route::has()`.
 
-## 7. Behaviour the theme must keep
+## 7. Behavior the theme must keep
 
-- Prices come from `App\Support\Pricing::display()` (section 5.4); the theme never computes a price.
-- Add-to-cart, variant selection and quantity go through the `addToCart` Alpine component (theme.js) posting to `cart.add`.
-- The reviews block renders only when `\App\Support\Reviews::enabled()` and the page setting `show_reviews` is on.
+- Prices come from `App\Support\Pricing::display()` (section 5.2); the theme never computes a price.
+- Add-to-cart, variant selection and quantity post to core's `cart.add`, `cart.update` and `cart.remove`; a theme never changes a cart any other way.
+- The reviews block renders only when `\App\Support\Reviews::enabled()`.
 - SKU and model are internal and never shown.
 - Sale countdowns hide when the end date is more than a year away.
 - Phone numbers print with the country dialling code (`App\Support\Phone::display`).
 - Order status badges use the status's tone (`App\Support\StatusTone`).
 - Every page works on phone, tablet and desktop.
-- Banner slides (`banners.group`) arrive checked by `Extensions\Banners\BannerData`: a slide's `url` and a button layer's `url` are a path, an anchor or an http(s), mailto or tel address, or empty; colours are hex; positions are `Npx` or `N%`; numbers are clamped; `animation` is one of `BannerData::ANIMATIONS`; `image` is an encoded `/storage/` address. Print them with `{{ }}`, never `{!! !!}`, quote `url('…')` in a style, and pass anything that goes into an Alpine expression through `@js()`. `App\Support\SafeInput` has the same checks for a theme's own data.
+- Links and pictures a merchant enters go through `App\Support\SafeInput` (a path, an anchor or an http(s), mailto or tel address; storage paths for pictures). Print them with `{{ }}`, never `{!! !!}`, and pass anything that goes into a script through `@js()`.
 - No CSS or JavaScript inline in Blade; everything goes through `css/theme.css` and `js/theme.js`. The only exception is a merchant's own `custom_css` setting, which a theme prints filtered.
 
 ## 8. Checklist for a new theme
 
-1. Copy `resources/themes/default` to `resources/themes/{slug}`; change `name`, `version`, `description`, `thumbnail` in `theme.json`.
-2. Set the theme's colours and fonts in `css/theme.css`.
-3. Keep the four required regions; add system regions if the theme's header or product page should be rows.
-4. Keep every view in section 4 and every widget view in section 5.
-5. `npm run build`, then Storefront > Themes > Install. The install check names anything missing.
-6. `php artisan test --filter=ThemePackagesTest` passes with the new theme on disk (the contract test checks every shipped theme).
+1. Start from a copy of a theme that keeps the contract: `tests/fixtures/themes/sample` is a plain one, `resources/themes/xelga` a full one with its own editor and storage. Change `name`, `version`, `description` in `theme.json`.
+2. Set the theme's colors and fonts in `css/theme.css`.
+3. Keep every view in section 4.
+4. `npm run build`, then Themes > Install. The install check names anything missing.
+5. `php artisan test --filter=ThemePackagesTest` passes with the new theme on disk (the contract test checks every theme in `resources/themes`).

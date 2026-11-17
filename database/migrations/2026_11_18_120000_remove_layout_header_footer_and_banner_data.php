@@ -34,7 +34,7 @@ return new class extends Migration
     ];
 
     /** Registry rows of packages whose folders are gone. */
-    private const PACKAGES = ['banners', 'theme-default', 'theme-plaza'];
+    private const PACKAGES = ['banners', 'theme-default'];
 
     /** The Banners extension's own migrations, which ran from its folder. */
     private const PACKAGE_MIGRATIONS = [
