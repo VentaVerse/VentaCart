@@ -62,7 +62,6 @@
         'customer' => ['firstName' => (string) $customer->first_name, 'lastName' => (string) $customer->last_name],
         'countryNames' => (object) $countryNames->all(),
         'phoneCodes' => (object) $phoneCodes->filter()->all(),
-        'currency' => ['symbol' => (string) ($activeCurrency?->symbol ?? ''), 'rate' => (float) ($activeCurrency?->rate ?? 1)],
         'routes' => [
             'shippingRates' => route('checkout.shipping-rates'),
             'saveAddress' => route('checkout.address.save'),
@@ -292,7 +291,7 @@
                         <div class="totals__grand"><dt>Total</dt><dd class="tabular" data-total-grand>{{ money($subtotal) }}</dd></div>
                     </dl>
                     @if ($activeCurrency && ! $activeCurrency->is_default && $defaultCurrency)
-                        <p class="muted co__fine">Prices shown in {{ $activeCurrency->code }}. Your order is charged in {{ $defaultCurrency->code }}.</p>
+                        <p class="muted co__fine" data-currency-note>Prices shown in {{ $activeCurrency->code }}. Your order is charged in {{ $defaultCurrency->code }}.</p>
                     @endif
                     <div class="co__actions">
                         <button type="button" class="btn btn--block btn--lg" data-next-step @disabled(! $selectedAddressId)>Continue to payment</button>

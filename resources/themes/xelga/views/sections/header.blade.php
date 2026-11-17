@@ -1,4 +1,4 @@
-{{-- Header: logo, the store's menu, search, account, wishlist and cart. --}}
+{{-- Header: logo, the store's menu, search, currency, account, wishlist and cart. --}}
 @php
     $id = $section['id'];
     $flag = static fn ($v) => $v ? 'true' : 'false';
@@ -13,6 +13,7 @@
         data-menu-style="{{ $settings['menu_style'] }}"
         data-sticky="{{ $flag($settings['sticky']) }}"
         data-show-search="{{ $flag($settings['show_search']) }}"
+        data-show-currency="{{ $flag($settings['show_currency']) }}"
         data-show-account="{{ $flag($settings['show_account']) }}"
         data-show-wishlist="{{ $flag($settings['show_wishlist']) }}"
         data-logo-width="{{ $settings['logo_width'] }}"
@@ -70,6 +71,25 @@
         </nav>
         <div class="header__icons">
             <button type="button" class="icon-btn header__search-toggle" aria-expanded="false" aria-controls="{{ $id }}-search" aria-label="Search"><svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg></button>
+            @if ($data['currencies'] !== [])
+                @php $currentCurrency = collect($data['currencies'])->firstWhere('active', true) ?? $data['currencies'][0]; @endphp
+                <div class="currency-picker header__currency" data-currency-picker>
+                    <button type="button" class="currency-picker__button" id="{{ $id }}-currency-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="{{ $id }}-currency-list">
+                        <span class="visually-hidden">Currency:</span>
+                        <span class="currency-picker__code">{{ $currentCurrency['code'] }}</span>
+                        <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+                    </button>
+                    <ul class="currency-picker__list" id="{{ $id }}-currency-list" role="listbox" tabindex="-1" aria-label="Show prices in" hidden>
+                        @foreach ($data['currencies'] as $currency)
+                            <li class="currency-picker__option" id="{{ $id }}-currency-{{ $loop->index }}" role="option" data-currency="{{ $currency['code'] }}" aria-selected="{{ $currency['active'] ? 'true' : 'false' }}">
+                                <span class="currency-picker__option-code">{{ $currency['code'] }}</span>
+                                <span class="currency-picker__option-name">{{ $currency['name'] }}</span>
+                                <svg class="icon icon--sm currency-picker__check" aria-hidden="true"><use href="#i-check"></use></svg>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             <a class="icon-btn header__account" href="{{ $accountUrl }}" aria-label="Account"><svg class="icon" aria-hidden="true"><use href="#i-user"></use></svg></a>
             @if ($wishlistUrl)
                 <a class="icon-btn header__wishlist" href="{{ $wishlistUrl }}" aria-label="Wishlist"><svg class="icon" aria-hidden="true"><use href="#i-heart"></use></svg></a>
@@ -124,6 +144,16 @@
                     <li><a href="{{ $wishlistUrl }}"><svg class="icon" aria-hidden="true"><use href="#i-heart"></use></svg> Wishlist</a></li>
                 @endif
             </ul>
+            @if ($data['currencies'] !== [])
+                <div class="drawer__currency" role="group" aria-labelledby="{{ $id }}-drawer-currency">
+                    <p class="drawer__currency-title" id="{{ $id }}-drawer-currency">Show prices in</p>
+                    <div class="drawer__currency-choices">
+                        @foreach ($data['currencies'] as $currency)
+                            <button type="button" class="drawer__currency-choice" data-currency="{{ $currency['code'] }}" aria-pressed="{{ $currency['active'] ? 'true' : 'false' }}" aria-label="{{ $currency['code'] }}, {{ $currency['name'] }}">{{ $currency['code'] }}</button>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
     </dialog>
 </header>

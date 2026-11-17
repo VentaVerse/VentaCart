@@ -12,7 +12,7 @@
  */
 import { $, $$ } from '../util.js';
 import { bindAddressFields } from './address-fields.js';
-import { setCartCount, cartChanged } from '../cart.js';
+import { setCartCount, cartChanged, money } from '../cart.js';
 
 const csrf = () => $('meta[name="csrf-token"]')?.content || '';
 
@@ -78,9 +78,6 @@ export function initCheckout(root) {
     loadingShipping: false,
   };
   const routes = data.routes || {};
-  const symbol = data.currency?.symbol || '';
-  const rate = Number(data.currency?.rate) || 1;
-  const money = (amount) => symbol + (Number(amount) * rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const $r = (selector) => $(selector, root);
   const list = $r('[data-address-list]');
@@ -451,6 +448,7 @@ export function initCheckout(root) {
     const comment = $r('[data-order-value="comment"]')?.value.trim() || '';
     const courier = $r('[data-order-value="courier_comment"]')?.value.trim() || '';
     const body = $r('[data-confirm-body]');
+    const currencyNote = $r('[data-currency-note]')?.textContent.trim() || '';
     body.replaceChildren(
       section('Products', el('ul', { class: 'lines' }, state.items.map((i) => el('li', { class: 'line line--sm line--noimg' },
         el('div', { class: 'line__text' }, el('span', { text: i.name }), i.variant_label ? el('span', { class: 'muted', text: i.variant_label }) : null, el('span', { class: 'muted', text: `Quantity ${i.quantity}` })),
@@ -466,6 +464,7 @@ export function initCheckout(root) {
         state.coupon.code && state.coupon.discount > 0 ? el('div', {}, el('dt', { text: `Coupon (${state.coupon.code})` }), el('dd', { class: 'tabular', text: `-${money(state.coupon.discount)}` })) : null,
         t.credit > 0 ? el('div', {}, el('dt', { text: 'Store credit' }), el('dd', { class: 'tabular', text: `-${money(t.credit)}` })) : null,
         el('div', { class: 'totals__grand' }, el('dt', { text: 'Total' }), el('dd', { class: 'tabular', text: money(t.payable) }))),
+      currencyNote ? el('p', { class: 'muted co__fine', text: currencyNote }) : null,
     );
     confirm.showModal();
     $('[data-confirm-place]', confirm).focus();

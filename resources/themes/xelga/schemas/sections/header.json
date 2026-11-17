@@ -52,6 +52,10 @@
       "key": "search_placeholder", "type": "text", "label": "Search hint", "max": 80,
       "default": "Search products", "advanced": true
     },
+    {
+      "key": "show_currency", "type": "toggle", "label": "Show currency choice", "default": true,
+      "info": "Shows only when more than one currency is turned on in VentaCart, Settings, Currencies."
+    },
     { "key": "show_account", "type": "toggle", "label": "Show account icon", "default": true },
     { "key": "show_wishlist", "type": "toggle", "label": "Show wishlist icon", "default": true },
     {

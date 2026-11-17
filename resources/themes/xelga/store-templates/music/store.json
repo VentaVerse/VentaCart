@@ -167,6 +167,7 @@
             "sticky": true,
             "show_search": true,
             "search_placeholder": "Search pedals and gear",
+            "show_currency": true,
             "show_account": true,
             "show_wishlist": true,
             "scheme": "scheme-2",
