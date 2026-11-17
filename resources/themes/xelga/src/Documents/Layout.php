@@ -33,6 +33,9 @@ final class Layout
     /** A row's settings: page or full width, a color scheme or none, the space between columns. */
     public const ROW_DEFAULTS = ['width' => 'page', 'scheme' => '', 'space' => 'md'];
 
+    /** The values a row's width and space between columns can take; its scheme is any of the store's, or none. */
+    public const ROW_CHOICES = ['width' => ['page', 'full'], 'space' => ['sm', 'md', 'lg']];
+
     public const MAX_ROWS = 40;
 
     public const MAX_PER_COLUMN = 6;

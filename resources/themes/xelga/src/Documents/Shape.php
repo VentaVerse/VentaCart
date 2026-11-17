@@ -4,6 +4,7 @@ namespace Themes\Xelga\Documents;
 
 use App\Support\SafeInput;
 use Themes\Xelga\Catalog\Catalog;
+use Themes\Xelga\Catalog\SettingSchema;
 use Themes\Xelga\Settings\SanitizeContext;
 use Themes\Xelga\Settings\Sanitizer;
 use Themes\Xelga\StoreTemplates\StoreTemplates;
@@ -41,6 +42,9 @@ final class Shape
     /** @var array<string, array<string, array<string, true>>> section id => block id => types */
     private array $storedBlocks = [];
 
+    /** @var list<array{path: string, reason: string, value: string}> sections Layout::normalize moved */
+    private array $moved = [];
+
     private Sanitizer $sanitizer;
 
     public function __construct(private readonly SanitizeContext $context)
@@ -66,6 +70,7 @@ final class Shape
     {
         $this->errors = [];
         $this->ids = [];
+        $this->moved = [];
         $this->sanitizer = new Sanitizer($this->context);
         $this->remember($stored);
 
@@ -90,7 +95,7 @@ final class Shape
             throw new ShapeException($this->errors);
         }
 
-        return ['content' => $clean, 'adjusted' => $this->sanitizer->adjusted()];
+        return ['content' => $clean, 'adjusted' => [...$this->sanitizer->adjusted(), ...$this->moved]];
     }
 
     private function settings(array $content): array
@@ -262,6 +267,8 @@ final class Shape
             $this->mainSections($pageType, $outSections);
         }
 
+        $layout = $this->layout($handle, $content, array_keys($outSections));
+
         $clean = ['schema' => self::FORMAT, 'order' => array_values(array_filter($order, 'is_string')), 'sections' => (object) $outSections];
         // The extension placements this template has been given (Placements).
         $placed = \Themes\Xelga\Extensions\Placements::placed($content['placed'] ?? []);
@@ -269,7 +276,201 @@ final class Shape
             $clean['placed'] = $placed;
         }
 
-        return $clean;
+        if ($layout === [] || $this->errors !== []) {
+            return $clean;
+        }
+
+        // Rows and sides decide the reading order; what does not fit where
+        // it was put moves to a row of its own and is reported.
+        $result = Layout::normalize($clean + $layout, app(LayoutRules::class, ['handle' => $handle]));
+        array_push($this->moved, ...$result['moved']);
+
+        return $result['content'];
+    }
+
+    /**
+     * The document's rows and sides, checked for structure. Problems are
+     * refused with their path; row settings are cleaned like any setting.
+     * Ids that name no section are left to Layout::normalize, which drops
+     * them, so a copy that leaves sections out keeps the rest of its rows.
+     *
+     * @param  list<string>  $sectionIds
+     * @return array{rows?: list<array>, sides?: array<string, list<string>>}
+     */
+    private function layout(string $handle, array $content, array $sectionIds): array
+    {
+        $layout = [];
+        $placed = [];
+        $taken = array_fill_keys(array_map('strval', $sectionIds), true);
+        $place = function (mixed $id, string $path) use (&$placed): ?string {
+            if (! is_string($id) || preg_match(self::ID, $id) !== 1) {
+                $this->fail($path, 'A section id is 1 to 40 lowercase letters, digits or hyphens.');
+
+                return null;
+            }
+            if (isset($placed[$id])) {
+                $this->fail($path, "The section {$id} is placed twice.");
+
+                return null;
+            }
+            $placed[$id] = true;
+
+            return $id;
+        };
+
+        // Sides first: a section in a side and in a row is reported in the row.
+        $sides = $content['sides'] ?? null;
+        if ($sides !== null) {
+            if (! Layout::sidesAllowed($handle)) {
+                // Empty sides say nothing; any section in one is refused.
+                if (self::holdsIds($sides)) {
+                    $this->fail('content.sides', 'This page cannot have sides.');
+                }
+            } elseif (! is_array($sides) || ($sides !== [] && array_is_list($sides)) || array_diff(array_keys($sides), Layout::SIDES) !== []) {
+                $this->fail('content.sides', 'The sides are an object with a left and a right list.');
+            } else {
+                $out = [];
+                foreach (Layout::SIDES as $which) {
+                    $ids = $sides[$which] ?? [];
+                    $path = "content.sides.{$which}";
+                    if (! is_array($ids) || ! array_is_list($ids)) {
+                        $this->fail($path, 'A side is a list of section ids.');
+                        continue;
+                    }
+                    if (count($ids) > Layout::MAX_PER_SIDE) {
+                        $this->fail($path, 'A side holds at most ' . Layout::MAX_PER_SIDE . ' sections.');
+                        continue;
+                    }
+                    foreach ($ids as $k => $id) {
+                        if (($id = $place($id, "{$path}.{$k}")) !== null) {
+                            $out[$which][] = $id;
+                        }
+                    }
+                }
+                $layout['sides'] = $out;
+            }
+        }
+
+        $rows = $content['rows'] ?? null;
+        if ($rows === null) {
+            return $layout;
+        }
+        if (! is_array($rows) || ! array_is_list($rows)) {
+            $this->fail('content.rows', 'The rows must be a list.');
+
+            return $layout;
+        }
+        if (count($rows) > Layout::MAX_ROWS) {
+            $this->fail('content.rows', 'A page holds at most ' . Layout::MAX_ROWS . ' rows.');
+
+            return $layout;
+        }
+
+        $settingsSchema = $this->rowSettings();
+        $out = [];
+        foreach ($rows as $i => $row) {
+            $path = "content.rows.{$i}";
+            if (! is_array($row) || ($row !== [] && array_is_list($row))) {
+                $this->fail($path, 'A row must be an object.');
+                continue;
+            }
+
+            $id = $row['id'] ?? null;
+            if ($id !== null) {
+                if (! is_string($id) || preg_match(self::ID, $id) !== 1) {
+                    $this->fail("{$path}.id", 'A row id is 1 to 40 lowercase letters, digits or hyphens.');
+                } elseif (isset($taken[$id])) {
+                    $this->fail("{$path}.id", "The id {$id} is used twice.");
+                } else {
+                    $taken[$id] = true;
+                }
+            }
+
+            $split = $row['split'] ?? null;
+            $split = is_int($split) ? (string) $split : $split;
+            if (! is_string($split) || ! isset(Layout::SPLITS[$split])) {
+                $this->fail("{$path}.split", 'Not one of the column choices.');
+                continue;
+            }
+            $parts = Layout::SPLITS[$split]['parts'];
+
+            $columns = $row['columns'] ?? null;
+            if (! is_array($columns) || ! array_is_list($columns) || count($columns) !== count($parts)) {
+                $this->fail("{$path}.columns", 'This row has ' . count($parts) . ' ' . (count($parts) === 1 ? 'column.' : 'columns.'));
+                continue;
+            }
+
+            $cleanColumns = [];
+            foreach ($columns as $c => $column) {
+                $cPath = "{$path}.columns.{$c}";
+                if (! is_array($column) || ! array_is_list($column)) {
+                    $this->fail($cPath, 'A column is a list of section ids.');
+                    continue 2;
+                }
+                if ($split === '12' && count($column) !== 1) {
+                    $this->fail($cPath, 'A one-column row holds one section.');
+                    continue 2;
+                }
+                if (count($column) > Layout::MAX_PER_COLUMN) {
+                    $this->fail($cPath, 'A column holds at most ' . Layout::MAX_PER_COLUMN . ' sections.');
+                    continue 2;
+                }
+                $ids = [];
+                foreach ($column as $k => $sid) {
+                    if (($sid = $place($sid, "{$cPath}.{$k}")) !== null) {
+                        $ids[] = $sid;
+                    }
+                }
+                $cleanColumns[] = $ids;
+            }
+
+            // An emptied value arrives as null (the framework turns '' into
+            // null), which for a row means its default: no scheme, page width.
+            $settings = $row['settings'] ?? [];
+            $settings = is_array($settings) ? array_filter($settings, fn ($value) => $value !== null) : $settings;
+            $clean = ['split' => $split, 'columns' => $cleanColumns, 'settings' => $this->sanitizer->cleanMap($settingsSchema, $settings, "{$path}.settings")];
+            if (is_string($id)) {
+                $clean = ['id' => $id] + $clean;
+            }
+            $out[] = $clean;
+        }
+        $layout['rows'] = $out;
+
+        return $layout;
+    }
+
+    /** Whether a sides value names anything: an empty object, or empty lists, does not. */
+    private static function holdsIds(mixed $sides): bool
+    {
+        if (! is_array($sides)) {
+            return true;
+        }
+        foreach ($sides as $ids) {
+            if (! is_array($ids) || $ids !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * A row's settings as setting schemas, so they are cleaned and reported
+     * like a section's: width, color scheme (or none) and the space between
+     * columns, with the defaults Layout gives.
+     *
+     * @return array<string, SettingSchema>
+     */
+    private function rowSettings(): array
+    {
+        $defaults = Layout::ROW_DEFAULTS;
+        $select = fn (string $key, array $values) => new SettingSchema(['key' => $key, 'type' => 'select', 'default' => $defaults[$key], 'options' => $values]);
+
+        return [
+            'width' => $select('width', Layout::ROW_CHOICES['width']),
+            'scheme' => $select('scheme', ['', ...$this->context->schemeIds]),
+            'space' => $select('space', Layout::ROW_CHOICES['space']),
+        ];
     }
 
     /**

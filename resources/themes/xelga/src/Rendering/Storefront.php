@@ -8,6 +8,8 @@ use Illuminate\Support\HtmlString;
 use Themes\Xelga\Catalog\Catalog;
 use Themes\Xelga\Documents\Defaults;
 use Themes\Xelga\Documents\Handles;
+use Themes\Xelga\Documents\Layout;
+use Themes\Xelga\Documents\LayoutRules;
 use Themes\Xelga\Preview\PreviewMode;
 use Themes\Xelga\Preview\PreviewSession;
 
@@ -47,6 +49,16 @@ final class Storefront
 
         $base = Handles::baseFor($pageType);
         $content = self::withMainSection($this->documents->content($this->handle), $base);
+
+        // Rows and sides decide the reading order. A failure here must not
+        // cost the shopper the page: it is reported and the page is drawn
+        // in its stored order, one full-width section after another.
+        try {
+            $content = Layout::normalize($content, app(LayoutRules::class, ['handle' => $this->handle]))['content'];
+        } catch (\Throwable $e) {
+            report($e);
+            unset($content['rows'], $content['sides']);
+        }
 
         return new HtmlString($this->renderer->render(
             $content,

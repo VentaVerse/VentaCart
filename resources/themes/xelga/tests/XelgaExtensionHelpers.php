@@ -76,6 +76,41 @@ trait XelgaExtensionHelpers
         ];
     }
 
+    /** A sample tile section, narrow enough for any column. */
+    protected function tile(string $heading = 'Sample tile'): array
+    {
+        return ['type' => 'sample-extension.tile', 'label' => 'Tile', 'disabled' => false, 'settings' => ['heading' => $heading], 'block_order' => [], 'blocks' => []];
+    }
+
+    /**
+     * The document with two tiles, `tile-a` and `tile-b`, side by side in
+     * one row (`row-tiles`, split 6-6) right after the section $after.
+     * Only that row is written out: every other section reads as its own
+     * full-width row.
+     */
+    protected function withTileRow(array $content, string $after): array
+    {
+        $order = array_values($content['order']);
+        array_splice($order, array_search($after, $order, true) + 1, 0, ['tile-a', 'tile-b']);
+        $content['order'] = $order;
+        $content['sections'] = [...$content['sections'], 'tile-a' => $this->tile('Tile A'), 'tile-b' => $this->tile('Tile B')];
+        $content['rows'] = [['id' => 'row-tiles', 'split' => '6-6', 'columns' => [['tile-a'], ['tile-b']], 'settings' => []]];
+
+        return $content;
+    }
+
+    /** Save a draft as an editor that knows rows does. */
+    protected function saveWithRows(string $handle, array $content, int $version): TestResponse
+    {
+        $this->forgetXelgaState();
+
+        return $this->actingAs($this->admin())->putJson(route('admin.xelga.documents.draft', ['handle' => $handle]), [
+            'content' => $content,
+            'draft_version' => $version,
+            'with_rows' => true,
+        ]);
+    }
+
     /** The shipped product template with these sections added after product-main. */
     protected function productWith(array $sections): array
     {

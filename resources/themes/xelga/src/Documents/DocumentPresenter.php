@@ -26,9 +26,9 @@ final class DocumentPresenter
             'label' => $row?->label,
             // What the editor edits: with any extension placement it has not
             // been given, so saving keeps both the section and the record.
-            'content' => self::forClient(\Themes\Xelga\Extensions\Placements::overlay($handle, $draft ?? $published ?? Defaults::content($handle))),
-            'draft' => $draft === null ? null : self::forClient($draft),
-            'published' => $published === null ? null : self::forClient($published),
+            'content' => self::forClient(\Themes\Xelga\Extensions\Placements::overlay($handle, $draft ?? $published ?? Defaults::content($handle)), $handle),
+            'draft' => $draft === null ? null : self::forClient($draft, $handle),
+            'published' => $published === null ? null : self::forClient($published, $handle),
             'is_default' => $published === null,
             'has_draft' => $draft !== null,
             'draft_version' => (int) ($row?->draft_version ?? 0),
@@ -55,9 +55,23 @@ final class DocumentPresenter
         return self::$people[$id];
     }
 
-    /** Content with its keyed maps as objects, whatever their size. */
-    public static function forClient(array $content): array
+    /**
+     * Content with its keyed maps as objects, whatever their size. Given
+     * the handle, a page's rows and sides are read as the storefront reads
+     * them, so a section an extension placed, or one a theme update made
+     * too wide for its column, shows where the page draws it.
+     */
+    public static function forClient(array $content, ?string $handle = null): array
     {
+        if ($handle !== null && Handles::kind($handle) !== 'settings') {
+            try {
+                $content = Layout::normalize($content, app(LayoutRules::class, ['handle' => $handle]))['content'];
+            } catch (\Throwable $e) {
+                // The editor still gets the page as stored, rows included,
+                // so a save does not lose them.
+                report($e);
+            }
+        }
         if (array_key_exists('values', $content)) {
             $content['values'] = (object) (array) $content['values'];
         }

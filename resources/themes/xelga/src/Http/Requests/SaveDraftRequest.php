@@ -28,6 +28,8 @@ class SaveDraftRequest extends EditorRequest
         return [
             'content' => ['required', 'array'],
             'draft_version' => ['required', 'integer', 'min:0', 'max:4294967295'],
+            // Sent by an editor that keeps rows and sides; see DocumentController::saveDraft.
+            'with_rows' => ['sometimes', 'boolean'],
         ];
     }
 }
