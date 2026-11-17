@@ -2,6 +2,8 @@
     One order as core keeps it: status, payment, total, tracking, the lines
     and totals in the store's currency, both addresses, the history notes
     written for the customer, and Cancel while core's rule allows it.
+    What extensions add (App\Support\OrderPanels) goes below the facts
+    (`order.detail.summary`) and in the foot with Cancel (`order.detail.actions`).
 --}}
 @php
     app(\Themes\Xelga\Rendering\Storefront::class)->page('account');
@@ -9,6 +11,9 @@
     // The tracking link comes from a courier or an import, so only a web address passing the store's link rule becomes a link.
     $trackingLink = \App\Support\SafeInput::link($order->tracking_link);
     $trackingLink = preg_match('#^https?://#i', $trackingLink) === 1 ? $trackingLink : '';
+    $panels = class_exists(\App\Support\OrderPanels::class);
+    $summaryPanel = $panels ? \App\Support\OrderPanels::render('order.detail.summary', $order) : new \Illuminate\Support\HtmlString('');
+    $actionsPanel = $panels ? \App\Support\OrderPanels::render('order.detail.actions', $order) : new \Illuminate\Support\HtmlString('');
 @endphp
 <x-store-layout title="Order #{{ $order->id }}">
     @include('xelga::partials.fixed.page-assets')
@@ -33,6 +38,9 @@
                         @endif
                         <div><dt>Total</dt><dd class="tabular">{{ store_money($order->total) }}</dd></div>
                     </dl>
+                    @if ($summaryPanel->toHtml() !== '')
+                        <div class="order-panel">{{ $summaryPanel }}</div>
+                    @endif
                     @if ($order->tracking_number)
                         <section class="acct__block track" aria-labelledby="track-title">
                             <h2 class="acct__subtitle" id="track-title">Tracking</h2>
@@ -152,6 +160,9 @@
                                     </div>
                                 </form>
                             </details>
+                        @endif
+                        @if ($actionsPanel->toHtml() !== '')
+                            <div class="order-panel order-panel--actions">{{ $actionsPanel }}</div>
                         @endif
                         <p><a class="link-arrow link-arrow--back" href="{{ route('account.orders') }}"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-left"></use></svg><span>Back to your orders</span></a></p>
                     </div>

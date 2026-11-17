@@ -2,9 +2,14 @@
     A list of the customer's orders as core returns them: number, date,
     status, item count and total in the store's currency. An order the
     customer may still cancel (core's rule) gets a Cancel disclosure with
-    core's optional reason; it works without the script.
+    core's optional reason; it works without the script. What extensions
+    add under a row (App\Support\OrderPanels, `order.row.after`) is read
+    once for the page and drawn in a row of its own below the order's.
 --}}
-@php $withCancel = collect($cancellable ?? [])->filter()->isNotEmpty(); @endphp
+@php
+    $withCancel = collect($cancellable ?? [])->filter()->isNotEmpty();
+    $orderPanels = class_exists(\App\Support\OrderPanels::class) ? \App\Support\OrderPanels::rows($orders) : [];
+@endphp
 <table class="orders">
     <thead><tr><th scope="col">Order</th><th scope="col">Placed</th><th scope="col">Status</th><th scope="col">Items</th><th scope="col">Total</th><th scope="col"><span class="visually-hidden">Details</span></th></tr></thead>
     @foreach ($orders as $order)
@@ -18,6 +23,9 @@
                 <td data-label="Total" class="tabular">{{ store_money($order->total) }}</td>
                 <td class="orders__go"><a class="link-arrow" href="{{ route('account.orders.show', $order) }}" aria-label="View order #{{ $order->id }}">View<svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a></td>
             </tr>
+            @isset($orderPanels[$order->id])
+                <tr class="orders__panel"><td colspan="6">{{ $orderPanels[$order->id] }}</td></tr>
+            @endisset
             @if ($canCancel)
                 <tr class="orders__cancel">
                     <td colspan="6">

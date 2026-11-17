@@ -13,6 +13,9 @@
         ['route' => 'wishlist.index', 'match' => 'wishlist.index', 'icon' => 'heart', 'label' => 'Wishlist'],
         ['route' => 'account.profile', 'match' => 'account.profile', 'icon' => 'user', 'label' => 'Profile and password'],
     ];
+    // Then the links extensions added (App\Support\AccountMenu), with the theme's icon for each of the contract's names.
+    $xelgaIcons = ['file' => 'list', 'wallet' => 'cash', 'return' => 'rotate-ccw', 'store' => 'bag', 'star' => 'star', 'gift' => 'tag'];
+    $extensionLinks = class_exists(\App\Support\AccountMenu::class) ? \App\Support\AccountMenu::links() : [];
 @endphp
 <nav class="acct__nav" aria-label="Your account">
     @if ($who)
@@ -26,6 +29,9 @@
             @if (\Illuminate\Support\Facades\Route::has($link['route']))
                 <li><a href="{{ route($link['route']) }}" @if (request()->routeIs($link['match'])) aria-current="page" @endif><svg class="icon icon--sm" aria-hidden="true"><use href="#i-{{ $link['icon'] }}"></use></svg><span>{{ $link['label'] }}</span></a></li>
             @endif
+        @endforeach
+        @foreach ($extensionLinks as $link)
+            <li><a href="{{ $link['url'] }}" @if ($link['current']) aria-current="page" @endif><svg class="icon icon--sm" aria-hidden="true"><use href="#i-{{ $xelgaIcons[$link['icon']] ?? 'list' }}"></use></svg><span>{{ $link['label'] }}</span></a></li>
         @endforeach
     </ul>
     <form method="POST" action="{{ route('customer.logout') }}">

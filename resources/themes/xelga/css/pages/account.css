@@ -1007,3 +1007,8 @@
     grid-row: 2;
   }
 }
+
+/* What extensions add to the order pages (App\Support\OrderPanels). */
+.orders__panel td { padding-block-start: 0; }
+.order-panel { margin-block: 1rem; }
+.order-panel--actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-block: 0; }
