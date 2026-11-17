@@ -15,7 +15,7 @@
 <article class="card{{ $card['sold_out'] ? ' is-soldout' : '' }}" aria-labelledby="{{ $cardId }}">
     <div class="card__media">
         @if ($card['image'])
-            <img class="card__img" src="{{ $card['image']['src'] }}" {{ \Themes\Xelga\Rendering\Picture::sources($card['image'], $cardSizes) }} alt="" loading="lazy" decoding="async">
+            <img class="card__img" src="{{ $card['image']['src'] }}" {{ \Themes\Xelga\Rendering\Picture::sources($card['image'], $cardSizes) }} alt="" {{ isset($context) ? \Themes\Xelga\Rendering\Fold::attrs($context) : new \Illuminate\Support\HtmlString('loading="lazy" decoding="async"') }}>
             @if ($card['alt_image'])
                 <img class="card__img card__img--alt" src="{{ $card['alt_image']['src'] }}" {{ \Themes\Xelga\Rendering\Picture::sources($card['alt_image'], $cardSizes) }} alt="" loading="lazy" decoding="async">
             @endif

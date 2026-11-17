@@ -17,7 +17,7 @@
         <header class="listing-head @if ($data['picture']) listing-head--media @endif">
             @if ($data['picture'])
                 <div class="listing-head__media">
-                    <img src="{{ $data['picture']['src'] }}" alt="" loading="eager" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($data['picture'], '(min-width: 750px) 40vw, 100vw') }}
+                    <img src="{{ $data['picture']['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($data['picture'], '(min-width: 750px) 40vw, 100vw') }}
                          @if ($data['picture']['width']) width="{{ $data['picture']['width'] }}" height="{{ $data['picture']['height'] }}" @endif>
                 </div>
             @endif

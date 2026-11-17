@@ -173,6 +173,7 @@ final class Storefront
             app()->forgetInstance($class);
         }
         Picture::flush();
+        Fold::flush();
         \App\Support\ImageRenditions::flush();
         \Themes\Xelga\Settings\LinkValue::flush();
         \Themes\Xelga\Documents\DocumentPresenter::flush();

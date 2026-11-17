@@ -14,7 +14,7 @@
         <header class="brand-head @if (! $data['picture']) brand-head--no-logo @endif">
             @if ($data['picture'])
                 <div class="brand-head__logo">
-                    <img src="{{ $data['picture']['src'] }}" alt="{{ $data['title'] }} logo" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($data['picture'], '240px') }}
+                    <img src="{{ $data['picture']['src'] }}" alt="{{ $data['title'] }} logo" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($data['picture'], '240px') }}
                          @if ($data['picture']['width']) width="{{ $data['picture']['width'] }}" height="{{ $data['picture']['height'] }}" @endif>
                 </div>
             @endif

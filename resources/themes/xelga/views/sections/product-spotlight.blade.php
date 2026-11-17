@@ -23,7 +23,7 @@
             <div class="s__inner spotlight">
                 <div class="spotlight__media">
                     @if ($picture)
-                        <img src="{{ $picture['src'] }}" alt="" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($picture, '(min-width: 750px) 50vw, 100vw') }}
+                        <img src="{{ $picture['src'] }}" alt="" {{ \Themes\Xelga\Rendering\Fold::attrs($context) }} {{ \Themes\Xelga\Rendering\Picture::sources($picture, '(min-width: 750px) 50vw, 100vw') }}
                              @if ($picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif>
                     @endif
                     @if ($card['on_sale'] && $card['saving'] > 0)

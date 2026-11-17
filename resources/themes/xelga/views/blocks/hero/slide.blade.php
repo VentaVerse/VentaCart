@@ -12,7 +12,20 @@
     $preview = $context->preview;
     // $slot is this slide's place among the visible slides (1 is the one shown first); null when hidden.
     $first = $slot === 1;
+    // The first slide is usually the page's largest paint: preloaded, at high priority.
+    $preload = $first && ! $preview && $picture && \Themes\Xelga\Rendering\Fold::nextIsHigh($context);
+    $loading = \Themes\Xelga\Rendering\Fold::attrs($context, $first && $picture !== null);
 @endphp
+@if ($preload)
+    @push('head')
+        @if ($phone)
+            <link rel="preload" as="image" href="{{ $phone['src'] }}" @if ($phone['srcset'] !== '') imagesrcset="{{ $phone['srcset'] }}" imagesizes="100vw" @endif media="(max-width: 749px)" fetchpriority="high">
+            <link rel="preload" as="image" href="{{ $picture['src'] }}" @if ($picture['srcset'] !== '') imagesrcset="{{ $picture['srcset'] }}" imagesizes="100vw" @endif media="(min-width: 750px)" fetchpriority="high">
+        @else
+            <link rel="preload" as="image" href="{{ $picture['src'] }}" @if ($picture['srcset'] !== '') imagesrcset="{{ $picture['srcset'] }}" imagesizes="100vw" @endif fetchpriority="high">
+        @endif
+    @endpush
+@endif
 <div class="hero__slide{{ $first ? ' is-active' : '' }}" @if ($slot !== null) data-slot="{{ $slot }}" @endif data-block-id="{{ $block['id'] }}" data-block-type="slide" data-focal="{{ $s['focal'] ?? 'center' }}" data-focal-y="{{ $s['focal_y'] ?? 'center' }}"
      data-text-x="{{ $s['text_x'] ?? 'start' }}" data-text-y="{{ $s['text_y'] ?? 'center' }}" data-box="{{ $s['box'] ?? 'none' }}" data-overlay="{{ $s['overlay'] ?? 35 }}"
      @if ($block['disabled']) hidden @endif>
@@ -23,13 +36,13 @@
                 <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Picture::sources($picture, '100vw') }}
                      @if ($picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif
                      data-setting="image" data-setting-attr="image_alt:alt"
-                     @if ($first) fetchpriority="high" @else loading="lazy" @endif>
+                     {{ $loading }}>
             </picture>
         @elseif ($picture)
             <img src="{{ $picture['src'] }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Picture::sources($picture, '100vw') }}
                  @if ($picture['width']) width="{{ $picture['width'] }}" height="{{ $picture['height'] }}" @endif
                  data-setting="image" data-setting-attr="image_alt:alt"
-                 @if ($first) fetchpriority="high" @else loading="lazy" @endif>
+                 {{ $loading }}>
         @else
             <img alt="" data-setting="image" data-setting-attr="image_alt:alt" hidden>
         @endif

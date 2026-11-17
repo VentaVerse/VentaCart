@@ -18,7 +18,7 @@
                     data-focal="{{ $s['focal'] ?? 'center' }}" data-focal-y="{{ $s['focal_y'] ?? 'center' }}"
                     @if ($banner['block']['disabled']) hidden @endif>
                     <div class="promo__media">
-                        <img src="{{ $banner['picture']['src'] ?? '' }}" alt="{{ $s['image_alt'] ?? '' }}" loading="lazy" decoding="async" {{ \Themes\Xelga\Rendering\Picture::sources($banner['picture'], '(min-width: 750px) 50vw, 100vw') }}
+                        <img src="{{ $banner['picture']['src'] ?? '' }}" alt="{{ $s['image_alt'] ?? '' }}" {{ \Themes\Xelga\Rendering\Fold::attrs($context, (bool) $banner['picture']) }} {{ \Themes\Xelga\Rendering\Picture::sources($banner['picture'], '(min-width: 750px) 50vw, 100vw') }}
                              data-setting="image" data-setting-attr="image_alt:alt"
                              @if ($banner['picture'] && $banner['picture']['width']) width="{{ $banner['picture']['width'] }}" height="{{ $banner['picture']['height'] }}" @endif
                              @if (! $banner['picture']) hidden @endif>
