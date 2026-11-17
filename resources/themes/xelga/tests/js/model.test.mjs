@@ -1,9 +1,9 @@
+// Run: node --test 'resources/themes/xelga/tests/js/**/*.test.mjs'
+
 /*
  * The editor's row model. The cases in tests/fixtures/layout are shared with
  * the PHP normalizer's test, so the editor and the server read a page
  * document alike; the rest covers the board's moves.
- *
- * Run: node --test resources/themes/xelga/tests/js/
  */
 
 import { test } from 'node:test';
@@ -173,6 +173,21 @@ test('place into a gap takes a section out of a column into a row of its own', (
   assert.deepEqual(result.content.order, ['a', 'c', 'b']);
   assert.deepEqual(result.created, [rows[2].id]);
   assert.equal(json(normalize(result.content, RULES).content), json(result.content), 'already normal');
+});
+
+test('place into a gap never takes the id of an empty row of columns', () => {
+  let c = page({ a: 'text', b: 'text', c: 'text' });
+  c = place(c, 'b', { drop: 'beside', rowId: rowsOf(c)[0].id, side: 'right' }, RULES).content;
+  c = place(c, 'b', { drop: 'gap', before: 'end' }, RULES).content;
+  const pair = rowsOf(c)[0];
+  assert.equal(pair.split, '6-6');
+  assert.equal(pair.id, rowIdFor('a', []), 'the row of two kept the id of the row it was made from');
+
+  const result = place(c, 'a', { drop: 'gap', before: pair.id }, RULES);
+  const rows = rowsOf(result.content);
+  assert.deepEqual(rows.map((r) => [r.split, r.columns]), [['12', [['a']]], ['6-6', [[], []]], ['12', [['c']]], ['12', [['b']]]]);
+  assert.equal(rows[1].id, pair.id, 'the empty row keeps its id');
+  assert.deepEqual(result.created, [rows[0].id], "created names a's new row");
 });
 
 test('place into a side and back into a row', () => {
