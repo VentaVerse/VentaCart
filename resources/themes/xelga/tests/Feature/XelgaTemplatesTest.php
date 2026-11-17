@@ -384,6 +384,10 @@ class XelgaTemplatesTest extends TestCase
         $this->assertNull($pages['checkout']['handle']);
         $this->assertContains('cart-checkout', $pages['checkout']['groups']);
         $this->assertSame('product', $pages['product']['subject_type']);
+        // Every product counts; the editor takes the special layouts' own off it.
+        $this->assertSame(3, $pages['product']['subject_count']);
+        $this->assertSame(0, $pages['category']['subject_count']);
+        $this->assertArrayNotHasKey('subject_count', $pages['home']);
 
         $layout = collect($boot['templates'])->firstWhere('handle', 'product.gift-guide');
         $this->assertSame(1, $layout['count']);

@@ -60,6 +60,34 @@ class XelgaPreviewTest extends TestCase
         $this->get('/', ['Sec-Fetch-Dest' => 'iframe'])->assertOk()->assertSee(self::DRAFT);
     }
 
+    public function test_a_preview_tab_with_the_nonce_shows_the_draft(): void
+    {
+        $nonce = $this->openEditor($this->admin());
+
+        // A tab of its own sends no frame header; the nonce in the address is
+        // what shows the draft. The page is drawn in preview mode, with the
+        // preview script that keeps the nonce on the store's own links.
+        $this->get('/?xelga_preview=' . $nonce, ['Sec-Fetch-Dest' => 'document'])
+            ->assertOk()
+            ->assertSee(self::DRAFT)
+            ->assertDontSee(self::LIVE)
+            ->assertSee('id="xelga-page-data"', false)
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+    }
+
+    public function test_a_plain_tab_without_the_nonce_shows_the_published_page(): void
+    {
+        $this->openEditor($this->admin());
+
+        // The same admin, the window open, a tab of its own without the nonce.
+        $this->get('/', ['Sec-Fetch-Dest' => 'document'])
+            ->assertOk()
+            ->assertSee(self::LIVE)
+            ->assertDontSee(self::DRAFT)
+            ->assertDontSee('xelga-page-data');
+    }
+
     public function test_a_request_saving_an_older_session_does_not_close_the_window(): void
     {
         $admin = $this->admin();

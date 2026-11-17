@@ -1,6 +1,7 @@
 /*
  * Pages and special layouts: the page picker in the top bar (with Header and
- * footer as its first entry, see setScope), the Layout row
+ * footer as its first entry, see setScope), the note on the layout board
+ * about a layout many records share, the Layout row
  * at the top of the section list, the layout settings (name, what uses it,
  * delete), making a new layout, and the pages with a fixed layout that are
  * only styled by theme settings.
@@ -111,11 +112,12 @@ export function pageMenu(anchor) {
   ];
   editable.forEach((p) => {
     const words = subjectWords(p.subjectType);
+    const users = words ? defaultUsers(p) : 0;
     items.push({
       label: p.subjectType ? `${p.label}: Default` : p.label,
       checked: !shared && S.page?.type === p.type && !S.page?.layout,
       disabled: p.ready === false,
-      hint: p.ready === false ? 'Coming in a later update' : null,
+      hint: p.ready === false ? 'Coming in a later update' : words && users ? `Used by ${plural(users, words.one, words.many)}` : null,
       run: () => ui.openPage({ type: p.type }),
     });
     if (!words) return;
@@ -154,6 +156,51 @@ export function pageMenu(anchor) {
     }));
   }
   openMenu(anchor, items, { label: 'Pages' });
+}
+
+/** How many records use a page type's default layout: all of them but those on a special layout. */
+function defaultUsers(page) {
+  const special = layoutsOf(page.type).reduce((n, l) => n + l.count, 0);
+  return Math.max(0, (page.subjectCount || 0) - special);
+}
+
+/**
+ * What the layout board says under its heading about where the layout of
+ * the page comes from: `meta`, a line of text, and `note`, the shared
+ * layout note, each or both null.
+ *
+ * A page about one record (a category, a product) is drawn from a layout
+ * that many records share. The board names the record it shows, says how
+ * many others change with it and offers a layout of its own.
+ */
+export function boardSource() {
+  const page = S.page;
+  const words = subjectWords(page?.subjectType);
+  if (!words || isFixed()) return null;
+  const layout = currentLayout();
+  if (layout) {
+    return { meta: layout.count ? `Used by ${plural(layout.count, words.one, words.many)}` : `Not used by any ${words.one} yet`, note: null };
+  }
+  const base = pageDef(page.type) || page;
+  const n = defaultUsers(base);
+  const subject = base.subject;
+  // A record on a special layout is not drawn from this one.
+  const elsewhere = subject && S.templates.some((t) => t.pageType === page.type && t.assigned.includes(Number(subject.id)));
+  if (!subject?.name || elsewhere || !n) {
+    return { meta: n ? `Used by ${plural(n, words.one, words.many)}` : null, note: null };
+  }
+  const name = subject.name;
+  const button = h('button', {
+    type: 'button', class: 'btn btn--secondary btn--sm', 'aria-haspopup': 'dialog',
+    onclick: (e) => newLayoutForm(e.currentTarget, base, { name }),
+  }, `Make a layout for ${name} only`);
+  const note = h('div', { class: 'source', role: 'note' },
+    icon('layers', 'source__icon'),
+    h('p', { class: 'source__text' },
+      h('strong', { text: `${name} uses the ${base.label} layout.` }),
+      ` Changes here show on ${n === 1 ? `this ${words.one} only` : `all ${plural(n, words.one, words.many)}`}.`),
+    button);
+  return { meta: null, note };
 }
 
 /* ------------------------------------------------------------------------
@@ -487,12 +534,13 @@ function toggleSubject(handle, id, name, onChange) {
    ------------------------------------------------------------------------ */
 
 /** Making a special layout: a name, and the layout it starts as a copy of. */
-export function newLayoutForm(anchor, page) {
+export function newLayoutForm(anchor, page, { name = '' } = {}) {
   const words = subjectWords(page.subjectType);
   if (!words) return;
   const existing = layoutsOf(page.type);
   const nameInput = h('input', {
     class: 'input', id: 'new-layout-name', type: 'text', maxlength: 60, placeholder: 'For example: Gift guide', autocomplete: 'off', 'aria-describedby': 'new-layout-error',
+    value: name ? String(name).slice(0, 60) : null,
   });
   const error = h('p', { class: 'field__error', id: 'new-layout-error', hidden: true }, icon('alert', 'icon--sm'), h('span', { text: 'Give the layout a name.' }));
   const from = h('select', { class: 'select', id: 'new-layout-from' },

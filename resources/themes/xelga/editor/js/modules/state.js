@@ -54,6 +54,11 @@ export const S = {
   pointer: 0, // how many of history are applied
   seq: 0, // increasing number given to each operation
   sel: null, // { kind: 'section', sid, bid } | { kind: 'theme', group, scheme? }
+  // What the layout board shows beside the page: {type: 'board'} (nothing
+  // more), {type: 'section', sid}, {type: 'row', rowId}, {type: 'add', target},
+  // {type: 'theme'} or {type: 'schemes'}.
+  view: { type: 'board' },
+  canvas: 'board', // what the canvas shows: 'board' (the layout board) or 'preview' (the store preview)
   open: new Set(), // sections expanded in the outline
   nav: 'sections', // sections | theme | add | revisions
   addAt: null, // { index, open, query } while the add section panel is open

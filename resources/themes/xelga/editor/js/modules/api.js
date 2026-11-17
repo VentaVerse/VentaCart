@@ -491,5 +491,24 @@ export function createApi(boot, { fetchImpl } = {}) {
           && response.headers.get('X-Xelga-Section') === String(sectionId),
       });
     },
+
+    /**
+     * A whole page of the store as the preview window draws it, from the
+     * saved draft, for the layout board's pictures. Taken only from the
+     * store itself, as renderSection is: an address on this origin, never a
+     * redirect, and an answer from this origin. Anything else throws
+     * `refused`. The HTML is cleaned before any of it is shown.
+     */
+    async renderPage(pageUrl) {
+      const preview = boot.preview || {};
+      if (!isSameOrigin(pageUrl)) throw new ApiError({ kind: 'refused' });
+      return send('GET', pageUrl, {
+        query: { [preview.param || 'xelga_preview']: preview.nonce },
+        accept: 'html',
+        retries: 1,
+        redirect: 'manual',
+        verify: (response) => !response.redirected && isSameOrigin(response.url),
+      });
+    },
   };
 }
