@@ -24,6 +24,7 @@ use Tests\TestCase;
 class ProductFeedTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Support\LegacyLayoutTables;
 
     private function product(string $name, array $attrs = []): Product
     {
@@ -277,6 +278,7 @@ class ProductFeedTest extends TestCase
 
     public function test_saved_featured_blocks_are_moved_to_newest(): void
     {
+        $this->legacyLayoutTables();
         $placement = \DB::table('layout_placements')->insertGetId([
             'page_type' => 'home', 'region' => 'content', 'widget' => 'catalog.products', 'theme' => 'default',
             'config' => json_encode(['filter' => 'featured', 'limit' => 4]), 'created_at' => now(), 'updated_at' => now(),

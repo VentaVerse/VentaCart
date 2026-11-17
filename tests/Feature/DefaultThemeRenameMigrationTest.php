@@ -15,6 +15,7 @@ use Tests\TestCase;
 class DefaultThemeRenameMigrationTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Support\LegacyLayoutTables;
 
     private function migration(): object
     {
@@ -23,6 +24,7 @@ class DefaultThemeRenameMigrationTest extends TestCase
 
     public function test_an_older_store_moves_to_the_new_slug_and_other_themes_stay(): void
     {
+        $this->legacyLayoutTables();
         Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_theme'], ['value' => 'venta']);
         $row = DB::table('layout_rows')->insertGetId(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top', 'columns' => '[12]', 'sort_order' => 0, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('layout_placements')->insert(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top', 'row_id' => $row, 'widget' => 'catalog.brands', 'title' => 'Brands', 'sort_order' => 0, 'created_at' => now(), 'updated_at' => now()]);
@@ -49,16 +51,5 @@ class DefaultThemeRenameMigrationTest extends TestCase
         $this->migration()->up();
 
         $this->assertSame('sample', Setting::where('group', 'identity')->where('key', 'active_theme')->value('value'));
-    }
-
-    public function test_a_layout_row_written_without_a_theme_lands_on_the_default_theme(): void
-    {
-        $id = DB::table('layout_placements')->insertGetId([
-            'page_type' => 'home', 'region' => 'content_top', 'widget' => 'catalog.brands',
-            'title' => 'Brands', 'sort_order' => 0, 'is_enabled' => true,
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
-
-        $this->assertSame('default', DB::table('layout_placements')->where('id', $id)->value('theme'));
     }
 }

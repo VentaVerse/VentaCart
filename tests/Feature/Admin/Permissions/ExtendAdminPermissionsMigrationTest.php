@@ -141,7 +141,7 @@ class ExtendAdminPermissionsMigrationTest extends TestCase
 
         $this->seed(RolePermissionSeeder::class);
 
-        $this->assertEqualsCanonicalizing(AdminPermissions::slugs(), Permission::whereNotIn('slug', ['layout.view', 'layout.edit'])->pluck('slug')->all());
+        $this->assertEqualsCanonicalizing(AdminPermissions::slugs(), Permission::pluck('slug')->all());
         $this->assertEqualsCanonicalizing(AdminPermissions::defaultsFor('store-manager'), $this->slugsOf('store-manager'));
         $this->assertEqualsCanonicalizing(AdminPermissions::defaultsFor('staff'), $this->slugsOf('staff'));
     }
