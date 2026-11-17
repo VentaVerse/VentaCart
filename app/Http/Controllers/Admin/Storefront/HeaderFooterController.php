@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin\Storefront;
 
 use App\Http\Controllers\Controller;
-use App\Http\Middleware\EditTheme;
 use App\Models\FooterColumn;
 use App\Models\Setting;
 use App\Services\ThemeService;
@@ -109,6 +108,14 @@ class HeaderFooterController extends Controller
     {
         $live = $theme->getActiveTheme();
 
-        return $theme->keepsOwnStorage($live) ? EditTheme::sendAway($theme, $live) : null;
+        if (! $theme->keepsOwnStorage($live)) {
+            return null;
+        }
+        $editor = $theme->editorRoute($live);
+        if ($editor === null) {
+            abort(404);
+        }
+
+        return redirect()->route($editor);
     }
 }

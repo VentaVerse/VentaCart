@@ -4,7 +4,8 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\User;
 use App\Services\ExtensionManager;
-use Extensions\Banners\Models\BannerGroup;
+use App\Models\NavMenu;
+use App\Models\NavMenuItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,7 +23,6 @@ class AdminFramingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        app(ExtensionManager::class)->install('banners');
         app(ExtensionManager::class)->bootEnabled();
         $this->actingAs(User::factory()->create());
     }
@@ -43,16 +43,15 @@ class AdminFramingTest extends TestCase
         $this->assertNull($response->headers->get('Content-Security-Policy'));
     }
 
+    private function menuItem(): NavMenuItem
+    {
+        return NavMenuItem::create(['menu_id' => NavMenu::main()->id, 'label' => 'Guitars', 'type' => 'custom', 'url' => '/guitars', 'sort_order' => 1, 'is_enabled' => true]);
+    }
+
     public function test_a_save_inside_the_panel_lands_on_a_page_that_is_still_framed(): void
     {
-        $group = BannerGroup::create(['name' => 'Hero', 'slug' => 'hero', 'is_active' => true]);
-
-        $response = $this->put(route('admin.banners.update', $group) . '?embed=1', [
-            'name' => 'Hero renamed',
-            'slug' => 'hero',
-            'height' => 500,
-            'mobile_height' => 400,
-            'speed' => 5000,
+        $response = $this->put(route('admin.menus.items.update', $this->menuItem()) . '?embed=1', [
+            'label' => 'Guitars', 'type' => 'custom', 'url' => '/guitars', 'is_enabled' => '1',
         ]);
 
         $response->assertRedirect();
@@ -61,14 +60,8 @@ class AdminFramingTest extends TestCase
 
     public function test_an_unframed_save_redirects_without_the_flag(): void
     {
-        $group = BannerGroup::create(['name' => 'Hero', 'slug' => 'hero', 'is_active' => true]);
-
-        $response = $this->put(route('admin.banners.update', $group), [
-            'name' => 'Hero renamed',
-            'slug' => 'hero',
-            'height' => 500,
-            'mobile_height' => 400,
-            'speed' => 5000,
+        $response = $this->put(route('admin.menus.items.update', $this->menuItem()), [
+            'label' => 'Guitars', 'type' => 'custom', 'url' => '/guitars', 'is_enabled' => '1',
         ]);
 
         $response->assertRedirect();

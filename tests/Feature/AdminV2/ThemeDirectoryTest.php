@@ -64,22 +64,4 @@ class ThemeDirectoryTest extends TestCase
         app(ThemeService::class)->clearCache();
         $this->assertSame(ThemeService::bundled(), app(ThemeService::class)->getActiveTheme());
     }
-
-    /**
-     * Switching theme must not touch the layout. Placements are store data
-     * keyed by page type; a region the new theme lacks stops rendering and is
-     * reported, never deleted.
-     */
-    public function test_activating_a_theme_leaves_the_layout_alone(): void
-    {
-        \App\Models\LayoutPlacement::create([
-            'page_type' => 'home', 'region' => 'content_top',
-            'widget' => 'catalog.brands', 'title' => 'Kept',
-            'sort_order' => 0, 'is_enabled' => true,
-        ]);
-
-        $this->post(route('admin.theme.activate'), ['theme' => ThemeService::bundled()])->assertRedirect();
-
-        $this->assertDatabaseHas('layout_placements', ['title' => 'Kept']);
-    }
 }

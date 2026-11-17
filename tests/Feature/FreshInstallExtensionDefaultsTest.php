@@ -55,7 +55,6 @@ class FreshInstallExtensionDefaultsTest extends TestCase
         'payment-hitpay',
         'shipping-weight-based',
         'abandoned-carts',
-        'banners',
         'courier-fulfillment',
         'erp-sync',
         'shipping-dhl',

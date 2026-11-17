@@ -52,16 +52,12 @@
     <a class="skip-link" href="#main-content">Skip to content</a>
     @include('xelga::snippets.icons')
 
-    <x-storefront.region name="header_top" />
     {{ $xelga->group('header') }}
 
     <main id="main-content">
-        <x-storefront.region name="content_top" />
         {{ $slot }}
-        <x-storefront.region name="content_bottom" />
     </main>
 
-    <x-storefront.region name="footer_top" />
     {{ $xelga->group('footer') }}
 
     @include('xelga::snippets.cart-drawer')

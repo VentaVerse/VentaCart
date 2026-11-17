@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Currency;
 use App\Models\FooterColumn;
-use App\Models\HomepageSection;
 use App\Models\NavMenuItem;
 use App\Models\Setting;
 use Illuminate\Database\Seeder;
@@ -92,55 +91,6 @@ class ThemeSeeder extends Seeder
                     ['value' => $value]
                 );
             }
-        }
-
-        // Homepage Sections
-        if (HomepageSection::count() === 0) {
-            HomepageSection::create([
-                'type' => 'banner',
-                'title' => 'Hero Slider',
-                'config' => [
-                    'banner_group' => 'homepage-hero',
-                ],
-                'sort_order' => 1,
-            ]);
-
-            HomepageSection::create([
-                'type' => 'brands',
-                'title' => 'Brands',
-                'config' => [
-                    'per_page' => 8,
-                    'autoplay' => true,
-                    'speed' => 3000,
-                ],
-                'sort_order' => 2,
-            ]);
-
-            HomepageSection::create([
-                'type' => 'products',
-                'title' => 'New Arrivals',
-                'config' => [
-                    'filter' => 'new',
-                    'limit' => 12,
-                    'columns_mobile' => 2,
-                    'columns_tablet' => 3,
-                    'columns_desktop' => 6,
-                ],
-                'sort_order' => 3,
-            ]);
-
-            HomepageSection::create([
-                'type' => 'products',
-                'title' => 'On Sale',
-                'config' => [
-                    'filter' => 'specials',
-                    'limit' => 6,
-                    'columns_mobile' => 2,
-                    'columns_tablet' => 3,
-                    'columns_desktop' => 6,
-                ],
-                'sort_order' => 4,
-            ]);
         }
 
         // Nav Menu Items

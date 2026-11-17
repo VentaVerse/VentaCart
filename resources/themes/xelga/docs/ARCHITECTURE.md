@@ -25,7 +25,7 @@ The theme ships with VentaCart at `resources/themes/xelga` and is loaded by the 
 
 ```
 resources/themes/xelga/
-  theme.json                      identity, provider, editor route, storage: own, regions
+  theme.json                      identity, provider, editor route, storage: own
   PRODUCT.md
   docs/ARCHITECTURE.md
   src/
@@ -77,7 +77,7 @@ resources/themes/xelga/
     theme-settings.json           the theme settings groups
     font-pairs.json               the matched font pairs, with local font files
   views/                          prepended to the view finder while Xelga is live
-    layouts/store.blade.php       draws header group, page content, footer group, required regions
+    layouts/store.blade.php       draws header group, page content, footer group
     home.blade.php, category/index.blade.php, product/show.blade.php, ...   every view ThemeContract requires
     sections/{type}.blade.php     one view per section type
     blocks/{section-type}/{block-type}.blade.php   block views
@@ -118,23 +118,14 @@ resources/themes/xelga/
   "version": "2.0.0",
   "author": "VentaVerse",
   "description": "A storefront theme with its own click-to-edit editor: sections, color schemes, matched fonts and eight starting stores.",
-  "thumbnail": "thumbnail.png",
   "provider": "Themes\\Xelga\\XelgaServiceProvider",
   "editor": "admin.xelga.editor",
-  "storage": "own",
-  "widgets": false,
-  "regions": {
-    "header_top": { "label": "Above the header" },
-    "content_top": { "label": "Above the page content" },
-    "content_bottom": { "label": "Below the page content" },
-    "footer_top": { "label": "Above the footer" }
-  }
+  "storage": "own"
 }
 ```
 
 - The version starts at 2.0.0 so a store that ever recorded an earlier `xelga` version sees an update rather than a downgrade.
 - No `settings` key: Xelga's settings live in its own schema files and tables, not in `theme_settings.*`.
-- The four required regions are drawn in `layouts/store.blade.php` with `<x-storefront.region>`. With own storage nothing is placed there, so they render empty and cost nothing. They are kept so the contract holds.
 
 ### 2.2 Build
 

@@ -126,7 +126,7 @@ class UrlGrammarTest extends TestCase
      * Task 2 (fulfillment-polish): courier-fulfillment's operational queue,
      * now mounted under Sales instead of a bare '/fulfillment' root. The
      * extension is installed in-test (real extension.json, not a fixture —
-     * same pattern as ExtensionLifecycleTest's banners/courier-fulfillment
+     * same pattern as ExtensionLifecycleTest's courier-fulfillment
      * coverage) since its routes only exist once installed + enabled.
      */
     public function test_fulfillment_queue_page_is_ok_at_new_url(): void
@@ -364,19 +364,6 @@ class UrlGrammarTest extends TestCase
         $this->assertStringContainsString('/'.$this->prefix().'/extensions/courier-fulfillment/456/label', $response->headers->get('Location'));
     }
 
-    public function test_old_admin_banners_literal_url_redirects_to_settings_modules_banners(): void
-    {
-        $this->actingAs(User::factory()->create());
-
-        $response = $this->get('/admin/banners');
-
-        $response->assertStatus(301);
-        $this->assertStringContainsString(
-            '/'.$this->prefix().'/extensions/banners',
-            $response->headers->get('Location')
-        );
-    }
-
     public function test_query_string_is_preserved_across_a_legacy_redirect(): void
     {
         $this->actingAs(User::factory()->create());
@@ -515,13 +502,13 @@ class UrlGrammarTest extends TestCase
     public function test_breadcrumb_trail_on_extension_page_starts_where_its_sidebar_entry_sits(): void
     {
         $this->actingAs(User::factory()->create());
-        app(ExtensionManager::class)->install('banners');
+        app(ExtensionManager::class)->install('theme');
 
-        $response = $this->get('/'.$this->prefix().'/extensions/banners');
+        $response = $this->get('/'.$this->prefix().'/extensions/theme');
 
         $response->assertOk();
-        // Banners' entry sits in Storefront, so its pages trail from there.
-        $this->assertBreadcrumbTrail($response->getContent(), ['Storefront', 'Banners']);
+        // The theme directory's entry sits in Storefront, so its pages trail from there.
+        $this->assertBreadcrumbTrail($response->getContent(), ['Storefront', 'Themes']);
     }
 
     /** Task 2: the Fulfillment sidebar item (admin-nav) supplies the queue's crumb. */
@@ -629,9 +616,9 @@ class UrlGrammarTest extends TestCase
         $this->assertSame(
             [
                 ['label' => 'Extensions', 'url' => route('admin.extensions.index')],
-                ['label' => 'Banners', 'url' => url($this->prefix().'/extensions/banners')],
+                ['label' => 'Stock Alerts', 'url' => url($this->prefix().'/extensions/stock-alerts')],
             ],
-            Breadcrumbs::forPath('/'.$this->prefix().'/extensions/banners/slides')
+            Breadcrumbs::forPath('/'.$this->prefix().'/extensions/stock-alerts/settings')
         );
     }
 

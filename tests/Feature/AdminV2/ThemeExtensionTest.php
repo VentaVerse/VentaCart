@@ -67,7 +67,6 @@ class ThemeExtensionTest extends TestCase
         $service = app(\App\Services\ThemeService::class);
 
         $this->assertNotSame('', $service->getActiveTheme());
-        $this->assertSame(0, \App\Models\HomepageSection::count());
     }
 
     public function test_themes_appears_in_the_storefront_group_only_while_enabled(): void

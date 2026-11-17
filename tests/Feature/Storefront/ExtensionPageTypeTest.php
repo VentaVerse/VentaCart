@@ -2,20 +2,15 @@
 
 namespace Tests\Feature\Storefront;
 
-use App\Models\LayoutPlacement;
-use App\Models\LayoutRow;
-use App\Models\User;
-use App\Services\ExtensionManager;
-use App\Support\LayoutPage;
 use App\Support\StorefrontPageType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * An extension's own storefront page (a shop page, say) becomes a page the
- * Layout editors offer, once the extension registers it as a page type. A
- * type whose extension is off is absent and its saved rows stay unused.
+ * An extension's own storefront page (a shop page, say) becomes a page type
+ * a theme can tell apart, once the extension registers it. A type whose
+ * extension is off is absent.
  */
 class ExtensionPageTypeTest extends TestCase
 {
@@ -40,10 +35,6 @@ class ExtensionPageTypeTest extends TestCase
         $this->assertSame(array_keys(StorefrontPageType::TYPES), array_slice(array_keys($all), 0, count(StorefrontPageType::TYPES)), 'Core types keep their order, first.');
 
         $this->assertTrue(StorefrontPageType::exists('demo_shop'));
-        $this->assertTrue(LayoutPage::valid('demo_shop'));
-        $this->assertSame('Shop pages', LayoutPage::label('demo_shop'));
-        $this->assertContains('demo_shop', LayoutPage::fixed());
-        $this->assertSame(['demo_shop', LayoutPlacement::EVERYWHERE], LayoutPage::chain('demo_shop'));
     }
 
     public function test_the_extensions_routes_resolve_to_its_type(): void
@@ -51,7 +42,7 @@ class ExtensionPageTypeTest extends TestCase
         $this->assertSame('demo_shop', StorefrontPageType::forRoute('demo.shop.show'));
         $this->assertSame('product', StorefrontPageType::forRoute('product.show'), "Core's routes stay core's.");
 
-        Route::get('/demo-shop/{slug}', fn () => LayoutPage::currentKey())->name('demo.shop.show');
+        Route::get('/demo-shop/{slug}', fn () => StorefrontPageType::current())->name('demo.shop.show');
         $this->get('/demo-shop/demo-store')->assertOk()->assertSee('demo_shop');
     }
 
@@ -69,27 +60,11 @@ class ExtensionPageTypeTest extends TestCase
         StorefrontPageType::register('demo_empty', 'X', []);
     }
 
-    public function test_a_type_whose_extension_is_off_disappears_and_its_rows_stay(): void
+    public function test_a_type_whose_extension_is_off_disappears(): void
     {
-        LayoutRow::create(['theme' => 'default', 'page_type' => 'demo_shop', 'region' => 'content_top', 'columns' => [12], 'sort_order' => 0]);
-        $this->assertContains('demo_shop', LayoutPage::modified('default'));
-
         StorefrontPageType::forget('demo_shop');
 
-        $this->assertFalse(LayoutPage::valid('demo_shop'));
-        $this->assertNotContains('demo_shop', LayoutPage::fixed());
-        $this->assertNotContains('demo_shop', LayoutPage::modified('default'));
+        $this->assertFalse(StorefrontPageType::exists('demo_shop'));
         $this->assertNull(StorefrontPageType::forRoute('demo.shop.show'));
-        $this->assertSame(1, LayoutRow::where('page_type', 'demo_shop')->count(), 'Saved rows are kept for when it comes back.');
-    }
-
-    public function test_cores_layout_editor_offers_the_registered_page(): void
-    {
-        app(ExtensionManager::class)->install('theme');
-        app(ExtensionManager::class)->bootEnabled();
-        $this->withoutVite();
-        $this->actingAs(User::factory()->create());
-
-        $this->get(route('admin.layout', ['page' => 'demo_shop']))->assertOk()->assertSee('Shop pages');
     }
 }

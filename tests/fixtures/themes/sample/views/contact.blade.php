@@ -1,6 +1,4 @@
 <x-store-layout title="Contact Us">
-    <x-storefront.columns>
-    <x-storefront.region name="content_top" />
     <div class="container-store py-16">
         <div class="account-auth-card account-auth-card--wide">
             <h1 class="account-auth-title text-center">CONTACT US</h1>
@@ -58,6 +56,4 @@
             </form>
         </div>
     </div>
-    <x-storefront.region name="content_bottom" />
-    </x-storefront.columns>
 </x-store-layout>

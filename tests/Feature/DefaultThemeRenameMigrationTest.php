@@ -2,8 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\LayoutPlacement;
-use App\Models\LayoutRow;
 use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -26,9 +24,9 @@ class DefaultThemeRenameMigrationTest extends TestCase
     public function test_an_older_store_moves_to_the_new_slug_and_other_themes_stay(): void
     {
         Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_theme'], ['value' => 'venta']);
-        $row = LayoutRow::create(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top', 'columns' => [12], 'sort_order' => 0]);
-        LayoutPlacement::create(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top', 'row_id' => $row->id, 'widget' => 'catalog.brands', 'title' => 'Brands', 'sort_order' => 0]);
-        $other = LayoutRow::create(['theme' => 'sample', 'page_type' => 'home', 'region' => 'content_top', 'columns' => [12], 'sort_order' => 0]);
+        $row = DB::table('layout_rows')->insertGetId(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top', 'columns' => '[12]', 'sort_order' => 0, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('layout_placements')->insert(['theme' => 'venta', 'page_type' => 'home', 'region' => 'content_top', 'row_id' => $row, 'widget' => 'catalog.brands', 'title' => 'Brands', 'sort_order' => 0, 'created_at' => now(), 'updated_at' => now()]);
+        $other = DB::table('layout_rows')->insertGetId(['theme' => 'sample', 'page_type' => 'home', 'region' => 'content_top', 'columns' => '[12]', 'sort_order' => 0, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('extensions')->where('name', 'theme-default')->delete();
         DB::table('extensions')->insert(['name' => 'theme-venta', 'version' => '2.0', 'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
 
@@ -36,10 +34,10 @@ class DefaultThemeRenameMigrationTest extends TestCase
         $this->migration()->up();
 
         $this->assertSame('default', Setting::where('group', 'identity')->where('key', 'active_theme')->value('value'));
-        $this->assertSame('default', $row->fresh()->theme);
-        $this->assertSame(0, LayoutPlacement::where('theme', 'venta')->count());
-        $this->assertSame(1, LayoutPlacement::where('theme', 'default')->count());
-        $this->assertSame('sample', $other->fresh()->theme);
+        $this->assertSame('default', DB::table('layout_rows')->where('id', $row)->value('theme'));
+        $this->assertSame(0, DB::table('layout_placements')->where('theme', 'venta')->count());
+        $this->assertSame(1, DB::table('layout_placements')->where('theme', 'default')->count());
+        $this->assertSame('sample', DB::table('layout_rows')->where('id', $other)->value('theme'));
         $this->assertFalse(DB::table('extensions')->where('name', 'theme-venta')->exists());
         $this->assertTrue(DB::table('extensions')->where('name', 'theme-default')->exists());
     }

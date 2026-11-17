@@ -23,7 +23,6 @@ use Extensions\ShippingFlatRate\Models\FlatShippingRate;
 use App\Models\FooterColumn;
 use Extensions\ShippingFree\Models\FreeShippingRule;
 use App\Models\GeoZone;
-use App\Models\HomepageSection;
 use App\Models\NavMenuItem;
 use App\Models\Order;
 use App\Models\OrderProduct;
@@ -40,10 +39,7 @@ use App\Models\Tag;
 use App\Models\User;
 use Extensions\ShippingWeightBased\Models\WeightBasedMethod;
 use App\Models\Zone;
-use Extensions\Banners\Models\Banner;
-use Extensions\Banners\Models\BannerGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -946,7 +942,6 @@ class ReskinWaveTest extends TestCase
 
         $category = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals']);
 
-        HomepageSection::create(['type' => 'banner', 'title' => 'Hero', 'config' => [], 'sort_order' => 1, 'is_enabled' => true]);
         NavMenuItem::create(['label' => 'Pedals', 'type' => 'category', 'category_id' => $category->id, 'sort_order' => 1, 'is_enabled' => true]);
         FooterColumn::create(['title' => 'Links', 'type' => 'links', 'config' => ['links' => []], 'sort_order' => 1, 'is_enabled' => true]);
 
@@ -967,45 +962,6 @@ class ReskinWaveTest extends TestCase
 
         foreach ($vRoutes as $url) {
             $this->get($url)->assertOk()->assertSee('v-embed', false);
-        }
-
-        // Banners is an optional extension — only assert its routes when the
-        // BannerServiceProvider has actually registered them (Route::has guard,
-        // matching the pattern ModuleController already uses for this module).
-        if (Route::has('admin.banners.index')) {
-            $group = BannerGroup::create([
-                'name' => 'Homepage Hero',
-                'slug' => 'homepage-hero',
-                'autoplay' => true,
-                'speed' => 5000,
-                'height' => 500,
-                'height_mobile' => 400,
-                'full_width' => true,
-                'is_active' => true,
-            ]);
-
-            $banner = Banner::create([
-                'banner_group_id' => $group->id,
-                'name' => 'Summer Sale',
-                'bg_color' => '#000000',
-                'bg_size' => 'cover',
-                'layers' => [],
-                'sort_order' => 1,
-                'is_active' => true,
-            ]);
-
-            $bannerRoutes = [
-                route('admin.banners.index'),
-                route('admin.banners.create'),
-                route('admin.banners.edit', $group),
-                route('admin.banners.slides', $group),
-                route('admin.banners.slides.create', $group),
-                route('admin.banners.slides.edit', [$group, $banner]),
-            ];
-
-            foreach ($bannerRoutes as $url) {
-                $this->get($url)->assertOk()->assertSee('v-admin', false);
-            }
         }
     }
 

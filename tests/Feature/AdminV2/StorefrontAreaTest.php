@@ -16,10 +16,9 @@ use Tests\Support\UsesSampleTheme;
 use Tests\TestCase;
 
 /**
- * Storefront: one sidebar area for how the store looks and what sits where.
- * Themes chooses the theme, Layout places things on pages, Header & footer
- * holds what is on every page, Banners holds the banner groups. No page in
- * it links into another sidebar area.
+ * Storefront: one sidebar area for how the store looks. Themes chooses the
+ * theme, Header & footer holds what is on every page. No page in it links
+ * into another sidebar area.
  */
 class StorefrontAreaTest extends TestCase
 {
@@ -29,7 +28,7 @@ class StorefrontAreaTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        foreach (['theme', 'banners'] as $name) {
+        foreach (['theme'] as $name) {
             app(ExtensionManager::class)->install($name);
         }
         app(ExtensionManager::class)->bootEnabled();
@@ -43,17 +42,15 @@ class StorefrontAreaTest extends TestCase
 
     public function test_the_sidebar_has_a_storefront_area_and_content_keeps_the_content(): void
     {
-        $this->assertSame(['themes', 'layout', 'header-footer', 'banners'], array_column($this->group('Storefront')['items'], 'key'));
-        $this->assertNotContains('layout', array_column($this->group('Content')['items'], 'key'));
+        $this->assertSame(['themes', 'header-footer'], array_column($this->group('Storefront')['items'], 'key'));
         $this->assertContains('menus', array_column($this->group('Content')['items'], 'key'));
         $this->assertNotContains('themes', array_column($this->group('Extensions')['items'], 'key'));
     }
 
     public function test_an_extension_page_lights_its_storefront_entry_and_trails_from_there(): void
     {
-        $this->assertSame(['group' => 'Storefront', 'item' => 'banners'], AdminNav::activeItemKey('/admin/extensions/banners'));
         $this->assertSame(['group' => 'Storefront', 'item' => 'themes'], AdminNav::activeItemKey('/admin/extensions/theme'));
-        $this->assertSame(['Storefront', 'Banners'], array_column(Breadcrumbs::forPath('/admin/extensions/banners'), 'label'));
+        $this->assertSame(['Storefront', 'Themes'], array_column(Breadcrumbs::forPath('/admin/extensions/theme'), 'label'));
     }
 
     public function test_every_tab_opens(): void
@@ -118,17 +115,15 @@ class StorefrontAreaTest extends TestCase
 
     public function test_old_addresses_land_on_the_storefront_pages(): void
     {
-        $this->get('/admin/content/layout?page=home')->assertRedirect(route('admin.layout').'?page=home');
         $this->get('/admin/extensions/theme/customise?tab=footer')->assertRedirect(route('admin.header-footer').'?tab=footer');
     }
 
-    public function test_the_theme_directory_offers_no_door_into_layout_or_header_and_footer(): void
+    public function test_the_theme_directory_offers_no_door_into_header_and_footer(): void
     {
         $html = $this->get(route('admin.theme.index'))->assertOk()->getContent();
         // The cards, not the sidebar (which links every Storefront page).
         $html = substr($html, (int) strpos($html, '<div class="v-themes">'));
 
-        $this->assertStringNotContainsString(route('admin.layout'), $html);
         $this->assertStringNotContainsString(route('admin.header-footer'), $html);
         $this->assertStringNotContainsString('Customise', $html);
     }
@@ -151,12 +146,6 @@ class StorefrontAreaTest extends TestCase
         $this->assertSame('menus.edit', $permissions->requirementFor('admin.header-footer.announcement', 'POST'));
         $this->assertSame('menus.edit', $permissions->requirementFor('admin.footer.arrange', 'POST'));
         $this->assertSame('menus.delete', $permissions->requirementFor('admin.footer.destroy', 'DELETE'));
-    }
-
-    public function test_a_module_card_says_where_the_module_lives(): void
-    {
-        $this->assertSame('Storefront > Banners', AdminNav::homeOf('banners'));
-        $this->get(route('admin.extensions.modules'))->assertOk()->assertSee('Storefront &gt; Banners', false);
     }
 
     /** A link stored before the checks existed is not printed either. */

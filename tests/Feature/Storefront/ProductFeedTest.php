@@ -13,7 +13,6 @@ use App\Models\Product;
 use App\Models\ProductSpecial;
 use App\Services\ExtensionManager;
 use App\Support\ProductFeed;
-use App\Support\Widgets;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -24,7 +23,7 @@ use Tests\TestCase;
  */
 class ProductFeedTest extends TestCase
 {
-    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
+    use RefreshDatabase;
 
     private function product(string $name, array $attrs = []): Product
     {
@@ -274,39 +273,6 @@ class ProductFeedTest extends TestCase
         $attributes = ProductFeed::get()->first()->getAttributes();
         $this->assertArrayHasKey('reviews_count', $attributes);
         $this->assertArrayHasKey('reviews_avg_rating', $attributes);
-    }
-
-    public function test_the_product_grid_lists_through_the_feed_and_offers_hand_picked_not_featured(): void
-    {
-        $a = $this->product('Grid A', ['date_available' => now()->subDay()]);
-        $b = $this->product('Grid B', ['date_available' => now()]);
-
-        $grid = fn (array $config) => Widgets::resolve('catalog.products', $config)['products']->pluck('name')->all();
-
-        $this->assertSame(['Grid B', 'Grid A'], $grid(['filter' => 'new']));
-        $this->assertSame(['Grid A', 'Grid B'], $grid(['filter' => 'ids', 'products' => "{$a->id}, {$b->id}"]));
-        $this->assertSame([], $grid(['filter' => 'ids', 'products' => '']));
-        $this->assertSame(['Grid B', 'Grid A'], $grid(['filter' => 'featured']), 'A block saved before the change still lists products.');
-
-        $options = collect(Widgets::schema('catalog.products'))->firstWhere('name', 'filter')['options'];
-        $this->assertArrayHasKey('ids', $options);
-        $this->assertArrayNotHasKey('featured', $options);
-
-        $tabs = Widgets::resolve('catalog.product_tabs', ['tabs' => [
-            ['title' => 'Picks', 'filter' => 'ids', 'products' => "{$b->id},{$a->id}"],
-        ]])['tabs'];
-        $this->assertSame(['Grid B', 'Grid A'], $tabs[0]['products']->pluck('name')->all());
-    }
-
-    public function test_the_product_grid_still_renders_on_the_storefront(): void
-    {
-        $this->product('Rendered Grid Product');
-        \App\Models\LayoutPlacement::create([
-            'page_type' => 'home', 'region' => 'content_bottom', 'widget' => 'catalog.products', 'title' => 'Latest Arrivals',
-            'config' => ['filter' => 'new', 'limit' => 4], 'sort_order' => 0, 'is_enabled' => true,
-        ]);
-
-        $this->get('/')->assertOk()->assertSee('Latest Arrivals', false)->assertSee('Rendered Grid Product', false);
     }
 
     public function test_saved_featured_blocks_are_moved_to_newest(): void

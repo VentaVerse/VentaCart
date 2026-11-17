@@ -22,8 +22,8 @@ use Illuminate\Support\Str;
  *     unlinked crumb built from the page's own $title, EXCEPT under
  *     extensions/{name}/... where {name} always gets its own linked
  *     crumb first (registry item if one exists — e.g. abandoned-carts, seo —
- *     else the extension's manifest title via ExtensionManager::discovered(),
- *     e.g. banners) before any further $title crumb.
+ *     else the extension's manifest title via ExtensionManager::discovered())
+ *     before any further $title crumb.
  *
  * Longest-registered-URL-prefix matching (the Bagisto lesson the spec cites)
  * is handled structurally here rather than by literal string comparison:

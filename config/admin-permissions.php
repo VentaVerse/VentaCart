@@ -70,7 +70,6 @@ return [
         'admin.coupons.*' => 'marketing',
         'admin.coupons.settings' => 'extensions',
         'admin.email-campaigns.*' => 'marketing',
-        'admin.banners.*' => 'marketing',
         'admin.stock-notifications.*' => 'marketing',
         'admin.extensions.seo.*' => 'marketing',
         'admin.extensions.seo.settings' => 'extensions',
@@ -93,11 +92,9 @@ return [
         'admin.footer.*' => 'menus',
         'admin.footer.arrange' => 'menus.edit',
 
-        // Layout and themes. A theme that brings its own editor maps that
-        // editor's routes itself (AdminPermissions::map() from its provider,
-        // or "admin_permissions" in its manifest).
-        'admin.layout' => 'layout.view',
-        'admin.layout.*' => 'layout',
+        // Themes. A theme that brings its own editor maps that editor's
+        // routes itself (AdminPermissions::map() from its provider, or
+        // "admin_permissions" in its manifest).
         'admin.theme.*' => 'themes',
         'admin.theme.currencies.*' => 'settings',
 
@@ -140,7 +137,6 @@ return [
         'admin.extensions.install',
         'admin.extensions.uninstall',
         'admin.theme.package.*',
-        'admin.layout.templates.import',
         'admin.settings.reveal-secret',
         'admin.erp-sync.keys.*',
     ],

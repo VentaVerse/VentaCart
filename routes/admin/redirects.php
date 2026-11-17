@@ -135,12 +135,9 @@ adminLegacyRedirect('shipping-couriers', 'admin.shipping-couriers.index');
 // a redirect) the moment a visitor hits an old bookmarked '/fulfillment'
 // URL while the extension happens to be disabled. adminLegacyExtensionRedirect()
 // below builds the destination as a literal path instead, so the redirect
-// always succeeds regardless of the extension's current state — same
-// reasoning as legacy-banners-redirect (routes/admin.php) for the same
-// class of problem, just kept inside this file (unlike banners' redirect,
-// courier-fulfillment's old mount already respected config('admin.prefix'),
-// so it belongs in the normal prefixed admin. group here, not registered
-// standalone).
+// always succeeds regardless of the extension's current state. The old
+// mount already respected config('admin.prefix'), so it belongs in the
+// normal prefixed admin. group here.
 if (! function_exists('adminLegacyExtensionRedirect')) {
     function adminLegacyExtensionRedirect(string $old, string $destination): void
     {
@@ -185,8 +182,6 @@ adminLegacyRedirect('settings/section/{section}', 'admin.settings.section');
 adminLegacyRedirect('automations', 'admin.automations.index');
 adminLegacyRedirect('api-sync-logs', 'admin.api-sync-logs.index');
 adminLegacyRedirect('modules', 'admin.extensions.index');
-adminLegacyRedirect('extensions/theme/layout', 'admin.layout');
-adminLegacyRedirect('extensions/theme/layout/menus', 'admin.layout.menus');
 
 // Sales — Abandoned Carts (operational) + Settings > Modules > Abandoned
 // Carts (config) — literal siblings before the {cart} show wildcard
@@ -328,10 +323,9 @@ foreach ([
     })->where('path', '.*');
 }
 
-// Storefront: Layout moved out of Content, and the theme's header and
-// footer editing became Storefront > Header & footer. The menu, edited
-// for a while on Header & footer, is back at Content > Menus.
-adminLegacyRedirect('content/layout', 'admin.layout');
+// The theme's header and footer editing became Storefront > Header &
+// footer. The menu, edited for a while on Header & footer, is back at
+// Content > Menus.
 adminLegacyRedirect('storefront/header-footer/menu', 'admin.menus');
 adminLegacyRedirect('storefront/header-footer/menu/items/{item}/edit', 'admin.menus.items.edit');
 adminLegacyRedirect('extensions/theme/customise', 'admin.header-footer');

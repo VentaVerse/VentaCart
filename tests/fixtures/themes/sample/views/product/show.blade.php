@@ -1,6 +1,4 @@
 <x-store-layout :title="$product->meta_title ?: $product->name" :meta-description="$product->meta_description">
-    <x-storefront.columns>
-    <x-storefront.region name="content_top" />
 
     @section('og_title', $product->meta_title ?: $product->name)
     @section('og_description', $product->meta_description ?: Str::limit(strip_tags($product->description), 200))
@@ -566,6 +564,4 @@
             </div>
         @endif
     </div>
-    <x-storefront.region name="content_bottom" />
-    </x-storefront.columns>
 </x-store-layout>

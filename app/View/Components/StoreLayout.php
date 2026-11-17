@@ -2,7 +2,6 @@
 
 namespace App\View\Components;
 
-use App\Models\Category;
 use App\Models\Setting;
 use App\Services\CartService;
 use App\Services\ThemeService;
@@ -36,56 +35,10 @@ class StoreLayout extends Component
             ? "{$this->title} - {$siteName}"
             : ($seoDefaults['default_meta_title'] ?? $siteName);
 
-        $headingFont = $theme->get('fonts.heading', 'Oswald');
-        $bodyFont = $theme->get('fonts.body', 'Roboto Slab');
-        $priceFont = $theme->get('fonts.price');
-        $googleFontsUrl = $this->buildGoogleFontsUrl($headingFont, $bodyFont, $priceFont);
-
-        $navItems = $theme->getNavItems();
-
-        // Build 3-level subcategory map for category nav items
-        $navSubcategories = Cache::rememberForever('nav_subcategories', function () use ($navItems) {
-            $categoryIds = $navItems->where('type', 'category')->pluck('category_id')->filter();
-            if ($categoryIds->isEmpty()) {
-                return [];
-            }
-
-            // Level 2: direct children of nav categories
-            $children = Category::whereIn('parent_id', $categoryIds)
-                ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('name')
-                ->get();
-
-            // Level 3: grandchildren
-            $childIds = $children->pluck('id');
-            $grandchildren = Category::whereIn('parent_id', $childIds)
-                ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('name')
-                ->get()
-                ->groupBy('parent_id');
-
-            // Attach grandchildren to each child
-            $result = [];
-            foreach ($children->groupBy('parent_id') as $parentId => $group) {
-                $result[$parentId] = $group->map(function ($child) use ($grandchildren) {
-                    $arr = $child->toArray();
-                    $arr['children'] = isset($grandchildren[$child->id])
-                        ? $grandchildren[$child->id]->toArray()
-                        : [];
-                    return $arr;
-                })->toArray();
-            }
-
-            return $result;
-        });
-
         $wishlistIds = app(\App\Services\WishlistService::class)->ids();
 
-        // System widgets (a theme's own header pieces as rows) render through
-        // the region component, outside this view's own data; they read the
-        // same bundle from the shared pool.
+        // Shared with every view the page draws, not only the layout: a
+        // theme's partials read the same bundle.
         \Illuminate\Support\Facades\View::share([
             'siteName' => $siteName,
             'navTree' => \App\Support\NavTree::for(\App\Models\NavMenu::MAIN),
@@ -105,11 +58,6 @@ class StoreLayout extends Component
             'theme' => $theme,
             'pageTitle' => $pageTitle,
             'siteName' => $siteName,
-            'googleFontsUrl' => $googleFontsUrl,
-            'headingFont' => $headingFont,
-            'bodyFont' => $bodyFont,
-            'navItems' => $navItems,
-            'navSubcategories' => $navSubcategories,
             // The composed main menu, resolved: what the header draws now.
             'navTree' => \App\Support\NavTree::for(\App\Models\NavMenu::MAIN),
             'footerColumns' => $theme->getFooterColumns(),
@@ -126,25 +74,5 @@ class StoreLayout extends Component
             'defaultMetaKeywords' => $seoDefaults['default_meta_keywords'] ?? '',
             'googleSiteVerification' => $seoDefaults['google_site_verification'] ?? '',
         ]);
-    }
-
-    private function buildGoogleFontsUrl(string $headingFont, string $bodyFont, ?string $priceFont = null): string
-    {
-        $fonts = [];
-
-        $headingParam = str_replace(' ', '+', $headingFont);
-        $fonts[] = "family={$headingParam}:wght@400;500;600;700";
-
-        if ($bodyFont !== $headingFont) {
-            $bodyParam = str_replace(' ', '+', $bodyFont);
-            $fonts[] = "family={$bodyParam}:wght@300;400;500;700";
-        }
-
-        if ($priceFont && $priceFont !== $headingFont && $priceFont !== $bodyFont) {
-            $priceParam = str_replace(' ', '+', $priceFont);
-            $fonts[] = "family={$priceParam}:wght@400;500;700";
-        }
-
-        return 'https://fonts.googleapis.com/css2?' . implode('&', $fonts) . '&display=swap';
     }
 }

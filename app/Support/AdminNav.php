@@ -332,7 +332,7 @@ class AdminNav
     /**
      * The work-group entry an extension's page belongs to: for a path under
      * extensions/{name}, the sidebar item that extension put outside the
-     * Extensions group (Banners in Storefront, Coupons in Marketing), so the
+     * Extensions group (Coupons in Marketing), so the
      * sidebar and the trail say where the merchant went, not where the code
      * lives. With several entries (Blog Posts, Blog Categories) the one whose
      * own address the path continues wins. Null when there is none.
@@ -378,7 +378,7 @@ class AdminNav
 
     /**
      * Where an extension lives in the sidebar, as "Group > Item", when it put
-     * an entry in a work group (Storefront > Banners). Null otherwise.
+     * an entry in a work group (Marketing > Coupons). Null otherwise.
      */
     public static function homeOf(string $extension): ?string
     {

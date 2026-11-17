@@ -140,41 +140,11 @@ class ExtensionLifecycleTest extends TestCase
         $this->assertDatabaseMissing('extensions', ['name' => 'demo']);
     }
 
-    public function test_banners_migrates_onto_kernel_and_serves_after_install(): void
-    {
-        // Real banners extension (extensions/banners/extension.json), not the
-        // demo fixture — proves the generic kernel actually carries the
-        // first real tenant end-to-end: discover -> install -> boot -> serve.
-        $manager = new ExtensionManager();
-
-        $this->assertSame('not_installed', $manager->state('banners'));
-
-        $manager->install('banners');
-
-        $this->assertSame('enabled', $manager->state('banners'));
-        $this->assertDatabaseHas('extensions', ['name' => 'banners', 'enabled' => true]);
-
-        // Hit banners' literal URL — now mounted under the *configured*
-        // admin prefix at extensions/banners (the Part 1 prefix-bug
-        // fix) — rather than route('admin.banners.index'): the named route
-        // can't be resolved to build a URL until
-        // App\Http\Middleware\BootExtensions has actually run once, and
-        // that only happens once a request is dispatched.
-        $this->actingAs(User::factory()->create())
-            ->get('/'.config('admin.prefix', 'admin').'/extensions/banners')
-            ->assertOk();
-
-        // A request has now run BannerServiceProvider::boot() via the
-        // kernel — proving install-time continuity actually wires the
-        // extension up, not just the DB row.
-        $this->assertTrue(Route::has('admin.banners.index'));
-    }
-
     public function test_courier_fulfillment_appears_in_discovered(): void
     {
         // Real courier-fulfillment extension.json (not a fixture) — proves the
         // manifest the kernel adoption task authored is well-formed and
-        // discoverable, same as the banners real-extension check above.
+        // discoverable.
         $manifest = (new ExtensionManager())->discovered()->get('courier-fulfillment');
 
         $this->assertNotNull($manifest);
@@ -459,12 +429,9 @@ class ExtensionLifecycleTest extends TestCase
     // ------------------------------------------------------------------
     // Task 2: Modules page lifecycle UI (HTTP round trips)
     //
-    // All of these run against the 'demo' fixture, never the real
-    // 'banners' extension — per this task's absolute rule, banners must
-    // never be installed/disabled/uninstalled in a test (even against the
-    // in-memory sqlite test DB), to avoid the exact same process-wide
-    // spl_autoload_register contamination documented in task-1-report.md's
-    // "Incidental fix" section. config('extensions.path') is repointed to
+    // All of these run against the 'demo' fixture, never a real
+    // extension, to avoid process-wide spl_autoload_register
+    // contamination between tests. config('extensions.path') is repointed to
     // the fixtures directory in every test below, before the first HTTP
     // request — see fixtureManager()'s docblock context: ExtensionManager
     // reads that config lazily, on its first discovered() call, which for

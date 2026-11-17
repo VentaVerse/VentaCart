@@ -118,7 +118,7 @@ class ModulesPageTest extends TestCase
             ->assertOk()
             ->assertSee('Modules')
             ->assertSee('Stock Alerts')->assertSee('Abandoned Carts')
-            ->assertSee('Banners')->assertSee('SEO')
+            ->assertSee('SEO')
             ->assertDontSee('Fulfillment');
     }
 }

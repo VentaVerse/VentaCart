@@ -65,17 +65,16 @@ class StorefrontPageType
 
     /**
      * Page types an extension added, by type: its label and route name
-     * prefixes. Registered from a service provider at boot, like widgets, so
-     * a type whose extension is switched off is simply absent: the
-     * dropdowns drop it and its saved rows stay in place, unused.
+     * prefixes. Registered from a service provider at boot, so a type whose
+     * extension is switched off is simply absent.
      *
      * @var array<string, array{label: string, routes: list<string>}>
      */
     private static array $registered = [];
 
     /**
-     * Let an extension add a kind of storefront page, so Layout can arrange
-     * it and page settings can target it. Core's own types and their routes
+     * Let an extension add a kind of storefront page, so a theme can tell
+     * it apart from core's pages. Core's own types and their routes
      * cannot be taken over: a core type's name is refused, and core's route
      * prefixes are matched before any registered one.
      *
@@ -87,7 +86,7 @@ class StorefrontPageType
         if (preg_match('/^[a-z][a-z0-9_]{0,39}$/', $type) !== 1) {
             throw new \InvalidArgumentException("A page type is lower case letters, digits and underscores: [{$type}].");
         }
-        if (array_key_exists($type, self::TYPES) || in_array($type, [LayoutPage::QUICKVIEW, 'global'], true)) {
+        if (array_key_exists($type, self::TYPES) || in_array($type, ['quickview', 'global'], true)) {
             throw new \InvalidArgumentException("[{$type}] is one of core's page types.");
         }
         $routes = array_values(array_filter($routes, fn ($r) => is_string($r) && $r !== ''));

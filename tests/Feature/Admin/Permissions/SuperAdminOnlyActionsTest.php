@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Admin\Permissions;
 
-use App\Models\LayoutPlacement;
 use App\Models\NavMenu;
 use App\Models\NavMenuItem;
 use App\Models\Permission;
@@ -45,11 +44,10 @@ class SuperAdminOnlyActionsTest extends TestCase
 
         $this->post(route('admin.users.store'), [])->assertForbidden();
         $this->post(route('admin.user-groups.store'), ['name' => 'Demo'])->assertForbidden();
-        $this->post(route('admin.extensions.install', 'banners'))->assertForbidden();
+        $this->post(route('admin.extensions.install', 'seo'))->assertForbidden();
         $this->post(route('admin.extensions.uninstall', 'blog'))->assertForbidden();
         $this->post(route('admin.settings.reveal-secret'), [])->assertForbidden();
-        $this->post(route('admin.layout.templates.import'), [])->assertForbidden();
-        $this->assertSame('not_installed', app(\App\Services\ExtensionManager::class)->state('banners'));
+        $this->assertSame('not_installed', app(\App\Services\ExtensionManager::class)->state('seo'));
 
         // Reading still follows the role.
         $this->get(route('admin.users.index'))->assertOk();
@@ -119,35 +117,5 @@ class SuperAdminOnlyActionsTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->get(route('admin.menus.items.edit', $item))->assertOk()
             ->assertDontSee('Only a super admin can change custom HTML.');
-    }
-
-    public function test_only_a_super_admin_writes_an_html_block(): void
-    {
-        $payload = fn (?int $id, string $html) => ['payload' => json_encode([
-            'page_type' => 'home', 'columns' => ['left' => 0, 'right' => 0],
-            'rows' => [['id' => null, 'region' => 'content_top', 'columns' => [12], 'enabled' => true,
-                'placements' => [['id' => $id, 'column' => 0, 'widget' => 'content.html', 'title' => 'Demo',
-                    'config' => ['html' => $html], 'enabled' => true]]]],
-        ])];
-
-        $this->actingAs($this->everythingButSuperAdmin());
-        $this->post(route('admin.layout.update'), $payload(null, '<script>alert(1)</script>'))->assertForbidden();
-        $this->assertSame(0, LayoutPlacement::count());
-
-        $this->actingAs(User::factory()->create());
-        $this->post(route('admin.layout.update'), $payload(null, '<p>Demo</p>'))->assertRedirect();
-        $placement = LayoutPlacement::firstOrFail();
-
-        // Moving or re-saving it with the same markup is fine for anyone
-        // who may edit the layout; changing the markup is not.
-        $this->actingAs($this->everythingButSuperAdminAgain());
-        $this->post(route('admin.layout.update'), $payload($placement->id, '<p>Demo</p>'))->assertRedirect();
-        $this->post(route('admin.layout.update'), $payload($placement->id, '<p>Changed</p>'))->assertForbidden();
-        $this->assertSame('<p>Demo</p>', $placement->fresh()->config['html']);
-    }
-
-    private function everythingButSuperAdminAgain(): User
-    {
-        return User::factory()->role('everything')->create();
     }
 }

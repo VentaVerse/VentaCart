@@ -5,16 +5,12 @@ namespace App\Support;
 use App\Services\ExtensionManager;
 
 /**
- * The Venta Theme Contract, as code: what a theme package must contain to
- * be installed. The written form is docs/theme-contract.md; the two agree,
- * and a theme that passes here works with Layout, the widgets, and every
- * storefront route.
+ * The theme contract, as code: what a theme package must contain to be
+ * installed. The written form is docs/theme-contract.md; the two agree,
+ * and a theme that passes here draws every storefront route.
  */
 final class ThemeContract
 {
-    /** Regions every theme draws, so a merchant's placements survive a switch. */
-    public const REQUIRED_REGIONS = ['header_top', 'content_top', 'content_bottom', 'footer_top'];
-
     /** Views core routes render, as view names; the theme owns every one. */
     public const REQUIRED_VIEWS = [
         'layouts.store', 'home', 'category.index', 'product.show', 'brand.index', 'brand.show',
@@ -68,30 +64,6 @@ final class ThemeContract
             }
         }
 
-        $regions = array_keys((array) ($meta['regions'] ?? []));
-        if ($missing = array_diff(self::REQUIRED_REGIONS, $regions)) {
-            $problems[] = 'theme.json regions is missing ' . implode(', ', $missing) . '.';
-        }
-
-        foreach ((array) ($meta['regions'] ?? []) as $region => $spec) {
-            if (! preg_match('/^[a-z][a-z0-9_]*$/', (string) $region)) {
-                $problems[] = "Region [{$region}] is not a valid region key (lowercase letters, digits, underscores).";
-            }
-            if (is_array($spec) && ! empty($spec['defaults']) && ! is_array($spec['defaults'])) {
-                $problems[] = "Region [{$region}] defaults must be a list of widget keys.";
-            }
-            // A shipped row that would collapse to one column on the
-            // storefront is a mistake in the manifest, not a layout.
-            foreach (is_array($spec['defaults'] ?? null) ? $spec['defaults'] : [] as $entry) {
-                if (is_array($entry) && isset($entry['cols'])) {
-                    $widths = array_values((array) ($entry['columns'] ?? []));
-                    if (! is_array($entry['cols']) || ColumnGrid::fromManifest($meta['grid'] ?? null)->normalizeColumns($widths) !== $widths || count($widths) !== count($entry['cols'])) {
-                        $problems[] = "Region [{$region}] has a default row whose columns do not add up on the theme's grid (eight parts unless theme.json declares a grid), one list of pieces per column.";
-                    }
-                }
-            }
-        }
-
         foreach ((array) ($meta['settings'] ?? []) as $key => $spec) {
             if (! is_array($spec) || empty($spec['type']) || empty($spec['label'])) {
                 $problems[] = "Setting [{$key}] needs a type and a label.";
@@ -110,29 +82,6 @@ final class ThemeContract
             if ($discovered->has($extension)) {
                 $required = array_merge($required, $views);
             }
-        }
-
-        // Every widget this theme can place (the shared ones and its own)
-        // must have a view in the theme, except system pieces, which are only
-        // required where the theme declares the region they belong to.
-        $slug = basename(rtrim($path, '/'));
-        foreach (Widgets::all($slug) as $key => $spec) {
-            // A namespaced view belongs to the extension that registered
-            // the widget, not to the theme.
-            if (empty($spec['view']) || str_contains($spec['view'], '::')) {
-                continue;
-            }
-            // Core draws this one when the theme does not.
-            if (! empty($spec['optional'])) {
-                continue;
-            }
-            if (! empty($spec['system'])) {
-                $wanted = array_intersect((array) ($spec['regions'] ?? []), $regions);
-                if ($wanted === []) {
-                    continue;
-                }
-            }
-            $required[] = $spec['view'];
         }
 
         foreach (array_unique($required) as $view) {

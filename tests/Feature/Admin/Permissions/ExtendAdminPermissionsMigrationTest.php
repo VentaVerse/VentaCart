@@ -69,7 +69,9 @@ class ExtendAdminPermissionsMigrationTest extends TestCase
         $this->originalStore();
         $this->migrate();
 
-        $this->assertEqualsCanonicalizing(AdminPermissions::slugs(), Permission::pluck('slug')->all());
+        // The migration keeps the catalog as it was then, Layout's two
+        // permissions included; a later migration takes those away.
+        $this->assertEqualsCanonicalizing([...AdminPermissions::slugs(), 'layout.view', 'layout.edit'], Permission::pluck('slug')->all());
         $this->assertSame(Permission::count(), Role::where('slug', 'super-admin')->first()->permissions()->count());
 
         $manager = $this->slugsOf('store-manager');
@@ -139,7 +141,7 @@ class ExtendAdminPermissionsMigrationTest extends TestCase
 
         $this->seed(RolePermissionSeeder::class);
 
-        $this->assertEqualsCanonicalizing(AdminPermissions::slugs(), Permission::pluck('slug')->all());
+        $this->assertEqualsCanonicalizing(AdminPermissions::slugs(), Permission::whereNotIn('slug', ['layout.view', 'layout.edit'])->pluck('slug')->all());
         $this->assertEqualsCanonicalizing(AdminPermissions::defaultsFor('store-manager'), $this->slugsOf('store-manager'));
         $this->assertEqualsCanonicalizing(AdminPermissions::defaultsFor('staff'), $this->slugsOf('staff'));
     }

@@ -1,28 +1,11 @@
 <?php
 
-use App\Http\Controllers\Admin\Layout\LayoutController;
 use App\Http\Controllers\Admin\Storefront\FooterColumnController;
 use App\Http\Controllers\Admin\Storefront\HeaderFooterController;
 use Illuminate\Support\Facades\Route;
 
-// Storefront: how the store looks and what sits where. Themes (the theme
-// extension's directory), Layout (where things go on each page), Header &
-// footer (what sits on every page) and Banners (the banners extension).
-
-// The Layout editor: what renders where, on which pages. Themes without an
-// editor of their own ride it; a theme that brings its own editor is
-// decoupled and never edited here.
-Route::prefix('storefront/layout')->middleware(\App\Http\Middleware\EditTheme::class)->group(function () {
-    Route::get('/', [LayoutController::class, 'index'])->name('layout');
-    Route::post('/', [LayoutController::class, 'update'])->name('layout.update');
-    Route::get('/schemas', [LayoutController::class, 'schemas'])->name('layout.schemas');
-    Route::post('/style-presets', [LayoutController::class, 'storeStylePreset'])->name('layout.style-presets.store');
-    Route::delete('/style-presets/{preset}', [LayoutController::class, 'destroyStylePreset'])->name('layout.style-presets.destroy');
-    Route::post('/templates', [LayoutController::class, 'storeTemplate'])->name('layout.templates.store');
-    Route::delete('/templates/{template}', [LayoutController::class, 'destroyTemplate'])->name('layout.templates.destroy');
-    Route::post('/templates/export', [LayoutController::class, 'exportTemplate'])->name('layout.templates.export');
-    Route::post('/templates/import', [LayoutController::class, 'importTemplate'])->name('layout.templates.import');
-});
+// Storefront: what sits on every page, whatever the theme. Themes are
+// chosen in the theme extension's directory.
 
 // Header & footer: the announcement bar, the top bar links and the footer
 // columns. The menu is edited at Content > Menus.

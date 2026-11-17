@@ -26,9 +26,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // What can be placed in a theme's regions. Registered at boot, never
-        // per request: the registry is process-global, like the courier one.
-        \App\Storefront\Widgets\CoreWidgets::register();
 
         // Package uploads install code; a few a minute is plenty for a person.
         \Illuminate\Support\Facades\RateLimiter::for('package-uploads', fn (\Illuminate\Http\Request $request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('extensions.upload.per_minute', 5)))

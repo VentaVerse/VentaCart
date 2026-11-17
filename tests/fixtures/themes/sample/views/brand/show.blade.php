@@ -1,6 +1,4 @@
 <x-store-layout :title="$brand->name">
-    <x-storefront.columns>
-    <x-storefront.region name="content_top" />
 
     {{-- Breadcrumbs --}}
     <div class="bg-[var(--color-card-bg)] border-b border-[var(--color-border)]">
@@ -73,6 +71,4 @@
         }
     </script>
     @endpush
-    <x-storefront.region name="content_bottom" />
-    </x-storefront.columns>
 </x-store-layout>

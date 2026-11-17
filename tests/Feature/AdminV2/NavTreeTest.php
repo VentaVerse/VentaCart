@@ -4,7 +4,6 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\LayoutPlacement;
 use App\Models\NavMenu;
 use App\Models\NavMenuItem;
 use App\Models\Page;
@@ -20,7 +19,7 @@ use Tests\TestCase;
  */
 class NavTreeTest extends TestCase
 {
-    use RefreshDatabase, \Tests\Support\RunsOnTheDefaultTheme;
+    use RefreshDatabase;
 
     private NavMenu $main;
 
@@ -147,16 +146,5 @@ class NavTreeTest extends TestCase
 
         app(ThemeService::class)->clearCache();
         $this->assertSame(['Before', 'After'], array_column(NavTree::for(), 'label'));
-    }
-
-    public function test_the_menu_widget_places_any_composed_menu_anywhere(): void
-    {
-        $footer = NavMenu::create(['key' => 'footer', 'name' => 'Footer menu']);
-        NavMenuItem::create(['menu_id' => $footer->id, 'label' => 'Returns policy', 'type' => 'custom', 'url' => '/returns', 'sort_order' => 1, 'is_enabled' => true]);
-        LayoutPlacement::create(['theme' => 'default', 'page_type' => 'home', 'region' => 'footer_top', 'widget' => 'nav.menu', 'title' => 'Help', 'config' => ['menu' => 'footer', 'direction' => 'vertical'], 'sort_order' => 0, 'is_enabled' => true]);
-
-        $html = $this->get('/')->assertOk()->getContent();
-        $this->assertStringContainsString('wmenu--vertical', $html);
-        $this->assertStringContainsString('Returns policy', $html);
     }
 }

@@ -72,8 +72,9 @@ class ThemeController extends Controller
     }
 
     /**
-     * Uninstall a theme package. Its folder stays; its layout rows and
-     * settings stay too, so installing it again finds them. Uninstalling
+     * Uninstall a theme package. Its folder stays; its own migrations roll
+     * its tables back, so a theme with storage of its own takes it along.
+     * Uninstalling
      * the live theme leaves the storefront on core's plain page until
      * another theme is made live.
      */
@@ -105,13 +106,8 @@ class ThemeController extends Controller
     }
 
     /**
-     * Point the storefront at another theme.
-     *
-     * Layout placements are NOT touched. They are store data keyed by page
-     * type, and they survive a theme switch by design; a region the new theme
-     * does not declare simply stops rendering and is reported as orphaned.
-     * Deleting a merchant's layout because they tried a theme is how you teach
-     * them never to try another one.
+     * Point the storefront at another theme. Nothing the merchant made is
+     * touched: core's data stays as it is, and each theme keeps its own.
      */
     public function activate(Request $request, ThemeService $theme)
     {
@@ -123,15 +119,9 @@ class ThemeController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        $orphans = \App\Support\Regions::orphans()->count();
-
         return redirect()->route('admin.theme.index')->with(
             'success',
             'The storefront now runs ' . ($theme->getInstalledThemes()[$slug]['name'] ?? $slug) . '.'
-                . ($orphans > 0
-                    ? ' ' . $orphans . ' placement' . ($orphans === 1 ? '' : 's')
-                        . ' sit in regions this theme does not have, and are waiting in Layout.'
-                    : '')
         );
     }
 }

@@ -2,7 +2,6 @@
     // Resolved before <html> because the tag carries the page type: the
     // preview reads it from there to say which page it is looking at.
     $vPageType = \App\Support\StorefrontPageType::current();
-    $vPreview = \App\Support\ThemePreview::active();
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}"@if ($vPageType) data-page-type="{{ $vPageType }}"@endif>
@@ -77,9 +76,6 @@
         'resources/themes/' . $activeTheme . '/css/theme.css',
         'resources/themes/' . $activeTheme . '/js/theme.js'
     ])
-    @if ($vPreview)
-        @vite('resources/js/preview.js')
-    @endif
 
     <script>
         window.__countryIso2Map = @json(\App\Models\Country::where('is_active', true)->pluck('iso2', 'id'));
@@ -146,18 +142,12 @@
         </div>
     </template>
 
-    {{-- Site-wide regions live HERE, not in each page: a slot that exists on
-         every page should not depend on 23 views each remembering to call it. --}}
-    <x-storefront.region name="header_top" />
 
     {{-- Page Content --}}
     <main class="relative z-[1]">
         {{ $slot }}
     </main>
 
-    <x-storefront.region name="footer_top" />
-
-    @if (\App\Support\PageSetting::on('show_footer'))
 
     {{-- Footer --}}
     @include('partials.footer.columns')
@@ -174,8 +164,6 @@
     >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
     </button>
-    @endif
-
 
     @stack('scripts')
 </body>

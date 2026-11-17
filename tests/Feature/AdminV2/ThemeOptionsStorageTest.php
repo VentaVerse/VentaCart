@@ -24,7 +24,7 @@ class ThemeOptionsStorageTest extends TestCase
     private function boot(array $manifest, bool $live): void
     {
         $extensions = app(ExtensionManager::class);
-        foreach (['theme', 'banners'] as $name) {
+        foreach (['theme'] as $name) {
             $extensions->install($name);
         }
         $this->installSampleTheme(manifest: $manifest);

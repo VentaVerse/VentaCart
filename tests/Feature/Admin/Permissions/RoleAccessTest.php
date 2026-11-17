@@ -59,7 +59,6 @@ class RoleAccessTest extends TestCase
         $this->get(route('admin.settings.section', 'general'))->assertForbidden();
         $this->post(route('admin.settings.update'), [])->assertForbidden();
         $this->get(route('admin.theme.index'))->assertForbidden();
-        $this->get(route('admin.layout'))->assertForbidden();
         $this->get(route('admin.users.index'))->assertForbidden();
         $this->get(route('admin.user-groups.index'))->assertForbidden();
         $this->get(route('admin.extensions.index'))->assertForbidden();
@@ -95,7 +94,6 @@ class RoleAccessTest extends TestCase
         $this->get(route('admin.user-groups.index'))->assertForbidden();
         $this->get(route('admin.extensions.index'))->assertForbidden();
         $this->get(route('admin.theme.index'))->assertForbidden();
-        $this->get(route('admin.layout'))->assertForbidden();
     }
 
     public function test_super_admin_can_open_everything(): void

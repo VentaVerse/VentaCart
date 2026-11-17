@@ -86,7 +86,7 @@ class ExtensionKernelBootSafetyTest extends TestCase
 
         $pdo->exec(<<<'SQL'
             INSERT INTO extensions (name, version, enabled, installed_at, created_at, updated_at)
-            VALUES ('banners', '1.0.0', 1, datetime('now'), datetime('now'), datetime('now'))
+            VALUES ('blog', '1.0.0', 1, datetime('now'), datetime('now'), datetime('now'))
             SQL);
 
         // Laravel's default database cache store schema (0001_01_01_000001_create_cache_table.php).

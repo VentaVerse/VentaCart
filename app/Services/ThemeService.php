@@ -4,8 +4,6 @@ namespace App\Services;
 
 use App\Models\Currency;
 use App\Models\FooterColumn;
-use App\Models\HomepageSection;
-use App\Models\NavMenuItem;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Cache;
 
@@ -140,8 +138,6 @@ class ThemeService
     public function clearCache(): void
     {
         Cache::forget(self::CACHE_KEY);
-        Cache::forget('theme_homepage_sections');
-        Cache::forget('theme_nav_items');
         Cache::forget('nav_subcategories');
         \App\Support\NavTree::forget();
         \App\Support\ThemeOptions::forget();
@@ -264,28 +260,6 @@ class ThemeService
     }
 
     /**
-     * A theme's shipped arrangement (layouts/home.json), installed on a theme
-     * that has no rows yet. True when something was installed.
-     */
-    private function installShippedLayout(string $theme): bool
-    {
-        if (\App\Models\LayoutPlacement::where('theme', $theme)->exists() || \App\Models\LayoutRow::where('theme', $theme)->exists()) {
-            return true;
-        }
-        $file = $this->getThemePath($theme) . '/layouts/home.json';
-        $data = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
-        if (! is_array($data) || empty($data['rows'])) {
-            return false;
-        }
-        $region = (string) ($data['region'] ?? 'content_top');
-        $rows = array_map(fn ($row) => $row + ['id' => null, 'region' => $region], \App\Models\LayoutTemplate::cleanRows($data['rows']));
-        // The theme's own file: trusted, whoever switches the theme on.
-        app(LayoutSaver::class)->save('home', ['columns' => ['left' => 0, 'right' => 0], 'rows' => $rows], trusted: true);
-
-        return true;
-    }
-
-    /**
      * Whether a theme keeps its look and layouts in storage of its own
      * (`"storage": "own"` in theme.json). Such a theme only reads core, so
      * core never writes looks or layout rows on its behalf.
@@ -316,62 +290,13 @@ class ThemeService
             throw new \InvalidArgumentException("Theme [{$slug}] is not installed.");
         }
 
-        $from = $this->getActiveTheme();
-        $switching = $from !== $slug;
-
-        // Layout rows in core belong to themes that store them in core. A
-        // theme with storage of its own neither leaves rows here nor takes them.
-        $fromInCore = ! $this->keepsOwnStorage($from);
-        $toInCore = ! $this->keepsOwnStorage($slug);
-
         Setting::updateOrCreate(
             ['group' => 'identity', 'key' => 'active_theme'],
             ['value' => $slug]
         );
         $this->settings['identity']['active_theme'] = $slug;
 
-        // A theme opened for the first time has no layout of its own. It
-        // shows what it ships (layouts/home.json) when it ships one, so
-        // nothing of the previous theme is assumed; a theme without a
-        // shipped arrangement takes the merchant's rows along instead, when
-        // the previous theme kept its rows in core.
-        if ($switching && $toInCore && ! $this->installShippedLayout($slug) && $fromInCore) {
-            $this->carryLayout($from, $slug);
-        }
-
         $this->clearCache();
-    }
-
-    /** Copy one theme's rows, placements and page columns onto another that has none. */
-    public function carryLayout(string $from, string $to): void
-    {
-        $hasOwn = \App\Models\LayoutPlacement::where('theme', $to)->exists()
-            || \App\Models\LayoutRow::where('theme', $to)->exists();
-        if ($hasOwn) {
-            return;
-        }
-
-        \Illuminate\Support\Facades\DB::transaction(function () use ($from, $to) {
-            $rowMap = [];
-            foreach (\App\Models\LayoutRow::where('theme', $from)->orderBy('id')->get() as $row) {
-                $copy = $row->replicate();
-                $copy->theme = $to;
-                $copy->save();
-                $rowMap[$row->id] = $copy->id;
-            }
-            foreach (\App\Models\LayoutPlacement::where('theme', $from)->orderBy('id')->get() as $placement) {
-                $copy = $placement->replicate();
-                $copy->theme = $to;
-                $copy->row_id = $placement->row_id ? ($rowMap[$placement->row_id] ?? null) : null;
-                $copy->save();
-            }
-            foreach (\App\Models\LayoutColumns::where('theme', $from)->get() as $columns) {
-                \App\Models\LayoutColumns::updateOrCreate(
-                    ['theme' => $to, 'page_type' => $columns->page_type],
-                    ['left_width' => $columns->left_width, 'right_width' => $columns->right_width, 'settings' => $columns->settings]
-                );
-            }
-        });
     }
 
     public function getThemePath(?string $theme = null): string
@@ -402,25 +327,6 @@ class ThemeService
     public function getAllGrouped(): array
     {
         return $this->settings;
-    }
-
-    public function getHomepageSections()
-    {
-        return Cache::rememberForever('theme_homepage_sections', function () {
-            return HomepageSection::where('is_enabled', true)
-                ->orderBy('sort_order')
-                ->get();
-        });
-    }
-
-    public function getNavItems()
-    {
-        return Cache::rememberForever('theme_nav_items', function () {
-            return NavMenuItem::where('is_enabled', true)
-                ->orderBy('sort_order')
-                ->with('category')
-                ->get();
-        });
     }
 
     public function getFooterColumns()

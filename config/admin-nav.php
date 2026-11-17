@@ -73,9 +73,8 @@ return [
         ],
     ],
     [
-        // How the store looks and what sits where: one area for the
-        // storefront, each item one kind of thing. Placing things on pages
-        // happens only in Layout.
+        // How the store looks: one area for the storefront, each item one
+        // kind of thing.
         'label' => 'Storefront',
         'icon' => 'layers',
         'segment' => 'storefront',
@@ -83,9 +82,7 @@ return [
             // The theme extension's directory: choose and install themes. Its
             // pages live under extensions/theme and light this entry.
             ['key' => 'themes', 'label' => 'Themes', 'route' => 'admin.theme.index', 'icon' => 'tags', 'permission' => null, 'extension' => 'theme', 'keywords' => ['theme', 'design', 'look', 'skin', 'template']],
-            ['key' => 'layout', 'label' => 'Layout', 'route' => 'admin.layout', 'icon' => 'layers', 'permission' => null, 'keywords' => ['design', 'layouts', 'arrange', 'rows', 'regions', 'positions', 'modules']],
             ['key' => 'header-footer', 'label' => 'Header & footer', 'route' => 'admin.header-footer', 'icon' => 'link', 'permission' => null, 'keywords' => ['announcement', 'top bar', 'footer', 'links', 'payment icons', 'social']],
-            // Banners (banners extension manifest) joins below while enabled.
         ],
     ],
     [
@@ -107,7 +104,7 @@ return [
             // at its root URL. Typed category children (Payments, Shipping)
             // join as their pages re-home (wave 0 pieces 2b/2c).
             ['key' => 'all', 'label' => 'All Extensions', 'route' => 'admin.extensions.index', 'icon' => 'modules', 'permission' => null, 'keywords' => ['extensions', 'plugins', 'install']],
-            ['key' => 'modules', 'label' => 'Modules', 'route' => 'admin.extensions.modules', 'icon' => 'modules', 'permission' => null, 'keywords' => ['modules', 'features', 'banners', 'seo', 'stock alerts', 'abandoned carts']],
+            ['key' => 'modules', 'label' => 'Modules', 'route' => 'admin.extensions.modules', 'icon' => 'modules', 'permission' => null, 'keywords' => ['modules', 'features', 'seo', 'stock alerts', 'abandoned carts']],
             ['key' => 'payments', 'label' => 'Payments', 'route' => 'admin.payment-settings.index', 'icon' => 'payments', 'permission' => null, 'keywords' => ['bank transfer', 'cod', 'hitpay', 'gateway', 'restrictions']],
             ['key' => 'shipping', 'label' => 'Shipping', 'route' => 'admin.shipping-settings.index', 'icon' => 'shipping', 'permission' => null, 'keywords' => ['rates', 'flat rate', 'weight', 'free shipping', 'dhl', 'couriers']],
             // Themes (theme extension manifest, after: shipping) inserts

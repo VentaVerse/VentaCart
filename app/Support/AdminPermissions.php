@@ -81,7 +81,6 @@ class AdminPermissions
         'pages' => self::CRUD,
         'blog' => self::CRUD,
         'menus' => self::CRUD,
-        'layout' => ['view', 'edit'],
         'themes' => ['view', 'edit'],
         'extensions' => ['view', 'edit', 'upload'],
         'settings' => ['view', 'edit'],
@@ -94,7 +93,7 @@ class AdminPermissions
      *
      * Store Manager runs the shop (orders, catalog, customers, marketing,
      * content) and is kept out of the store's configuration: settings,
-     * users, extensions, layout and themes. Staff works orders and can look
+     * users, extensions and themes. Staff works orders and can look
      * products and customers up.
      *
      * @var array<string, list<string>>  role slug => groups or exact slugs

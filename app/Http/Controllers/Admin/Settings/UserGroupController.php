@@ -23,7 +23,7 @@ class UserGroupController extends Controller
         'Customers' => ['customers', 'customer-groups'],
         'Marketing' => ['marketing'],
         'Content' => ['pages', 'blog', 'menus'],
-        'Layout and themes' => ['layout', 'themes'],
+        'Themes' => ['themes'],
         'Extensions' => ['extensions'],
         'System' => ['users', 'settings'],
     ];

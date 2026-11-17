@@ -502,8 +502,8 @@ class ExtensionManager
     /**
      * Registers a runtime PSR-4 autoloader mapping the provider's namespace
      * (everything before its class name) to the extension's src/ directory,
-     * e.g. "Extensions\Banners\BannerServiceProvider" + ".../extensions/banners"
-     * maps "Extensions\Banners\" -> ".../extensions/banners/src/".
+     * e.g. "Extensions\Blog\BlogServiceProvider" + ".../extensions/blog"
+     * maps "Extensions\Blog\" -> ".../extensions/blog/src/".
      *
      * Safe to call repeatedly (registering the same closure twice just adds a
      * second, functionally-identical entry to the SPL stack). Note the

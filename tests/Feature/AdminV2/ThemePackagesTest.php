@@ -49,7 +49,8 @@ class ThemePackagesTest extends TestCase
         $this->assertContains('Setting [thing] has an unknown type: wizard.', $problems);
         // Colors and fonts are the theme's own business, in its stylesheet.
         $this->assertFalse(collect($problems)->contains(fn ($p) => str_contains($p, 'colors') || str_contains($p, 'font')));
-        $this->assertTrue(collect($problems)->contains(fn ($p) => str_starts_with($p, 'theme.json regions is missing ')));
+        // A theme draws its pages itself: nothing asks it for regions.
+        $this->assertFalse(collect($problems)->contains(fn ($p) => str_contains($p, 'region')));
     }
 
     public function test_themes_are_discovered_as_packages_and_the_bundled_one_is_installed(): void
