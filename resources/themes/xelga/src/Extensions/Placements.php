@@ -179,9 +179,44 @@ final class Placements
             return [];
         }
 
-        $valid = array_filter($placed, fn ($id) => is_string($id) && strlen($id) <= 81 && preg_match(self::ID, $id) === 1);
+        return array_slice(self::wellFormed($placed), 0, self::MAX_PLACED);
+    }
 
-        return array_slice(array_values(array_unique($valid)), 0, self::MAX_PLACED);
+    /**
+     * The record a save writes: every stored id, plus the ids the client
+     * sent that are placements the catalog has now or are already stored.
+     * An id made up by the client, or one of an extension the store does
+     * not have, is never added, so nobody can use up the record or claim a
+     * placement in advance. Stored ids stay, also while their extension is
+     * away, so a removed placement never returns; only when the record is
+     * full are ids of extensions no longer installed dropped to make room.
+     *
+     * @param  list<mixed>  $stored  ids from the draft and the published version
+     * @param  list<mixed>  $client  ids the save sent
+     * @return list<string>
+     */
+    public static function merge(array $stored, array $client): array
+    {
+        $known = array_column(Catalog::all()['placements'] ?? [], 'id');
+        $stored = self::wellFormed($stored);
+        $kept = array_values(array_unique([
+            ...$stored,
+            ...array_filter(self::wellFormed($client), fn (string $id) => in_array($id, $known, true) || in_array($id, $stored, true)),
+        ]));
+
+        if (count($kept) >= self::MAX_PLACED) {
+            $manager = app(\App\Services\ExtensionManager::class);
+            $kept = array_values(array_filter($kept, fn (string $id) => in_array($id, $known, true)
+                || $manager->state(strstr($id, ':', true)) !== 'not_installed'));
+        }
+
+        return array_slice($kept, 0, self::MAX_PLACED);
+    }
+
+    /** @return list<string> */
+    private static function wellFormed(array $ids): array
+    {
+        return array_values(array_unique(array_filter($ids, fn ($id) => is_string($id) && strlen($id) <= 81 && preg_match(self::ID, $id) === 1)));
     }
 
     /** @return array|null the content with the section in, or null when it does not go in (yet) */

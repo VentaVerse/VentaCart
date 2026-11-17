@@ -124,28 +124,30 @@ final class DocumentWriter
     }
 
     /**
-     * A template's record of the placements it was given never shrinks: a
-     * save that left one out (an older editor, a restored revision) still
-     * keeps it, so what the merchant removed is never placed again.
+     * A template's record of the placements it was given keeps every stored
+     * id: a save that left one out (an older editor, a restored revision)
+     * still keeps it, so what the merchant removed is never placed again.
+     * The save adds only ids of real placements (Placements::merge).
      */
     private static function keepPlaced(string $json, ?Document $row): string
     {
-        if ($row === null) {
-            return $json;
-        }
         // Decoded as objects, so empty maps stay {} when written back.
         $content = json_decode($json);
         if (! $content instanceof \stdClass || ! property_exists($content, 'order')) {
             return $json;
         }
         $mine = (array) ($content->placed ?? []);
-        $placed = \Themes\Xelga\Extensions\Placements::placed([
-            ...(array) ($row->draft['placed'] ?? []),
-            ...(array) ($row->published['placed'] ?? []),
-            ...$mine,
-        ]);
+        $placed = \Themes\Xelga\Extensions\Placements::merge(
+            [...(array) ($row?->draft['placed'] ?? []), ...(array) ($row?->published['placed'] ?? [])],
+            $mine,
+        );
         if ($placed === $mine) {
             return $json;
+        }
+        if ($placed === []) {
+            unset($content->placed);
+
+            return json_encode($content, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         }
         $content->placed = $placed;
 

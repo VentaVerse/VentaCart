@@ -151,6 +151,52 @@ class XelgaExtensionPlacementsTest extends TestCase
         $this->page('/product/linen-shirt')->assertDontSee('data-sample-card', false);
     }
 
+    public function test_a_save_records_only_placements_that_exist_or_were_stored(): void
+    {
+        $junk = array_map(fn (int $n) => "zz:junk-{$n}", range(1, 100));
+        [$content, $version] = $this->editorContent();
+        $content['placed'] = [...$junk, 'marketplace:seller-card'];
+        $version = $this->save($content, $version);
+
+        $placed = Document::where('handle', 'product')->value('draft')['placed'] ?? [];
+        $this->assertSame([], array_values(array_diff($placed, ['sample-extension:card', 'sample-extension:seller'])), 'Made-up ids and ids of extensions the store lacks are not recorded.');
+
+        $this->publishProduct($version);
+        $this->page('/product/linen-shirt')->assertSee('data-sample-card', false);
+    }
+
+    public function test_a_full_record_of_stale_ids_makes_room_and_keeps_what_was_removed(): void
+    {
+        // Written before saves were checked: a full record of ids of an extension never installed.
+        $content = Defaults::content('product');
+        $content['placed'] = [...array_map(fn (int $n) => "zz:junk-{$n}", range(1, 99)), 'sample-extension:seller'];
+        $this->publishedDocument('product', $content);
+        $this->page('/product/linen-shirt')->assertDontSee('data-sample-card', false);
+
+        [$content, $version] = $this->editorContent();
+        $this->publishProduct($this->save($content, $version));
+
+        $placed = Document::where('handle', 'product')->value('published')['placed'];
+        $this->assertNotContains('zz:junk-1', $placed);
+        $this->assertContains('sample-extension:seller', $placed, 'A stored id of a known placement stays, so its block never returns.');
+        $html = $this->page('/product/linen-shirt')->assertSee('data-sample-card', false)->getContent();
+        $this->assertStringNotContainsString('data-sample-seller', $html);
+    }
+
+    public function test_stored_ids_stay_while_their_extension_is_away(): void
+    {
+        [$content, $version] = $this->editorContent();
+        $version = $this->save($content, $version);
+        $this->publishProduct($version);
+        $this->switchOffSampleExtension();
+
+        [$content, $version] = $this->editorContent();
+        $content['placed'] = [];
+        $this->save($content, $version);
+
+        $this->assertContains('sample-extension:card', Document::where('handle', 'product')->value('draft')['placed']);
+    }
+
     public function test_a_page_that_already_has_the_section_gets_no_second_one(): void
     {
         $this->publishedDocument('product', $this->productWith(['my-card' => $this->card(['heading' => 'Mine'])]));
