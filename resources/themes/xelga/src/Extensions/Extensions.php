@@ -83,8 +83,10 @@ final class Extensions
     }
 
     /**
-     * Every extension on disk, for the editor's notes about sections whose
-     * extension is away: its title and whether it is on, off or missing.
+     * Every installed extension (switched on or off), for the editor's
+     * notes about sections whose extension is away: its title and whether
+     * it is on or off. One that is not installed is not listed; the editor
+     * names it by the type's prefix as not installed.
      *
      * @return array<string, array{title: string, state: string}>
      */
@@ -92,7 +94,8 @@ final class Extensions
     {
         $out = [];
         foreach ($this->extensions->discovered() as $name => $manifest) {
-            if (($manifest['type'] ?? null) === 'theme' || preg_match(Registrar::NAME, (string) $name) !== 1) {
+            if (($manifest['type'] ?? null) === 'theme' || preg_match(Registrar::NAME, (string) $name) !== 1
+                || $this->extensions->state((string) $name) === 'not_installed') {
                 continue;
             }
             $out[$name] = [

@@ -56,6 +56,19 @@ class XelgaExtensionEditorTest extends TestCase
         $this->assertSame('off', $boot['extensions']['sample-extension']['state']);
     }
 
+    public function test_the_editor_learns_only_of_installed_extensions(): void
+    {
+        $boot = $this->boot();
+        $this->assertArrayNotHasKey('blog', $boot['extensions'], 'An extension on disk but never installed is not listed.');
+
+        app(\App\Services\ExtensionManager::class)->install('blog');
+        app(\App\Services\ExtensionManager::class)->disable('blog');
+        $this->assertSame('off', $this->boot()['extensions']['blog']['state'] ?? null, 'An installed one is, switched on or off.');
+
+        $this->removeSampleExtension();
+        $this->assertArrayNotHasKey('sample-extension', $this->boot()['extensions']);
+    }
+
     public function test_a_stylesheet_the_build_lacks_is_logged_and_the_page_still_draws(): void
     {
         $this->withVite();

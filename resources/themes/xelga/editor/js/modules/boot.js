@@ -32,8 +32,8 @@
  *   media      { root, extensions, storage_url* }
  *   limits     { sections, document_bytes, heartbeat_seconds, autosave_ms }
  *   icons*     the icon sprite's URL, or empty when the shell inlines it
- *   extensions* { name: { title, state } }    every extension on disk, state 'on', 'off' or
- *              'missing', so a section or block whose extension is away names it
+ *   extensions* { name: { title, state } }    every installed extension, state 'on' or 'off'
+ *              (one not listed is not installed), so a section or block whose extension is away names it
  *
  * A section schema of an extension carries source and source_label; a page
  * of an extension's page type carries extension: true and group (its name).
