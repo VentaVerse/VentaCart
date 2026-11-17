@@ -290,6 +290,10 @@ export function startEditor({ boot, api, mount = null }) {
   S.page = resolvePage({ type: query.get('page') || 'home', layout: query.get('layout') })
     || resolvePage({ type: (boot.pages.find((p) => p.handle === boot.page) || boot.pages[0]).type });
   S.scope = query.get('edit') === SHARED_PARAM && S.page.kind !== 'fixed' ? 'shared' : 'page';
+  // When the address named a page the picker no longer lists (its
+  // extension is away), the fallback page is written back to it, so a
+  // reload or a shared link opens what is shown.
+  rememberPage();
 
   const target = mount || document.getElementById('xelga-editor') || document.body;
   buildShell(target, {
