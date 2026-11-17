@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Storefront\ProductReviewsRequest;
 use App\Models\Product;
 use App\Services\ThemeService;
 use App\Services\CartService;
+use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
 {
@@ -36,10 +38,6 @@ class ProductController extends Controller
                 $type->setRelation('values', $type->values->whereIn('id', $offeredValueIds)->values());
             }
             $product->setRelation('variantTypes', $product->variantTypes->filter(fn ($type) => $type->values->isNotEmpty())->values());
-        }
-
-        if (\App\Support\Reviews::enabled()) {
-            $product->load('approvedReviews.images');
         }
 
         // Count the view with one UPDATE that leaves updated_at alone and fires
@@ -165,10 +163,25 @@ class ProductController extends Controller
         }
 
         // Review data (empty without the reviews extension: no stars,
-        // no review section, no error)
-        $approvedReviews = \App\Support\Reviews::enabled() ? $product->approvedReviews : collect();
-        $averageRating = $approvedReviews->avg('rating') ?: 0;
-        $reviewCount = $approvedReviews->count();
+        // no review section, no error). The count and average come from one
+        // aggregate query and the page draws the first page of reviews; the
+        // rest come from product.reviews. $approvedReviews (every approved
+        // review) is still offered to themes that list them all, but it is
+        // only read from the database if a view asks for it.
+        $reviewsFirstPage = collect();
+        $approvedReviews = collect();
+        $averageRating = 0;
+        $reviewCount = 0;
+        $reviewsMoreUrl = null;
+        if (\App\Support\Reviews::enabled()) {
+            ['count' => $reviewCount, 'average' => $averageRating] = \App\Support\Reviews::summary($product);
+            $firstPage = \App\Support\Reviews::page($product);
+            $reviewsFirstPage = collect($firstPage->items());
+            $reviewsMoreUrl = $firstPage->hasMorePages() ? route('product.reviews', ['product' => $product->slug, 'page' => 2]) : null;
+            $approvedReviews = \Illuminate\Support\LazyCollection::make(function () use ($product) {
+                yield from $product->approvedReviews()->with('images')->get();
+            })->remember();
+        }
 
         // The effective price for the addToCart component.
         $effectivePrice = $displayPrice->price;
@@ -205,7 +218,7 @@ class ProductController extends Controller
             'relatedProducts', 'sameBrandProducts',
             'breadcrumbs', 'belowModules',
             'variantMatrix', 'variantTypes', 'effectivePrice', 'priceTiers',
-            'valueStockMap', 'approvedReviews', 'averageRating', 'reviewCount',
+            'valueStockMap', 'approvedReviews', 'averageRating', 'reviewCount', 'reviewsFirstPage', 'reviewsMoreUrl',
             'hasFreeShipping', 'ogTitle', 'ogDescription'
         );
 
@@ -214,6 +227,46 @@ class ProductController extends Controller
         \App\Support\PageContext::set($page);
 
         return view('product.show', $page);
+    }
+
+    /**
+     * One page of the product's approved reviews, as JSON, for the "Show
+     * more reviews" button. The same product rules as the page apply: a
+     * switched-off product, or one hidden from this shopper's customer group
+     * (route binding goes through the visibility scope), answers 404, as
+     * does a store without the reviews extension. Only what the page shows
+     * is sent: never the reviewer's email.
+     */
+    public function reviews(Product $product, ProductReviewsRequest $request): JsonResponse
+    {
+        if (! $product->is_active || ! \App\Support\Reviews::enabled()) {
+            abort(404);
+        }
+
+        $perPage = $request->perPage();
+        $page = \App\Support\Reviews::page($product, $request->page(), $perPage);
+
+        return response()->json([
+            'success' => true,
+            'message' => '',
+            'data' => [
+                'reviews' => collect($page->items())->map(fn ($review) => [
+                    'id' => (int) $review->id,
+                    'rating' => max(0, min(5, (int) $review->rating)),
+                    'title' => (string) ($review->title ?? ''),
+                    'body' => (string) ($review->body ?? ''),
+                    'name' => (string) $review->name,
+                    'verified' => (bool) $review->is_verified_purchase,
+                    'date' => $review->published_at?->toDateString(),
+                    'date_label' => $review->published_at?->format('j F Y'),
+                    'photos' => $review->images->map(fn ($photo) => storage_url($photo->path))->values()->all(),
+                ])->values()->all(),
+                'next_page_url' => $page->hasMorePages()
+                    ? route('product.reviews', ['product' => $product->slug, 'page' => $page->currentPage() + 1]
+                        + ($perPage !== \App\Support\Reviews::PAGE_SIZE ? ['per_page' => $perPage] : []))
+                    : null,
+            ],
+        ]);
     }
 
     /**

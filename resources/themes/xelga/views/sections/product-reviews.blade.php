@@ -1,7 +1,9 @@
 {{--
-    Product reviews: the average, the count and the approved reviews, the
-    first few shown and the rest behind Show more reviews. Customers write
-    a review from the link core emails them after their order.
+    Product reviews: the average, the count and the first page of approved
+    reviews, the first few shown and the rest behind Show more reviews, which
+    fetches further pages from core as JSON and draws them from the template
+    below. Customers write a review from the link core emails them after
+    their order.
 --}}
 @php
     $reviews = $data['reviews'];
@@ -27,7 +29,7 @@
                 @endif
             </div>
             @if ($data['count'] > 0)
-                <ul class="reviews__list" data-reviews-list>
+                <ul class="reviews__list" data-reviews-list aria-live="polite">
                     @foreach ($reviews as $i => $review)
                         <li class="review" @if ($i >= $perPage) hidden data-review-more @endif>
                             <article aria-labelledby="{{ $section['id'] }}-review-{{ $review->id }}">
@@ -56,8 +58,24 @@
                         </li>
                     @endforeach
                 </ul>
-                @if ($data['count'] > $perPage)
-                    <p class="reviews__more"><button type="button" class="btn btn--secondary" data-reviews-more data-step="{{ $perPage }}">Show more reviews</button></p>
+                @if ($reviews->count() > $perPage || $data['more_url'])
+                    <p class="reviews__more"><button type="button" class="btn btn--secondary" data-reviews-more data-step="{{ $perPage }}" @if ($data['more_url']) data-reviews-url="{{ $data['more_url'] }}" @endif>Show more reviews</button></p>
+                    <p class="reviews__error muted" data-reviews-error hidden>Those reviews could not be loaded. Please try again.</p>
+                    <template data-review-template>
+                        <li class="review">
+                            <article>
+                                <p class="review__stars"><span class="stars" role="img">@for ($i = 0; $i < 5; $i++)<svg class="icon" aria-hidden="true"><use href="#i-star"></use></svg>@endfor</span></p>
+                                <h3 class="review__title"></h3>
+                                <p class="review__text"></p>
+                                <ul class="review__photos"></ul>
+                                <p class="review__by">
+                                    <span class="review__name"></span>
+                                    <span class="review__verified"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-check"></use></svg>Verified purchase</span>
+                                    <time class="muted"></time>
+                                </p>
+                            </article>
+                        </li>
+                    </template>
                 @endif
             @endif
         </div>

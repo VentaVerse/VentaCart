@@ -25,6 +25,40 @@ use App\Services\ExtensionManager;
  */
 class Reviews
 {
+    /** Reviews drawn with a product page, and fetched per "Show more". */
+    public const PAGE_SIZE = 10;
+
+    /** The most reviews one page may ask for. */
+    public const PAGE_SIZE_MAX = 50;
+
+    /**
+     * One page of a product's approved reviews, newest first, with photos.
+     *
+     * @return \Illuminate\Contracts\Pagination\Paginator
+     */
+    public static function page(\App\Models\Product $product, int $page = 1, int $perPage = self::PAGE_SIZE): \Illuminate\Contracts\Pagination\Paginator
+    {
+        return $product->approvedReviews()
+            ->with('images')
+            ->orderByDesc('id')
+            ->simplePaginate(max(1, min(self::PAGE_SIZE_MAX, $perPage)), ['*'], 'page', max(1, $page));
+    }
+
+    /**
+     * How many approved reviews the product has and their average rating,
+     * from one aggregate query rather than by loading every review.
+     *
+     * @return array{count: int, average: float}
+     */
+    public static function summary(\App\Models\Product $product): array
+    {
+        $row = $product->approvedReviews()->reorder()->toBase()
+            ->selectRaw('COUNT(*) as review_count, AVG(rating) as review_average')
+            ->first();
+
+        return ['count' => (int) ($row->review_count ?? 0), 'average' => (float) ($row->review_average ?? 0)];
+    }
+
     public static function enabled(): bool
     {
         if (! class_exists(\Extensions\Reviews\Models\Review::class)) {

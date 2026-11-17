@@ -39,6 +39,8 @@ Route::get('/category/{category:slug}', [StorefrontCategoryController::class, 's
 Route::get('/product/{product:slug}', [StorefrontProductController::class, 'show'])->name('product.show');
 // A product's quick view: a fragment the active theme provides, or 404 when it does not.
 Route::get('/product/{product:slug}/quick-view', [StorefrontProductController::class, 'quickView'])->name('product.quickview');
+// A product's approved reviews, one page at a time, for "Show more reviews".
+Route::get('/product/{product:slug}/reviews', [StorefrontProductController::class, 'reviews'])->middleware('throttle:60,1')->name('product.reviews');
 // Storefront blog moved to the blog extension (extensions/blog/routes/web.php).
 
 // Review submission moved to the reviews extension

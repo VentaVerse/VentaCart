@@ -762,10 +762,91 @@ export function initProductDetails(section) {
 }
 
 /* ------------------------------------------------------------ reviews: show more */
+/** One review from core's product.reviews JSON, drawn from the section's template. Text goes in as text. */
+function reviewNode(template, review, idPrefix) {
+  const li = template.content.firstElementChild.cloneNode(true);
+  const rating = Math.max(0, Math.min(5, Number(review.rating) || 0));
+  const titleId = `${idPrefix}-review-${Number(review.id) || 0}`;
+  $('article', li).setAttribute('aria-labelledby', titleId);
+  const stars = $('.stars', li);
+  stars.setAttribute('aria-label', `Rated ${rating} out of 5`);
+  $$('use', stars).forEach((use, i) => use.setAttribute('href', i < rating ? '#i-star-fill' : '#i-star'));
+  const heading = $('.review__title', li);
+  heading.id = titleId;
+  heading.textContent = review.title || `Rated ${rating} out of 5`;
+  const text = $('.review__text', li);
+  if (review.body) text.textContent = review.body;
+  else text.hidden = true;
+  const photos = $('.review__photos', li);
+  const urls = Array.isArray(review.photos) ? review.photos.filter((u) => typeof u === 'string' && u.startsWith('/storage/')) : [];
+  photos.hidden = urls.length === 0;
+  urls.forEach((url) => {
+    const item = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = `Photo from ${review.name || 'a shopper'}'s review`;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    link.append(img);
+    item.append(link);
+    photos.append(item);
+  });
+  $('.review__name', li).textContent = review.name || '';
+  $('.review__verified', li).hidden = !review.verified;
+  const time = $('time', li);
+  if (review.date) {
+    time.dateTime = review.date;
+    time.textContent = review.date_label || review.date;
+  } else {
+    time.hidden = true;
+  }
+  li.hidden = true;
+  li.dataset.reviewMore = '';
+  return li;
+}
+
 export function initReviews(section) {
   const button = $('[data-reviews-more]', section);
   if (!button) return null;
-  const onClick = () => {
+  const list = $('[data-reviews-list]', section);
+  const template = $('template[data-review-template]', section);
+  const error = $('[data-reviews-error]', section);
+  const idPrefix = ($('[id$="-title"]', section)?.id || 'reviews').replace(/-title$/, '');
+  const controller = new AbortController();
+  let busy = false;
+
+  // Further pages come from core as JSON, one page per press once the
+  // reviews already on the page are all shown.
+  const fetchMore = async () => {
+    const url = button.dataset.reviewsUrl;
+    if (!url || !list || !template) return;
+    const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
+    if (!response.ok) throw new Error(`reviews ${response.status}`);
+    const json = await response.json();
+    const reviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : [];
+    reviews.forEach((review) => list.append(reviewNode(template, review, idPrefix)));
+    const next = json?.data?.next_page_url;
+    if (typeof next === 'string' && next !== '') button.dataset.reviewsUrl = next;
+    else delete button.dataset.reviewsUrl;
+  };
+
+  const onClick = async () => {
+    if (busy) return;
+    busy = true;
+    button.setAttribute('aria-busy', 'true');
+    if (error) error.hidden = true;
+    try {
+      if ($$('[data-review-more][hidden]', section).length === 0) await fetchMore();
+    } catch (e) {
+      if (e.name !== 'AbortError' && error) error.hidden = false;
+    } finally {
+      busy = false;
+      button.removeAttribute('aria-busy');
+    }
     const hidden = $$('[data-review-more][hidden]', section);
     const step = Number(button.dataset.step) || 5;
     hidden.slice(0, step).forEach((li, i) => {
@@ -775,8 +856,11 @@ export function initReviews(section) {
         li.focus();
       }
     });
-    if (hidden.length <= step) button.hidden = true;
+    if (hidden.length <= step && !button.dataset.reviewsUrl) button.hidden = true;
   };
   button.addEventListener('click', onClick);
-  return () => button.removeEventListener('click', onClick);
+  return () => {
+    controller.abort();
+    button.removeEventListener('click', onClick);
+  };
 }
