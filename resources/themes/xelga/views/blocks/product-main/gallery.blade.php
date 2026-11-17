@@ -8,7 +8,7 @@
             <div class="gallery__track" data-gallery-track @if ($count > 1) role="region" aria-roledescription="carousel" aria-label="Photos of {{ $product->name }}. Use the arrow keys to move between them." tabindex="0" @endif>
                 @foreach ($images as $i => $image)
                     <figure class="gallery__slide" @if ($count > 1) role="group" aria-roledescription="slide" aria-label="{{ $i + 1 }} of {{ $count }}" @endif data-index="{{ $i }}">
-                        <img src="{{ $image['src'] }}" alt="{{ $image['alt'] }}" @if ($i === 0) fetchpriority="high" @else loading="lazy" @endif decoding="async">
+                        <img src="{{ $image['src'] }}" alt="{{ $image['alt'] }}" @if ($settings['zoom'] === 'hover') data-zoom-src="{{ $image['src'] }}" @endif @if ($i === 0) fetchpriority="high" @else loading="lazy" @endif decoding="async">
                     </figure>
                 @endforeach
             </div>
@@ -16,7 +16,7 @@
                 <button type="button" class="icon-btn gallery__nav gallery__nav--prev" data-gallery-prev aria-label="Previous photo"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"></use></svg></button>
                 <button type="button" class="icon-btn gallery__nav gallery__nav--next" data-gallery-next aria-label="Next photo"><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"></use></svg></button>
             @endif
-            @if ($settings['zoom'] === 'lightbox')
+            @if (in_array($settings['zoom'], ['lightbox', 'hover'], true))
                 <button type="button" class="icon-btn gallery__zoom" data-gallery-zoom aria-haspopup="dialog" aria-label="View photo full screen"><svg class="icon" aria-hidden="true"><use href="#i-expand"></use></svg></button>
             @endif
             @if ($count > 1)

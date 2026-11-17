@@ -13,7 +13,8 @@
   "extension_blocks": true,
   "render_keys": [
     "picker_color",
-    "picker_size"
+    "picker_size",
+    "zoom"
   ],
   "settings": [
     {
@@ -40,6 +41,54 @@
         }
       ],
       "control": "cards"
+    },
+    {
+      "key": "photo_size",
+      "type": "select",
+      "label": "Photo size",
+      "default": "medium",
+      "options": [
+        {
+          "value": "small",
+          "label": "Small"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "large",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented",
+      "info": "The photo column's share of the page on a computer screen. Tablets show photos and details half and half; phones stack them."
+    },
+    {
+      "key": "photo_shape",
+      "type": "select",
+      "label": "Photo shape",
+      "default": "fit",
+      "options": [
+        {
+          "value": "fit",
+          "label": "Fit whole photo"
+        },
+        {
+          "value": "square",
+          "label": "Square"
+        },
+        {
+          "value": "portrait",
+          "label": "Portrait (4:5)"
+        },
+        {
+          "value": "landscape",
+          "label": "Landscape (4:3)"
+        }
+      ],
+      "control": "cards",
+      "info": "Fit whole photo shows every photo uncropped in a square frame. The other shapes fill the frame and crop the edges."
     },
     {
       "key": "picker_color",
@@ -80,18 +129,23 @@
       "key": "zoom",
       "type": "select",
       "label": "Photo zoom",
-      "default": "lightbox",
+      "default": "hover",
       "options": [
-        {
-          "value": "lightbox",
-          "label": "Full screen photos"
-        },
         {
           "value": "off",
           "label": "Off"
+        },
+        {
+          "value": "lightbox",
+          "label": "Full screen"
+        },
+        {
+          "value": "hover",
+          "label": "Zoom on hover + full screen"
         }
       ],
-      "control": "segmented"
+      "control": "cards",
+      "info": "Zoom on hover magnifies the photo under the mouse. Touch screens open the photos full screen on a tap."
     },
     {
       "key": "sticky_buy",

@@ -12,7 +12,7 @@
 @endphp
 @if ($product)
     <section class="s {{ $section['class'] }} {{ $settings['scheme'] }}" id="{{ $section['id'] }}" @include('xelga::snippets.section-attrs')
-             data-gallery="{{ $settings['gallery'] }}" data-picker-color="{{ $settings['picker_color'] }}" data-picker-size="{{ $settings['picker_size'] }}"
+             data-gallery="{{ $settings['gallery'] }}" data-photo-size="{{ $settings['photo_size'] }}" data-photo-shape="{{ $settings['photo_shape'] }}" data-picker-color="{{ $settings['picker_color'] }}" data-picker-size="{{ $settings['picker_size'] }}"
              data-zoom="{{ $settings['zoom'] }}" data-sticky-buy="{{ $settings['sticky_buy'] }}" data-has-gallery="{{ $gallery && ! $gallery['disabled'] && $data['images'] !== [] ? 'true' : 'false' }}"
              aria-label="{{ $product->name }}">
         <div class="s__inner pmain">
@@ -46,7 +46,7 @@
             </div>
         @endif
 
-        @if ($settings['zoom'] === 'lightbox' && count($data['images']) > 0)
+        @if (in_array($settings['zoom'], ['lightbox', 'hover'], true) && count($data['images']) > 0)
             @php $photoCount = count($data['images']); @endphp
             {{-- Full screen photos: one photo per screen width, moved by swipe, scroll, drag, arrows or keys. --}}
             <dialog class="lightbox" data-lightbox aria-label="Photos of {{ $product->name }}">
