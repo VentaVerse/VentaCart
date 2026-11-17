@@ -45,7 +45,6 @@
                     @endif
 
                     <dl class="v-theme__facts">
-                        <div><dt>Folder</dt><dd>resources/themes/{{ $slug }}</dd></div>
                         <div><dt>Version</dt><dd>{{ ! empty($meta['update_available']) ? $meta['installed_version'] : ($meta['version'] ?? '1.0.0') }}</dd></div>
                     </dl>
                 </div>

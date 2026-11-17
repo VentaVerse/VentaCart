@@ -35,7 +35,15 @@ class ThemeDirectoryTest extends TestCase
             ->assertOk()
             ->assertSee('Themes', false)
             ->assertSee('Sample', false)
-            ->assertSee('resources/themes/sample', false);
+            ->assertSee('Version', false);
+    }
+
+    /** Where a theme sits on disk is a developer's detail, not the store owner's. */
+    public function test_the_directory_does_not_show_where_a_theme_is_stored(): void
+    {
+        $this->get(route('admin.theme.index'))->assertOk()
+            ->assertDontSee('resources/themes/', false)
+            ->assertDontSee('<dt>Folder</dt>', false);
     }
 
     /** Which theme is running is stated, not implied by button order. */
