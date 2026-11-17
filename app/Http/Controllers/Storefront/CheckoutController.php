@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Storefront;
 
+use App\Http\Requests\Storefront\ShippingRatesRequest;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\CustomerAddress;
@@ -100,17 +101,7 @@ class CheckoutController extends Controller
     {
         $customer = Auth::guard('customer')->user();
 
-        $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'address_1' => ['required', 'string', 'max:1000'],
-            'city' => ['required', 'string', 'max:255'],
-            'district' => ['nullable', 'string', 'max:255'],
-            'barangay' => ['nullable', 'string', 'max:255'],
-            'state' => ['nullable', 'string', 'max:255'],
-            'postcode' => ['nullable', 'string', 'max:20'],
-            'country_id' => ['required', 'integer', 'exists:countries,id'],
-            'phone' => ['required', 'string', 'max:30'],
+        $validated = $request->validate(\App\Support\AddressRules::address() + [
             'is_default' => ['nullable', 'boolean'],
         ]);
 
@@ -216,11 +207,9 @@ class CheckoutController extends Controller
         }
     }
 
-    public function getShippingRates(Request $request)
+    /** Rate limited (shipping-quotes), like the cart's estimate. The address must be the customer's own. */
+    public function getShippingRates(ShippingRatesRequest $request)
     {
-        $request->validate([
-            'address_id' => 'required|exists:customer_addresses,id',
-        ]);
 
         $customer = Auth::guard('customer')->user();
         $address = $customer->addresses()->findOrFail($request->input('address_id'));

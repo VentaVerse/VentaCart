@@ -114,18 +114,7 @@ class AccountAddressController extends Controller
 
     private function validateAddress(Request $request): array
     {
-        $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'address_1' => ['required', 'string', 'max:1000'],
-            'city' => ['required', 'string', 'max:255'],
-            'district' => ['nullable', 'string', 'max:255'],
-            'barangay' => ['nullable', 'string', 'max:255'],
-            'state' => ['nullable', 'string', 'max:255'],
-            'postcode' => ['nullable', 'string', 'max:20'],
-            'country_id' => ['required', 'integer', 'exists:countries,id'],
-            'phone' => ['required', 'string', 'max:30'],
-        ]);
+        $validated = $request->validate(\App\Support\AddressRules::address());
 
         app(DeepAddressRules::class)->validate($validated);
 

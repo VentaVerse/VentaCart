@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Storefront;
 
+use App\Http\Requests\Storefront\ShippingEstimateRequest;
 use App\Http\Controllers\Controller;
 use App\Models\CartItem;
 use App\Services\CartService;
@@ -170,13 +171,9 @@ class CartController extends Controller
         ]);
     }
 
-    public function estimateShipping(Request $request)
+    /** Rate limited (shipping-quotes): every estimate asks each shipping provider, some of them a courier's API. */
+    public function estimateShipping(ShippingEstimateRequest $request)
     {
-        $request->validate([
-            'country_id' => 'required|integer|exists:countries,id',
-            'state' => 'nullable|string',
-            'city' => 'required|string',
-        ]);
 
         $items = $this->cartService->getItems();
         $subtotal = $this->cartService->getSubtotal();

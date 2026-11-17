@@ -54,6 +54,18 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\RateLimiter::for('package-uploads', fn (\Illuminate\Http\Request $request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('extensions.upload.per_minute', 5)))
             ->by('package-uploads:' . ($request->user()?->id ?: $request->ip())));
 
+        // Shipping quotes (the cart's estimate, checkout's delivery options)
+        // ask every shipping provider, and some call a courier's API: a
+        // loop of them would tie up PHP workers and spend the store's courier
+        // quota. Signed-in customers are counted by account, guests by IP.
+        \Illuminate\Support\Facades\RateLimiter::for('shipping-quotes', fn (\Illuminate\Http\Request $request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('shipping.quotes_per_minute', 20)))
+            ->by('shipping-quotes:' . (($id = \Illuminate\Support\Facades\Auth::guard('customer')->id()) ? 'customer:' . $id : 'ip:' . $request->ip()))
+            ->response(fn (\Illuminate\Http\Request $request, array $headers) => response()->json([
+                'success' => false,
+                'message' => 'Too many shipping lookups in a short time. Wait a minute, then try again.',
+                'data' => null,
+            ], 429, $headers)));
+
         // The sidebar's work-waiting counts (Fulfillment to ship, Reviews
         // pending). Bound here so the shell never learns which entries
         // are special; it just looks its items up (see NavBadges).

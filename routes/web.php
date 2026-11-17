@@ -53,7 +53,7 @@ Route::post('/cart/add', [StorefrontCartController::class, 'add'])->name('cart.a
 Route::patch('/cart/{cartItem}', [StorefrontCartController::class, 'update'])->name('cart.update');
 Route::delete('/cart/{cartItem}', [StorefrontCartController::class, 'remove'])->name('cart.remove');
 Route::delete('/cart', [StorefrontCartController::class, 'clear'])->name('cart.clear');
-Route::post('/cart/shipping-estimate', [StorefrontCartController::class, 'estimateShipping'])->name('cart.estimate-shipping');
+Route::post('/cart/shipping-estimate', [StorefrontCartController::class, 'estimateShipping'])->middleware('throttle:shipping-quotes')->name('cart.estimate-shipping');
 
 // HitPay webhook moved to the payment-hitpay extension
 // (extensions/payment-hitpay/routes/web.php).
@@ -62,7 +62,7 @@ Route::post('/cart/shipping-estimate', [StorefrontCartController::class, 'estima
 Route::middleware(['customer.auth', 'noindex'])->group(function () {
     Route::get('/checkout', [StorefrontCheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout/address', [StorefrontCheckoutController::class, 'saveAddress'])->name('checkout.address.save');
-    Route::post('/checkout/shipping-rates', [StorefrontCheckoutController::class, 'getShippingRates'])->name('checkout.shipping-rates');
+    Route::post('/checkout/shipping-rates', [StorefrontCheckoutController::class, 'getShippingRates'])->middleware('throttle:shipping-quotes')->name('checkout.shipping-rates');
     Route::post('/checkout/place', [StorefrontCheckoutController::class, 'placeOrder'])->name('checkout.place');
     Route::get('/checkout/confirmation/{order}', [StorefrontCheckoutController::class, 'confirmation'])->name('checkout.confirmation');
     Route::get('/checkout/hitpay/return', [StorefrontCheckoutController::class, 'hitpayReturn'])->name('checkout.hitpay.return');
