@@ -3,6 +3,7 @@
   "label": "Featured products",
   "group": "template",
   "picker_group": "products",
+  "picker_order": 20,
   "templates": [
     "*"
   ],

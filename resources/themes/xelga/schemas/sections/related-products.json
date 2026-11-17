@@ -3,6 +3,7 @@
   "label": "Related products",
   "group": "template",
   "picker_group": "products",
+  "picker_order": 150,
   "templates": [
     "product",
     "*custom"

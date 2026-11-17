@@ -24,7 +24,7 @@ const {
 } = await import('../../editor/js/modules/board/choices.js');
 const { S, ctx } = await import('../../editor/js/modules/state.js');
 const { setCatalog } = await import('../../editor/js/modules/catalog.js');
-const { undo } = await import('../../editor/js/modules/operations.js');
+const { undo, redo, reapply } = await import('../../editor/js/modules/operations.js');
 const { replaceSection } = await import('../../editor/js/modules/actions.js');
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -176,6 +176,20 @@ test('tiles sit in the four groups, an ungrouped type under text and trust, exte
   ]);
 });
 
+test('tiles follow picker_order within a group, types without one after in catalog order', () => {
+  const ordered = {
+    ...offered,
+    tiles: { ...CATALOG.tiles, picker_order: 30 },
+    text: { ...CATALOG.text, picker_order: 70 },
+    plain: { ...CATALOG.plain, picker_order: 20 },
+    look: { ...CATALOG.look, picker_order: 5 },
+    banner: { ...CATALOG.banner, picker_order: 10 },
+    products: { ...CATALOG.products, picker_order: 20 },
+  };
+  const groups = pickerGroups(addableTypes(samplePage(), { drop: 'gap', before: 'end' }, ordered, RULES), ordered);
+  assert.deepEqual(groups.map((g) => g.types.map((t) => t.type)), [['look', 'banner'], ['products', 'recent'], ['tiles'], ['plain', 'text'], ['demo.card']]);
+});
+
 test('replace mode greys the type in the spot as now here', () => {
   const by = byType(addableTypes(samplePage(), null, offered, RULES, { span: 12, now: 'banner' }));
   assert.equal(pillWords(by.banner), 'Now here');
@@ -241,6 +255,27 @@ test('replace swaps the section in its spot with the new defaults and the old co
 
   undo();
   assert.equal(JSON.stringify(S.docs.home.content), before, 'Id, settings, blocks and place are back, key order included.');
+});
+
+test('redo after undo puts the same replacement back, and a replay skips a replace whose section is gone', () => {
+  openPage(samplePage());
+  const newSid = replaceSection('words', 'tiles', { variant: 'chips' });
+  const after = JSON.stringify(S.docs.home.content);
+  const op = S.history[0];
+  undo();
+  redo();
+  assert.equal(JSON.stringify(S.docs.home.content), after, 'The same new section, in the same place.');
+  assert.ok(S.docs.home.content.sections[newSid]);
+
+  // Replayed on a document where someone else removed the old section: nothing happens.
+  openPage(samplePage());
+  delete S.docs.home.content.sections.words;
+  S.docs.home.content.order = S.docs.home.content.order.filter((id) => id !== 'words');
+  S.docs.home.content.rows[1].columns[0] = [];
+  const before = JSON.stringify(S.docs.home.content);
+  assert.equal(reapply([op]), 0);
+  assert.equal(JSON.stringify(S.docs.home.content), before);
+  assert.equal(S.history.length, 0);
 });
 
 test('replace keeps the scheme the old section shows even when it was never set', () => {

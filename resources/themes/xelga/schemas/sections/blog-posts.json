@@ -3,6 +3,7 @@
   "label": "Blog posts",
   "group": "template",
   "picker_group": "text",
+  "picker_order": 110,
   "templates": [
     "*"
   ],

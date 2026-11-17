@@ -4,6 +4,7 @@
   "description": "A photo with dots that show its products.",
   "group": "template",
   "picker_group": "banners",
+  "picker_order": 120,
   "templates": [
     "*"
   ],

@@ -15,9 +15,14 @@ require_once __DIR__ . '/../XelgaTestHelpers.php';
 require_once __DIR__ . '/../XelgaExtensionHelpers.php';
 
 /**
- * The group of tiles the section picker shows each section type in: what
- * the linter holds the theme's own schemas to, and what the editor's boot
- * data carries for every type.
+ * The group of tiles the section picker shows each section type in, and
+ * its place in that group: what the linter holds the theme's own schemas
+ * to, and what the editor's boot data carries for every type.
+ *
+ * The lint tests write a throwaway schema into the theme's own folder and
+ * remove it in `finally`; a run killed in between leaves
+ * `schemas/sections/zz-probe.json` behind, which `xelga:lint` then reports
+ * until it is deleted.
  */
 class XelgaPickerGroupTest extends TestCase
 {
@@ -84,6 +89,45 @@ class XelgaPickerGroupTest extends TestCase
         $this->assertSame('products', Catalog::section('featured-products')->pickerGroup());
         $this->assertSame('categories', Catalog::section('brand-logos')->pickerGroup());
         $this->assertSame('text', Catalog::section('usp-bar')->pickerGroup());
+    }
+
+    public function test_lint_accepts_only_a_whole_picker_order_above_zero(): void
+    {
+        $wrong = 'Section zz-probe: picker_order must be a whole number above 0.';
+        $this->withOwnSection(['picker_group' => 'text', 'picker_order' => 40], fn (array $problems) => $this->assertNotContains($wrong, $problems));
+        $this->withOwnSection(['picker_group' => 'text'], fn (array $problems) => $this->assertNotContains($wrong, $problems));
+        foreach ([0, -5, 2.5, '10', null] as $order) {
+            $this->withOwnSection(['picker_group' => 'text', 'picker_order' => $order], fn (array $problems) => $this->assertContains($wrong, $problems, json_encode($order)));
+        }
+    }
+
+    public function test_the_boot_payload_orders_the_most_used_types_first(): void
+    {
+        $html = $this->actingAs($this->admin())->get(route('admin.xelga.editor'))->getContent();
+        preg_match('/<script type="application\/json" id="xelga-boot">(.*?)<\/script>/s', (string) $html, $m);
+        $sections = json_decode(html_entity_decode($m[1] ?? '', ENT_QUOTES), true)['catalog']['sections'];
+
+        foreach ($sections as $type => $section) {
+            $this->assertArrayHasKey('picker_order', $section, $type);
+            $this->assertSame(Catalog::section($type)->pickerOrder(), $section['picker_order'], $type);
+        }
+        $this->assertNull($sections['sample-extension.card']['picker_order'], 'An extension\'s sections follow catalog order.');
+        $this->assertNull($sections['header']['picker_order']);
+
+        // Each group reads most used first.
+        $order = fn (array $types) => array_values(array_map(fn ($t) => $sections[$t]['picker_order'], $types));
+        foreach ([
+            ['hero', 'image-with-text', 'promo-banners', 'shop-the-look'],
+            ['featured-products', 'product-spotlight', 'recently-viewed', 'related-products', 'product-details', 'product-reviews'],
+            ['category-tiles', 'brand-logos', 'breadcrumbs'],
+            ['rich-text', 'usp-bar', 'testimonials', 'blog-posts'],
+        ] as $group) {
+            $numbers = $order($group);
+            $sorted = $numbers;
+            sort($sorted);
+            $this->assertSame($sorted, $numbers, implode(', ', $group));
+            $this->assertCount(count($group), array_unique($numbers));
+        }
     }
 
     public function test_the_boot_payload_carries_a_picker_group_for_every_type(): void

@@ -3,6 +3,7 @@
   "label": "Store promises",
   "group": "template",
   "picker_group": "text",
+  "picker_order": 80,
   "templates": [
     "*"
   ],

@@ -88,7 +88,8 @@ export function pillWords(state) {
 
 /**
  * The tiles of the picker, in groups: `[{id, name, types: [state]}]`. The
- * theme's own types sit in the four groups in catalog order, a type with
+ * theme's own types sit in the four groups by their `picker_order`, then in
+ * catalog order, a type with
  * no group under text and trust; an extension's types come after, in a
  * group named after the extension. Greyed types keep their place, so a
  * type is always found where it was. Empty groups are left out.
@@ -108,7 +109,16 @@ export function pickerGroups(states, catalog) {
     group.types.push(state);
   });
   const theirs = [...extensions.values()].sort((a, b) => a.name.localeCompare(b.name));
-  return [...own.values(), ...theirs].filter((g) => g.types.length);
+  // Within a group, by `picker_order` (the most used first); types without one follow in catalog order.
+  const rank = (state) => {
+    const order = catalog[state.type]?.picker_order;
+    return Number.isInteger(order) && order > 0 ? order : Infinity;
+  };
+  const groups = [...own.values(), ...theirs].filter((g) => g.types.length);
+  groups.forEach((g) => {
+    g.types = g.types.map((state, i) => [state, i]).sort(([a, i], [b, j]) => (rank(a) - rank(b)) || (i - j)).map(([state]) => state);
+  });
+  return groups;
 }
 
 /** Whether a type answers a search: its name or the name of one of its layouts. */

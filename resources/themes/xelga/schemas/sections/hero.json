@@ -3,6 +3,7 @@
   "label": "Main banner",
   "group": "template",
   "picker_group": "banners",
+  "picker_order": 10,
   "templates": [
     "*"
   ],

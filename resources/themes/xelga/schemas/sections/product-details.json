@@ -4,6 +4,7 @@
   "description": "Description and specifications come from VentaCart.",
   "group": "template",
   "picker_group": "products",
+  "picker_order": 160,
   "templates": [
     "product",
     "*custom"

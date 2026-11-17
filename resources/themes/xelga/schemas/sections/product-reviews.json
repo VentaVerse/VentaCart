@@ -4,6 +4,7 @@
   "description": "Shows approved reviews. Hidden while the Reviews extension is off.",
   "group": "template",
   "picker_group": "products",
+  "picker_order": 170,
   "templates": [
     "product",
     "*custom"

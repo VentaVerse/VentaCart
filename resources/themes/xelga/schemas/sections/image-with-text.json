@@ -3,6 +3,7 @@
   "label": "Image with text",
   "group": "template",
   "picker_group": "banners",
+  "picker_order": 40,
   "templates": [
     "*"
   ],
