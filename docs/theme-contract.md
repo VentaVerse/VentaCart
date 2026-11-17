@@ -367,7 +367,7 @@ use App\Support\OrderPanels;
 
 OrderPanels::add(OrderPanels::ROW_AFTER, fn (\Illuminate\Support\Collection $orders) => [/* order id => fragment */]);
 OrderPanels::add(OrderPanels::DETAIL_SUMMARY, fn (\App\Models\Order $order) => new \Illuminate\Support\HtmlString('…'));
-OrderPanels::add(OrderPanels::DETAIL_ACTIONS, fn (\App\Models\Order $order) => '…');
+OrderPanels::add(OrderPanels::DETAIL_ACTIONS, fn (\App\Models\Order $order) => view('marketplace::orders.actions', ['order' => $order]));
 ```
 
 | slot | where a theme draws it | the callable receives | it returns |
@@ -376,7 +376,7 @@ OrderPanels::add(OrderPanels::DETAIL_ACTIONS, fn (\App\Models\Order $order) => '
 | `order.detail.summary` | inside the order summary of `account.order-detail` | the `Order` | one fragment |
 | `order.detail.actions` | with the actions of `account.order-detail` (back to orders, cancel) | the `Order` | one fragment |
 
-A fragment is an `Htmlable` or a string. It is printed as given, so the extension escapes every value it puts in one. A fragment for an order not on the page, or anything that is neither, is dropped. A callable that throws is reported and left out; the page still draws. Fragments of one slot are joined in the order they were added. Unregistered, nothing is drawn.
+A fragment is an `Htmlable` (a rendered view, an `HtmlString`), printed as given, so the extension escapes every value it puts in one, as any Blade view does. A plain string is text: core escapes it, so `"Sold by {$shop->name}"` is safe, and markup comes only from an `Htmlable`. A fragment for an order not on the page, or anything that is neither, is dropped. A callable that throws is reported and left out; the page still draws. Fragments of one slot are joined in the order they were added. Unregistered, nothing is drawn.
 
 A theme draws them with:
 

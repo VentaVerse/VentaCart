@@ -30,8 +30,8 @@ class SampleOrderPanels
         return new HtmlString('<p data-sample-summary>Order ' . e($order->id) . ' is sold by Demo Store</p>');
     }
 
-    public static function actions(Order $order): string
+    public static function actions(Order $order): HtmlString
     {
-        return '<a data-sample-action href="' . e(url('/sample-extension/returns/' . $order->id)) . '">Return an item</a>';
+        return new HtmlString('<a data-sample-action href="' . e(url('/sample-extension/returns/' . $order->id)) . '">Return an item</a>');
     }
 }

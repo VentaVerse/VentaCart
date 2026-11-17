@@ -86,7 +86,7 @@ class OrderPanelsTest extends TestCase
     public function test_fragments_for_orders_not_on_the_page_and_odd_answers_are_dropped(): void
     {
         OrderPanels::add(OrderPanels::ROW_AFTER, fn ($orders) => [
-            $this->orders[0]->id => '<b>one</b>',
+            $this->orders[0]->id => new HtmlString('<b>one</b>'),
             999 => '<b>not on this page</b>',
             $this->orders[1]->id => 42,
         ]);
@@ -106,10 +106,28 @@ class OrderPanelsTest extends TestCase
             $reported[] = $e->getMessage();
         });
         OrderPanels::add(OrderPanels::DETAIL_ACTIONS, fn (Order $order) => throw new \RuntimeException('panel broke'));
-        OrderPanels::add(OrderPanels::DETAIL_ACTIONS, fn (Order $order) => '<a href="#">Contact</a>');
+        OrderPanels::add(OrderPanels::DETAIL_ACTIONS, fn (Order $order) => new HtmlString('<a href="#">Contact</a>'));
 
         $this->assertSame('<a href="#">Contact</a>', OrderPanels::render(OrderPanels::DETAIL_ACTIONS, $this->orders[0])->toHtml());
         $this->assertSame(['panel broke'], $reported);
+    }
+
+    public function test_a_plain_string_is_text_and_only_an_htmlable_is_markup(): void
+    {
+        $shop = 'Demo Store <img src=x onerror=alert(1)>';
+        OrderPanels::add(OrderPanels::DETAIL_SUMMARY, fn (Order $order) => "Sold by {$shop}");
+        OrderPanels::add(OrderPanels::DETAIL_SUMMARY, fn (Order $order) => new HtmlString('<b>Ships tomorrow</b>'));
+        OrderPanels::add(OrderPanels::ROW_AFTER, fn ($orders) => [$this->orders[0]->id => "Sold by {$shop}"]);
+
+        $this->assertSame(
+            'Sold by Demo Store &lt;img src=x onerror=alert(1)&gt;<b>Ships tomorrow</b>',
+            OrderPanels::render(OrderPanels::DETAIL_SUMMARY, $this->orders[0])->toHtml(),
+        );
+        $this->assertSame('Sold by Demo Store &lt;img src=x onerror=alert(1)&gt;', OrderPanels::rows(Order::all())[$this->orders[0]->id]->toHtml());
+
+        $this->actingAs($this->customer, 'customer')->get(route('account.orders.show', $this->orders[0]))
+            ->assertOk()
+            ->assertDontSee('<img src=x', false);
     }
 
     public function test_an_unknown_slot_is_refused_and_the_list_slot_is_not_a_detail_slot(): void

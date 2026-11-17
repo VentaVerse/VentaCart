@@ -13,9 +13,10 @@ use Illuminate\Support\HtmlString;
  * a theme draws: under a row of the orders list, in an order's summary and
  * among an order's actions ("Return an item", "Contact the seller").
  *
- * A fragment is HTML the extension wrote: an Htmlable or a string the
- * extension has already escaped. Core prints it as given, so an extension
- * escapes every value it puts in one, as any Blade view of its own does.
+ * A fragment is an Htmlable (a rendered view, an HtmlString), printed as
+ * given, or a plain string, which is text and is escaped. Markup comes
+ * only from an Htmlable, so a name a seller or customer typed that ends
+ * up in a string can never run as script on the customer's order pages.
  *
  * For the list, a callable receives the page's orders once, so it can read
  * what it needs in one query, and answers fragments keyed by order id. For
@@ -130,7 +131,7 @@ final class OrderPanels
     {
         return match (true) {
             $fragment instanceof Htmlable => (string) $fragment->toHtml(),
-            is_string($fragment) => $fragment,
+            is_string($fragment) => e($fragment),
             default => '',
         };
     }
