@@ -186,7 +186,9 @@ Keys a section schema may carry:
 
 | key | meaning |
 |---|---|
-| `templates` | the template handles the section may be added to; `*custom` means custom templates of those types; `*` everywhere. Header and footer group sections use `group` instead. |
+| `templates` | the template handles the section may be added to; `*custom` means custom templates of those types; `*extension` every template of an extension page type (section 14.4); `*` everywhere. Header and footer group sections use `group` instead. |
+| `extension_blocks` | `true` lets extension blocks that name this section in their `targets` join it (section 14.3). `product-main` takes them. |
+| `icon` | the editor's icon for the type, a name in the editor's sprite. |
 | `limit` | most instances per document (header: 1). |
 | `main` | the page's main section (product information, category listing). Cannot be removed, duplicated or hidden; exactly one per template of its type. |
 | `presets` | named starting points the Add section panel offers; a preset is settings plus blocks. Without presets the panel offers the section's variants with defaults. |
@@ -194,6 +196,8 @@ Keys a section schema may carry:
 | setting `live` | how the preview applies a change: `text`, `attr`, `css`, or `render` (server re-render, section 7.5). Inferred when absent: picker types, `url` on a data-driven section, and any setting named in the section's `render_keys` are `render`; text types are `text`; everything else `attr`. |
 | setting `visible_if` | unchanged from the draft: shown only when every listed key matches. |
 | setting `options_source` | options filled at boot from core data: `blog_categories`, `menus`, `font_pairs`. |
+
+The catalog stamps an extension's section with `source` (the extension's name), `source_label` (its title) and `data_class`, and gives it the class `s-{extension}--{name}`; none of these come from the file (section 14.2).
 
 Every label is plain words about the visible result. Settings marked `advanced` sit behind the Advanced disclosure.
 
@@ -352,6 +356,8 @@ Group and template documents:
 
 A map plus an order list keeps ids stable and makes move, remove and duplicate one-line operations. `schema` is the document format version; `Shape` upgrades older formats on read.
 
+Extension keys (section 14): a template may carry `placed`, the ids of the extension placements it has been given (at most 100, never shrinking on save). A section or block of an extension carries `source`, set by `Shape` from the type's prefix. One whose extension is away, or one a placement just inserted, also carries `unchecked: true`: its values were stored without checks, so the renderer cleans them before any view sees them, and the next save checks it in full.
+
 ### 5.3 xelga_revisions
 
 | column | type | notes |
@@ -407,7 +413,7 @@ There is one shared draft per document, not one per admin: the store has one dra
 2. The theme's page view (for example `views/product/show.blade.php`) renders `<x-store-layout>` with `@include('snippets.template', ['pageType' => 'product', 'subject' => $product, 'page' => PageContext::all()])`. `page` is exactly the view data core's controller handed the page (an explicit `compact()` of the controller's variables on the other page types); it reaches every section as `RenderContext::$page`, so a main section shows what core worked out for this shopper and never queries around it.
 3. `TemplateResolver` picks the handle: in the editor's preview, a custom template named by `?xelga_template=` (the editor's special layout preview, any subject of that page type); else an assignment for the subject (`xelga_assignments`, subject types product, category, brand, page and blog_post) that points at a custom template of the same page type with published content (a draft counts in the preview); else the page type's template. One query reads the assignment with its document, and the repository keeps that row so it is not read twice.
 4. `DocumentRepository` loads `settings`, `header`, `footer` and the template in one query (`whereIn('handle', ...)`), memoized for the request. It returns `draft ?? published` when `PreviewMode::active()`, else `published`. A missing or never-published template falls back to the shipped default in `store-templates/_defaults/{handle}.json`, so a fresh install renders a sensible page before anything is published.
-5. `SectionRenderer` walks `order`, skips `disabled` sections and blocks, merges settings over defaults, calls the section's data provider when one exists (`Themes\Xelga\Sections\{StudlyType}` implementing `SectionData::resolve(array $settings, array $blocks, RenderContext $ctx): array`), and renders `sections.{type}` with `$section`, `$settings`, `$blocks` and the provider's data. Each section is wrapped in comment markers `<!--xelga:{id}-->` and `<!--/xelga:{id}-->` that `SectionOnly` uses.
+5. `SectionRenderer` walks `order`, skips `disabled` sections and blocks, merges settings over defaults, calls the section's data provider when one exists (`Themes\Xelga\Sections\{StudlyType}` implementing `SectionData::resolve(array $settings, array $blocks, RenderContext $ctx): array`; an extension section's declared `data_class`), and renders `sections.{type}` (an extension section's `views/sections/{type}.blade.php` in its parts folder; an extension block's own view, inside the theme's block wrapper) with `$section`, `$settings`, `$blocks` and the provider's data. Each section is wrapped in comment markers `<!--xelga:{id}-->` and `<!--/xelga:{id}-->` that `SectionOnly` uses.
 6. A section that throws while rendering is logged and replaced by nothing for shoppers (an error box in preview), so one bad section never takes the page down.
 
 ### 6.2 Data comes from core only
@@ -696,3 +702,56 @@ Fixtures use neutral names (Demo Store, Juan Dela Cruz, `DEMO-001`, example.com)
 | `Sec-Fetch-Dest` missing in an old browser | preview frame shows published content after a redirect | nonce on the first load and on every editor-initiated request; the editor detects a `ready` without draft marker and reloads with the nonce |
 | merchant deletes a photo or product used by a section | empty spot on the live store | sections render nothing for missing references; editor shows "Photo missing" |
 | uninstall drops the merchant's work | lost store design | warning on the Themes screen with Export; revisions |
+
+## 14. Extensions
+
+How a VentaCart extension adds to Xelga without editing it: section types, blocks inside Xelga's sections, page templates and default placements. This is Xelga's side of the extension hooks, API 1; core's side (pages of extension page types, cart groups, the checkout page, order panels, the account menu, the `extension.*` frames) is in `docs/theme-contract.md`, section 9.
+
+### 14.1 Words
+
+- **Extension parts**: the folder an extension gives Xelga. One per extension.
+- **Extension section / block**: a section or block type from extension parts, named `{extension}.{name}` (`marketplace.seller-card`). The dot keeps every extension type apart from Xelga's own, which never hold one.
+- **Extension template**: a Xelga template of a page type an extension registered with core (`shop`).
+- **Dormant**: an extension section or block stored in a document while its extension is switched off or removed.
+- **Placement**: an extension's statement that one of its sections or blocks belongs somewhere by default.
+
+### 14.2 Registration and the parts folder
+
+An extension listens for `xelga.extend` (`Extensions\Registrar::EVENT`) in its provider's `boot()` and calls `$xelga->parts($name, $path)` and, for each of its page types, `$xelga->previewUrl($type, fn () => ?string)`. `Extensions\Extensions` (scoped per request, dropped by `Storefront::forgetRequestState()`) fires the event the first time the catalog is read, which is after every provider booted, and keeps the accepted parts as `ExtensionParts`. Each check below is logged once and skips the part; nothing throws:
+
+- the name is `^[a-z][a-z0-9-]{0,39}$`, not registered twice, and `ExtensionManager::state()` is `enabled`;
+- the folder's real path lies inside the extension's own folder (as discovery reports it), and nothing in it is a link;
+- `xelga.json` says `"api": 1`; its `stylesheet`, when given, is a `.css` file under the extension's `resources/`.
+
+Layout: `xelga.json`, `schemas/sections/{type}.json`, `schemas/blocks/{type}.json`, `views/sections/{type}.blade.php`, `views/blocks/{type}.blade.php`, `templates/{page type}.json`, `placements.json`. The views folder is also the view namespace `xelga-{extension}` for the extension's own partials. A preview address is used only when it is a page of this store.
+
+The catalog (`Catalog::compile()`) reads Xelga's schemas, then each extension's, and refuses (logs) a section whose type is not `{its extension}.{name}` named after its file, whose group is not `template`, that uses `scheme-colors` or an unknown setting type, or whose `data_class` is outside the extension's namespace or does not implement `SectionData`. The cache key is the theme version, `|`, then `name@version` of every registered extension (and, in debug, each parts folder's newest file time and count), so switching or updating an extension compiles once.
+
+### 14.3 Extension blocks
+
+A block schema: `type`, `label`, `description`, `icon`, `settings`, `limit` (1 to 4, default 1), optional `data_class`, and `targets`, the Xelga section types it may join. It joins a target only when that section's schema says `"extension_blocks": true`; the section's `blocks.max` grows by the blocks' limits (at most 8). From there it is a block type of the section like Xelga's own: `Shape` checks it, the editor lists it under the extension's name in Add block, and it is dragged among Xelga's blocks. `SectionRenderer` draws it with its own view (inputs `$block`, `$settings`, `$data` from its data class, which receives the block's settings and the section's `RenderContext`, `$context`, `$section`), inside `snippets/extension-block` (`.xblock .b-{extension}--{name}` with the block ids the editor selects by). A section view that takes extension blocks prints `$block['html']` for a block with a `source` (`product-main` does).
+
+### 14.4 Extension templates
+
+`Handles::extensionTemplates()` lists, by handle, the page types an extension registered with core (`StorefrontPage::isExtensionType()`) and ships `templates/{type}.json` for; a type that would take a Xelga handle is refused. They are `known()`, of kind `template`, their own page type and base (`Handles::baseFor()`). `Defaults` reads their shipped document from the parts folder; `Shape` requires their main section like any template's; `BootPayload::pages()` lists them after Xelga's pages with `extension: true`, `group` (the extension's title) and the preview address. `StorefrontPage::render()` draws them with `views/extension-page.blade.php`, whose sections read the controller's data through `RenderContext`; the breadcrumbs section reads the extension's trail. A template whose extension is away is not known: `Publisher::publish()`, `discard()` and `TemplateManager::summary()` leave its row and draft alone until the extension returns.
+
+### 14.5 Dormant sections and blocks
+
+`Shape` keeps an extension section whose type the catalog lacks exactly as stored (label, hidden flag, settings, block order and blocks; ids still checked; at most 16 KB each), with `source` from the type's prefix and `unchecked: true`; an extension block whose type no registered extension has is kept the same way inside its section, and takes no room against the section's block limits. Dormant sections draw nothing for shoppers and, in the preview, `snippets/section-missing` names the extension ("Marketplace is switched off." or "Marketplace is not installed."); the outline shows the same note and offers only move and remove. Copying a template keeps them. Back on, the renderer cleans their values before the view (the `unchecked` path), and the next save checks them in full and drops the flag. Nothing is written when an extension is switched off, on, or removed.
+
+### 14.6 Placements
+
+`Extensions\Placements::compile()` checks each entry of `placements.json` at catalog time: a key (`[a-z0-9-]`, unique), either a `section` of the extension (not a main one) with the page types it goes on (`templates`, and `custom_templates` for their special layouts) and an optional `preset`, or a `block` of the extension with the theme `section` that takes it; `after` or `before` a type, and `otherwise` (`end`, `start`, `skip`). `Placements::overlay()` runs on every template a page reads (`DocumentRepository::content()`) and on what the editor edits (`DocumentPresenter::state()`): each placement the document has not recorded in `placed` inserts its section (id `p-` + 10 hex characters of the SHA-1 of the placement id, preset settings, `unchecked`) or its block, unless the page already has that type (then it is only recorded), or the insert would break the 40-section limit, a type's limit or where the type is allowed (then it waits). `DocumentWriter` keeps the union of the stored and the saved `placed`, so a removed section or block never returns, also after switching the extension off and on.
+
+### 14.7 Editor
+
+Add section and Add block list Xelga's types first, then each extension's under its `source_label`. The page picker lists extension templates after Xelga's pages under the extension's name. The boot payload's `extensions` (every extension on disk, with its title and `on`, `off` or `missing`) lets the outline name the extension of a dormant row. Extension section HTML reaches the editor only through `SectionOnly` and the frame's existing allowlist; API 1 has no extension section scripts. The storefront layout loads each extension's stylesheet after Xelga's bundle (`Extensions::stylesheetTags()`; an entry the build lacks is logged and left out).
+
+### 14.8 Checks
+
+`php artisan xelga:lint --extension={name}` (`CatalogLinter::checkExtension()`) applies Xelga's section checks to the extension's sections and blocks, plus: the type and file rules, views present and not links, a block's targets being Xelga sections that take extension blocks, a CSS rule in the extension's stylesheet for every range value (write them with `node bin/ranges.mjs --schemas <parts>/schemas/sections --out <file>`, which also covers `schemas/blocks`), template defaults (a registered page type, one main section of the extension's own, no store records, Shape-clean), and placements (each valid and allowed where it goes).
+
+### 14.9 Tests
+
+`tests/fixtures/extensions/sample-extension` uses every hook: the section types `sample-extension.card` and `sample-extension.main`, the block `sample-extension.seller`, the page type `sample_page` with its template, a section and a block placement, plus core's cart grouper, checkout page, order panels and account link. `Tests\Support\UsesSampleExtension` links it into `extensions/` for a test, installs, switches off, back on, and removes it. Xelga's tests for it are `tests/Feature/XelgaExtension*Test.php` and `XelgaCartGroupsTest.php`.
+

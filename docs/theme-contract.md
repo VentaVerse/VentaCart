@@ -388,3 +388,83 @@ A theme draws them with:
 ```
 
 The order pages are the customer's own: core's controller has already checked the order belongs to the signed-in customer before the theme draws it. A callable reads only what that customer may see.
+
+### 9.6 Pages an extension draws itself: frames, snippets, classes
+
+Checkout steps, account pages (returns, store credit, "My shops") and similar pages keep a fixed layout: no template, no sections. The extension's controller returns its own view, and that view draws inside the live theme's frame when the theme has one:
+
+```blade
+@extends(view()->exists('extension.account') ? 'extension.account' : 'marketplace::layouts.plain')
+@section('title', 'Returns')
+@section('content') … @endsection
+```
+
+These views are un-namespaced, so they exist only while the theme that provides them draws the store (its `views/` folder is first in the view finder). They are optional in this contract; a theme that provides them keeps their names and inputs within an API version.
+
+| view | draws | input |
+|---|---|---|
+| `extension.page` | the page frame: header and footer, the trail, the title, the content | sections `title`, `content`; optional `$trail`, a list of `{label, url?}` after Home |
+| `extension.account` | the same with the account menu beside it (the theme's links, then `AccountMenu::links()`) | as `extension.page`; `$trail` comes after "Your account" |
+| `extension.status` | a status badge | `name`, `tone` (`StatusTone`: info, success, warning, danger, neutral), `large` (optional) |
+| `extension.flash` | the session's `success`, `status` and `error` messages and validation errors | none |
+| `extension.empty` | an empty state | `title`, `text` (optional), `link` (optional `{label, url}`, the url through `SafeInput::link`) |
+| `extension.address` | one of the customer's addresses | `address` (`CustomerAddress`) |
+
+Every input is printed as text. Inside the content, an extension that wants to look native uses the theme's published class list; for any other theme it uses its own view (`@includeFirst(["marketplace::themes.{$theme}.returns", 'marketplace::returns'])`). Its CSS goes in its own build entry pushed to `head`, never inline.
+
+The bundled theme (Xelga) publishes these classes for API 1; renaming one is a new API version:
+
+| area | classes |
+|---|---|
+| layout | `acct__block`, `acct__block-head`, `acct__head`, `acct__head--row`, `acct__title`, `acct__subtitle`, `acct__card`, `acct__pair`, `acct__pages` |
+| buttons | `btn`, `btn--secondary`, `btn--accent`, `btn--danger`, `btn--sm`, `btn--lg`, `btn--block` |
+| forms | `acct__form`, `acct__form-acts`, `field`, `field--full`, `field__row`, `field__label`, `field__error`, `input`, `select`, `select--sm` |
+| money | `summary`, `summary__title`, `totals`, `totals--grand`, `totals__discount`, `totals__hint` |
+| text | `muted` |
+| color tokens | `--c-bg`, `--c-text`, `--c-muted`, `--c-accent`, `--c-accent-text`, `--c-button`, `--c-button-text`, `--c-border`, `--c-card`, `--c-error`, `--c-success` (each color scheme sets them, so extension CSS that uses them stays readable) |
+
+### 9.7 The bundled theme's own hooks (Xelga, API 1)
+
+Xelga also lets an extension add section types, blocks, page templates and default placements to its editor. Core knows nothing of these: they are Xelga's, reached without any Xelga class, and absent in any other theme. The full guide is `resources/themes/xelga/docs/ARCHITECTURE.md`, section 14; in short:
+
+**Registration.** From the provider's `boot()`, listen for a named event. Xelga fires it the first time in a request that it reads its catalog, after every provider has booted; without Xelga it is never fired.
+
+```php
+\Illuminate\Support\Facades\Event::listen('xelga.extend', function ($xelga): void {
+    $xelga->parts('marketplace', dirname(__DIR__) . '/resources/xelga');
+    $xelga->previewUrl('shop', fn (): ?string => /* a page of this store to preview the template on, or null */ null);
+});
+```
+
+**Parts folder** (inside the extension's own folder; no links; every failed check is logged and skips that part, nothing throws):
+
+```
+resources/xelga/
+  xelga.json                                     {"api": 1, "stylesheet": "resources/css/xelga.css"}
+  schemas/sections/marketplace.seller-card.json  section types, named {extension}.{name}
+  schemas/blocks/marketplace.seller.json         block types for the theme's own sections
+  views/sections/marketplace.seller-card.blade.php
+  views/blocks/marketplace.seller.blade.php
+  templates/shop.json                            defaults for the template of the page type `shop`
+  placements.json                                where a section or block goes by default
+```
+
+**Schemas.** A section schema has Xelga's shape plus `data_class` (optional; in the extension's namespace, implementing `Themes\Xelga\Rendering\SectionData`) and `icon`; its `templates` may name the theme's templates (`home`, `product`, `category`, `brand`, `search`, `page`, `blog`, …), `*custom`, extension page types and `*extension` (every extension page type). Group `template` only; every setting type but `scheme-colors`. A block schema has `type`, `label`, `settings`, `limit` (1 to 4, default 1), optional `data_class`, and `targets`, the theme sections it may join; a theme section takes extension blocks only when its own schema says `"extension_blocks": true` (in API 1: `product-main`). Values go through Xelga's checks like its own; views receive only checked values, `$data` from the data class and `$context` (the page's data: `$context->get('product')`).
+
+**Page templates.** An extension page type (section 9.1) for which the parts folder ships `templates/{type}.json` (one main section, the extension's own; no store records) becomes a Xelga template the merchant edits; `StorefrontPage::render()` draws it with Xelga's `extension-page` view.
+
+**Placements.**
+
+```json
+{ "placements": [
+  { "key": "seller-card", "section": "marketplace.seller-card", "preset": "default",
+    "templates": ["product"], "custom_templates": true, "after": "product-main", "otherwise": "end" },
+  { "key": "seller", "block": "marketplace.seller", "section": "product-main", "after": "title" }
+] }
+```
+
+Applied when a page is read, for shoppers and in the editor, never written at install: insert only, once per document (the document records `placed`), never again after the merchant removes it.
+
+**Switched off or removed.** Nothing draws for shoppers; the editor shows a note naming the extension; saved pages keep its sections and blocks with their settings and hidden flags across saves and publishes, and switching back on restores them. Its templates leave the editor and wait, untouched.
+
+**Checks.** `php artisan xelga:lint --extension=marketplace`; range settings get their CSS rules from `node resources/themes/xelga/bin/ranges.mjs --schemas <parts>/schemas/sections --out <stylesheet>`.
