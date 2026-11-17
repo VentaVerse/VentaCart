@@ -41,11 +41,11 @@ class StorefrontAreaTest extends TestCase
         return collect(AdminNav::groups())->firstWhere('label', $label);
     }
 
-    public function test_the_sidebar_has_a_storefront_area_and_content_keeps_only_content(): void
+    public function test_the_sidebar_has_a_storefront_area_and_content_keeps_the_content(): void
     {
         $this->assertSame(['themes', 'layout', 'header-footer', 'banners'], array_column($this->group('Storefront')['items'], 'key'));
         $this->assertNotContains('layout', array_column($this->group('Content')['items'], 'key'));
-        $this->assertNotContains('menus', array_column($this->group('Content')['items'], 'key'));
+        $this->assertContains('menus', array_column($this->group('Content')['items'], 'key'));
         $this->assertNotContains('themes', array_column($this->group('Extensions')['items'], 'key'));
     }
 
@@ -58,7 +58,7 @@ class StorefrontAreaTest extends TestCase
 
     public function test_every_tab_opens(): void
     {
-        foreach (['announcement' => 'Announcement bar', 'top-bar' => 'Top bar links', 'main-menu' => 'Add an item', 'footer' => 'Footer columns'] as $tab => $see) {
+        foreach (['announcement' => 'Announcement bar', 'top-bar' => 'Top bar links', 'footer' => 'Footer columns'] as $tab => $see) {
             $this->get(route('admin.header-footer', ['tab' => $tab]))->assertOk()->assertSee($see)->assertSee('Storefront');
         }
         $this->get(route('admin.header-footer', ['tab' => 'nonsense']))->assertOk()->assertSee('Announcement bar');
@@ -119,8 +119,6 @@ class StorefrontAreaTest extends TestCase
     public function test_old_addresses_land_on_the_storefront_pages(): void
     {
         $this->get('/admin/content/layout?page=home')->assertRedirect(route('admin.layout').'?page=home');
-        $this->get('/admin/content/menus')->assertRedirect(route('admin.menus'));
-        $this->get(route('admin.menus'))->assertRedirect(route('admin.header-footer', ['tab' => 'main-menu']));
         $this->get('/admin/extensions/theme/customise?tab=footer')->assertRedirect(route('admin.header-footer').'?tab=footer');
     }
 

@@ -63,9 +63,6 @@
             </x-admin.panel>
         </x-admin.form>
 
-    @elseif ($tab === 'main-menu')
-        @include('admin.storefront.partials.main-menu')
-
     @else
         @php
             $vFooterRows = [];

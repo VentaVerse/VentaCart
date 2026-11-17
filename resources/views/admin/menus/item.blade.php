@@ -2,9 +2,9 @@
     <div class="v-head">
         <div class="v-head__body">
             <div class="v-head__trail">
-                <span>Storefront</span>
+                <span>Content</span>
                 <span aria-hidden="true">/</span>
-                <a href="{{ route('admin.header-footer', ['tab' => 'main-menu']) }}">Header &amp; footer</a>
+                <a href="{{ route('admin.menus') }}">Menus</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $item->label ?: $types[$item->type] }}</span>
             </div>

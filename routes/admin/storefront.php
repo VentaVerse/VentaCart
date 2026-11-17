@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\Layout\LayoutController;
-use App\Http\Controllers\Admin\Layout\MenuController;
 use App\Http\Controllers\Admin\Storefront\FooterColumnController;
 use App\Http\Controllers\Admin\Storefront\HeaderFooterController;
 use Illuminate\Support\Facades\Route;
@@ -25,20 +24,12 @@ Route::prefix('storefront/layout')->middleware(\App\Http\Middleware\EditTheme::c
     Route::post('/templates/import', [LayoutController::class, 'importTemplate'])->name('layout.templates.import');
 });
 
-// Header & footer: the announcement bar, the top bar links, the main menu
-// and the footer columns. One menu, the one the header draws, shared by
-// every theme (nav_menus has no theme column).
+// Header & footer: the announcement bar, the top bar links and the footer
+// columns. The menu is edited at Content > Menus.
 Route::prefix('storefront/header-footer')->group(function () {
     Route::get('/', [HeaderFooterController::class, 'show'])->name('header-footer');
     Route::post('/announcement', [HeaderFooterController::class, 'updateAnnouncement'])->name('header-footer.announcement');
     Route::post('/top-bar', [HeaderFooterController::class, 'updateTopBar'])->name('header-footer.top-bar');
-
-    Route::get('/menu', [MenuController::class, 'index'])->name('menus');
-    Route::post('/menu/{menu}/arrange', [MenuController::class, 'arrange'])->name('menus.arrange');
-    Route::post('/menu/{menu}/items', [MenuController::class, 'storeItem'])->name('menus.items.store');
-    Route::get('/menu/items/{item}/edit', [MenuController::class, 'editItem'])->name('menus.items.edit');
-    Route::put('/menu/items/{item}', [MenuController::class, 'updateItem'])->name('menus.items.update');
-    Route::delete('/menu/items/{item}', [MenuController::class, 'destroyItem'])->name('menus.items.destroy');
 
     Route::post('/footer', [FooterColumnController::class, 'store'])->name('footer.store');
     Route::post('/footer/arrange', [FooterColumnController::class, 'arrange'])->name('footer.arrange');

@@ -328,9 +328,10 @@ foreach ([
     })->where('path', '.*');
 }
 
-// Storefront: Layout and the menu moved out of Content, and the theme's
-// header and footer editing became Storefront > Header & footer.
+// Storefront: Layout moved out of Content, and the theme's header and
+// footer editing became Storefront > Header & footer. The menu, edited
+// for a while on Header & footer, is back at Content > Menus.
 adminLegacyRedirect('content/layout', 'admin.layout');
-adminLegacyRedirect('content/menus', 'admin.menus');
-adminLegacyRedirect('content/menus/items/{item}/edit', 'admin.menus.items.edit');
+adminLegacyRedirect('storefront/header-footer/menu', 'admin.menus');
+adminLegacyRedirect('storefront/header-footer/menu/items/{item}/edit', 'admin.menus.items.edit');
 adminLegacyRedirect('extensions/theme/customise', 'admin.header-footer');

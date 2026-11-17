@@ -38,7 +38,7 @@ class MenuComposerTest extends TestCase
         $top = $this->item(['label' => 'Guitars']);
         $this->item(['label' => 'Used', 'parent_id' => $top->id]);
 
-        $this->get(route('admin.header-footer', ['tab' => 'main-menu']))->assertOk()
+        $this->get(route('admin.menus'))->assertOk()
             ->assertSee('Guitars', false)->assertSee('Used', false)->assertSee('Add an item');
     }
 
@@ -53,7 +53,7 @@ class MenuComposerTest extends TestCase
         $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.menus.store'));
         $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.menus.destroy'));
 
-        $view = file_get_contents(base_path('resources/views/admin/storefront/partials/main-menu.blade.php'));
+        $view = file_get_contents(base_path('resources/views/admin/menus/tree.blade.php'));
         $this->assertStringNotContainsString('New menu', $view);
         $this->assertStringNotContainsString('Delete this menu', $view);
     }
@@ -201,7 +201,7 @@ class MenuComposerTest extends TestCase
     /** The page has an empty state, and its styles and script come from the admin bundle. */
     public function test_an_empty_menu_says_how_to_start(): void
     {
-        $this->get(route('admin.header-footer', ['tab' => 'main-menu']))->assertOk()
+        $this->get(route('admin.menus'))->assertOk()
             ->assertSee('No items in this menu yet')
             ->assertSee('vMenuTree', false)
             ->assertDontSee('layout-editor', false)
@@ -212,5 +212,30 @@ class MenuComposerTest extends TestCase
     {
         auth()->logout();
         $this->get(route('admin.menus'))->assertRedirect();
+    }
+
+    /** Menus are content: Content > Menus, at its own address, under its own trail. */
+    public function test_the_menu_has_a_page_of_its_own_under_content(): void
+    {
+        $this->assertSame('/admin/content/menus', parse_url(route('admin.menus'), PHP_URL_PATH));
+        $this->assertSame(['group' => 'Content', 'item' => 'menus'], \App\Support\AdminNav::activeItemKey('/admin/content/menus'));
+
+        $this->get(route('admin.menus'))->assertOk()
+            ->assertSee('Content')->assertSee('Menus')->assertSee($this->main->name);
+
+        $item = $this->item(['label' => 'Guitars']);
+        $this->get(route('admin.menus.items.edit', $item))->assertOk()->assertSee('href="' . route('admin.menus') . '"', false);
+        $this->put(route('admin.menus.items.update', $item), ['label' => 'Guitars', 'type' => 'custom', 'url' => '/guitars', 'is_enabled' => '1'])
+            ->assertRedirect(route('admin.menus'));
+    }
+
+    /** Bookmarks of the menu's old place on Header & footer still arrive. */
+    public function test_the_old_menu_addresses_arrive_at_content_menus(): void
+    {
+        $item = $this->item(['label' => 'Guitars']);
+
+        $this->get('/admin/storefront/header-footer/menu')->assertRedirect(route('admin.menus'))->assertStatus(301);
+        $this->get('/admin/storefront/header-footer/menu/items/' . $item->id . '/edit')->assertRedirect(route('admin.menus.items.edit', $item));
+        $this->get(route('admin.header-footer', ['tab' => 'main-menu']))->assertRedirect(route('admin.menus'));
     }
 }

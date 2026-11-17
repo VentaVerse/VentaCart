@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin\Storefront;
 
-use App\Http\Controllers\Admin\Layout\MenuController;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\EditTheme;
 use App\Models\FooterColumn;
@@ -15,21 +14,25 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Storefront > Header & footer: what sits on every page. The announcement
- * bar, the top bar links, the main menu and the footer columns, each its
- * own tab with its own save. A live theme that keeps its own storage edits
+ * bar, the top bar links and the footer columns, each its own tab with its
+ * own save. The menu is edited at Content > Menus. A live theme that keeps its own storage edits
  * these in its own editor, so the page hands over to it.
  */
 class HeaderFooterController extends Controller
 {
-    public const TABS = ['announcement' => 'Announcement', 'top-bar' => 'Top bar', 'main-menu' => 'Main menu', 'footer' => 'Footer'];
+    public const TABS = ['announcement' => 'Announcement', 'top-bar' => 'Top bar', 'footer' => 'Footer'];
 
-    public function show(Request $request, ThemeService $theme, MenuController $menus): Response
+    public function show(Request $request, ThemeService $theme): Response
     {
         if ($away = $this->ownEditor($theme)) {
             return $away;
         }
 
         $tab = (string) $request->query('tab', 'announcement');
+        // The menu had a tab here before it moved to Content > Menus.
+        if ($tab === 'main-menu') {
+            return redirect()->route('admin.menus', status: 301);
+        }
         $tab = array_key_exists($tab, self::TABS) ? $tab : 'announcement';
 
         return response()->view('admin.storefront.header-footer', [
@@ -37,7 +40,7 @@ class HeaderFooterController extends Controller
             'tabs' => self::TABS,
             'header' => Setting::where('group', 'header')->pluck('value', 'key')->all(),
             'footerColumns' => $tab === 'footer' ? FooterColumn::orderBy('sort_order')->get() : collect(),
-        ] + ($tab === 'main-menu' ? $menus->screen() : []));
+        ]);
     }
 
     public function updateAnnouncement(Request $request, ThemeService $theme): RedirectResponse|Response
