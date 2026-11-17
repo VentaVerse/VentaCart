@@ -102,10 +102,13 @@ class XelgaImageLoadingTest extends TestCase
             $blocks["hero-t-b{$i}"] = ['type' => 'slide', 'label' => '', 'disabled' => false,
                 'settings' => ['heading' => "Slide {$name}", 'button_label' => '', 'image' => "media/hero/{$name}.jpg"]];
         }
-        $content = ['schema' => 1, 'order' => ['hero-t'], 'sections' => ['hero-t' => [
-            'type' => 'hero', 'label' => '', 'disabled' => false, 'settings' => ['variant' => 'slideshow'],
-            'block_order' => array_keys($blocks), 'blocks' => $blocks,
-        ]]];
+        $content = ['schema' => 1, 'order' => ['hero-t', 'iwt'], 'sections' => [
+            'hero-t' => [
+                'type' => 'hero', 'label' => '', 'disabled' => false, 'settings' => ['variant' => 'slideshow'],
+                'block_order' => array_keys($blocks), 'blocks' => $blocks,
+            ],
+            'iwt' => ['type' => 'image-with-text', 'label' => '', 'disabled' => false, 'settings' => ['image' => 'media/hero/two.jpg'], 'block_order' => [], 'blocks' => []],
+        ]];
         $doc = new Document(['handle' => 'home', 'kind' => 'template', 'page_type' => 'home']);
         $doc->forceFill(['published' => $content, 'published_version' => 1])->save();
 
@@ -120,6 +123,11 @@ class XelgaImageLoadingTest extends TestCase
         $this->assertStringContainsString('fetchpriority="high"', $m[1][0]);
         $this->assertStringContainsString('srcset="', $m[1][0]);
         $this->assertStringContainsString('loading="lazy"', $m[1][1]);
+        $this->assertStringContainsString('fetchpriority="low"', $m[1][1]);
+
+        // The banner fills the first screen; the photo below it waits.
+        preg_match('/<section[^>]*data-section-type="image-with-text".*?(<img [^>]*>)/s', $html, $below);
+        $this->assertStringContainsString('loading="lazy"', $below[1]);
     }
 
     public function test_photos_below_a_product_s_gallery_do_not_compete_with_it(): void

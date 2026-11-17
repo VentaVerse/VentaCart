@@ -15,6 +15,11 @@
     // The first slide is usually the page's largest paint: preloaded, at high priority.
     $preload = $first && ! $preview && $picture && \Themes\Xelga\Rendering\Fold::nextIsHigh($context);
     $loading = \Themes\Xelga\Rendering\Fold::attrs($context, $first && $picture !== null);
+    // A banner fills a phone's first screen: photos below it wait their turn
+    // instead of sharing the bandwidth the first slide needs.
+    if ($first && $picture !== null) {
+        \Themes\Xelga\Rendering\Fold::close();
+    }
 @endphp
 @if ($preload)
     @push('head')

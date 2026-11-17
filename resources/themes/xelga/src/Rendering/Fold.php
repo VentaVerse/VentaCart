@@ -49,7 +49,8 @@ final class Fold
 
     /**
      * A page whose main photo fills the first screen (a product's gallery, a
-     * post's photo) ends the eager photos there: what follows sits below it.
+     * post's photo, the first slide of a banner) ends the eager photos there:
+     * what follows sits below it.
      */
     public static function close(): void
     {
