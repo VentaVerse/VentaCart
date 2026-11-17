@@ -117,6 +117,7 @@ class UnpaidOrderStoreCreditTest extends TestCase
         OrderTotals::reset();
         PaymentManager::reset();
         ShippingQuoteService::reset();
+        SpendsCreditAfterTotals::$customerId = null;
         parent::tearDown();
     }
 
@@ -560,11 +561,12 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $this->assertSame(0, Order::visibleToCustomer()->count());
     }
 
-    /** The gateway refused to open a payment page, so there is nothing left to pay. */
-    public function test_a_payment_the_gateway_refused_at_checkout_returns_the_credit(): void
+    /** @return array{address: \App\Models\CustomerAddress, cart: Cart, rate: int} a cart ready to place */
+    private function checkoutReady(): array
     {
         $manager = app(ExtensionManager::class);
         $manager->install('shipping-flat-rate');
+        $manager->install('payment-cod');
         $manager->bootEnabled();
         $rate = \Extensions\ShippingFlatRate\Models\FlatShippingRate::create(['name' => 'Standard Delivery', 'cost' => 150, 'is_active' => true]);
 
@@ -582,12 +584,67 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $cart = Cart::create(['store_id' => 1, 'customer_id' => $this->customer->id]);
         $cart->items()->create(['product_id' => $product->id, 'name' => 'Demo Cable', 'price' => 500, 'quantity' => 2]);
 
+        return ['address' => $address, 'cart' => $cart, 'rate' => $rate->id];
+    }
+
+    private function placeOrder(array $ready, string $paymentMethod)
+    {
+        return $this->actingAs($this->customer, 'customer')
+            ->from(route('checkout.index'))
+            ->post(route('checkout.place'), [
+                'shipping_address_id' => $ready['address']->id,
+                'payment_method' => $paymentMethod,
+                'shipping_method' => 'flat_rate_' . $ready['rate'],
+            ]);
+    }
+
+    /**
+     * Two checkouts for one customer at the same moment: both work out the
+     * credit line from a balance of 50, and the other one commits its
+     * spend first. This one then finds the balance spent under the lock
+     * and is refused with a message, not placed below zero.
+     */
+    public function test_a_second_order_spending_the_same_credit_is_refused(): void
+    {
+        CreditService::add($this->customer->id, -450.0, 'Earlier order');
+        $this->assertSame(50.0, $this->balance());
+        $ready = $this->checkoutReady();
+        SpendsCreditAfterTotals::$customerId = $this->customer->id;
+        OrderTotals::register(SpendsCreditAfterTotals::class, 900);
+
+        $this->placeOrder($ready, 'cod')
+            ->assertRedirect(route('checkout.index'))
+            ->assertSessionHasErrors(['checkout' => 'Your store credit balance changed. Please review your order.']);
+
+        $this->assertSame(0, Order::count(), 'Nothing is placed: the order transaction rolled back.');
+        $this->assertSame(0.0, $this->balance(), 'The other order spent the 50; this one spent nothing.');
+        $this->assertNull($ready['cart']->fresh()->placed_order_id);
+        $this->assertSame(1, $ready['cart']->items()->count(), 'The cart is kept for another try.');
+    }
+
+    public function test_an_order_whose_credit_is_still_there_is_placed(): void
+    {
+        CreditService::add($this->customer->id, -450.0, 'Earlier order');
+        $ready = $this->checkoutReady();
+
+        $this->placeOrder($ready, 'cod')->assertSessionHasNoErrors();
+
+        $this->assertSame(1, Order::count());
+        $this->assertSame(0.0, $this->balance());
+    }
+
+    /** The gateway refused to open a payment page, so there is nothing left to pay. */
+    public function test_a_payment_the_gateway_refused_at_checkout_returns_the_credit(): void
+    {
+        $ready = $this->checkoutReady();
+        $cart = $ready['cart'];
+
         $this->actingAs($this->customer, 'customer')
             ->from(route('checkout.index'))
             ->post(route('checkout.place'), [
-                'shipping_address_id' => $address->id,
+                'shipping_address_id' => $ready['address']->id,
                 'payment_method' => 'hitpay',
-                'shipping_method' => 'flat_rate_' . $rate->id,
+                'shipping_method' => 'flat_rate_' . $ready['rate'],
             ])
             ->assertRedirect(route('checkout.index'))
             ->assertSessionHasErrors('checkout');
@@ -599,4 +656,27 @@ class UnpaidOrderStoreCreditTest extends TestCase
         $this->assertCount(1, $this->returnsFor($order));
         $this->assertNull($cart->fresh()->placed_order_id);
     }
+}
+
+/**
+ * Stands in for another checkout of the same customer that commits its
+ * credit spend after this one has worked out its totals.
+ */
+class SpendsCreditAfterTotals implements \App\Services\OrderTotals\OrderTotalProviderInterface
+{
+    public static ?int $customerId = null;
+
+    public function getKey(): string
+    {
+        return 'test_concurrent_spend';
+    }
+
+    public function collect(\App\Services\OrderTotals\TotalsContext $ctx): void
+    {
+        if (self::$customerId !== null) {
+            CreditService::add(self::$customerId, -CreditService::balance(self::$customerId), 'Order placed in another tab');
+        }
+    }
+
+    public function confirm(Order $order, array $line): void {}
 }
