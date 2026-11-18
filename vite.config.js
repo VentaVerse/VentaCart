@@ -74,6 +74,10 @@ export default defineConfig({
                 'resources/css/admin/admin.css',
                 'resources/css/storefront/no-theme.css',
                 'resources/js/admin/admin.js',
+                // The media library, printed by <x-media-library /> on any
+                // page that offers it, the admin's and a theme editor's alike.
+                'resources/css/media-library/media-library.css',
+                'resources/js/media-library/index.js',
                 // Contractual manifest keys: the shells preload these via
                 // Vite::asset(), which throws on a manifest miss.
                 'resources/fonts/Archivo-latin.woff2',
