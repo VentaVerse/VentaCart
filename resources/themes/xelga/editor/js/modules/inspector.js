@@ -12,8 +12,8 @@
 
 import { $, h, icon, helpTip } from './dom.js';
 import { S, ctx, ui, sec, blk, locate, valueOf, labelOf, themeValue, settingsDoc, blockList } from './state.js';
-import { sectionDef, sectionIcon, blockDef, blockIcon, themeGroups, themeGroupsIn, isFormSetting, extensionOf, absentName, absentLabel } from './catalog.js';
-import { commit, layoutPayload } from './operations.js';
+import { sectionDef, sectionIcon, blockDef, blockIcon, themeGroups, themeGroupsIn, isFormSetting, extensionOf, absentName, absentLabel, isLocked } from './catalog.js';
+import { commit, layoutPayload, rulesFor } from './operations.js';
 import { typeLine, placeWords } from './board/labels.js';
 import { same, humanize } from './util.js';
 import { select } from './selection.js';
@@ -105,10 +105,12 @@ export function inspectorHead({ title, help = null, kind, kindBlock = false, typ
   head.append(top);
   if (kind) head.append(h('p', { class: 'insp-kind' }, h('span', { class: `insp-kind__dot${kindBlock ? ' insp-kind__dot--block' : ''}`, 'aria-hidden': 'true' }), kind));
   if (type) {
-    head.append(h('p', { class: 'insp-type' },
+    head.append(h('p', { class: `insp-type${type.shared ? ' insp-type--shared' : ''}` },
       type.type ? icon(type.icon, 'icon--sm insp-type__icon') : null,
+      // A band's sections show on every page: the link mark of the bands says so.
+      type.shared ? icon('link', 'icon--sm insp-type__icon insp-type__link') : null,
       type.type ? h('span', { class: 'insp-type__name', text: type.type }) : null,
-      type.where ? h('span', { class: `insp-type__where${type.type ? '' : ' insp-type__where--alone'}`, text: type.where }) : null));
+      type.where ? h('span', { class: `insp-type__where${type.type || type.shared ? '' : ' insp-type__where--alone'}`, text: type.where }) : null));
   }
   return head;
 }
@@ -168,7 +170,10 @@ function sectionInspector(sid, bid) {
   const hidden = Boolean(target.disabled);
   const settings = bid ? bdef?.settings || [] : withThemeFields(s.type, def.settings || []);
   const themeKeys = new Set(settings.filter((d) => d.store === 'theme').map((d) => d.key));
+  // Locked sections keep their place and type; of them only the page content is never hidden.
   const main = !bid && def.main;
+  const locked = !bid && isLocked(def);
+  const shared = !bid && at.group !== 'template';
 
   const eye = main ? null : h('button', {
     type: 'button', class: 'icon-btn', 'aria-label': hidden ? 'Show on the store' : 'Hide on the store',
@@ -190,6 +195,7 @@ function sectionInspector(sid, bid) {
   if (hidden) {
     content.append(h('p', { class: 'notice notice--warn' }, icon('eye-off'), `Hidden on the store. Shoppers do not see this ${bid ? 'block' : 'section'}.`));
   }
+  if (shared) content.append(h('p', { class: 'notice notice--shared' }, icon('link'), 'Changes here show on every page.'));
 
   const read = (key) => (themeKeys.has(key) ? themeValue(key) : valueOf(sid, bid, key));
   const form = buildForm(settings, { kind: bid ? 'block' : 'section', sid, bid }, read, (setting, value, opts) => {
@@ -215,7 +221,7 @@ function sectionInspector(sid, bid) {
     if (blocks) content.append(blocks);
   }
 
-  if (!bid && at.group === 'template' && !main) {
+  if (!bid && !locked) {
     content.append(h('div', { class: 'insp-foot' },
       h('button', {
         type: 'button', class: 'btn btn--secondary btn--sm', disabled: !canDuplicate(sid) || null,
@@ -347,16 +353,17 @@ function dragBlock(li, sid, bid, index) {
   });
 }
 
-/** What a section is and, in a row of columns or a side, where it sits. */
 /*
  * The second line of a section's header: its type, when the section has a
- * name of its own, and where it sits. Changing the type is done on the
+ * name of its own, and where it sits; a section of the header or footer
+ * band carries the bands' link mark. Changing the type is done on the
  * board, so there is no Change here.
  */
 function sectionType(sid, def) {
   const at = locate(sid);
-  const line = typeLine(labelOf(sid), def.label, placeWords(at?.doc?.content, sid, layoutPayload(), at?.group));
-  return line ? { ...line, icon: sectionIcon(at?.data?.type) } : null;
+  const rules = at ? rulesFor(at.handle) : null;
+  const line = typeLine(labelOf(sid), def.label, placeWords(at?.doc?.content, sid, layoutPayload(), at?.group, rules));
+  return line ? { ...line, icon: sectionIcon(at?.data?.type), shared: Boolean(at) && at.group !== 'template' } : null;
 }
 
 /* A stored value is copied so the operation's "from" never shares memory with the document. */

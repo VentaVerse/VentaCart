@@ -6,7 +6,10 @@
 
 import { doc, groupHandle, labelOf } from '../state.js';
 import { layoutPayload, rulesFor } from '../operations.js';
-import { rowsOf, locate, gapAt } from './model.js';
+import { rowsOf, locate, gapAt, MOVE_REASONS } from './model.js';
+import { AREA_NAMES } from './choices.js';
+
+export { AREA_NAMES };
 
 export const splitOf = (split) => layoutPayload()?.splits?.[split] || { parts: [12], label: 'One column' };
 
@@ -25,9 +28,6 @@ export function movedBesideSideWords(names) {
     ? ` ${names[0]} needs a wider column beside the side, so it moved to a row of its own.`
     : ` ${listWords(names)} need wider columns beside the side, so they moved to rows of their own.`;
 }
-
-/** The name of an area on screen. */
-export const AREA_NAMES = { top: 'Top', content: 'Content', bottom: 'Bottom' };
 
 /**
  * The sections a side filled for the first time took out of Content
@@ -88,10 +88,19 @@ export function targetWords(target, skip = null) {
   // A full-width row that holds only the moving section is not named.
   const rows = all.filter((r) => r.split !== '12' || r.columns.flat().some((sid) => sid !== skip));
   if (target.drop === 'gap') {
-    const { index } = gapAt(all, target);
+    const { index, area } = gapAt(all, target);
     if (index < 0) return '';
-    const above = all.slice(0, index).reverse().find((r) => rows.includes(r));
-    const below = all.slice(index).find((r) => rows.includes(r));
+    // On a page with areas, only the rows of the gap's own area are its neighbours.
+    const near = (r) => rows.includes(r) && (r.area ?? null) === area;
+    const above = all.slice(0, index).reverse().find(near);
+    const below = all.slice(index).find(near);
+    if (area) {
+      const to = `to ${AREA_NAMES[area]}`;
+      if (above && below) return `${to}, between ${rowName(above, skip)} and ${rowName(below, skip)}`;
+      if (below) return `${to}, above ${rowName(below, skip)}`;
+      if (above) return `${to}, below ${rowName(above, skip)}`;
+      return to;
+    }
     if (above && below) return `between ${rowName(above, skip)} and ${rowName(below, skip)}`;
     if (below) return `to the top, above ${rowName(below, skip)}`;
     if (above) return `to the bottom, below ${rowName(above, skip)}`;
@@ -129,12 +138,21 @@ function sideWords(where, list, before) {
   return `${where}, under ${labelOf(list[at - 1])}`;
 }
 
+/* Which sides stand beside Content, as words after its name; empty without sides. */
+function besideSides(content) {
+  const filled = ['left', 'right'].filter((side) => (content.sides?.[side] || []).length > 0);
+  if (filled.length === 2) return ', between the sides';
+  return filled.length ? `, beside the ${filled[0]} side` : '';
+}
+
 /*
  * Where the section picker puts a section, as the parts of a sentence:
- * plain words, then each name to show in bold at the odd places.
- * `{target}` a spot of the board ("Goes in the left half, under Text"),
- * `{replace: sid}` the section being replaced ("Stays at the top, above
- * Store promises").
+ * plain words, then each name to show in bold at the odd places. On a
+ * page with areas the words start with the area ("Goes in Top", "Goes in
+ * Content, beside the left side"); a band says it is on every page.
+ * `{target}` a spot of the board ("Goes in Bottom, above Text"),
+ * `{replace: sid}` the section being replaced ("Stays in Top, above
+ * Breadcrumbs").
  */
 export function pickerWhere(spot) {
   const handle = groupHandle('template');
@@ -143,17 +161,36 @@ export function pickerWhere(spot) {
   if (!content || !layout || !spot) return [];
   const rows = rowsOf(content, layout, rulesFor(handle));
   const verb = spot.replace ? 'Stays' : 'Goes';
-  const between = (above, below) => {
-    if (above && below) return [`${verb} between `, rowName(above), ' and ', rowName(below)];
-    if (below) return [`${verb} at the top, above `, rowName(below)];
-    if (above) return [`${verb} at the bottom, below `, rowName(above)];
-    return null;
+  const lead = (area, sides = true) => `${verb} in ${AREA_NAMES[area]}${area === 'content' && sides ? besideSides(content) : ''}`;
+  // A full-width place between rows, named by the rows of its own area around it.
+  const between = (area, above, below) => {
+    if (!area) {
+      if (above && below) return [`${verb} between `, rowName(above), ' and ', rowName(below)];
+      if (below) return [`${verb} at the top, above `, rowName(below)];
+      if (above) return [`${verb} at the bottom, below `, rowName(above)];
+      return [`${verb} on this page`];
+    }
+    if (above && below) return [`${lead(area)}, between `, rowName(above), ' and ', rowName(below)];
+    if (below) return [`${lead(area)}, above `, rowName(below)];
+    if (above) return [`${lead(area)}, below `, rowName(above)];
+    return [lead(area)];
+  };
+  const rowsAround = (index, area, skipOwn = false) => {
+    const same = (r) => r && (r.area ?? null) === area;
+    const above = rows[index - 1];
+    const below = rows[skipOwn ? index + 1 : index];
+    return [same(above) ? above : null, same(below) ? below : null];
   };
   const inList = (where, list, at, skip) => {
     const others = list.filter((sid) => sid !== skip);
     if (!others.length) return [`${verb} ${where}`];
     if (at <= 0) return [`${verb} ${where}, above `, labelOf(others[0])];
     return [`${verb} ${where}, under `, labelOf(list[at - 1])];
+  };
+  // A column of a row: "in the left half", after the row's area.
+  const inColumn = (r, column) => {
+    const name = `in the ${columnName(splitOf(r.split).parts, column).toLowerCase()}`;
+    return r.area ? `in ${AREA_NAMES[r.area]}, ${name}` : name;
   };
 
   if (spot.replace) {
@@ -163,8 +200,8 @@ export function pickerWhere(spot) {
     if (at.where === 'side') return inList(`in the ${at.side} side`, content.sides?.[at.side] || [], at.index, sid);
     const index = rows.findIndex((r) => r.id === at.rowId);
     const r = rows[index];
-    if (r.split === '12') return between(rows[index - 1], rows[index + 1]) || ['Stays in its place'];
-    const where = `in the ${columnName(splitOf(r.split).parts, at.column).toLowerCase()}`;
+    if (r.split === '12') return between(r.area ?? null, ...rowsAround(index, r.area ?? null, true));
+    const where = inColumn(r, at.column);
     const column = r.columns[at.column];
     if (column.length > 1) return inList(where, column, at.index, sid);
     const other = r.columns.flat().find((x) => x !== sid);
@@ -174,11 +211,13 @@ export function pickerWhere(spot) {
   const target = spot.target;
   if (target?.drop === 'band') {
     const list = doc(target.group)?.content?.order || [];
-    return inList(`in the ${target.group}`, list, target.before == null ? list.length : list.indexOf(target.before), null);
+    const where = `${verb} in the ${target.group} on every page`;
+    if (target.before != null && list.includes(target.before)) return [`${where}, above `, labelOf(target.before)];
+    return list.length ? [`${where}, below `, labelOf(list[list.length - 1])] : [where];
   }
   if (target?.drop === 'gap') {
-    const { index } = gapAt(rows, target);
-    return (index >= 0 && between(rows[index - 1], rows[index])) || ['Goes on the page'];
+    const { index, area } = gapAt(rows, target);
+    return index >= 0 ? between(area, ...rowsAround(index, area)) : [`${verb} on this page`];
   }
   if (target?.drop === 'side') {
     const list = content.sides?.[target.side] || [];
@@ -186,8 +225,8 @@ export function pickerWhere(spot) {
   }
   if (target?.drop === 'column') {
     const r = rows.find((x) => x.id === target.rowId);
-    if (!r) return ['Goes on the page'];
-    const where = `in the ${columnName(splitOf(r.split).parts, target.column).toLowerCase()}`;
+    if (!r) return [`${verb} on this page`];
+    const where = inColumn(r, target.column);
     const column = r.columns[target.column] || [];
     if (!column.length) {
       const others = r.columns.flat();
@@ -195,5 +234,26 @@ export function pickerWhere(spot) {
     }
     return inList(where, column, target.before == null ? column.length : column.indexOf(target.before), null);
   }
-  return ['Goes on the page'];
+  return [`${verb} on this page`];
+}
+
+/**
+ * What the server moved when it read a page, as one message: the names of
+ * the sections, then why, in the words of MOVE_REASONS. `adjusted` is the
+ * list the page was opened with (`{path, reason}`); entries that are not
+ * moves are left out. Empty when nothing moved.
+ */
+export function openedMovesWords(adjusted, content) {
+  const names = [];
+  const reasons = [];
+  (Array.isArray(adjusted) ? adjusted : []).forEach((item) => {
+    if (!item || !Object.hasOwn(MOVE_REASONS, item.reason || '')) return;
+    const match = /^content\.sections\.([^.]+)$/.exec(String(item.path || ''));
+    if (!match || !content?.sections?.[match[1]]) return;
+    const name = labelOf(match[1]);
+    if (!names.includes(name)) names.push(name);
+    if (!reasons.includes(MOVE_REASONS[item.reason])) reasons.push(MOVE_REASONS[item.reason]);
+  });
+  if (!names.length) return '';
+  return `${listWords(names)} moved to fit the page as it is now. ${reasons.join(' ')}`;
 }

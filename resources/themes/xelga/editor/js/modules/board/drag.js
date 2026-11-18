@@ -5,9 +5,11 @@
  * row model (targetsFor), so a key never puts a section somewhere a drag
  * could not.
  *
- * While a section is held, the spots it fits are lit, a column it does not
- * fit fades and refuses the drop with the reason, and the label under the
- * pointer says where it would go. Each move is one undo step, offered in
+ * While a section is held, the spots it fits are lit, an area, column or
+ * band it does not fit fades and refuses the drop with the reason (said in
+ * a toast and in the live region), and the label under the pointer says
+ * where it would go. A header or footer section moves within its band
+ * only: the page fades while it is held. Each move is one undo step, offered in
  * the message that confirms it.
  */
 
@@ -104,9 +106,10 @@ export function rowStep(rows, index, up) {
  * and right move to the end of the nearest column in that direction it
  * fits; past the first column (or from a full-width row) Left goes to the
  * end of the left side, past the last Right goes to the right side, when
- * the section fits there.
+ * the section fits there. With `loose`, the step is answered whether or
+ * not the section fits it, so a refusal can name the reason.
  */
-export function keyTarget(content, sid, arrow, rules) {
+export function keyTarget(content, sid, arrow, rules, { loose = false } = {}) {
   const layout = rules.layout;
   const at = locate(content, sid, layout);
   if (!at) return null;
@@ -115,7 +118,7 @@ export function keyTarget(content, sid, arrow, rules) {
   const down = arrow === 'ArrowDown';
   const sideways = arrow === 'ArrowLeft' || arrow === 'ArrowRight';
   if (!up && !down && !sideways) return null;
-  const ok = (t) => (t && fits(content, sid, t, rules) ? t : null);
+  const ok = (t) => (t && (loose || fits(content, sid, t, rules)) ? t : null);
 
   const intoSide = () => ok({ drop: 'side', side: arrow === 'ArrowLeft' ? 'left' : 'right', before: null });
 
@@ -315,6 +318,12 @@ export function keyMoveBand(event, group, sid) {
   }
   const target = bandKeyTarget(group, bandOrder(group), sid, event.key, lockedInBand(group, sid));
   if (!target) {
+    // Past the band's edge toward the page: a band section never moves onto it.
+    const towardPage = (group === 'header') === (event.key === 'ArrowDown');
+    if (towardPage) {
+      say(refusalWords({ kind: 'band', group, sid }, { zone: 'page' }));
+      return false;
+    }
     announce(`${labelOf(sid)} cannot move ${event.key === 'ArrowUp' ? 'up' : 'down'}: it is ${event.key === 'ArrowUp' ? 'first' : 'last'} in the ${band}.`);
     return false;
   }
@@ -343,11 +352,9 @@ export function keyMove(event, sid) {
   const rules = rulesFor(template());
   const target = keyTarget(content, sid, event.key, rules);
   if (!target) {
-    // The step would be there but for the area's limit: say so, as Add does.
-    const full = fullAreaWords(content, sid, keyTarget(content, sid, event.key, { ...rules, limitOf: () => null }), rules);
-    if (full) {
-      toast(full, { tone: 'error' });
-      announce(full);
+    const words = keyRefusal(content, sid, event.key, rules);
+    if (words) {
+      say(words);
       return false;
     }
     announce(`${labelOf(sid)} cannot move ${{ ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[event.key]} from here.`);
@@ -356,6 +363,42 @@ export function keyMove(event, sid) {
   const moved = moveItem({ kind: 'section', sid }, target);
   if (moved) refocus(`#board .piece[data-sid="${CSS.escape(sid)}"]`);
   return moved;
+}
+
+/*
+ * Why Alt and an arrow do not move a section, when there is a reason to
+ * give: the step is into an area it does not fit (too wide beside the
+ * sides, Content only, the area has one already), or past the top or the
+ * bottom of the page toward a band that holds its type. Null otherwise.
+ */
+function keyRefusal(content, sid, arrow, rules) {
+  const step = keyTarget(content, sid, arrow, rules, { loose: true });
+  if (step) return step.drop === 'gap' ? refusalWords({ kind: 'section', sid }, step) : null;
+  if (arrow !== 'ArrowUp' && arrow !== 'ArrowDown') return null;
+  const group = arrow === 'ArrowUp' ? 'header' : 'footer';
+  const def = sectionDef(content.sections?.[sid]?.type);
+  return (def?.shared_groups || []).includes(group) ? refusalWords({ kind: 'section', sid }, { zone: 'band', group }) : null;
+}
+
+/* A refusal is shown and said: a toast for the eye, the live region for a screen reader. */
+function say(words) {
+  if (!words) return;
+  toast(words, { tone: 'error' });
+  announce(words);
+}
+
+/**
+ * Alt and an arrow on a locked section (the page content, the Header, the
+ * Footer): nothing moves, and the message says it stays where it is.
+ */
+export function keyStay(event, sid) {
+  if (!event.altKey || event.ctrlKey || event.metaKey || !ARROWS.includes(event.key)) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  const at = locateSection(sid);
+  if (!at) return false;
+  say(at.group === 'template' ? refusalWords({ kind: 'section', sid }) : refusalWords({ kind: 'band', group: at.group, sid }));
+  return false;
 }
 
 /** Alt plus up or down on a row's tab moves the row. */
@@ -486,7 +529,7 @@ function onUp() {
   if (!active) return;
   lastDragEnd = Date.now();
   if (over) moveItem(item, over);
-  else if (refused) toast(refused, { tone: 'error' });
+  else say(refused);
 }
 
 function cancel() {
@@ -536,11 +579,17 @@ function markTargets() {
     ? $(`.row[data-row-id="${CSS.escape(D.item.rowId)}"]`, board)
     : $(`.piece[data-sid="${CSS.escape(D.item.sid)}"]`, board);
   lifted?.classList.add('is-lifted');
+  // A band section stays in its band; nothing on the page goes into a band.
+  const band = D.item.kind === 'band' ? D.item.group : null;
+  $$('.band', board).forEach((el) => el.classList.toggle('is-blocked', el.dataset.group !== band));
+  $('.sheet', board)?.classList.toggle('is-blocked', Boolean(band));
   if (D.item.kind !== 'section') return;
+  const holds = (el) => Boolean($(`.piece[data-sid="${CSS.escape(D.item.sid)}"]`, el));
+  const lit = (el) => $$('[data-target]', el).some((x) => x.classList.contains('is-valid'));
+  // An area the section fits nowhere in fades as a whole, with the reason; its columns then need no mark of their own.
+  $$('.area[data-area]', board).forEach((el) => el.classList.toggle('is-blocked', !lit(el) && !holds(el)));
   $$('.row--multi .col, .side', board).forEach((col) => {
-    const any = $$('[data-target]', col).some((x) => x.classList.contains('is-valid'));
-    const own = Boolean($(`.piece[data-sid="${CSS.escape(D.item.sid)}"]`, col));
-    col.classList.toggle('is-blocked', !any && !own);
+    col.classList.toggle('is-blocked', !col.closest('.area.is-blocked') && !lit(col) && !holds(col));
   });
 }
 
@@ -562,24 +611,68 @@ function fullAreaWords(content, sid, target, rules) {
   return fullWords(sectionDef(content.sections?.[sid]?.type), { area: areaAt(content, target, rules) });
 }
 
-/** Why a held section cannot go into a faded column or side. */
-function refusal(col) {
+/** Why a held item cannot go where the pointer is: a faded band, page, area, column or side. */
+function refusal(el) {
+  if (el.matches('.band')) return refusalWords(D.item, { zone: 'band', group: el.dataset.group });
+  if (el.matches('.sheet')) return refusalWords(D.item, { zone: 'page' });
+  if (el.matches('.area')) return refusalWords(D.item, { drop: 'gap', area: el.dataset.area, before: 'end' });
+  const side = el.classList.contains('side');
+  const t = targetOf($('[data-target]', el) || el);
+  return refusalWords(D.item, t) || (side ? 'That side is full.' : 'That column is full.');
+}
+
+/*
+ * How many sides narrow Content, as words: "the side" or "the sides".
+ * `sid`, a section about to leave a side, does not count.
+ */
+function sidesWord(content, sid) {
+  const filled = SIDES.filter((which) => (content.sides?.[which] || []).some((id) => id !== sid && content.sections?.[id]));
+  return filled.length === 2 ? 'the sides' : 'the side';
+}
+
+/**
+ * Why an item may not go to a place, in a sentence, or null when there
+ * is nothing to say. `place` is a spot of the board, or a zone: `{zone:
+ * 'band', group}` for the header or footer band, `{zone: 'page'}` for the
+ * page between them. Without a place, why the item never moves at all.
+ *   item  {kind: 'section', sid}, {kind: 'band', group, sid} or {kind: 'row', rowId}
+ */
+export function refusalWords(item, place = null) {
+  if (item?.kind === 'band') {
+    const name = labelOf(item.sid);
+    if (lockedInBand(item.group, item.sid)) return `${name} is fixed in the ${item.group} band.`;
+    if (place?.zone === 'band' && place.group !== item.group) return `${name} stays in the ${item.group} band.`;
+    if (place?.zone === 'page') return `${name} shows on every page. To show a bar on this page only, add one here.`;
+    return null;
+  }
   const content = contentNow();
-  const sid = D.item.sid;
-  const name = labelOf(sid);
-  const section = content?.sections?.[sid];
+  if (!content) return null;
+  if (item?.kind === 'row') return place?.zone === 'band' ? `${itemName(item)} is on this page only.` : null;
+  const sid = item?.sid;
+  const section = content.sections?.[sid];
+  if (!section) return null;
   const rules = rulesFor(template());
-  const side = col.classList.contains('side');
-  if (rules.isMain(section)) return `${name} is the page content, so it keeps a row of its own.`;
-  if (rules.ownRow(section)) return `${name} needs a row of its own.`;
-  const t = targetOf($('[data-target]', col) || col);
-  const area = t && content ? areaAt(content, t, rules) : null;
+  const name = labelOf(sid);
+  if (rules.isMain(section)) return `${name} is the page content. It stays where it is.`;
+  if (place?.zone === 'band') {
+    const shared = (sectionDef(section.type)?.shared_groups || []).includes(place.group);
+    return shared
+      ? `${name} is on this page only. To show a bar on every page, add one to the ${place.group}.`
+      : `${name} is on this page only. The ${place.group} holds what every page shares.`;
+  }
+  if (!place || place.zone) return null;
+  const area = areaAt(content, place, rules);
+  if (rules.ownRow(section) && ['column', 'side', 'beside'].includes(place.drop)) return `${name} needs a row of its own.`;
   if (area && area !== 'content' && rules.contentOnly(section)) return `${name} goes beside the page content, not in ${AREA_NAMES[area]}.`;
-  const full = fullAreaWords(content, sid, t, rules);
+  const full = fullAreaWords(content, sid, place, rules);
   if (full) return full;
-  const span = t && content ? spanAt(content, t, rules, sid) : 0;
-  if (span && rules.minSpan(section) > span) return side ? `${name} is too wide for a side.` : `${name} needs a wider column than that one.`;
-  return side ? 'That side is full.' : 'That column is full.';
+  const need = rules.minSpan(section);
+  if (need <= spanAt(content, place, rules, sid)) return null;
+  if (place.drop === 'side') return `${name} is too wide for a side.`;
+  // Wide enough on a page without sides: the sides are what narrow it.
+  const whole = spanAt(content, place, { ...rules, sidesAllowed: false }, sid);
+  if (area === 'content' && need <= whole) return `${name} needs more width than Content has beside ${sidesWord(content, sid)}.`;
+  return place.drop === 'gap' ? null : `${name} needs a wider column than that one.`;
 }
 
 function pickTarget() {
@@ -588,7 +681,8 @@ function pickTarget() {
   if (board && board.firstElementChild !== D.marked) markTargets();
   $$('#board .is-over').forEach((el) => el.classList.remove('is-over'));
   D.over = null;
-  const blocked = $$('#board .is-blocked').find((el) => inside(el, D.x, D.y));
+  // The innermost faded place under the pointer says why.
+  const blocked = $$('#board .is-blocked').filter((el) => inside(el, D.x, D.y)).pop();
   D.refused = blocked ? refusal(blocked) : null;
   D.ghost.classList.toggle('is-refused', Boolean(D.refused));
   if (D.refused) {

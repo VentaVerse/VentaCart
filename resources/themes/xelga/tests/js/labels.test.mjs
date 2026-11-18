@@ -60,5 +60,34 @@ test('where a section sits, in the words of the settings header', () => {
   assert.equal(placeWords(content, 'c', LAYOUT), 'In the middle column of a row');
   assert.equal(placeWords(content, 'd', LAYOUT), 'In the right column of a row');
   assert.equal(placeWords(content, 's', LAYOUT), 'In the left side');
-  assert.equal(placeWords(content, 'h', LAYOUT, 'header'), 'On every page');
+  assert.equal(placeWords(content, 'h', LAYOUT, 'header'), 'Header, on every page');
+});
+
+test('the type line of a header section says it shows on every page', () => {
+  const header = { schema: 1, order: ['bar', 'head'], sections: { bar: { type: 'announcement-bar' }, head: { type: 'header' } } };
+  assert.equal(placeWords(header, 'bar', LAYOUT, 'header'), 'Header, on every page');
+  assert.equal(placeWords({ schema: 1, order: ['bar'], sections: { bar: { type: 'announcement-bar' } } }, 'bar', LAYOUT, 'footer'), 'Footer, on every page');
+  // A band section is never renamed away from its place: the line is the place alone.
+  assert.deepEqual(typeLine('Announcement bar', 'Announcement bar', 'Header, on every page'), { type: null, where: 'Header, on every page' });
+});
+
+test('the type line of a page section names its area and says it is on this page only', () => {
+  const rules = {
+    layout: LAYOUT,
+    minSpan: () => 3,
+    isMain: (section) => section?.type === 'main',
+    isLocked: (section) => section?.type === 'main',
+    sidesAllowed: true,
+  };
+  const area = (id, name, columns, split = '12') => ({ ...row(id, split, columns), area: name });
+  const content = {
+    schema: 1,
+    order: ['t', 'm', 'b', 'c', 'd'],
+    sections: { t: { type: 'x' }, m: { type: 'main' }, b: { type: 'x' }, c: { type: 'x' }, d: { type: 'x' } },
+    rows: [area('r1', 'top', [['t']]), area('r2', 'content', [['m']]), area('r3', 'bottom', [['b']]), area('r4', 'bottom', [['c'], ['d']], '6-6')],
+  };
+  assert.equal(placeWords(content, 't', LAYOUT, 'template', rules), 'In Top, this page only');
+  assert.equal(placeWords(content, 'b', LAYOUT, 'template', rules), 'In Bottom, this page only');
+  assert.equal(placeWords(content, 'd', LAYOUT, 'template', rules), 'In Bottom, the right half of a row');
+  assert.equal(placeWords(content, 'm', LAYOUT, 'template', rules), 'The page content, fixed in place');
 });

@@ -7,7 +7,7 @@
 
 import { $, h, setSprite, toast } from './dom.js';
 import {
-  S, ctx, ui, pageHandles, doc, addDocument, pageDef, templateOf, isFixed, anyDirty,
+  S, ctx, ui, pageHandles, doc, addDocument, pageDef, templateOf, isFixed, anyDirty, groupHandle,
 } from './state.js';
 import { normalizeDocument, isSameOrigin } from './api.js';
 import { setCatalog } from './catalog.js';
@@ -18,7 +18,7 @@ import { buildShell, setAppState, canvasState, hideCanvasState, showFatal } from
 import { initInspector } from './inspector.js';
 import { initRevisions } from './revisions.js';
 import { initTopbar } from './topbar.js';
-import { scheduleSave, flush, reloadDocuments, startPresence, watchLeaving, setFatal } from './drafts.js';
+import { scheduleSave, flush, reloadDocuments, startPresence, watchLeaving, setFatal, noteOpenedMoves } from './drafts.js';
 import { closePopover } from './popover.js';
 import { initLayouts } from './layouts.js';
 import { initStores } from './stores.js';
@@ -118,6 +118,7 @@ async function start() {
   if (!S.fatal) setAppState('ready');
   ui.renderBoard();
   ui.renderInspector();
+  noteOpenedMoves(groupHandle('template'));
   ui.updateToolbar();
   // Preview follows the page open in the editor.
   ui.previewPage?.();

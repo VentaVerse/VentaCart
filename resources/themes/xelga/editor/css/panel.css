@@ -754,6 +754,17 @@ a {
   color: var(--text-3);
 }
 
+.insp-type--shared .insp-type__link {
+  color: var(--band-ink);
+}
+
+.insp-type--shared .insp-type__where {
+  flex-basis: auto;
+  padding-inline-start: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
 .insp-type__name {
   font-weight: 600;
   color: var(--text);
@@ -2151,6 +2162,13 @@ button.pick-row:hover {
 .notice--warn {
   color: var(--warn);
   background: var(--warn-soft);
+}
+
+/* A section of the header or footer band: the bands' tint and link mark, as on the board. */
+.notice--shared {
+  color: var(--band-ink);
+  background: var(--band-bg);
+  border: 1px solid var(--band-line);
 }
 
 /* Values another screen owns. */

@@ -20,6 +20,11 @@ import { normalizeDocument } from './api.js';
 const isMain = (sid) => Boolean(sectionDef(sec(sid)?.type)?.main);
 const lockedSid = (sid) => isLocked(sectionDef(sec(sid)?.type));
 
+/**
+ * Shows or hides a section or block on the store. Of the locked sections
+ * only the page content is never hidden: the Header and the Footer are
+ * fixed in place but may be hidden.
+ */
 export function toggleVisible(sid, bid = null) {
   const at = locate(sid);
   if (!at || (!bid && isMain(sid))) return;
@@ -75,11 +80,12 @@ export function duplicateHint(sid) {
   if (canDuplicate(sid)) return null;
   const at = locate(sid);
   const def = sectionDef(at?.data?.type);
+  if (def && at && at.group !== 'template') return fullWords(def, { band: at.group });
   const area = def?.limit_per_area && at ? areaAt(at.doc.content, placeOf(at.doc.content, sid, rulesFor(at.handle)), rulesFor(at.handle)) : null;
   return area ? 'This area already has one. Use Add section in another area.' : 'This page has as many as it can hold';
 }
 
-/** A section can be copied when its type has room where the copy goes: just below it, in its own area. */
+/** A section can be copied when its type has room where the copy goes: just below it, in its own area or band. */
 export function canDuplicate(sid) {
   const at = locate(sid);
   const def = sectionDef(at?.data?.type);

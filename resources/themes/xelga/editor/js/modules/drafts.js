@@ -12,6 +12,7 @@
 import { S, ctx, ui, doc, isDirty, addDocument, docLabel, pageHandles, ensureShape, schemes, anyDirty, anySaving, noteDraft, draftVersions, templateOf } from './state.js';
 import { detachDocument, reapply, resetHistory, rulesFor } from './operations.js';
 import { normalize } from './board/model.js';
+import { openedMovesWords } from './board/words.js';
 import { normalizeDocument } from './api.js';
 import { h, toast, announce } from './dom.js';
 import { choose } from './popover.js';
@@ -272,6 +273,21 @@ export async function reloadDocuments(handles = ['settings', ...pageHandles()]) 
   const list = await Promise.all(handles.map((handle) => ctx.api.getDocument(handle)));
   list.forEach(addDocument);
   return list;
+}
+
+/**
+ * Says once, in one message, what the server moved when it read a page
+ * (a section that no longer fits its place, sides on a page without
+ * them). The names are inserted as text, never as markup.
+ */
+export function noteOpenedMoves(handle) {
+  const d = doc(handle);
+  if (!d?.adjusted?.length) return;
+  const text = openedMovesWords(d.adjusted, d.content);
+  d.adjusted = [];
+  if (!text) return;
+  toast(text, { timeout: 12000 });
+  announce(text);
 }
 
 /** Schemes that fail the readability rule, worded for the merchant. */
