@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
  */
 class RecordMediaDimensions extends Command
 {
-    protected $signature = 'media:dimensions {--prune : Remove rows whose file is gone}';
+    protected $signature = 'media:dimensions {--prune : Remove rows whose file is gone} {--force : Prune even when most rows would be removed}';
 
     protected $description = 'Record the width and height of library images that have none';
 
@@ -28,6 +28,12 @@ class RecordMediaDimensions extends Command
 
     public function handle(): int
     {
+        if ($this->option('prune') && ! $this->libraryIsReadable()) {
+            $this->error('The media folder is missing, unreadable or empty, so no row can be shown to be orphaned. Nothing was changed.');
+
+            return self::FAILURE;
+        }
+
         $recorded = 0;
         $skipped = 0;
         $seen = 0;
@@ -59,15 +65,17 @@ class RecordMediaDimensions extends Command
 
         $this->info("Recorded {$recorded} images, skipped {$skipped} unreadable.");
 
+        $status = self::SUCCESS;
+
         if ($this->option('prune')) {
-            $this->info('Removed '.$this->prune().' rows whose file is gone.');
+            $status = $this->prune();
         }
 
         if ($recorded > 0) {
             MediaLibrary::touched();
         }
 
-        return self::SUCCESS;
+        return $status;
     }
 
     /**
@@ -147,25 +155,72 @@ class RecordMediaDimensions extends Command
         return [count($rows), $skipped];
     }
 
-    /** Deletes rows whose file is not on the disk, by primary key. */
+    /** A readable media folder with at least one entry; anything else cannot prove a file is gone. */
+    private function libraryIsReadable(): bool
+    {
+        $base = Storage::disk('public')->path(MediaLibrary::ROOT);
+
+        if (! is_dir($base) || ! is_readable($base)) {
+            return false;
+        }
+
+        $entries = @scandir($base);
+
+        return $entries !== false && count($entries) > 2;
+    }
+
+    /**
+     * Deletes rows whose file is not on the disk, by primary key.
+     *
+     * A row whose path cannot be checked is kept. When most rows would go,
+     * the disk is more likely unavailable than the library emptied, so that
+     * needs --force.
+     */
     private function prune(): int
     {
         $disk = Storage::disk('public');
-        $removed = 0;
+        $gone = [];
+        $unchecked = 0;
+        $total = 0;
 
-        MediaFile::query()->select(['id', 'path'])->chunkById(self::CHUNK, function ($rows) use ($disk, &$removed) {
-            $gone = $rows->filter(fn (MediaFile $row) => ! $disk->exists($row->path))->pluck('id')->all();
+        MediaFile::query()->select(['id', 'path'])->chunkById(self::CHUNK, function ($rows) use ($disk, &$gone, &$unchecked, &$total) {
+            foreach ($rows as $row) {
+                $total++;
 
-            if ($gone !== []) {
-                MediaFile::query()->whereKey($gone)->delete();
-                $removed += count($gone);
+                try {
+                    // A path the library would never have stored cannot be
+                    // judged by looking for it, so it stays.
+                    if (MediaLibrary::safePath($row->path) === false || preg_match('/[\x00-\x1f]/', $row->path)) {
+                        $unchecked++;
+
+                        continue;
+                    }
+
+                    if (! $disk->exists($row->path)) {
+                        $gone[] = $row->id;
+                    }
+                } catch (\Throwable) {
+                    $unchecked++;
+                }
             }
         });
 
-        if ($removed > 0) {
+        if (count($gone) > 100 && count($gone) * 2 > $total && ! $this->option('force')) {
+            $this->error(count($gone)." of {$total} rows look orphaned, which is more than half. Nothing was removed; run again with --force if that is right.");
+
+            return self::FAILURE;
+        }
+
+        foreach (array_chunk($gone, self::CHUNK) as $ids) {
+            MediaFile::query()->whereKey($ids)->delete();
+        }
+
+        if ($gone !== []) {
             MediaLibrary::touched();
         }
 
-        return $removed;
+        $this->info('Removed '.count($gone)." rows whose file is gone, skipped {$unchecked} that could not be checked.");
+
+        return self::SUCCESS;
     }
 }
