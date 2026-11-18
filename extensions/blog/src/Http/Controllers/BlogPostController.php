@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Extensions\Blog\Models\BlogCategory;
 use Extensions\Blog\Models\BlogPost;
 use App\Models\Tag;
+use App\Rules\MediaImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -54,7 +55,7 @@ class BlogPostController extends Controller
             'slug' => 'nullable|string|max:255|unique:blog_posts,slug',
             'content' => 'required|string',
             'excerpt' => 'nullable|string|max:500',
-            'featured_image' => 'nullable|string|max:255',
+            'featured_image' => ['nullable', 'string', 'max:255', new MediaImage()],
             'blog_category_id' => 'nullable|exists:blog_categories,id',
             'is_published' => 'boolean',
             'published_at' => 'nullable|date',
@@ -100,7 +101,7 @@ class BlogPostController extends Controller
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('blog_posts', 'slug')->ignore($blog->id)],
             'content' => 'required|string',
             'excerpt' => 'nullable|string|max:500',
-            'featured_image' => 'nullable|string|max:255',
+            'featured_image' => ['nullable', 'string', 'max:255', new MediaImage([$blog->featured_image])],
             'blog_category_id' => 'nullable|exists:blog_categories,id',
             'is_published' => 'boolean',
             'published_at' => 'nullable|date',

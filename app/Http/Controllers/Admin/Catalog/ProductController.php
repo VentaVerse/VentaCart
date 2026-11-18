@@ -12,6 +12,7 @@ use App\Models\ProductVariant;
 use App\Models\Tag;
 use App\Models\VariantType;
 use App\Models\VariantTypeValue;
+use App\Rules\MediaImage;
 use App\Support\DateWindow;
 use App\Support\LowStock;
 use Illuminate\Http\Request;
@@ -402,6 +403,8 @@ class ProductController extends Controller
     protected function validateProduct(Request $request, ?int $productId = null): array
     {
         $storeId = $request->input('store_id');
+        $current = $productId ? Product::with('images')->find($productId) : null;
+        $variantImages = $current ? $current->variants()->pluck('image')->all() : [];
 
         $validated = $request->validate([
             'store_id' => ['required', 'exists:stores,id'],
@@ -453,7 +456,7 @@ class ProductController extends Controller
             'variants.*.modifier_amount' => ['nullable', 'numeric', 'min:0'],
             'variants.*.weight' => ['nullable', 'numeric', 'min:0'],
             'variants.*.is_active' => ['nullable', 'boolean'],
-            'variants.*.image' => ['nullable', 'string', 'max:2048'],
+            'variants.*.image' => ['nullable', 'string', 'max:2048', new MediaImage($variantImages)],
             'variants.*.value_keys' => ['nullable', 'array'],
 
             // Special pricing rows. A start or end is a date with an optional
@@ -479,6 +482,7 @@ class ProductController extends Controller
             'specials.*.time_end.regex' => 'Special pricing row :position: the end time must be a time of day, such as 21:30.',
         ]);
 
+        $this->validateGalleryImages($request, $current);
         $this->validateSpecialWindows($request);
 
         // Validate SKU uniqueness across products + variants in this store
@@ -806,6 +810,42 @@ class ProductController extends Controller
             if ($start !== null && $end !== null && $end->lessThan($start)) {
                 $errors['specials.' . $index . '.date_end'] = "Special pricing row {$position}: the end is before the start.";
             }
+        }
+
+        if ($errors !== []) {
+            throw \Illuminate\Validation\ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * Checks every gallery path before anything is written, so one bad path
+     * saves nothing. Paths the product already holds are left as they are.
+     */
+    private function validateGalleryImages(Request $request, ?Product $current): void
+    {
+        $images = json_decode((string) $request->input('images_json', '[]'), true);
+
+        if (! is_array($images)) {
+            return;
+        }
+
+        $unchanged = $current
+            ? array_merge([$current->image], $current->images->pluck('path')->all())
+            : [];
+        $rule = new MediaImage($unchanged);
+        $errors = [];
+
+        foreach ($images as $entry) {
+            $path = is_array($entry) ? ($entry['path'] ?? null) : null;
+
+            if (! is_string($path) || $path === '') {
+                $errors['images_json'] = 'Choose an image from the media library.';
+                break;
+            }
+
+            $rule->validate('images_json', $path, function (string $message) use (&$errors) {
+                $errors['images_json'] ??= $message;
+            });
         }
 
         if ($errors !== []) {

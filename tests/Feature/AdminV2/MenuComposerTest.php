@@ -187,11 +187,13 @@ class MenuComposerTest extends TestCase
 
     public function test_every_kind_of_item_is_added_with_the_fields_it_needs(): void
     {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('media/banners/p.jpg', 'bytes');
         $cat = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals', 'is_active' => true]);
         $page = Page::create(['store_id' => 1, 'title' => 'About', 'slug' => 'about', 'body' => 'x', 'is_active' => true]);
         $add = fn (array $data) => $this->post(route('admin.menus.items.store', $this->main), $data);
 
-        $add(['type' => 'category', 'label' => 'Pedals', 'category_id' => $cat->id, 'mega' => 'yes', 'brands' => 'yes', 'depth' => 3, 'accent' => '#ff0000', 'banner' => '/banners/p.jpg'])->assertRedirect()->assertSessionHas('success');
+        $add(['type' => 'category', 'label' => 'Pedals', 'category_id' => $cat->id, 'mega' => 'yes', 'brands' => 'yes', 'depth' => 3, 'accent' => '#ff0000', 'banner' => 'media/banners/p.jpg'])->assertRedirect()->assertSessionHas('success');
         $add(['type' => 'page', 'label' => 'About', 'page_id' => $page->id])->assertRedirect();
         $add(['type' => 'custom', 'label' => 'Shopee', 'url' => 'https://shopee.ph/x', 'new_tab' => 1])->assertRedirect();
         $add(['type' => 'system', 'label' => 'Cart', 'system_page' => 'cart'])->assertRedirect();
@@ -205,7 +207,7 @@ class MenuComposerTest extends TestCase
         $pedals = NavMenuItem::where('label', 'Pedals')->sole();
         $this->assertSame('yes', $pedals->config['mega']);
         $this->assertSame('#FF0000', $pedals->config['accent']);
-        $this->assertSame('banners/p.jpg', $pedals->config['banner']);
+        $this->assertSame('media/banners/p.jpg', $pedals->config['banner']);
         $this->assertSame(3, $pedals->config['depth']);
         $this->assertSame('cart', NavMenuItem::where('label', 'Cart')->sole()->config['page']);
         $this->assertTrue(NavMenuItem::where('label', 'Shopee')->sole()->new_tab);

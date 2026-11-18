@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\NavMenu;
 use App\Models\NavMenuItem;
 use App\Models\Page;
+use App\Rules\MediaImage;
 use App\Services\ThemeService;
 use App\Support\AdminPermissions;
 use App\Support\NavTree;
@@ -261,7 +262,7 @@ class MenuController extends Controller
             'depth' => ['nullable', 'integer', 'min:1', 'max:3'],
             'mega' => ['nullable', Rule::in(['yes', 'no'])],
             'brands' => ['nullable', Rule::in(['yes', 'no'])],
-            'banner' => ['nullable', 'string', 'max:500'],
+            'banner' => ['nullable', 'string', 'max:500', new MediaImage([$item?->config['banner'] ?? null])],
             'banner_url' => ['nullable', 'string', 'max:500', $link],
             'accent' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'new_tab' => ['nullable', 'boolean'],
@@ -277,7 +278,7 @@ class MenuController extends Controller
                 'depth' => (int) ($data['depth'] ?? 2),
                 'mega' => $data['mega'] ?? 'no',
                 'brands' => $data['brands'] ?? 'no',
-                'banner' => str_contains((string) ($data['banner'] ?? ''), '..') ? '' : ltrim((string) ($data['banner'] ?? ''), '/'),
+                'banner' => (string) ($data['banner'] ?? ''),
                 'banner_url' => (string) ($data['banner_url'] ?? ''),
             ];
         } elseif ($type === 'html') {

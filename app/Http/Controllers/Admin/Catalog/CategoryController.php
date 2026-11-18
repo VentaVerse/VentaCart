@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Catalog;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkSelectionRequest;
 use App\Models\Category;
+use App\Rules\MediaImage;
 use App\Support\CategoryTree;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -240,7 +241,7 @@ class CategoryController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]*$/'],
             'description' => ['nullable', 'string'],
-            'image' => ['nullable', 'string', 'max:255'],
+            'image' => ['nullable', 'string', 'max:255', new MediaImage($categoryId ? [Category::whereKey($categoryId)->value('image')] : [])],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
             'in_menu' => ['boolean'],
