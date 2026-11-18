@@ -149,6 +149,47 @@ class MediaDeleteTest extends TestCase
         Storage::disk('public')->assertExists(['media/products', 'bank-qr/payment.png']);
     }
 
+    /**
+     * A library with no images left in it passes the "empty the folder"
+     * check, so the only thing between a request and an empty library is
+     * that no spelling of the library is taken for one folder inside it.
+     */
+    public function test_no_spelling_of_the_library_deletes_it(): void
+    {
+        $disk = Storage::disk('public');
+        $disk->makeDirectory('media/products/x');
+        $disk->makeDirectory('media/banners');
+        $disk->put('media/notes.txt', 'kept');
+        $before = [$disk->allDirectories('media'), $disk->allFiles('media')];
+
+        $spellings = ['media', 'media/', 'media//', '/media/', 'media/.', 'media/./', 'media/./x', 'media//x',
+            'media/..', 'media/../media', 'media/products/..', 'media/products/../..', './media', 'media\\.'];
+
+        foreach ($spellings as $spelling) {
+            $this->postJson(route('admin.media.delete'), ['paths' => [$spelling]])
+                ->assertOk()
+                ->assertExactJson(['ok' => true, 'deleted' => []]);
+        }
+
+        $this->assertTrue($disk->directoryExists('media'));
+        $this->assertSame($before, [$disk->allDirectories('media'), $disk->allFiles('media')]);
+    }
+
+    /** A folder that leads back to the library on disk is the library, whatever its name. */
+    public function test_a_link_back_to_the_library_is_not_deleted_as_a_folder(): void
+    {
+        $disk = Storage::disk('public');
+        $disk->makeDirectory('media/products');
+        $disk->put('media/notes.txt', 'kept');
+        symlink($disk->path('media'), $disk->path('media/products/loop'));
+
+        $this->postJson(route('admin.media.delete'), ['paths' => ['media/products/loop']])
+            ->assertOk()
+            ->assertExactJson(['ok' => true, 'deleted' => []]);
+
+        $disk->assertExists(['media/notes.txt', 'media/products']);
+    }
+
     public function test_usage_lists_each_kind_of_user(): void
     {
         $path = 'media/banners/demo-001.jpg';

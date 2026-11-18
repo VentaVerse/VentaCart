@@ -58,7 +58,7 @@ final class MediaMover
                 : 'A file called ' . $target . ' is already in ' . self::folderLabel($parent) . '.');
         }
 
-        self::refuseTooLong($to);
+        self::refuseTarget($to);
 
         return ['path' => $to, 'updated' => self::apply([$from => $to])];
     }
@@ -105,7 +105,7 @@ final class MediaMover
 
             $names[$name] = true;
             $plan[$from] = $into . '/' . $name;
-            self::refuseTooLong($plan[$from]);
+            self::refuseTarget($plan[$from]);
         }
 
         // An image inside a folder that is also moving would be moved twice.
@@ -226,7 +226,7 @@ final class MediaMover
             throw new MediaMoveRefused('That image or folder is outside the library.');
         }
 
-        if ($safe === MediaLibrary::ROOT) {
+        if (MediaLibrary::isRoot($safe)) {
             throw new MediaMoveRefused('The library itself cannot be renamed or moved.');
         }
 
@@ -315,8 +315,16 @@ final class MediaMover
         return $extension === '' ? $stem : $stem . '.' . $extension;
     }
 
-    private static function refuseTooLong(string $path): void
+    /**
+     * Where a rename or move would put something: a path safePath() accepts
+     * as it is, never the library itself, and short enough to store.
+     */
+    private static function refuseTarget(string $path): void
     {
+        if (MediaLibrary::safePath($path) !== $path || MediaLibrary::isRoot($path)) {
+            throw new MediaMoveRefused('That name cannot be used here.');
+        }
+
         if (mb_strlen($path) > MediaLibrary::PATH_MAX) {
             throw new MediaMoveRefused('That name is too long.');
         }

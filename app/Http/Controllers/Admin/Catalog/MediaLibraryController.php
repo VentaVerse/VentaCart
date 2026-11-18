@@ -251,7 +251,7 @@ class MediaLibraryController extends Controller
         foreach (array_unique($validated['paths']) as $path) {
             $safe = MediaLibrary::safePath($path);
 
-            if ($safe === false || $safe === MediaLibrary::ROOT) {
+            if ($safe === false || MediaLibrary::isRoot($safe)) {
                 continue;
             }
 
