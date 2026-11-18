@@ -35,3 +35,15 @@ test('storage that throws is treated as empty', () => {
     rememberFolder('product', 'media/x');
     rememberThumbSize('large');
 });
+
+test('small is remembered after large', () => {
+    rememberThumbSize('large');
+    rememberThumbSize('small');
+    assert.equal(globalThis.localStorage.data.get('media-library:size'), 'small');
+    assert.equal(thumbSize(), 'small');
+});
+
+test('an exists check that throws is treated as a missing folder', () => {
+    rememberFolder('product', 'media/products');
+    assert.equal(lastFolder('product', () => { throw new Error('boom'); }), null);
+});

@@ -23,7 +23,11 @@ function write(key, value) {
 /** The remembered folder, or null when none is kept or it no longer exists. */
 export function lastFolder(kind, exists) {
     const path = read(`media-library:last:${kind}`);
-    return path && exists(path) ? path : null;
+    try {
+        return path && exists(path) ? path : null;
+    } catch {
+        return null;
+    }
 }
 
 export function rememberFolder(kind, path) {
