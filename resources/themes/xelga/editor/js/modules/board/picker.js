@@ -33,7 +33,7 @@ import {
   addableTypes, pickerGroups, matches, choicesOf, layoutsFor, pillWords, needsWords, replacedWords, wholeSpan, NARROW_BESIDE_SIDES,
   ROW_TILE, TOO_WIDE, NOW_HERE, ALREADY_THERE,
 } from './choices.js';
-import { pickerWhere, splitOf, movedBesideSideWords } from './words.js';
+import { pickerWhere, splitOf, movedBesideSideWords, leftContentWords } from './words.js';
 import { targetKey } from './drag.js';
 
 const ROW_NAME = 'A row of columns';
@@ -490,13 +490,14 @@ function pick(type, layout) {
       openerOf(from)?.focus({ preventScroll: true });
       return;
     }
-    const { sid, moved } = added;
+    const { sid, moved, left } = added;
     // One message for one action: what was added, and what it moved.
-    const text = moved.length
-      ? `${labelOf(sid)} added.${movedBesideSideWords(moved)}`
+    const moves = moved.length + left.length;
+    const text = moves
+      ? `${labelOf(sid)} added.${movedBesideSideWords(moved)}${leftContentWords(left)}`
       : `${labelOf(sid)} added. Change its text and photos to your own.`;
-    toast(text, { action: { label: 'Undo', run: undo }, timeout: moved.length ? 8000 : 4200 });
-    if (moved.length) announce(text);
+    toast(text, { action: { label: 'Undo', run: undo }, timeout: moves ? 8000 : 4200 });
+    if (moves) announce(text);
     openSettings(sid);
     return;
   }

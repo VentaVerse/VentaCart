@@ -17,7 +17,7 @@ const noop = () => {};
 globalThis.document = globalThis.document || { addEventListener: noop, removeEventListener: noop, querySelector: () => null, querySelectorAll: () => [] };
 globalThis.window = globalThis.window || { addEventListener: noop, removeEventListener: noop, setTimeout, clearTimeout, location: { href: 'http://example.test/' } };
 
-const { useLayout, catalogRules, sideTargets } = await import('../../editor/js/modules/board/model.js');
+const { useLayout, catalogRules, sideTargets, rowsOf, place, moveRow } = await import('../../editor/js/modules/board/model.js');
 const { targetsFor, keyTarget, keyMoves, rowKeyMoves, bandTargets, bandKeyTarget, bandIndex, listDropIndex, targetKey } = await import('../../editor/js/modules/board/drag.js');
 const { addableTypes } = await import('../../editor/js/modules/board/choices.js');
 
@@ -81,9 +81,9 @@ test('targetsFor a span-4 section lists no side', () => {
 });
 
 test('the cart board offers no side', () => {
-  const defs = { text: { span: { min: 3 } } };
+  const defs = { text: { span: { min: 3 } }, 'product-main': { main: true, span: { min: 12 } } };
   const rules = catalogRules(LAYOUT, (type) => defs[type] || null, sideTargets('cart', LAYOUT).length > 0);
-  const c = page({ a: 'text', b: 'text' });
+  const c = page({ a: 'text', b: 'text', main: 'product-main' });
   assert.deepEqual(sidesIn(targetsFor(c, { kind: 'section', sid: 'a' }, rules)), []);
   const product = catalogRules(LAYOUT, (type) => defs[type] || null, sideTargets('product', LAYOUT).length > 0);
   assert.equal(sidesIn(targetsFor(c, { kind: 'section', sid: 'a' }, product)).length, 2);
@@ -109,15 +109,6 @@ test('targetsFor a span-8 section never lists a 4 column', () => {
   assert.ok(!targets.some((t) => t.drop === 'beside'), 'beside (6) is never offered');
 });
 
-test('targetsFor a main section lists only gaps between rows', () => {
-  const c = sample();
-  const targets = targetsFor(c, { kind: 'section', sid: 'main' }, RULES);
-  assert.ok(targets.length > 0);
-  assert.ok(targets.every((t) => t.drop === 'gap'));
-  // Not the gaps just above and below its own row: it is already there.
-  assert.deepEqual(targets.map((t) => t.before), ['ra', 'r1', 'rw', 'end']);
-});
-
 test('targetsFor lists the left and right edge of a full-width section when both fit 6', () => {
   const c = sample();
   const targets = targetsFor(c, { kind: 'section', sid: 't' }, RULES).map(key);
@@ -134,9 +125,12 @@ test('targetsFor lists the left and right edge of a full-width section when both
 
 test('targetsFor a row lists every gap but the two around it', () => {
   const c = sample();
+  // Top holds ra and r1, Content the page content, Bottom rh and rw.
   const targets = targetsFor(c, { kind: 'row', rowId: 'r1' }, RULES);
-  assert.deepEqual(targets.map((t) => t.before), ['ra', 'rh', 'rw', 'end']);
+  assert.deepEqual(targets.map((t) => [t.area, t.before]), [['top', 'ra'], ['content', 'rm'], ['content', 'end'], ['bottom', 'rh'], ['bottom', 'rw'], ['bottom', 'end']]);
   assert.ok(targets.every((t) => t.drop === 'gap'));
+  // On a page without areas, every gap but the two around it.
+  assert.deepEqual(targetsFor(c, { kind: 'row', rowId: 'r1' }, NO_SIDES).map((t) => t.before), ['ra', 'rh', 'rw', 'end']);
 });
 
 test('keyMove targets are a subset of drag targets', () => {
@@ -161,25 +155,31 @@ test('keyTarget moves within a column, out of it past its end, and to the next c
   c.order = ['a', 'b', 'w', 't'];
   assert.deepEqual(keyTarget(c, 'b', 'ArrowDown', RULES), { drop: 'column', rowId: 'r1', column: 0, before: null });
   assert.deepEqual(keyTarget(c, 'w', 'ArrowUp', RULES), { drop: 'column', rowId: 'r1', column: 0, before: 'b' });
-  assert.deepEqual(keyTarget(c, 'b', 'ArrowUp', RULES), { drop: 'gap', before: 'r1' });
-  assert.deepEqual(keyTarget(c, 'w', 'ArrowDown', RULES), { drop: 'gap', before: 'end' });
+  assert.deepEqual(keyTarget(c, 'b', 'ArrowUp', RULES), { drop: 'gap', area: null, before: 'r1' });
+  assert.deepEqual(keyTarget(c, 'w', 'ArrowDown', RULES), { drop: 'gap', area: null, before: 'end' });
   assert.deepEqual(keyTarget(c, 'b', 'ArrowRight', RULES), { drop: 'column', rowId: 'r1', column: 1, before: null });
   // Too wide for the 4 column and for a side: it stays.
   assert.equal(keyTarget(c, 'w', 'ArrowRight', RULES), null);
   assert.deepEqual(keyTarget(c, 't', 'ArrowLeft', RULES), { drop: 'column', rowId: 'r1', column: 0, before: null });
   // A full-width section moves its row up and down.
-  assert.deepEqual(keyTarget(c, 'a', 'ArrowDown', RULES), { drop: 'gap', before: 'end' });
+  assert.deepEqual(keyTarget(c, 'a', 'ArrowDown', RULES), { drop: 'gap', area: null, before: 'end' });
   assert.equal(keyTarget(c, 'a', 'ArrowUp', RULES), null);
   // On a page that cannot have sides there is nothing to its side.
   assert.equal(keyTarget(c, 'a', 'ArrowLeft', NO_SIDES), null);
   assert.equal(keyTarget(c, 't', 'ArrowRight', NO_SIDES), null);
 });
 
-test('Alt with left or right moves a section into a side past the outer column', () => {
-  const c = page({ a: 'text', b: 'text', w: 'wide', t: 'text' }, {
-    rows: [row('ra', '12', [['a']]), row('r1', '8-4', [['b', 'w'], ['t']])],
+/** Two rows in Top above the page content, so the page may have sides. */
+function topPage() {
+  const c = page({ a: 'text', b: 'text', w: 'wide', t: 'text', main: 'product-main' }, {
+    rows: [{ ...row('ra', '12', [['a']]), area: 'top' }, { ...row('r1', '8-4', [['b', 'w'], ['t']]), area: 'top' }, { ...row('rm', '12', [['main']]), area: 'content' }],
   });
-  c.order = ['a', 'b', 'w', 't'];
+  c.order = ['a', 'b', 'w', 't', 'main'];
+  return c;
+}
+
+test('Alt with left or right moves a section into a side past the outer column', () => {
+  const c = topPage();
   // From a full-width row: Left to the left side, Right to the right side.
   assert.deepEqual(keyTarget(c, 'a', 'ArrowLeft', RULES), { drop: 'side', side: 'left', before: null });
   assert.deepEqual(keyTarget(c, 'a', 'ArrowRight', RULES), { drop: 'side', side: 'right', before: null });
@@ -198,10 +198,11 @@ test('Alt with up or down moves a section out of a side past its top or end', ()
   c.sections.s2 = { type: 'text' };
   c.sides = { left: ['s', 's2'] };
   c.order = ['s', 's2', ...c.order.filter((id) => id !== 's')];
-  // From the top of the side: the gap above the first row.
-  assert.deepEqual(keyTarget(c, 's', 'ArrowUp', RULES), { drop: 'gap', before: 'ra' });
-  // From its end: the gap below the last row.
-  assert.deepEqual(keyTarget(c, 's2', 'ArrowDown', RULES), { drop: 'gap', before: 'end' });
+  // The rows stored before areas all stood beside the side, so all are Content.
+  // From the top of the side: the gap at the start of Content.
+  assert.deepEqual(keyTarget(c, 's', 'ArrowUp', RULES), { drop: 'gap', area: 'content', before: 'ra' });
+  // From its end: the gap at the end of Content.
+  assert.deepEqual(keyTarget(c, 's2', 'ArrowDown', RULES), { drop: 'gap', area: 'content', before: 'end' });
   // Within the side, one place.
   assert.deepEqual(keyTarget(c, 's', 'ArrowDown', RULES), { drop: 'side', side: 'left', before: null });
   assert.deepEqual(keyMoves(c, 's', RULES), ['ArrowUp', 'ArrowDown']);
@@ -210,10 +211,7 @@ test('Alt with up or down moves a section out of a side past its top or end', ()
 });
 
 test('keyMoves lists only the arrows a section can really move by', () => {
-  const c = page({ a: 'text', b: 'text', w: 'wide', t: 'text' }, {
-    rows: [row('ra', '12', [['a']]), row('r1', '8-4', [['b', 'w'], ['t']])],
-  });
-  c.order = ['a', 'b', 'w', 't'];
+  const c = topPage();
   // The first section offers no Up; Left and Right lead into the sides.
   assert.deepEqual(keyMoves(c, 'a', RULES), ['ArrowDown', 'ArrowLeft', 'ArrowRight']);
   assert.deepEqual(keyMoves(c, 'b', RULES), ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
@@ -288,7 +286,7 @@ const CATALOG_RULES = {
     const variant = section?.settings?.variant ?? def?.settings?.[0]?.default;
     return def?.span?.variants?.[variant] ?? def?.span?.min ?? 12;
   },
-  isMain: () => false,
+  isMain: (section) => section?.type === 'product-main',
   sidesAllowed: true,
 };
 
@@ -303,7 +301,7 @@ test('addableTypes greys out a used limit-1 type with its reason', () => {
 });
 
 test('addableTypes measures a column beside a side, and a side offers only types of 3', () => {
-  const c = page({ a: 'text', b: 'text', f: 'text' }, { rows: [row('r1', '8-4', [['a'], ['b']])], sides: { left: ['f'] } });
+  const c = page({ main: 'product-main', a: 'text', b: 'text', f: 'text' }, { rows: [row('rm', '12', [['main']]), row('r1', '8-4', [['a'], ['b']])], sides: { left: ['f'] } });
   const wide = Object.fromEntries(addableTypes(c, { drop: 'column', rowId: 'r1', column: 0, before: null }, CATALOG, CATALOG_RULES).map((x) => [x.type, x]));
   assert.equal(wide.banner.disabled, true, 'the 8 column is 6 twelfths here');
   assert.equal(wide.gallery.disabled, false, 'its compact layout of 4 fits');
@@ -323,4 +321,113 @@ test('addableTypes greys out types too wide for a column, unless a variant fits'
   assert.equal(by.quote.disabled, false);
   // Its compact layout fits a 4 column.
   assert.equal(by.gallery.disabled, false);
+});
+
+/* ------------------------------------------------------------------------
+   Pages with areas: Top, Content between the sides, Bottom
+   ------------------------------------------------------------------------ */
+
+const AREAS = {
+  ...RULES,
+  minSpan: (section) => ({ text: 3, half: 6, four: 4, wide: 8, bar: 6, filters: 3 })[section?.type] ?? 12,
+  ownRow: (section) => section?.type === 'bar',
+  contentOnly: (section) => section?.type === 'filters',
+  isLocked: (section) => section?.type === 'product-main' || section?.type === 'header',
+};
+
+const arow = (id, area, columns, split = '12') => ({ id, split, columns, settings: { ...DEFAULTS }, area });
+
+/** Top: crumbs and a row of halves; Content: x, the page content and y; Bottom: recent. */
+function areaPage(extra = {}) {
+  const c = page({ crumbs: 'text', p: 'text', q: 'text', x: 'text', main: 'product-main', y: 'text', recent: 'text', ...extra }, {
+    rows: [
+      arow('rc', 'top', [['crumbs']]), arow('rpq', 'top', [['p'], ['q']], '6-6'),
+      arow('rx', 'content', [['x']]), arow('rm', 'content', [['main']]), arow('ry', 'content', [['y']]),
+      arow('rr', 'bottom', [['recent']]),
+    ],
+  });
+  c.order = ['crumbs', 'p', 'q', 'x', 'main', 'y', 'recent'];
+  return c;
+}
+
+const areasOfGaps = (targets) => [...new Set(targets.filter((t) => t.drop === 'gap').map((t) => t.area))];
+
+test('a locked section has no targets', () => {
+  const c = areaPage();
+  assert.deepEqual(targetsFor(c, { kind: 'section', sid: 'main' }, AREAS), []);
+  assert.deepEqual(keyMoves(c, 'main', AREAS), []);
+  // Nor in its band: the Header stays where it is, a bar moves around it.
+  assert.deepEqual(bandTargets('header', ['bar', 'header'], 'header', true), []);
+  assert.deepEqual(bandTargets('header', ['bar', 'header'], 'bar'), [{ drop: 'band', group: 'header', before: null }]);
+});
+
+test('a bar has only gap targets', () => {
+  const c = areaPage({ bar: 'bar' });
+  c.rows.splice(1, 0, arow('rbar', 'top', [['bar']]));
+  c.sides = { left: ['s'] };
+  c.sections.s = { type: 'text' };
+  const targets = targetsFor(c, { kind: 'section', sid: 'bar' }, AREAS);
+  assert.ok(targets.length > 0);
+  assert.ok(targets.every((t) => t.drop === 'gap'), 'never a column, the edge of a section or a side');
+  assert.deepEqual(areasOfGaps(targets), ['top', 'content', 'bottom']);
+});
+
+test('filters has no Top or Bottom targets', () => {
+  const c = areaPage({ filters: 'filters' });
+  c.sides = { left: ['filters'] };
+  c.order = ['crumbs', 'p', 'q', 'filters', 'x', 'main', 'y', 'recent'];
+  const targets = targetsFor(c, { kind: 'section', sid: 'filters' }, AREAS);
+  assert.deepEqual(areasOfGaps(targets), ['content']);
+  assert.ok(!targets.some((t) => t.drop === 'column' && t.rowId === 'rpq'), 'no column in Top');
+  assert.ok(!targets.some((t) => t.drop === 'beside' && ['rc', 'rr'].includes(t.rowId)), 'no edge of a section in Top or Bottom');
+  assert.ok(targets.some((t) => t.drop === 'side' && t.side === 'right'), 'the other side');
+  assert.ok(targets.some((t) => t.drop === 'beside' && t.rowId === 'rx'), 'beside a section in Content');
+});
+
+test('a Content gap refuses a min-12 section beside a side', () => {
+  const c = areaPage({ banner: 'banner', s: 'text' });
+  c.rows.splice(0, 0, arow('rb', 'top', [['banner']]));
+  c.sides = { left: ['s'] };
+  c.order = ['banner', 'crumbs', 'p', 'q', 's', 'x', 'main', 'y', 'recent'];
+  const targets = targetsFor(c, { kind: 'section', sid: 'banner' }, AREAS);
+  assert.deepEqual(areasOfGaps(targets), ['top', 'bottom']);
+  // Without the side, Content is the whole page wide again.
+  delete c.sides;
+  c.order = c.order.filter((id) => id !== 's');
+  delete c.sections.s;
+  assert.deepEqual(areasOfGaps(targetsFor(c, { kind: 'section', sid: 'banner' }, AREAS)), ['top', 'content', 'bottom']);
+});
+
+test('Alt+Up on the first Content row goes to the end of Top', () => {
+  const c = areaPage();
+  const t = keyTarget(c, 'x', 'ArrowUp', AREAS);
+  assert.deepEqual(t, { drop: 'gap', area: 'top', before: 'end' });
+  const moved = moveRow(c, 'rx', t, AREAS);
+  assert.deepEqual(rowsOf(moved, LAYOUT, AREAS).map((r) => [r.id, r.area]).slice(0, 4), [['rc', 'top'], ['rpq', 'top'], ['rx', 'top'], ['rm', 'content']]);
+  // Placed there as a section, it gets a row of its own in Top.
+  const placed = place(c, 'x', t, AREAS).content;
+  assert.deepEqual(rowsOf(placed, LAYOUT, AREAS).map((r) => [r.columns[0][0], r.area]).slice(2, 4), [['x', 'top'], ['main', 'content']]);
+});
+
+test('Alt+Down on the last Top row goes to the start of Content', () => {
+  const c = areaPage();
+  c.rows = [c.rows[1], c.rows[0], ...c.rows.slice(2)];
+  assert.deepEqual(keyTarget(c, 'crumbs', 'ArrowDown', AREAS), { drop: 'gap', area: 'content', before: 'rx' });
+  const moved = moveRow(c, 'rc', { drop: 'gap', area: 'content', before: 'rx' }, AREAS);
+  assert.deepEqual(rowsOf(moved, LAYOUT, AREAS).map((r) => [r.id, r.area]).slice(0, 3), [['rpq', 'top'], ['rc', 'content'], ['rx', 'content']]);
+});
+
+test('Alt+Down on the last Content row goes to the start of Bottom', () => {
+  assert.deepEqual(keyTarget(areaPage(), 'y', 'ArrowDown', AREAS), { drop: 'gap', area: 'bottom', before: 'rr' });
+});
+
+test('Alt+Up on the first Bottom row goes to the end of Content', () => {
+  assert.deepEqual(keyTarget(areaPage(), 'recent', 'ArrowUp', AREAS), { drop: 'gap', area: 'content', before: 'end' });
+});
+
+test('a template section has no band targets and a band section no page targets', () => {
+  const c = areaPage();
+  assert.deepEqual(bandTargets('header', ['bar', 'header'], 'x'), []);
+  assert.deepEqual(targetsFor(c, { kind: 'band', group: 'header', sid: 'bar' }, AREAS), []);
+  assert.deepEqual(targetsFor(c, { kind: 'section', sid: 'bar' }, AREAS), [], 'a band section is not on the page');
 });

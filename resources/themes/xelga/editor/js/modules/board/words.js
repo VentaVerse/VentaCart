@@ -5,8 +5,8 @@
  */
 
 import { doc, groupHandle, labelOf } from '../state.js';
-import { layoutPayload } from '../operations.js';
-import { rowsOf, locate } from './model.js';
+import { layoutPayload, rulesFor } from '../operations.js';
+import { rowsOf, locate, gapAt } from './model.js';
 
 export const splitOf = (split) => layoutPayload()?.splits?.[split] || { parts: [12], label: 'One column' };
 
@@ -24,6 +24,37 @@ export function movedBesideSideWords(names) {
   return names.length === 1
     ? ` ${names[0]} needs a wider column beside the side, so it moved to a row of its own.`
     : ` ${listWords(names)} need wider columns beside the side, so they moved to rows of their own.`;
+}
+
+/** The name of an area on screen. */
+export const AREA_NAMES = { top: 'Top', content: 'Content', bottom: 'Bottom' };
+
+/**
+ * The sections a side filled for the first time took out of Content
+ * (`[{name, area}]`), as a sentence starting with a space; empty when none.
+ */
+export function leftContentWords(entries) {
+  const list = entries || [];
+  const parts = ['top', 'bottom']
+    .map((area) => list.filter((e) => e.area === area).map((e) => e.name))
+    .map((names, i) => (names.length ? `${listWords(names)} moved to ${AREA_NAMES[i ? 'bottom' : 'top']}` : null))
+    .filter(Boolean);
+  return parts.length ? ` To make room for the side, ${parts.join(' and ')}.` : '';
+}
+
+const article = (word) => (/^[aeiou]/i.test(word) ? 'an' : 'a');
+
+/**
+ * Why a type cannot be added again: the area (`area`) or band (`band`)
+ * that already has as many as it may hold, else the page.
+ */
+export function fullWords(def, { area = null, band = null } = {}) {
+  const label = String(def?.label || 'section');
+  const one = def?.limit === 1;
+  const lower = label.toLowerCase();
+  const holder = area ? AREA_NAMES[area] : band ? `The ${band}` : null;
+  if (holder) return one ? `${holder} already has ${article(lower)} ${lower}.` : `${holder} already has ${def.limit} ${label} sections, the most it can have.`;
+  return `This page already has ${one ? 'a' : def?.limit} ${label}${one ? '' : ' sections'}, the most it can have.`;
 }
 
 export function columnName(parts, index) {
@@ -50,13 +81,14 @@ export function rowName(row, skip = null) {
  * a section being moved, left out of the names around it.
  */
 export function targetWords(target, skip = null) {
-  const content = doc(groupHandle('template'))?.content;
+  const handle = groupHandle('template');
+  const content = doc(handle)?.content;
   if (!content || !target) return '';
-  const all = rowsOf(content, layoutPayload());
+  const all = rowsOf(content, layoutPayload(), rulesFor(handle));
   // A full-width row that holds only the moving section is not named.
   const rows = all.filter((r) => r.split !== '12' || r.columns.flat().some((sid) => sid !== skip));
   if (target.drop === 'gap') {
-    const index = target.before === 'end' ? all.length : all.findIndex((r) => r.id === target.before);
+    const { index } = gapAt(all, target);
     if (index < 0) return '';
     const above = all.slice(0, index).reverse().find((r) => rows.includes(r));
     const below = all.slice(index).find((r) => rows.includes(r));
@@ -105,10 +137,11 @@ function sideWords(where, list, before) {
  * Store promises").
  */
 export function pickerWhere(spot) {
-  const content = doc(groupHandle('template'))?.content;
+  const handle = groupHandle('template');
+  const content = doc(handle)?.content;
   const layout = layoutPayload();
   if (!content || !layout || !spot) return [];
-  const rows = rowsOf(content, layout);
+  const rows = rowsOf(content, layout, rulesFor(handle));
   const verb = spot.replace ? 'Stays' : 'Goes';
   const between = (above, below) => {
     if (above && below) return [`${verb} between `, rowName(above), ' and ', rowName(below)];
@@ -140,7 +173,7 @@ export function pickerWhere(spot) {
 
   const target = spot.target;
   if (target?.drop === 'gap') {
-    const index = target.before === 'end' ? rows.length : rows.findIndex((r) => r.id === target.before);
+    const { index } = gapAt(rows, target);
     return (index >= 0 && between(rows[index - 1], rows[index])) || ['Goes on the page'];
   }
   if (target?.drop === 'side') {

@@ -70,7 +70,11 @@ export function sidesFor(handle) {
   return sideTargets(String(handle).split('.')[0], layout);
 }
 
-/** The layout rules of one document, from the section catalog. */
+/**
+ * The layout rules of one document, from the section catalog: spans,
+ * locked sections, sections that keep a row of their own or belong in
+ * Content, limits per area. A band (header, footer) has no sides.
+ */
 export function rulesFor(handle) {
   return catalogRules(layoutPayload(), sectionDef, sidesFor(handle).length > 0);
 }
@@ -117,15 +121,15 @@ function layoutType(change, describe) {
     apply(op, fwd) {
       const c = contentOf(op.doc);
       if (!c) return [];
-      const layout = layoutPayload();
+      const rules = rulesFor(op.doc);
       if (!fwd) {
         if (!op.prior) return [];
         const was = layoutView(c);
         writeLayout(c, op.prior.keys, op.prior.values);
-        return [effectsOf(was, c, layout)];
+        return [effectsOf(was, c, rules)];
       }
       op.prior = null;
-      const result = change(op, c, rulesFor(op.doc));
+      const result = change(op, c, rules);
       const next = result?.content;
       if (!next || same({ keys: Object.keys(next), order: next.order, rows: next.rows, sides: next.sides }, { keys: Object.keys(c), order: c.order, rows: c.rows, sides: c.sides })) return [];
       op.prior = layoutSnapshot(c);
@@ -133,7 +137,10 @@ function layoutType(change, describe) {
       op.moved = result.moved || [];
       const was = layoutView(c);
       writeLayout(c, Object.keys(next), next);
-      return [effectsOf(was, c, layout)];
+      const effects = effectsOf(was, c, rules);
+      // The sections the change took out of Content, for the message that confirms it.
+      op.left = effects.left;
+      return [effects];
     },
     describe,
   };
@@ -149,9 +156,9 @@ function setSections(c, entries) {
  * After a section is added or removed on a page with rows: drop its id
  * from the rows, or give it a row after the one of the section before it.
  */
-function tidyLayout(c) {
+function tidyLayout(c, handle) {
   if (!hasLayout(c)) return;
-  const next = tidy(c, layoutPayload());
+  const next = tidy(c, rulesFor(handle));
   writeLayout(c, Object.keys(next), next);
 }
 
@@ -187,6 +194,9 @@ function placeAt(handle, c, sid, target) {
   if (next !== c) writeLayout(c, Object.keys(next), next);
   return moved;
 }
+
+/** The gap a row operation goes to; an operation without an area takes the one of the row it is before. */
+const gapOf = (op) => ({ drop: 'gap', area: op.area ?? null, before: op.before ?? 'end' });
 
 /** The address of a stored image, as the API adapter knows the server serves it. */
 export function mediaUrl(path) {
@@ -284,15 +294,15 @@ const TYPES = {
         const was = op.layout ? layoutView(c) : null;
         delete c.sections[op.sid];
         c.order = c.order.filter((id) => id !== op.sid);
-        tidyLayout(c);
-        return was ? [effectsOf(was, c, layoutPayload())] : [];
+        tidyLayout(c, op.doc);
+        return was ? [effectsOf(was, c, rulesFor(op.doc))] : [];
       }
       if (c.sections[op.sid] || !op.snapshot) return [];
       c.sections[op.sid] = clone(op.snapshot);
       if (op.layout) {
         const was = layoutView(c);
         writeLayout(c, op.layout.keys, op.layout.values);
-        return [effectsOf(was, c, layoutPayload())];
+        return [effectsOf(was, c, rulesFor(op.doc))];
       }
       c.order.splice(clampIndex(op.index, c.order.length), 0, op.sid);
       return [];
@@ -319,10 +329,13 @@ const TYPES = {
         // On a page with rows the new section gets its own row after the
         // row of the section before it, then moves to its spot.
         if (!was) return [];
-        tidyLayout(c);
+        tidyLayout(c, op.doc);
         if (op.kind === 'duplicate' && op.source) placeUnder(op.doc, c, op.source, op.sid);
         if (op.target) op.moved = placeAt(op.doc, c, op.sid, op.target);
-        return [effectsOf(was, c, layoutPayload())];
+        const effects = effectsOf(was, c, rulesFor(op.doc));
+        // The sections the new one took out of Content (a first side narrows it).
+        op.left = effects.left;
+        return [effects];
       }
       if (!c.sections[op.sid]) return [];
       op.snapshot = clone(c.sections[op.sid]);
@@ -330,7 +343,7 @@ const TYPES = {
       delete c.sections[op.sid];
       c.order = c.order.filter((id) => id !== op.sid);
       if (op.layout) writeLayout(c, op.layout.keys, op.layout.values);
-      return was ? [effectsOf(was, c, layoutPayload())] : [];
+      return was ? [effectsOf(was, c, rulesFor(op.doc))] : [];
     },
     describe: (op) => `${op.kind === 'duplicate' ? 'duplicate' : 'add'} ${op.name || 'section'}`,
   },
@@ -345,7 +358,7 @@ const TYPES = {
     apply(op, fwd) {
       const c = contentOf(op.doc);
       if (!c) return [];
-      const layout = layoutPayload();
+      const rules = rulesFor(op.doc);
       // The row model reads the sections too: compare against a copy of the map.
       const before = () => ({ ...layoutView(c), sections: { ...c.sections } });
       if (fwd) {
@@ -357,7 +370,7 @@ const TYPES = {
         const was = before();
         setSections(c, Object.entries(result.content.sections));
         writeLayout(c, Object.keys(result.content), result.content);
-        return [effectsOf(was, c, layout)];
+        return [effectsOf(was, c, rules)];
       }
       if (!c.sections[op.newSid] || c.sections[op.sid] || !op.old || !op.prior) return [];
       op.snapshot = clone(c.sections[op.newSid]);
@@ -366,7 +379,7 @@ const TYPES = {
       Object.keys(c.sections).forEach((id) => { if (id !== op.newSid && !keys.includes(id)) keys.push(id); });
       setSections(c, keys.map((id) => [id, id === op.sid ? clone(op.old) : c.sections[id]]));
       writeLayout(c, op.prior.keys, op.prior.values);
-      return [effectsOf(was, c, layout)];
+      return [effectsOf(was, c, rules)];
     },
     describe: (op) => `replace ${op.name || 'section'}`,
   },
@@ -425,20 +438,20 @@ const TYPES = {
   /* { doc, sid, target } a drop target of the row model */
   place: layoutType((op, c, rules) => place(c, op.sid, op.target, rules), (op) => `move ${op.name || 'section'}`),
 
-  /* { doc, split, before, rowId } an empty row of columns */
-  'row-add': layoutType((op, c) => ({ content: addRow(c, op.split, op.before, op.rowId, layoutPayload()) }), () => 'add a row'),
+  /* { doc, split, area, before, rowId } an empty row of columns at a gap of an area */
+  'row-add': layoutType((op, c, rules) => ({ content: addRow(c, op.split, gapOf(op), op.rowId, rules) }), () => 'add a row'),
 
-  /* { doc, rowId, before } */
-  'row-move': layoutType((op, c) => ({ content: moveRow(c, op.rowId, op.before, layoutPayload()) }), () => 'move a row'),
+  /* { doc, rowId, area, before } to a gap of an area */
+  'row-move': layoutType((op, c, rules) => ({ content: moveRow(c, op.rowId, gapOf(op), rules) }), () => 'move a row'),
 
   /* { doc, rowId } its sections stay, each in a row of its own */
-  'row-remove': layoutType((op, c) => removeRow(c, op.rowId, layoutPayload()), () => 'remove a row'),
+  'row-remove': layoutType((op, c, rules) => removeRow(c, op.rowId, rules), () => 'remove a row'),
 
   /* { doc, rowId, split } */
   'row-split': layoutType((op, c, rules) => changeSplit(c, op.rowId, op.split, rules), () => 'change the columns'),
 
   /* { doc, rowId, key, to } */
-  'row-set': layoutType((op, c) => ({ content: setRow(c, op.rowId, op.key, op.to, layoutPayload()) }), () => 'change row settings'),
+  'row-set': layoutType((op, c, rules) => ({ content: setRow(c, op.rowId, op.key, op.to, rules) }), () => 'change row settings'),
 };
 
 /** Operation types that change rows or sides. */

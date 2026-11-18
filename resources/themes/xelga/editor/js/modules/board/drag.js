@@ -13,10 +13,10 @@
 
 import { $, $$, h, icon, toast, announce } from '../dom.js';
 import { S, doc, groupHandle, labelOf, locate as locateSection } from '../state.js';
-import { sectionIcon } from '../catalog.js';
+import { sectionIcon, sectionDef, isLocked } from '../catalog.js';
 import { commit, undo, layoutPayload, rulesFor } from '../operations.js';
-import { rowsOf, fits, locate, spanAt } from './model.js';
-import { rowName, targetWords, movedBesideSideWords } from './words.js';
+import { rowsOf, fits, locate, spanAt, gapTargets, rowFits, areaAt, AREAS } from './model.js';
+import { rowName, targetWords, movedBesideSideWords, leftContentWords, AREA_NAMES } from './words.js';
 import { createPress, PRESS_DELAY } from './phone.js';
 
 const SIDES = ['left', 'right'];
@@ -30,31 +30,27 @@ const CLICK_GUARD_MS = 250;
    ------------------------------------------------------------------------ */
 
 /** A stable text for a target, to compare targets and to keep one on an element. */
-export const targetKey = (t) => JSON.stringify([t.drop, t.before ?? null, t.rowId ?? null, t.column ?? null, t.side ?? null, t.group ?? null]);
-
-function gapsOf(rows) {
-  return [...rows.map((r) => ({ drop: 'gap', before: r.id })), { drop: 'gap', before: 'end' }];
-}
+export const targetKey = (t) => JSON.stringify([t.drop, t.before ?? null, t.rowId ?? null, t.column ?? null, t.side ?? null, t.group ?? null, t.area ?? null]);
 
 /**
  * Every spot an item may be dropped on, in board order. A section: the
- * gaps between rows, each place in a column, the left and right edge of a
+ * gaps between rows (at the start and the end of every area, on a page
+ * with areas), each place in a column, the left and right edge of a
  * full-width section, and each place in the left and right side (an empty
  * side is one place, and a drop there turns the side on), kept to those it
- * fits; a page that cannot have sides offers none. A row: every gap but
- * the two around it.
+ * fits (see fits()); a page without areas offers no side, and a locked
+ * section no spot at all. A row: every gap but the two around it, kept to
+ * those its sections fit.
  */
 export function targetsFor(content, item, rules) {
   const layout = rules.layout;
-  const rows = rowsOf(content, layout);
+  const rows = rowsOf(content, layout, rules);
   if (item?.kind === 'row') {
-    const index = rows.findIndex((r) => r.id === item.rowId);
-    if (index < 0) return [];
-    const next = rows[index + 1]?.id ?? 'end';
-    return gapsOf(rows).filter((t) => t.before !== item.rowId && t.before !== next);
+    if (!rows.some((r) => r.id === item.rowId)) return [];
+    return gapTargets(rows).filter((t) => rowFits(content, item.rowId, t, rules));
   }
   if (item?.kind !== 'section') return [];
-  const all = gapsOf(rows);
+  const all = gapTargets(rows);
   rows.forEach((r) => {
     if (r.split === '12') {
       SIDES.forEach((side) => all.push({ drop: 'beside', rowId: r.id, side }));
@@ -74,20 +70,47 @@ export function targetsFor(content, item, rules) {
 }
 
 /**
+ * The gap a full-width row goes to with Alt and up or down: one row up or
+ * down within its area, and at the edge of an area into the next one (up
+ * from the first row of Content to the end of Top, down from the last row
+ * of Top to the start of Content, and so on). Null at the top or bottom
+ * of the page. `rows` carry their area (rowsOf with rules).
+ */
+export function rowStep(rows, index, up) {
+  const r = rows[index];
+  if (!r) return null;
+  const area = r.area ?? null;
+  if (!area) {
+    if (up) return index > 0 ? { drop: 'gap', area: null, before: rows[index - 1].id } : null;
+    return index < rows.length - 1 ? { drop: 'gap', area: null, before: rows[index + 2]?.id ?? 'end' } : null;
+  }
+  const inArea = (i) => rows[i]?.area === area;
+  const rank = AREAS.indexOf(area);
+  if (up) {
+    if (inArea(index - 1)) return { drop: 'gap', area, before: rows[index - 1].id };
+    return rank > 0 ? { drop: 'gap', area: AREAS[rank - 1], before: 'end' } : null;
+  }
+  if (inArea(index + 1)) return { drop: 'gap', area, before: inArea(index + 2) ? rows[index + 2].id : 'end' };
+  const next = AREAS[rank + 1];
+  return next ? { drop: 'gap', area: next, before: rows.find((x) => x.area === next)?.id ?? 'end' } : null;
+}
+
+/**
  * The spot Alt plus an arrow key moves a section to, or null. Up and down
  * move one place within a column or side, then out of it into the gap
- * above or below its row; from the top of a side into the gap above the
- * first row, from its end into the gap below the last. A full-width
- * section moves its row. Left and right move to the end of the nearest
- * column in that direction it fits; past the first column (or from a
- * full-width row) Left goes to the end of the left side, past the last
- * Right goes to the right side, when the section fits there.
+ * above or below its row, in the row's area; from the top of a side into
+ * the gap at the start of Content, from its end into the gap at the end
+ * of Content. A full-width section moves its row (see rowStep()). Left
+ * and right move to the end of the nearest column in that direction it
+ * fits; past the first column (or from a full-width row) Left goes to the
+ * end of the left side, past the last Right goes to the right side, when
+ * the section fits there.
  */
 export function keyTarget(content, sid, arrow, rules) {
   const layout = rules.layout;
   const at = locate(content, sid, layout);
   if (!at) return null;
-  const rows = rowsOf(content, layout);
+  const rows = rowsOf(content, layout, rules);
   const up = arrow === 'ArrowUp';
   const down = arrow === 'ArrowDown';
   const sideways = arrow === 'ArrowLeft' || arrow === 'ArrowRight';
@@ -100,8 +123,10 @@ export function keyTarget(content, sid, arrow, rules) {
     if (sideways) return null;
     const list = content.sides[at.side];
     const index = at.index + (up ? -1 : 1);
-    if (index < 0) return ok({ drop: 'gap', before: rows[0]?.id ?? 'end' });
-    if (index >= list.length) return ok({ drop: 'gap', before: 'end' });
+    // The sides stand beside Content: out of one is the start or the end of Content.
+    const area = rows.some((r) => r.area) ? 'content' : null;
+    if (index < 0) return ok({ drop: 'gap', area, before: rows.find((r) => (r.area ?? null) === area)?.id ?? 'end' });
+    if (index >= list.length) return ok({ drop: 'gap', area, before: 'end' });
     return ok({ drop: 'side', side: at.side, before: up ? list[index] : list[index + 1] ?? null });
   }
 
@@ -109,8 +134,7 @@ export function keyTarget(content, sid, arrow, rules) {
   const r = rows[ri];
   if (r.split === '12') {
     if (sideways) return intoSide();
-    if (up) return ri > 0 ? ok({ drop: 'gap', before: rows[ri - 1].id }) : null;
-    return ri < rows.length - 1 ? ok({ drop: 'gap', before: rows[ri + 2]?.id ?? 'end' }) : null;
+    return ok(rowStep(rows, ri, up));
   }
 
   if (sideways) {
@@ -126,7 +150,9 @@ export function keyTarget(content, sid, arrow, rules) {
   if (index >= 0 && index < column.length) {
     return ok({ drop: 'column', rowId: r.id, column: at.column, before: up ? column[index] : column[index + 1] ?? null });
   }
-  return ok({ drop: 'gap', before: up ? r.id : rows[ri + 1]?.id ?? 'end' });
+  const area = r.area ?? null;
+  const next = rows[ri + 1];
+  return ok({ drop: 'gap', area, before: up ? r.id : (next && (next.area ?? null) === area ? next.id : 'end') });
 }
 
 const ARROW_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
@@ -137,19 +163,23 @@ const ARROW_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
  * other band or the page. `order` is the band document's section order.
  */
 
-/** Every place in its band a section may be dropped on: all but the two around where it is now. */
-export function bandTargets(group, order, sid) {
+/**
+ * Every place in its band a section may be dropped on: all but the two
+ * around where it is now. A locked section (the Header, the Footer) has
+ * none: it stays, and the other sections of its band move around it.
+ */
+export function bandTargets(group, order, sid, locked = false) {
   const index = order.indexOf(sid);
-  if (index < 0) return [];
+  if (index < 0 || locked) return [];
   return [...order, null]
     .filter((before, k) => k !== index && k !== index + 1)
     .map((before) => ({ drop: 'band', group, before }));
 }
 
-/** The place Alt and up or down moves a band section to, or null at either end. */
-export function bandKeyTarget(group, order, sid, arrow) {
+/** The place Alt and up or down moves a band section to, or null at either end and for a locked one. */
+export function bandKeyTarget(group, order, sid, arrow, locked = false) {
   const index = order.indexOf(sid);
-  if (index < 0) return null;
+  if (index < 0 || locked) return null;
   if (arrow === 'ArrowUp') return index > 0 ? { drop: 'band', group, before: order[index - 1] } : null;
   if (arrow === 'ArrowDown') return index < order.length - 1 ? { drop: 'band', group, before: order[index + 2] ?? null } : null;
   return null;
@@ -175,11 +205,14 @@ export function keyMoves(content, sid, rules) {
   return ARROW_KEYS.filter((arrow) => keyTarget(content, sid, arrow, rules) !== null);
 }
 
-/** The arrows Alt moves a row of columns by: up below the first row, down above the last. */
+/**
+ * The arrows Alt moves a row of columns by: up below the first row, down
+ * above the last, across the edges of the areas (see rowStep()).
+ */
 export function rowKeyMoves(rows, rowId) {
   const index = rows.findIndex((r) => r.id === rowId);
   if (index < 0) return [];
-  return [index > 0 ? 'ArrowUp' : null, index < rows.length - 1 ? 'ArrowDown' : null].filter(Boolean);
+  return [rowStep(rows, index, true) ? 'ArrowUp' : null, rowStep(rows, index, false) ? 'ArrowDown' : null].filter(Boolean);
 }
 
 /* ------------------------------------------------------------------------
@@ -212,18 +245,19 @@ export function moveItem(item, target) {
   const name = itemName(item);
   let op;
   if (item.kind === 'row') {
-    op = { t: 'row-move', doc: handle, rowId: item.rowId, before: target.before };
+    op = { t: 'row-move', doc: handle, rowId: item.rowId, area: target.area ?? null, before: target.before };
   } else {
     const at = locate(content, item.sid, layoutPayload());
     const own = at?.where === 'row' ? rowsOf(content, layoutPayload()).find((r) => r.id === at.rowId) : null;
     op = own?.split === '12' && target.drop === 'gap'
-      ? { t: 'row-move', doc: handle, rowId: own.id, before: target.before, name }
+      ? { t: 'row-move', doc: handle, rowId: own.id, area: target.area ?? null, before: target.before, name }
       : { t: 'place', doc: handle, sid: item.sid, target };
   }
   commit(op);
   if (!op.prior) return false;
-  const text = `${name} moved ${words}.${movedWords(op.moved)}`;
-  toast(text, { action: { label: 'Undo', run: undo }, timeout: op.moved?.length ? 8000 : undefined });
+  const left = (op.left || []).filter((m) => locateSection(m.sid)).map((m) => ({ name: labelOf(m.sid), area: m.area }));
+  const text = `${name} moved ${words}.${movedWords(op.moved)}${leftContentWords(left)}`;
+  toast(text, { action: { label: 'Undo', run: undo }, timeout: op.moved?.length || left.length ? 8000 : undefined });
   announce(text);
   return true;
 }
@@ -235,6 +269,9 @@ function movedWords(ids) {
 
 const bandOrder = (group) => doc(group)?.content?.order || [];
 
+/* Whether a band section is locked there (the Header, the Footer). */
+const lockedInBand = (group, sid) => isLocked(sectionDef(doc(group)?.content?.sections?.[sid]?.type));
+
 /* Where a band section goes, in words. */
 function bandWords(target) {
   const band = target.group === 'header' ? 'header' : 'footer';
@@ -245,7 +282,7 @@ function bandWords(target) {
 /** Moves a header or footer section within its band, as one undo step. */
 function moveInBand(item, target) {
   const order = bandOrder(item.group);
-  if (!target || target.group !== item.group || !bandTargets(item.group, order, item.sid).some((t) => targetKey(t) === targetKey(target))) return false;
+  if (!target || target.group !== item.group || !bandTargets(item.group, order, item.sid, lockedInBand(item.group, item.sid)).some((t) => targetKey(t) === targetKey(target))) return false;
   const from = order.indexOf(item.sid);
   const to = bandIndex(order, item.sid, target.before);
   commit({ t: 'move', doc: item.group, sid: item.sid, from, to });
@@ -258,7 +295,8 @@ function moveInBand(item, target) {
 /** The arrows Alt moves a band section by. */
 export function bandKeyMoves(group, sid) {
   const order = bandOrder(group);
-  return ['ArrowUp', 'ArrowDown'].filter((arrow) => bandKeyTarget(group, order, sid, arrow));
+  const locked = lockedInBand(group, sid);
+  return ['ArrowUp', 'ArrowDown'].filter((arrow) => bandKeyTarget(group, order, sid, arrow, locked));
 }
 
 /* ------------------------------------------------------------------------
@@ -275,7 +313,7 @@ export function keyMoveBand(event, group, sid) {
     announce(`${labelOf(sid)} stays in the ${band}: it moves up or down only.`);
     return false;
   }
-  const target = bandKeyTarget(group, bandOrder(group), sid, event.key);
+  const target = bandKeyTarget(group, bandOrder(group), sid, event.key, lockedInBand(group, sid));
   if (!target) {
     announce(`${labelOf(sid)} cannot move ${event.key === 'ArrowUp' ? 'up' : 'down'}: it is ${event.key === 'ArrowUp' ? 'first' : 'last'} in the ${band}.`);
     return false;
@@ -319,14 +357,14 @@ export function keyMoveRow(event, rowId) {
   event.stopPropagation();
   const content = contentNow();
   if (!content || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return false;
-  const rows = rowsOf(content, layoutPayload());
+  const rows = rowsOf(content, layoutPayload(), rulesFor(template()));
   const index = rows.findIndex((r) => r.id === rowId);
-  const before = event.key === 'ArrowUp' ? rows[index - 1]?.id : index < rows.length - 1 ? rows[index + 2]?.id ?? 'end' : null;
-  if (index < 0 || !before) {
+  const step = index < 0 ? null : rowStep(rows, index, event.key === 'ArrowUp');
+  if (!step) {
     announce(`${index < 0 ? 'The row' : `The row of ${rowName(rows[index])}`} cannot move ${event.key === 'ArrowUp' ? 'up' : 'down'} from here.`);
     return false;
   }
-  const moved = moveItem({ kind: 'row', rowId }, { drop: 'gap', before });
+  const moved = moveItem({ kind: 'row', rowId }, step);
   if (moved) refocus(`#board .row[data-row-id="${CSS.escape(rowId)}"] .row__tab`);
   return moved;
 }
@@ -394,7 +432,9 @@ function begin() {
     return;
   }
   D.active = true;
-  const spots = D.item.kind === 'band' ? bandTargets(D.item.group, bandOrder(D.item.group), D.item.sid) : targetsFor(content, D.item, rulesFor(template()));
+  const spots = D.item.kind === 'band'
+    ? bandTargets(D.item.group, bandOrder(D.item.group), D.item.sid, lockedInBand(D.item.group, D.item.sid))
+    : targetsFor(content, D.item, rulesFor(template()));
   D.keys = new Set(spots.map(targetKey));
   document.body.classList.add('is-dragging');
   const iconName = D.item.kind === 'row' ? 'grip' : sectionIcon(locateSection(D.item.sid)?.data?.type);
@@ -517,7 +557,10 @@ function refusal(col) {
   const rules = rulesFor(template());
   const side = col.classList.contains('side');
   if (rules.isMain(section)) return `${name} is the page content, so it keeps a row of its own.`;
+  if (rules.ownRow(section)) return `${name} needs a row of its own.`;
   const t = targetOf($('[data-target]', col) || col);
+  const area = t && content ? areaAt(content, t, rules) : null;
+  if (area && area !== 'content' && rules.contentOnly(section)) return `${name} goes beside the page content, not in ${AREA_NAMES[area]}.`;
   const span = t && content ? spanAt(content, t, rules, sid) : 0;
   if (span && rules.minSpan(section) > span) return side ? `${name} is too wide for a side.` : `${name} needs a wider column than that one.`;
   return side ? 'That side is full.' : 'That column is full.';

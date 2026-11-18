@@ -50,6 +50,14 @@ export function optionsOf(setting) {
   return setting.options || [];
 }
 
+/**
+ * Whether sections of a type are locked where they stand: a page's main
+ * section (its page content) or a section fixed in its band (the Header,
+ * the Footer). A locked section is never moved, removed, copied or
+ * replaced. The one place the editor decides this.
+ */
+export const isLocked = (def) => def?.main === true || def?.fixed === true;
+
 /* Hidden is stored as the section's `disabled` flag, never as a setting. */
 export const isFormSetting = (setting) => setting.key !== 'visible';
 

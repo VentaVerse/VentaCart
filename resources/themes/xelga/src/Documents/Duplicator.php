@@ -57,7 +57,7 @@ final class Duplicator
         $used = $this->usedIds($content);
 
         if ($blockId === null) {
-            $newId = $this->copySection($content, $sectionId, $section, $schema, $used);
+            $newId = $this->copySection($content, $handle, $sectionId, $section, $schema, $used);
         } else {
             $newId = $this->copyBlock($content, $sectionId, $section, $blockId, $schema, $used);
         }
@@ -66,15 +66,22 @@ final class Duplicator
     }
 
     /** @param array<string, true> $used */
-    private function copySection(array &$content, string $sectionId, array $section, \Themes\Xelga\Catalog\SectionSchema $schema, array &$used): string
+    private function copySection(array &$content, string $handle, string $sectionId, array $section, \Themes\Xelga\Catalog\SectionSchema $schema, array &$used): string
     {
         if (($schema->raw['main'] ?? false) === true) {
             throw new ShapeException(['section' => ['The page\'s main section cannot be copied.']]);
         }
 
-        $sameType = count(array_filter($content['order'], fn ($id) => ($content['sections'][$id]['type'] ?? null) === $schema->type));
-        if ($schema->limit() !== null && $sameType >= $schema->limit()) {
-            throw new ShapeException(['section' => ["A page holds at most {$schema->limit()} {$schema->label}."]]);
+        $sameType = array_filter($content['order'], fn ($id) => ($content['sections'][$id]['type'] ?? null) === $schema->type);
+        // The copy goes just under its original, so a limit per area counts the original's area.
+        $areas = $schema->limitPerArea() ? Layout::sectionAreas($content, app(LayoutRules::class, ['handle' => $handle])) : [];
+        $area = $areas[$sectionId] ?? null;
+        if ($area !== null) {
+            $sameType = array_filter($sameType, fn ($id) => ($areas[$id] ?? null) === $area);
+        }
+        if ($schema->limit() !== null && count($sameType) >= $schema->limit()) {
+            $where = $area !== null ? ucfirst($area) : 'A page';
+            throw new ShapeException(['section' => ["{$where} holds at most {$schema->limit()} {$schema->label}."]]);
         }
         if (count($content['order']) >= Shape::MAX_SECTIONS) {
             throw new ShapeException(['section' => ['A page holds at most ' . Shape::MAX_SECTIONS . ' sections.']]);

@@ -6,9 +6,10 @@
 
 import { announce, toast } from './dom.js';
 import { S, ctx, ui, sec, blk, doc, locate, groupList, blockList, usedIds, labelOf, valueOf, ensureShape } from './state.js';
-import { sectionDef, blockDef, blockTypes } from './catalog.js';
+import { sectionDef, blockDef, blockTypes, allowedIn } from './catalog.js';
 import { commit, undo, hasLayout, layoutPayload, rulesFor } from './operations.js';
-import { rowsOf, checkAddSpot, freshRowId, replaceIn } from './board/model.js';
+import { rowsOf, checkAddSpot, freshRowId, replaceIn, countInPlace, placeOf, areaAt, gapAt, hasAreas } from './board/model.js';
+import { fullWords } from './board/words.js';
 import { schemeSetting } from './board/choices.js';
 import { blockLabel } from './board/labels.js';
 import { clone, humanize } from './util.js';
@@ -43,17 +44,34 @@ export function rename(sid, bid, value) {
   announce(`Renamed to ${to}`);
 }
 
-/** How many sections of a type a document already has, for the schema's limit. */
-export function countOfType(handle, type) {
+/**
+ * How many sections of a type count against its limit at a spot of a
+ * document: in the spot's area for a type limited per area on a page with
+ * areas, else in the whole document (a band is a document of its own).
+ */
+function countHere(handle, type, spot) {
   const c = S.docs[handle]?.content;
-  return c ? c.order.filter((id) => c.sections[id]?.type === type).length : 0;
+  return c ? countInPlace(c, type, spot, rulesFor(handle)) : 0;
 }
 
+/**
+ * Whether a type is at its limit at a spot, with the words that say so:
+ * the area that has one already, else the page or band. Null when it is not.
+ */
+function limitReached(handle, def, type, spot) {
+  if (!def.limit || countHere(handle, type, spot) < def.limit) return null;
+  const c = S.docs[handle]?.content;
+  const area = def.limit_per_area && c ? areaAt(c, spot, rulesFor(handle)) : null;
+  return fullWords(def, { area, band: spot?.drop === 'band' ? spot.group : null });
+}
+
+/** A section can be copied when its type has room where the copy goes: just below it, in its own area. */
 export function canDuplicate(sid) {
   const at = locate(sid);
   const def = sectionDef(at?.data?.type);
   if (!at || !def || def.main) return false;
-  return !def.limit || countOfType(at.handle, at.data.type) < def.limit;
+  if (!def.limit) return true;
+  return countHere(at.handle, at.data.type, placeOf(at.doc.content, sid, rulesFor(at.handle))) < def.limit;
 }
 
 /** A copy with fresh ids for the section and every block in it. */
@@ -217,24 +235,32 @@ const SPOT_WORDS = {
   gone: 'The page changed while you were choosing, and that spot is no longer on it. Nothing was added; choose where it goes again.',
   full: 'That column holds as many sections as it can. Nothing was added.',
   'full-side': 'That side holds as many sections as it can. Nothing was added.',
+  'own-row': 'That section needs a row of its own. Nothing was added.',
+  'content-only': 'That section goes only beside the page content. Nothing was added.',
 };
 
 /**
  * Adds a section from the section picker at a spot of the board
- * (`target`, a row model target): a preset (settings and blocks) or a
- * variant with the schema's defaults. The spot is checked against the page
- * as it is now; one that is gone, full or too narrow is refused with the
- * reason, and nothing is added somewhere else instead. Answers
- * `{sid, moved}` (the names of sections the add pushed out of their
- * columns), or null.
+ * (`target`, a spot of the row model, or a band spot, which adds to the
+ * header or footer band): a preset (settings and blocks) or a variant with
+ * the schema's defaults. The spot is checked against the page as it is
+ * now; one that is gone, full or too narrow, or an area or band that
+ * already has as many of the type as it may, is refused with the reason,
+ * and nothing is added somewhere else instead. Answers `{sid, moved,
+ * left}`: the names of sections the add pushed out of their columns, and
+ * `[{name, area}]` for those it took out of Content (a first side narrows
+ * it); or null.
  */
 export function addSection(type, { variant = null, preset = null, target = null } = {}) {
   const def = sectionDef(type);
-  const handle = S.page?.handle;
+  const band = target?.drop === 'band' ? target.group : null;
+  const handle = band || S.page?.handle;
   const c = doc(handle)?.content;
   if (!def || !handle || !c || !target) return null;
-  if (def.limit && countOfType(handle, type) >= def.limit) {
-    toast(`This page already has ${def.limit === 1 ? 'a' : def.limit} ${def.label}${def.limit === 1 ? '' : ' sections'}, the most it can have.`, { tone: 'error' });
+  if (band && !allowedIn(def, null, false, false, band)) return null;
+  const full = limitReached(handle, def, type, target);
+  if (full) {
+    toast(full, { tone: 'error' });
     return null;
   }
   const { sid, snapshot } = buildSection(type, def, { variant, preset }, usedIds());
@@ -245,14 +271,25 @@ export function addSection(type, { variant = null, preset = null, target = null 
     toast(SPOT_WORDS[reason] || `${def.label} needs a wider spot than that one.`, { tone: 'error', timeout: 8000 });
     return null;
   }
+  if (band) {
+    // A band is a list of full-width sections: the spot is a place in its order.
+    const index = target.before == null ? c.order.length : c.order.indexOf(target.before);
+    commit({ t: 'insert', kind: 'add', doc: handle, sid, group: band, index, snapshot, name: def.label, target: null });
+    return { sid, moved: [], left: [] };
+  }
   const count = groupList('template').length;
-  // A page of full-width sections only: the gap is a place in its order.
-  const plain = !hasLayout(c) && target.drop === 'gap';
+  // A page of full-width sections only, without areas: the gap is a place in its order.
+  const plain = !hasLayout(c) && target.drop === 'gap' && !hasAreas(c, rules);
   const index = plain ? orderIndexOfGap(c, target) : count;
   const op = { t: 'insert', kind: 'add', doc: handle, sid, group: 'template', index, snapshot, name: def.label, target: plain ? null : target };
   commit(op);
-  // The first section of a side narrows the page: what no longer fits its column moves to a row of its own.
-  return { sid, moved: (op.moved || []).filter((id) => c.sections[id]).map((id) => labelOf(id)) };
+  // The first section of a side narrows the page: what no longer fits its
+  // column moves to a row of its own, and a row too wide for Content leaves it.
+  return {
+    sid,
+    moved: (op.moved || []).filter((id) => c.sections[id]).map((id) => labelOf(id)),
+    left: (op.left || []).filter((m) => c.sections[m.sid]).map((m) => ({ name: labelOf(m.sid), area: m.area })),
+  };
 }
 
 /**
@@ -289,8 +326,9 @@ export function replaceSection(sid, type, { variant = null, preset = null } = {}
   const at = locate(sid);
   const def = sectionDef(type);
   if (!at || at.group !== 'template' || !def || def.main || isMain(sid) || at.data.type === type) return null;
-  if (def.limit && countOfType(at.handle, type) >= def.limit) {
-    toast(`This page already has ${def.limit === 1 ? 'a' : def.limit} ${def.label}${def.limit === 1 ? '' : ' sections'}, the most it can have.`, { tone: 'error' });
+  const full = limitReached(at.handle, def, type, placeOf(at.doc.content, sid, rulesFor(at.handle)));
+  if (full) {
+    toast(full, { tone: 'error' });
     return null;
   }
   const { sid: newSid, snapshot } = buildSection(type, def, { variant, preset }, usedIds());
@@ -314,8 +352,9 @@ function keepScheme(snapshot, def, sid) {
 }
 
 function orderIndexOfGap(c, target) {
-  if (target.before === 'end') return c.order.length;
-  const r = rowsOf(c, layoutPayload()).find((x) => x.id === target.before);
+  const rows = rowsOf(c, layoutPayload());
+  const { index: at } = gapAt(rows, target);
+  const r = at >= 0 ? rows[at] : null;
   const index = r ? c.order.indexOf(r.columns[0]?.[0]) : -1;
   return index < 0 ? c.order.length : index;
 }
@@ -327,15 +366,16 @@ export function addRowAt(split, target) {
   const layout = layoutPayload();
   if (!c || !layout?.splits?.[split]) return null;
   const before = target?.before ?? 'end';
-  if (before !== 'end' && !rowsOf(c, layout).some((r) => r.id === before)) {
+  const rows = rowsOf(c, layout, rulesFor(handle));
+  if (gapAt(rows, { drop: 'gap', area: target?.area ?? null, before }).index < 0) {
     toast(SPOT_WORDS.gone, { tone: 'error', timeout: 8000 });
     return null;
   }
-  if (rowsOf(c, layout).length >= layout.max_rows) {
+  if (rows.length >= layout.max_rows) {
     toast(`This page has ${layout.max_rows} rows, the most it can have.`, { tone: 'error' });
     return null;
   }
-  const op = { t: 'row-add', doc: handle, split, before, rowId: freshRowId(c, layout) };
+  const op = { t: 'row-add', doc: handle, split, area: target?.area ?? null, before, rowId: freshRowId(c, layout) };
   commit(op);
   if (!op.prior) return null;
   const text = `Row added: ${layout.splits[split].label.toLowerCase()}. Add sections to its columns.`;
