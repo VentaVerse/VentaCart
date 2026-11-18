@@ -125,7 +125,6 @@ class AdminPermissions
         'quick-create' => 'create',
         'duplicate' => 'create',
         'upload' => 'create',
-        'upload-to-catalog' => 'create',
         'import-url' => 'create',
         'folder' => 'create',
         'destroy' => 'delete',

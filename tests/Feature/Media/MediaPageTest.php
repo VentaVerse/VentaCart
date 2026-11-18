@@ -137,8 +137,8 @@ class MediaPageTest extends TestCase
 
         // Only the storefront's catch-all page route matches the address now,
         // and it answers GET alone, so a POST is refused before any code runs.
-        $this->assertContains($this->post('/admin/catalog/products/images/upload')->getStatusCode(), [404, 405]);
-        $this->assertContains($this->post('/admin/catalog/products/images/delete')->getStatusCode(), [404, 405]);
+        $this->post('/admin/catalog/products/images/upload')->assertStatus(405);
+        $this->post('/admin/catalog/products/images/delete')->assertStatus(405);
         $this->assertFileDoesNotExist(app_path('Http/Controllers/Admin/Catalog/ProductImageController.php'));
     }
 }
