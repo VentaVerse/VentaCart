@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\FetchesRemoteImages;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Support\Media\MediaReferences;
 use App\Support\MediaLibrary;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,23 +14,17 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * One library, one contract.
+ * The endpoints behind the admin's one image browser.
  *
- * There were five hand-rolled browsers in this admin, all calling the product
- * image endpoints, all diverging: delete existed in two of them, sort in one,
- * multi-select in one, and the root crumb had three different labels. A fix
- * had to be made five times and was usually made once.
- *
- * This is the endpoint half of the one component that replaces them. The
- * shapes it returns are deliberately richer than the old browse, because the
- * things every copy was missing (how many products use this file, how many
- * files are in here, which page am I on) could not be added five times.
+ * Every picker in the admin uses these, so a fix is made once. Browse says,
+ * for each image, how many records use it, how many files a folder holds and
+ * which page is showing, so a merchant can decide before deleting.
  */
 class MediaLibraryController extends Controller
 {
     use FetchesRemoteImages;
 
-    /** Files per page. A brand folder here holds 1,194 of them. */
+    /** Files per page. One folder can hold more than a thousand images. */
     private const PER_PAGE = 120;
 
     public function browse(Request $request): JsonResponse
@@ -82,7 +77,7 @@ class MediaLibraryController extends Controller
             'crumbs' => MediaLibrary::crumbs($path, $root),
             'searching' => $search !== '',
             'folders' => $search === '' ? MediaLibrary::foldersIn($path) : [],
-            'files' => MediaLibrary::describe($slice, $this->usage($slice)),
+            'files' => MediaLibrary::describe($slice, MediaReferences::inUse($slice)),
             'page' => $page,
             'lastPage' => $lastPage,
             'total' => $total,
@@ -170,10 +165,10 @@ class MediaLibraryController extends Controller
     /**
      * Remove files, having already said what they cost.
      *
-     * The merchant is told how many products use each one before they press
+     * The merchant is told how many records use each one before they press
      * this (browse returns usedBy on every file, and the confirm reads it),
-     * so the decision is theirs and it is an informed one. The old endpoint
-     * asked nothing and said nothing: one image here is on fourteen products.
+     * so the decision is theirs and an informed one. The response repeats
+     * those counts so the admin can say what the delete affected.
      */
     public function destroy(Request $request): JsonResponse
     {
@@ -182,7 +177,7 @@ class MediaLibraryController extends Controller
             'paths.*' => ['required', 'string'],
         ]);
 
-        $usage = $this->usage($validated['paths']);
+        $usage = MediaReferences::inUse($validated['paths']);
         $deleted = [];
         $detached = 0;
 
@@ -211,13 +206,11 @@ class MediaLibraryController extends Controller
     }
 
     /**
-     * Create a folder. Creating only.
+     * Create a folder.
      *
-     * Renaming was here and is gone: moving image files means every stored
-     * path has to move with them, and order_products.image holds a
-     * denormalised copy on 31,278 rows. Order history is the one thing that
-     * must not break, so reorganising an existing library is a migration with
-     * its own plan, not a button in the admin.
+     * Renaming or moving a folder is not done here: every stored copy of a
+     * path inside it has to move too, including the snapshot on past order
+     * lines, or those records show a broken image.
      */
     public function folder(Request $request): JsonResponse
     {
@@ -242,37 +235,5 @@ class MediaLibraryController extends Controller
         MediaLibrary::ensure($target);
 
         return response()->json(['ok' => true, 'path' => $target]);
-    }
-
-    /**
-     * How many products point at each of these paths.
-     *
-     * One grouped query for the whole page rather than one per tile, because
-     * the grid renders 120 of them.
-     *
-     * @param  array<int, string>  $paths
-     * @return array<string, int>
-     */
-    private function usage(array $paths): array
-    {
-        if ($paths === []) {
-            return [];
-        }
-
-        $fromImages = ProductImage::whereIn('path', $paths)
-            ->selectRaw('path, count(distinct product_id) as n')
-            ->groupBy('path')->pluck('n', 'path');
-
-        $fromMain = Product::whereIn('image', $paths)
-            ->selectRaw('image as path, count(*) as n')
-            ->groupBy('image')->pluck('n', 'path');
-
-        $out = [];
-
-        foreach ($paths as $path) {
-            $out[$path] = (int) ($fromImages[$path] ?? 0) + (int) ($fromMain[$path] ?? 0);
-        }
-
-        return $out;
     }
 }

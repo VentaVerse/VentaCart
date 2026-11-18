@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Models\Setting;
 use App\Services\AddressProviderRegistry;
 use App\Services\ThemeService;
+use App\Support\Media\ColumnReference;
+use App\Support\Media\MediaReferences;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -121,6 +123,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->registerDeepAddressProviders();
+        $this->registerMediaReferences();
 
         // Payment methods sign in here (see PaymentManager docblock). Extensions
         // add their own register() call in their own service provider.
@@ -132,6 +135,28 @@ class AppServiceProvider extends ServiceProvider
             $registry = app(AddressProviderRegistry::class);
             $view->with('addressProviders', $registry->toFrontendManifest());
         });
+    }
+
+    /**
+     * Core's places that store library image paths. Each source skips itself
+     * when its table is missing. Blog posts are registered here, guarded by
+     * their table rather than by Blog being enabled, so a switched-off Blog's
+     * posts still keep their images from being deleted or left behind by a move.
+     */
+    private function registerMediaReferences(): void
+    {
+        MediaReferences::register(ColumnReference::path('products', 'image', 'products', 'id'));
+        MediaReferences::register(ColumnReference::path('product_images', 'path', 'products', 'product_id'));
+        MediaReferences::register(ColumnReference::path('product_variants', 'image', 'products', 'product_id'));
+        MediaReferences::register(ColumnReference::path('categories', 'image', 'categories'));
+        MediaReferences::register(ColumnReference::path('manufacturers', 'image', 'brands'));
+        MediaReferences::register(ColumnReference::json('nav_menu_items', 'config', 'menus'));
+        // Theme settings of type media and images, and any other setting holding a library path.
+        MediaReferences::register(ColumnReference::json('settings', 'value', 'settings'));
+        // Snapshots: moved with the file, never a reason to keep it.
+        MediaReferences::register(ColumnReference::path('order_products', 'image', 'past orders', countsAsUse: false));
+        MediaReferences::register(ColumnReference::path('media_files', 'path', 'library', countsAsUse: false));
+        MediaReferences::register(ColumnReference::path('blog_posts', 'featured_image', 'blog posts'));
     }
 
     /**
