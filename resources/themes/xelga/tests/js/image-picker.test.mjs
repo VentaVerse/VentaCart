@@ -11,7 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { openPage } from './support/board-page.mjs';
 
-const { imagePicker } = await import('../../editor/js/modules/pickers/image.js');
+const { imagePicker, setLibraryWait } = await import('../../editor/js/modules/pickers/image.js');
 
 const HERO_PHOTO = { key: 'image', type: 'image', label: 'Photo', default: '' };
 const HERO = { kind: 'section', sid: 'hero' };
@@ -77,4 +77,60 @@ test('a missing library shows a note instead of failing', () => {
 
   assert.match(el.html(), /The media library is not available on this page\./);
   assert.deepEqual(changes, []);
+});
+
+/* The library's settings are on the page but its script has not run yet. */
+function loadingLibrary() {
+  delete window.VentaCart;
+  const config = document.createElement('script');
+  config.setAttribute('id', 'media-library-config');
+  document.body.append(config);
+  return config;
+}
+
+const readyListeners = () => (document.listeners || []).filter((l) => l.type === 'ventacart:media-ready');
+
+function fireReady(detail) {
+  readyListeners().forEach((l) => l.fn({ type: 'ventacart:media-ready', detail }));
+}
+
+test('while the library is still loading, Change waits for it and opens once', () => {
+  openPage('home');
+  const config = loadingLibrary();
+  const { button } = field('media/banners/demo-001.jpg');
+  const opener = button();
+
+  click(opener);
+  click(opener);
+  click(opener);
+
+  assert.equal(readyListeners().length, 1, 'one pending open, however often Change is pressed');
+  assert.equal(opener.getAttribute('aria-busy'), 'true');
+
+  const opened = [];
+  window.VentaCart = { media: { open: (options) => { opened.push(options); return { close() {} }; } } };
+  fireReady(window.VentaCart.media);
+
+  assert.equal(opened.length, 1);
+  assert.equal(opened[0].value, 'media/banners/demo-001.jpg');
+  assert.equal(opener.hasAttribute('aria-busy'), false);
+  assert.equal(readyListeners().length, 0);
+  config.remove();
+});
+
+test('a library that never loads shows the note after the wait', async () => {
+  openPage('home');
+  const config = loadingLibrary();
+  setLibraryWait(10);
+  const { el, changes, button } = field('media/banners/demo-001.jpg');
+
+  click(button());
+  assert.doesNotMatch(el.html(), /not available/);
+  await new Promise((resolve) => setTimeout(resolve, 40));
+
+  assert.match(el.html(), /The media library is not available on this page\./);
+  assert.equal(readyListeners().length, 0);
+  assert.deepEqual(changes, []);
+  setLibraryWait(8000);
+  config.remove();
 });
