@@ -18,8 +18,8 @@ use Tests\TestCase;
  * Every picker calls the same endpoints, so what counts as a safe path is
  * decided once. root is a starting folder, never a boundary, and the library
  * tree is the only boundary: nothing outside it, such as the store's payment
- * QR codes, can be browsed or deleted. A delete says how many records use
- * each image, since one image can be on many products.
+ * QR codes, can be browsed or deleted. An image that records use is not
+ * deleted, since one image can be on many products.
  */
 class MediaLibraryTest extends TestCase
 {
@@ -86,7 +86,7 @@ class MediaLibraryTest extends TestCase
         $this->assertSame('media/catalog/old.jpg', MediaLibrary::safePath('media/catalog/old.jpg'));
     }
 
-    public function test_deleting_says_what_it_cost_and_detaches_the_rows(): void
+    public function test_deleting_refuses_an_image_in_use_and_never_detaches_the_rows(): void
     {
         $this->putFile('media/products/shared.jpg');
 
@@ -94,15 +94,15 @@ class MediaLibraryTest extends TestCase
         $b = Product::create(['store_id' => 1, 'name' => 'B', 'slug' => 'b', 'price' => 1, 'quantity' => 1]);
         ProductImage::create(['product_id' => $b->id, 'path' => 'media/products/shared.jpg', 'sort_order' => 0]);
 
-        $response = $this->postJson(route('admin.media.delete'), ['paths' => ['media/products/shared.jpg']])->assertOk();
+        $response = $this->postJson(route('admin.media.delete'), ['paths' => ['media/products/shared.jpg']])->assertStatus(409);
 
-        // Two products used it, and neither is left pointing at a file that
-        // is gone. That was the whole hole: the live delete asked nothing.
+        // Two products use it, so it stays, and so do the rows that point at
+        // it: a product never loses its image because of a delete elsewhere.
         // Read the array, not a dotted path: the key IS a path with dots in it.
-        $this->assertSame(2, $response->json('usedBy')['media/products/shared.jpg']);
-        $this->assertNull($a->fresh()->image);
-        $this->assertSame(0, ProductImage::where('path', 'media/products/shared.jpg')->count());
-        Storage::disk('public')->assertMissing('media/products/shared.jpg');
+        $this->assertSame([['label' => 'products', 'count' => 2]], $response->json('inUse')['media/products/shared.jpg']);
+        $this->assertSame('media/products/shared.jpg', $a->fresh()->image);
+        $this->assertSame(1, ProductImage::where('product_id', $b->id)->count());
+        Storage::disk('public')->assertExists('media/products/shared.jpg');
     }
 
     public function test_browse_reports_how_many_products_use_each_file(): void
@@ -219,11 +219,10 @@ class MediaLibraryTest extends TestCase
     }
 
     /**
-     * Making a folder never moves one. A rename has to change every stored
-     * copy of the paths inside it, including the snapshot on past order
-     * lines, so it is not something the make-a-folder request can do.
+     * Making a folder never moves one. Renaming has its own request, which
+     * changes every stored copy of the paths inside the folder too.
      */
-    public function test_a_folder_cannot_be_renamed_from_here(): void
+    public function test_making_a_folder_ignores_a_folder_to_rename(): void
     {
         Storage::disk('public')->makeDirectory('media/products/demo');
 

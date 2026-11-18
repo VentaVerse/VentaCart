@@ -390,12 +390,6 @@ class MediaLibrary
         self::touched();
     }
 
-    /**
-     * Renaming or moving a file or folder is more than a change on disk:
-     * every stored copy of the path has to change with it, including the
-     * snapshot on past order lines, or those records show a broken image.
-     */
-
     public static function isImage(string $path): bool
     {
         if (str_contains($path, '_thumb.')) {

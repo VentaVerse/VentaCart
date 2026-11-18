@@ -122,7 +122,9 @@
                                 <tr>
                                     <td>
                                         <span class="v-namerow">
-                                            @if ($item->image)
+                                            {{-- The line keeps the path it was sold with; once that image
+                                                 is deleted from the library the blank tile stands in. --}}
+                                            @if ($item->image && Storage::disk('public')->exists($item->image))
                                                 <img src="{{ thumb_url($item->image) }}" alt="" class="v-thumb" loading="lazy" decoding="async" width="40" height="40">
                                             @else
                                                 <span class="v-thumb v-thumb--blank"><x-admin.icon name="products" /></span>

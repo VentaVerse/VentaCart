@@ -46,6 +46,7 @@ Route::prefix('catalog')->group(function () {
     Route::middleware('throttle:media-reads')->group(function () {
         Route::get('/media/browse', [MediaLibraryController::class, 'browse'])->name('media.browse');
         Route::get('/media/tree', [MediaLibraryController::class, 'tree'])->name('media.tree');
+        Route::get('/media/usage', [MediaLibraryController::class, 'usage'])->name('media.usage');
     });
     Route::middleware('throttle:media-writes')->group(function () {
         Route::post('/media/upload', [MediaLibraryController::class, 'upload'])->name('media.upload');
@@ -53,6 +54,8 @@ Route::prefix('catalog')->group(function () {
             ->middleware('throttle:media-imports')->name('media.import-url');
         Route::post('/media/delete', [MediaLibraryController::class, 'destroy'])->name('media.delete');
         Route::post('/media/folder', [MediaLibraryController::class, 'folder'])->name('media.folder');
+        Route::post('/media/rename', [MediaLibraryController::class, 'rename'])->name('media.rename');
+        Route::post('/media/move', [MediaLibraryController::class, 'move'])->name('media.move');
     });
 
     // Tags

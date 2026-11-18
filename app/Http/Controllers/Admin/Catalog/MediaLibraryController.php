@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin\Catalog;
 use App\Http\Controllers\Api\FetchesRemoteImages;
 use App\Http\Controllers\Controller;
 use App\Rules\MediaFolderName;
-use App\Models\Product;
-use App\Models\ProductImage;
+use App\Support\Media\MediaMover;
+use App\Support\Media\MediaMoveRefused;
 use App\Support\Media\MediaReferences;
 use App\Support\Media\MediaTree;
 use App\Support\ImageExtension;
@@ -21,7 +21,9 @@ use Illuminate\Support\Str;
  *
  * Every picker in the admin uses these, so a fix is made once. Browse says,
  * for each image, how many records use it, how many files a folder holds and
- * which page is showing, so a merchant can decide before deleting.
+ * which page is showing. An image in use is never deleted, and renaming or
+ * moving one repoints every registered reference to it, order history
+ * included, in one transaction.
  */
 class MediaLibraryController extends Controller
 {
@@ -224,12 +226,16 @@ class MediaLibraryController extends Controller
     }
 
     /**
-     * Remove files, having already said what they cost.
+     * Remove images and empty folders.
      *
-     * The merchant is told how many records use each one before they press
-     * this (browse returns usedBy on every file, and the confirm reads it),
-     * so the decision is theirs and an informed one. The response repeats
-     * those counts so the admin can say what the delete affected.
+     * An image something uses is kept, and the answer names its users so the
+     * merchant can change them first; removing the image would leave each of
+     * them showing a broken picture. Rows are never detached here. Past order
+     * lines are a record of what was sold, not a use, so they do not keep an
+     * image. Unused images in the same request are still deleted.
+     *
+     * A folder goes only when no image is left in it at any depth, so a
+     * folder delete can never take an image in use with it.
      */
     public function destroy(Request $request): JsonResponse
     {
@@ -238,40 +244,153 @@ class MediaLibraryController extends Controller
             'paths.*' => ['required', 'string'],
         ]);
 
-        $usage = MediaReferences::inUse($validated['paths']);
-        $deleted = [];
-        $detached = 0;
+        $disk = Storage::disk('public');
+        $files = [];
+        $folders = [];
 
-        foreach ($validated['paths'] as $path) {
+        foreach (array_unique($validated['paths']) as $path) {
             $safe = MediaLibrary::safePath($path);
 
-            if ($safe === false || $safe === '') {
+            if ($safe === false || $safe === MediaLibrary::ROOT) {
                 continue;
             }
 
-            // The rows that pointed at it go too. Leaving them behind is how a
-            // product ends up rendering a broken image forever.
-            $detached += ProductImage::where('path', $safe)->delete();
-            Product::where('image', $safe)->update(['image' => null]);
-
-            MediaLibrary::forget($safe);
-            $deleted[] = $safe;
+            if ($disk->directoryExists($safe)) {
+                $folders[] = $safe;
+            } elseif (MediaLibrary::isImage($safe)) {
+                $files[] = $safe;
+            }
         }
+
+        foreach ($folders as $folder) {
+            foreach ($disk->allFiles($folder) as $file) {
+                if (MediaLibrary::isImage($file)) {
+                    return response()->json(['ok' => false, 'message' => 'Empty the folder first.'], 422);
+                }
+            }
+        }
+
+        $usage = MediaReferences::usage($files);
+        $inUse = [];
+        $deleted = [];
+
+        foreach ($files as $file) {
+            if (($usage[$file] ?? []) !== []) {
+                $inUse[$file] = $this->uses($usage[$file]);
+
+                continue;
+            }
+
+            MediaLibrary::forget($file);
+            $deleted[] = $file;
+        }
+
+        foreach ($folders as $folder) {
+            $disk->deleteDirectory($folder);
+            $deleted[] = $folder;
+        }
+
+        MediaLibrary::touched();
+
+        if ($inUse !== []) {
+            $count = count($inUse);
+
+            return response()->json([
+                'ok' => false,
+                'message' => $count === 1
+                    ? '1 image is in use and was not deleted.'
+                    : $count . ' images are in use and were not deleted.',
+                'inUse' => $inUse,
+                'deleted' => $deleted,
+            ], 409);
+        }
+
+        return response()->json(['ok' => true, 'deleted' => $deleted]);
+    }
+
+    /** Every kind of user of one image, and how many of each. */
+    public function usage(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['path' => ['required', 'string']]);
+        $path = MediaLibrary::safePath($validated['path']);
+
+        if ($path === false) {
+            return response()->json(['ok' => false, 'message' => 'That path cannot be read.'], 422);
+        }
+
+        $uses = $this->uses(MediaReferences::usage([$path])[$path] ?? []);
 
         return response()->json([
             'ok' => true,
-            'deleted' => $deleted,
-            'detached' => $detached,
-            'usedBy' => $usage,
+            'path' => $path,
+            'uses' => $uses,
+            'total' => array_sum(array_column($uses, 'count')),
         ]);
     }
 
     /**
-     * Create a folder.
-     *
-     * Renaming or moving a folder is not done here: every stored copy of a
-     * path inside it has to move too, including the snapshot on past order
-     * lines, or those records show a broken image.
+     * Rename an image or a folder where it is. An image keeps its extension;
+     * a folder keeps its name as typed.
+     */
+    public function rename(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'path' => ['required', 'string'],
+            'name' => ['required', 'string', 'max:255'],
+        ], [
+            'name.required' => 'Give it a name.',
+        ]);
+
+        return $this->moving(fn () => ['ok' => true, ...MediaMover::rename($validated['path'], $validated['name'])]);
+    }
+
+    /** Move images and folders into another folder. */
+    public function move(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'paths' => ['required', 'array', 'max:200'],
+            'paths.*' => ['required', 'string'],
+            'to' => ['required', 'string'],
+        ]);
+
+        return $this->moving(fn () => ['ok' => true, ...MediaMover::move($validated['paths'], $validated['to'])]);
+    }
+
+    /**
+     * A refusal is the merchant's to read. Anything else failed after the
+     * mover put every file back, so nothing changed and trying again is safe.
+     */
+    private function moving(\Closure $work): JsonResponse
+    {
+        try {
+            return response()->json($work());
+        } catch (MediaMoveRefused $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['ok' => false, 'message' => 'Nothing was moved. Try again.'], 500);
+        }
+    }
+
+    /**
+     * @param  array<string, int>  $kinds  label => users
+     * @return list<array{label: string, count: int}>
+     */
+    private function uses(array $kinds): array
+    {
+        $out = [];
+
+        foreach ($kinds as $label => $count) {
+            $out[] = ['label' => (string) $label, 'count' => $count];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Create a folder. Renaming one is the rename request's job, since it
+     * repoints every stored copy of the paths inside it.
      */
     public function folder(Request $request): JsonResponse
     {
