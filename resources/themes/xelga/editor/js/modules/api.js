@@ -292,7 +292,8 @@ export function createApi(boot, { fetchImpl } = {}) {
     }
   }
 
-  const storageUrl = String(boot.media?.storage_url || '/storage/').replace(/\/?$/, '/');
+  // Library paths are served from the public disk, as core's storage_url() serves them.
+  const storageUrl = '/storage/';
 
   return {
     /** The address of a file on the public disk, from its storage path. */
@@ -488,18 +489,6 @@ export function createApi(boot, { fetchImpl } = {}) {
       }));
       const items = Array.isArray(json) ? json : json.results || json.items || [];
       return { items, more: Boolean(json.more || json.has_more), editUrl: json.edit_url || null };
-    },
-
-    async mediaBrowse({ path = '', q = '', page = 1, root = '' } = {}) {
-      return send('GET', route('media.browse'), { query: { path, q, page: page > 1 ? page : null, root }, retries: 1 });
-    },
-
-    async mediaUpload(files, { path = '', root = '' } = {}) {
-      const form = new FormData();
-      Array.from(files).forEach((file) => form.append('files[]', file));
-      if (path) form.append('path', path);
-      if (root) form.append('root', root);
-      return send('POST', route('media.upload'), { form });
     },
 
     /**

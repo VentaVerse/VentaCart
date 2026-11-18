@@ -82,6 +82,10 @@ class XelgaServiceProvider extends ServiceProvider
         $kernel->appendMiddlewareToGroup('web', PreviewMode::class);
         $kernel->appendMiddlewareToGroup('web', SectionOnly::class);
 
+        // Photos the theme's pages, drafts and history hold, so the media
+        // library counts them as used and repoints them when they move.
+        \Themes\Xelga\Documents\ImageReferences::register();
+
         $this->forgetAssignmentsOfDeletedSubjects();
         $this->drawNotFoundPages();
 

@@ -292,6 +292,20 @@ class XelgaFixedPagesTest extends TestCase
             ->assertSee(route('product.show', $product->slug), false);
     }
 
+    public function test_an_order_line_whose_image_was_deleted_shows_a_blank_tile(): void
+    {
+        $order = $this->order();
+        \Illuminate\Support\Facades\Storage::disk('public')->put('media/products/demo-001.jpg', 'demo image');
+        $order->products()->create(['product_id' => null, 'name' => 'Demo Shirt', 'sku' => 'DEMO-001', 'image' => 'media/products/demo-001.jpg', 'price' => 450, 'quantity' => 1, 'total' => 450]);
+        $order->products()->create(['product_id' => null, 'name' => 'Demo Cap', 'sku' => 'DEMO-002', 'image' => 'media/products/demo-002.jpg', 'price' => 450, 'quantity' => 1, 'total' => 450]);
+
+        $html = $this->asCustomer()->get(route('account.orders.show', $order))->assertOk()->getContent();
+
+        $this->assertStringContainsString('/storage/media/products/demo-001.jpg', $html);
+        $this->assertStringNotContainsString('demo-002.jpg', $html);
+        $this->assertSame(1, substr_count($html, '<span class="line__ph" aria-hidden="true"></span>'));
+    }
+
     public function test_a_tracking_link_that_is_not_a_web_address_is_not_linked(): void
     {
         $unsafe = $this->order(['tracking_number' => 'TRACK-002', 'tracking_link' => 'javascript:alert(document.cookie)']);

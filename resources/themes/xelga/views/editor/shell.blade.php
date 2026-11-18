@@ -19,6 +19,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex, nofollow">
     <title>Customize {{ $boot['store']['name'] }} - Xelga</title>
+    {{-- The store's media library, which image settings open to choose a photo. --}}
+    <x-media-library />
     @if ($hasPanelCss)
         @vite($panelCss)
     @endif
