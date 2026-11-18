@@ -22,7 +22,7 @@ import { needTag } from './needs.js';
 import { buildForm, dependsOn, refreshVisibility, refreshFieldErrors } from './forms/form.js';
 import { startListDrag } from './board/drag.js';
 import {
-  toggleVisible, startRename, rename, removeSection, removeBlock, canRemoveBlock, duplicateSection, canDuplicate, duplicateHint, duplicateBlock, canDuplicateBlock,
+  toggleVisible, startRename, rename, askRemoveSection, removeBlock, canRemoveBlock, duplicateSection, canDuplicate, duplicateHint, duplicateBlock, canDuplicateBlock,
   addableBlocks, addBlock, moveBlockBy, moveBlockTo,
 } from './actions.js';
 
@@ -228,7 +228,7 @@ function sectionInspector(sid, bid) {
         title: duplicateHint(sid),
         onclick: () => duplicateSection(sid),
       }, icon('copy', 'icon--sm'), 'Duplicate'),
-      h('button', { type: 'button', class: 'btn btn--danger-text btn--sm', onclick: () => removeSection(sid) }, icon('trash', 'icon--sm'), 'Remove section')));
+      h('button', { type: 'button', class: 'btn btn--danger-text btn--sm', onclick: () => askRemoveSection(sid) }, icon('trash', 'icon--sm'), 'Remove section')));
   }
   if (bid) {
     content.append(h('div', { class: 'insp-foot' },
@@ -418,14 +418,14 @@ function missingSection(sid) {
       h('div', { class: 'insp-body' },
         h('p', { class: 'insp-desc', text: `Shoppers do not see it for now. It is kept with its settings and comes back when ${ext.title || name} is ${off ? 'switched on' : 'installed'} again.` }),
         h('div', { class: 'insp-foot' },
-          h('button', { type: 'button', class: 'btn btn--danger-text btn--sm', onclick: () => removeSection(sid) }, icon('trash', 'icon--sm'), 'Remove section'))));
+          h('button', { type: 'button', class: 'btn btn--danger-text btn--sm', onclick: () => askRemoveSection(sid) }, icon('trash', 'icon--sm'), 'Remove section'))));
   }
   return h('div', { class: 'inspector' },
     inspectorHead({ title: 'Section no longer available', kind: 'Removed from the theme' }),
     h('div', { class: 'insp-body' },
       h('p', { class: 'insp-desc', text: 'This section type is not part of the theme any more, so shoppers do not see it. Remove it to tidy the page.' }),
       h('div', { class: 'insp-foot' },
-        h('button', { type: 'button', class: 'btn btn--danger-text btn--sm', onclick: () => removeSection(sid) }, icon('trash', 'icon--sm'), 'Remove section'))));
+        h('button', { type: 'button', class: 'btn btn--danger-text btn--sm', onclick: () => askRemoveSection(sid) }, icon('trash', 'icon--sm'), 'Remove section'))));
 }
 
 function themeInspector(groupKey) {

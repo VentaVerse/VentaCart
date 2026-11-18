@@ -4,7 +4,8 @@
  * one is a single operation, so each one is a single undo step.
  */
 
-import { announce, toast } from './dom.js';
+import { h, announce, toast } from './dom.js';
+import { choose } from './popover.js';
 import { S, ctx, ui, sec, blk, doc, locate, groupList, blockList, usedIds, labelOf, valueOf, ensureShape } from './state.js';
 import { sectionDef, blockDef, blockTypes, allowedIn, isLocked } from './catalog.js';
 import { commit, undo, hasLayout, layoutPayload, rulesFor } from './operations.js';
@@ -248,6 +249,25 @@ export function removeSection(sid) {
   const name = labelOf(sid);
   commit({ t: 'remove', doc: at.handle, sid, group: at.group });
   toast(`${name} removed.`, { action: { label: 'Undo', run: undo } });
+}
+
+/**
+ * Asks before removing a section, from the board or the panel: Cancel (or
+ * Escape) leaves everything as it was; Delete removes it, with Undo.
+ */
+export async function askRemoveSection(sid) {
+  if (!locate(sid) || lockedSid(sid)) return;
+  const name = labelOf(sid);
+  const answer = await choose({
+    title: `Delete ${name}?`,
+    iconName: 'trash',
+    body: h('p', { text: 'Its settings and content are removed from this page.' }),
+    actions: [
+      { label: 'Cancel', value: false, initial: true },
+      { label: 'Delete', value: true, danger: true },
+    ],
+  });
+  if (answer) removeSection(sid);
 }
 
 /* What a refused spot of the board is told, by checkAddSpot's reason. */

@@ -12,21 +12,36 @@
   --spick-pane-w: 400px;
 }
 
-/* ------------------------------------------------- Change on the board */
+/* ------------------------------------- Change, Hide and Delete on the board */
 
 .piece-wrap {
   position: relative;
   min-width: 0;
 }
 
+/* The name bar leaves room for the tools: 30px each, and the gap. */
 .piece-wrap .piece__line {
   padding-inline-end: 40px;
 }
 
-.piece__change {
+.piece-wrap[data-tools="2"] .piece__line {
+  padding-inline-end: 70px;
+}
+
+.piece-wrap[data-tools="3"] .piece__line {
+  padding-inline-end: 100px;
+}
+
+.piece__tools {
   position: absolute;
   inset-block-start: 3px;
   inset-inline-end: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.piece__tool {
+  position: relative;
   display: grid;
   place-items: center;
   width: 26px;
@@ -42,24 +57,30 @@
   transition: opacity .12s var(--ease), color .12s var(--ease), background-color .12s var(--ease), border-color .12s var(--ease);
 }
 
-.piece-wrap:hover .piece__change,
-.piece-wrap:focus-within .piece__change,
-.piece-wrap.is-replacing .piece__change {
+.piece-wrap:hover .piece__tool,
+.piece-wrap:focus-within .piece__tool,
+.piece-wrap.is-replacing .piece__tool {
   opacity: 1;
 }
 
-.piece__change:hover {
+.piece__tool:hover {
   color: var(--accent-hover);
   background: var(--accent-soft);
   border-color: var(--accent-line);
 }
 
-.piece__change:focus-visible {
+.piece__delete:hover {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+.piece__tool:focus-visible {
   outline: none;
   box-shadow: var(--focus);
 }
 
-body.is-dragging .piece__change {
+body.is-dragging .piece__tools {
   display: none;
 }
 
@@ -76,16 +97,16 @@ body.is-dragging .piece__change {
   border-color: var(--accent);
 }
 
-/* Touch screens have no hover: Change is always there, with a larger target. */
+/* Touch screens have no hover: the tools are always there, with larger targets. */
 @media (hover: none), (pointer: coarse) {
-  .piece__change {
+  .piece__tool {
     opacity: 1;
   }
 
-  .piece__change::after {
+  .piece__tool::after {
     content: "";
     position: absolute;
-    inset: -9px;
+    inset: -9px -2px;
   }
 }
 
@@ -812,19 +833,30 @@ body.is-dragging .piece__change {
     gap: 8px;
   }
 
-  /* Change at the end of the one-line sections of the phone board. */
+  /* The tools at the end of the one-line sections of the phone board. */
   .piece-wrap .piece__line {
     padding-inline-end: 44px;
   }
 
-  .piece__change {
+  .piece-wrap[data-tools="2"] .piece__line {
+    padding-inline-end: 80px;
+  }
+
+  .piece-wrap[data-tools="3"] .piece__line {
+    padding-inline-end: 116px;
+  }
+
+  .piece__tools {
     inset-block-start: 50%;
-    width: 32px;
-    height: 32px;
     margin-block-start: -16px;
   }
 
-  .row--multi .piece__change {
+  .piece__tool {
+    width: 32px;
+    height: 32px;
+  }
+
+  .row--multi .piece__tools {
     inset-block-start: 6px;
     margin-block-start: 0;
   }
@@ -848,7 +880,7 @@ body.is-dragging .piece__change {
     animation: none;
   }
 
-  .piece__change {
+  .piece__tool {
     transition: none;
   }
 }

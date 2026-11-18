@@ -130,10 +130,10 @@ test('the Header has Hide and no Remove, Duplicate or Change', () => {
   assert.ok(list.includes('Hide on the store'), 'Show or hide only.');
   ['Remove section', 'Duplicate'].forEach((name) => assert.ok(!list.includes(name), name));
   assert.ok(!list.some((name) => name.startsWith('Change')), 'No Change.');
-  assert.equal(drawBoard().querySelector('.piece[data-sid="head"]').closest('.piece-wrap'), null);
+  assert.equal(drawBoard().querySelector('.piece[data-sid="head"]').closest('.piece-wrap').querySelector('.piece__change'), null);
 });
 
-test('a header bar can be hidden and removed, and its panel says changes show on every page', () => {
+test('a header bar can be hidden and removed, and its panel says changes show on every page', async () => {
   const panel = panelOf('bar');
   const list = buttons(panel);
   assert.ok(list.includes('Hide on the store'));
@@ -146,8 +146,11 @@ test('a header bar can be hidden and removed, and its panel says changes show on
   const copy = panel.querySelectorAll('button').find((b) => flat(b) === 'Duplicate');
   assert.ok(copy.hasAttribute('disabled'));
   assert.equal(copy.getAttribute('title'), 'The header already has an announcement bar.');
-  // Remove takes it out of the header, and the band then offers Add section above the Header.
+  // Remove asks first; Delete takes it out of the header, and the band then offers Add section above the Header.
   copy.parentNode.querySelectorAll('button').find((b) => flat(b) === 'Remove section').dispatchEvent({ type: 'click' });
+  assert.deepEqual(S.docs.header.content.order, ['bar', 'head'], 'Nothing is removed before the answer.');
+  document.querySelector('.dialog__actions .btn--danger').dispatchEvent({ type: 'click' });
+  await new Promise((resolve) => setTimeout(resolve, 0));
   assert.deepEqual(S.docs.header.content.order, ['head']);
   assert.equal(flat(drawBoard().querySelector('.band--header .bandgap--open .band-add')), 'Add section');
 });

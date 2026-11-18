@@ -97,7 +97,7 @@ test('the page content piece has a lock and no pointerdown handler', () => {
   assert.deepEqual(flagsOf(main), ['Page content']);
   assert.equal(main.querySelector('.piece__flag svg use').getAttribute('href'), '#i-lock');
   assert.equal(listens(main, 'pointerdown'), false, 'Never picked up.');
-  assert.equal(main.closest('.piece-wrap'), null, 'No Change.');
+  assert.equal(main.closest('.piece-wrap'), null, 'No tools.');
   assert.equal(main.parentNode.querySelectorAll('.beside').length, 0, 'Nothing goes beside it.');
   // Any other section of the page still moves and changes.
   const words = pieceOf(board, 'words');
@@ -111,7 +111,7 @@ test('the Header has Fixed, Hide and no Change', () => {
   let board = drawBoard();
   const head = pieceOf(board, 'head');
   assert.deepEqual(flagsOf(head), ['Fixed']);
-  assert.equal(head.closest('.piece-wrap'), null, 'No Change.');
+  assert.equal(head.closest('.piece-wrap').querySelector('.piece__change'), null, 'No Change.');
   assert.equal(listens(head, 'pointerdown'), false);
   // The bar beside it is an ordinary section of the band: it moves within it.
   assert.equal(listens(pieceOf(board, 'bar'), 'pointerdown'), true);

@@ -27,9 +27,9 @@
  * full width), an Add under each column and side, the box of an empty area
  * or side, and the Add of a band, all opening the section picker. The page
  * content, the Header and the Footer are locked: they never move and are
- * never changed for another section. Every other section has a Change
- * control on its name bar that opens the same picker to replace it in its
- * spot. Sections and rows move by drag and drop or Alt plus the arrow keys
+ * never changed for another section. A section's name bar carries its tools: Change
+ * (opens the same picker to replace it in its spot), Hide and Delete. The page
+ * content has none, the Header and the Footer only Hide. Sections and rows move by drag and drop or Alt plus the arrow keys
  * (see drag.js); every spot that takes a drop carries its target in
  * `data-target`.
  */
@@ -47,6 +47,7 @@ import {
   rowsOf, contentSpan, gapTargets, hasAreas, countInPlace, AREAS,
 } from './model.js';
 import { fixedPanel, subjectWords, pageReach, defaultUsers } from '../layouts.js';
+import { toggleVisible, askRemoveSection } from '../actions.js';
 import { openPicker, pickerSpot, pickerReplacing } from './picker.js';
 import {
   splitOf, listWords, columnName, AREA_NAMES,
@@ -153,15 +154,30 @@ function piece(section, { movable = false, changeable = false, band = null } = {
       ...flags.map(([iconName, text, title]) => h('span', { class: 'piece__flag', title }, icon(iconName, 'icon--xs'), h('span', { class: 'piece__flagtext', text }))))),
   h('span', { class: 'piece__shot' },
     h('span', { class: 'piece__sketch' }, sketch(section.type, variantOf(section.id), section.type === 'divider' ? valueOf(section.id, null, 'label') : ''))));
-  // The page content, the Header and the Footer keep their section: they have no Change.
-  if (!changeable || locked || !def) return el;
+  // The page content has no tools; the Header and the Footer can only be hidden; the rest can also be changed and deleted.
+  if (!def || main) return el;
   const replacing = pickerReplacing() === section.id;
-  return h('div', { class: `piece-wrap${replacing ? ' is-replacing' : ''}`, dataset: { sid: section.id } },
-    el,
-    h('button', {
-      type: 'button', class: 'piece__change', 'aria-label': `Change ${name} to another section`, title: 'Change section',
+  const tools = [];
+  if (changeable && !locked) {
+    tools.push(h('button', {
+      type: 'button', class: 'piece__tool piece__change', 'aria-label': `Change ${name} to another section`, title: 'Change section',
       onclick: () => { if (!dragJustEnded()) openPicker({ replace: section.id }); },
     }, icon('replace', 'icon--sm')));
+  }
+  tools.push(h('button', {
+    type: 'button', class: 'piece__tool piece__hide', 'aria-label': `${hidden ? 'Show' : 'Hide'} ${name}`, title: hidden ? 'Show section' : 'Hide section',
+    'aria-pressed': String(hidden),
+    onclick: () => { if (!dragJustEnded()) toggleVisible(section.id); },
+  }, icon(hidden ? 'eye-off' : 'eye', 'icon--sm')));
+  if (!locked) {
+    tools.push(h('button', {
+      type: 'button', class: 'piece__tool piece__delete', 'aria-label': `Delete ${name}`, title: 'Delete section',
+      onclick: () => { if (!dragJustEnded()) askRemoveSection(section.id); },
+    }, icon('trash', 'icon--sm')));
+  }
+  return h('div', { class: `piece-wrap${replacing ? ' is-replacing' : ''}`, dataset: { sid: section.id, tools: String(tools.length) } },
+    el,
+    h('span', { class: 'piece__tools' }, ...tools));
 }
 
 /* ------------------------------------------------------------------------
@@ -560,7 +576,7 @@ function focusKey(board) {
   const el = document.activeElement;
   if (!el || el === board || !board.contains(el)) return null;
   const wrap = el.closest('[data-sid]');
-  if (el.matches('.piece__change') && wrap) return { sid: wrap.dataset.sid, change: true };
+  if (el.matches('.piece__tool') && wrap) return { sid: wrap.dataset.sid, tool: ['piece__change', 'piece__hide', 'piece__delete'].find((c) => el.matches(`.${c}`)) };
   if (el.matches('.piece')) return { sid: el.dataset.sid };
   if (el.matches('.row__tab')) return { rowId: el.closest('.row')?.dataset.rowId };
   const spot = el.closest('[data-target]');
@@ -570,8 +586,8 @@ function focusKey(board) {
 function refocusKey(board, key) {
   let el = null;
   if (key.sid) {
-    el = key.change
-      ? board.querySelector(`.piece-wrap[data-sid="${CSS.escape(key.sid)}"] .piece__change`)
+    el = key.tool
+      ? board.querySelector(`.piece-wrap[data-sid="${CSS.escape(key.sid)}"] .${key.tool}`)
       : board.querySelector(`.piece[data-sid="${CSS.escape(key.sid)}"]`);
   } else if (key.rowId) {
     el = board.querySelector(`.row[data-row-id="${CSS.escape(key.rowId)}"] .row__tab`);
