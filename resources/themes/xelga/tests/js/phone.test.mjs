@@ -52,3 +52,35 @@ test('a still press let go after the delay without a move is a drag that goes no
   press.down(1000);
   assert.equal(press.up(1400), 'drag');
 });
+
+/*
+ * The board drawn as a list on a phone: the same frame and groups, with
+ * the page in the order a phone shows the store in.
+ */
+
+const { useWindow, openPage, drawBoard } = await import('./support/board-page.mjs');
+
+const words = (el) => el?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+
+test('the phone board lists Top, the left side, Content, the right side, Bottom', () => {
+  useWindow('phone');
+  openPage('product');
+  const board = drawBoard();
+  assert.equal(board.dataset.view, 'list');
+  assert.ok(board.querySelector('.frame .page-groups'), 'The same frame and groups as on a computer.');
+  // In page order: each area's rows, and each side, named by what it holds.
+  const marks = board.querySelectorAll('.area-rule, .side, .piece')
+    .filter((el) => !el.closest('.band'))
+    .map((el) => (el.matches('.area-rule') ? words(el) : el.matches('.side') ? el.dataset.side : el.dataset.sid));
+  assert.deepEqual(marks, ['Top', 'crumbs', 'Content', 'left', 'note', 'main', 'right', 'Bottom', 'words']);
+});
+
+test('filters on the phone board says In the Filter button', () => {
+  useWindow('phone');
+  openPage('category');
+  const flags = (board) => board.querySelector('.piece[data-sid="filters"]').querySelectorAll('.piece__flagtext').map(words);
+  assert.deepEqual(flags(drawBoard()), ['In the Filter button']);
+  // On a computer Filters stands in the side as the store shows it there.
+  useWindow('computer');
+  assert.deepEqual(flags(drawBoard()), []);
+});

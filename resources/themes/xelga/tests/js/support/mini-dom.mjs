@@ -1,9 +1,12 @@
 /*
  * A small stand-in for the browser DOM, enough for the editor's markup
- * cleaner to run under Node: elements with attributes and children,
- * template elements with their own content, a parser for plain test
- * markup (tags, quoted attributes, text, comments, void elements) and
- * `document.createElement`, `importNode` and `baseURI`.
+ * cleaner and its board to run under Node: elements with attributes,
+ * classes, styles, listeners and children, template elements with their
+ * own content, a parser for plain test markup (tags, quoted attributes,
+ * text, comments, void elements), simple selectors (tag, #id, .class,
+ * attributes, :not of an attribute, and a space between them for a
+ * descendant) and `document.createElement`, `createElementNS`,
+ * `createTextNode`, `importNode` and `baseURI`.
  *
  * Only for tests; it is not a full HTML parser.
  */
@@ -34,14 +37,33 @@ class Node {
     n.parentNode = null;
   }
 
+  replaceChildren(...nodes) {
+    this.childNodes.forEach((c) => { c.parentNode = null; });
+    this.childNodes = [];
+    this.append(...nodes);
+  }
+
+  get firstElementChild() {
+    return this.children[0] ?? null;
+  }
+
+  /** The text of the node and everything under it. */
+  get textContent() {
+    return this.childNodes.map((n) => n.textContent).join('');
+  }
+
+  set textContent(value) {
+    this.replaceChildren(String(value ?? ''));
+  }
+
   remove() {
     this.parentNode?.removeChild(this);
   }
 
-  /** Every element under this one, in document order. Only `*` is supported. */
+  /** Every element under this one, in document order, that the selector matches. */
   querySelectorAll(selector) {
-    if (selector !== '*') return this.descendants().filter((el) => el.matches(selector));
-    return this.descendants();
+    if (selector === '*') return this.descendants();
+    return this.descendants().filter((el) => selector.split(',').some((one) => matchesChain(el, one.trim().split(/\s+/))));
   }
 
   descendants() {
@@ -62,6 +84,10 @@ class Text extends Node {
     this.text = text;
   }
 
+  get textContent() {
+    return this.text;
+  }
+
   html() {
     return this.text;
   }
@@ -75,6 +101,10 @@ class Comment extends Node {
   constructor(text) {
     super();
     this.text = text;
+  }
+
+  get textContent() {
+    return '';
   }
 
   html() {
@@ -129,21 +159,55 @@ export class Element extends Node {
   }
 
   /**
-   * `tag`, `[attr]`, `[attr="value"]`, a tag followed by attribute tests,
-   * `:not([attr])` after them, and a comma-separated list of these.
+   * `tag`, `#id`, `.class`, `[attr]`, `[attr="value"]`, these one after
+   * the other, `:not([attr])` after them, and a comma-separated list of
+   * these. A space between them asks for a descendant.
    */
   matches(selector) {
-    return selector.split(',').some((one) => this.matchesOne(one));
+    return selector.split(',').some((one) => matchesChain(this, one.trim().split(/\s+/)));
   }
 
   matchesOne(selector) {
-    const m = /^([a-z0-9-]*)((?:\[[^\]]+\])*)((?::not\(\[[^\]]+\]\))*)$/i.exec(selector.trim());
+    const m = /^([a-z0-9-]*)((?:#[\w-]+)?)((?:\.[\w-]+)*)((?:\[[^\]]+\])*)((?::not\(\[[^\]]+\]\))*)$/i.exec(selector.trim());
     if (!m) throw new Error(`mini-dom cannot match ${selector}`);
     if (m[1] && m[1].toLowerCase() !== this.localName) return false;
+    if (m[2] && this.id !== m[2].slice(1)) return false;
+    if (m[3] && !m[3].split('.').filter(Boolean).every((c) => this.classList.contains(c))) return false;
     const test = ([, name, value]) => (value === undefined ? this.hasAttribute(name) : this.getAttribute(name) === value);
-    const tests = [...m[2].matchAll(/\[([^\]=]+)(?:="([^"]*)")?\]/g)];
-    const nots = [...m[3].matchAll(/:not\(\[([^\]=]+)(?:="([^"]*)")?\]\)/g)];
+    const tests = [...m[4].matchAll(/\[([^\]=]+)(?:="([^"]*)")?\]/g)];
+    const nots = [...m[5].matchAll(/:not\(\[([^\]=]+)(?:="([^"]*)")?\]\)/g)];
     return tests.every(test) && !nots.some(test);
+  }
+
+  get className() {
+    return this.getAttribute('class') ?? '';
+  }
+
+  set className(value) {
+    this.setAttribute('class', value);
+  }
+
+  /** The element's classes: add, remove, toggle and contains. */
+  get classList() {
+    const list = () => this.className.split(/\s+/).filter(Boolean);
+    const write = (names) => this.setAttribute('class', names.join(' '));
+    return {
+      contains: (name) => list().includes(name),
+      add: (...names) => write([...new Set([...list(), ...names])]),
+      remove: (...names) => write(list().filter((n) => !names.includes(n))),
+      toggle: (name, force) => {
+        const on = force ?? !list().includes(name);
+        if (on) write([...new Set([...list(), name])]);
+        else write(list().filter((n) => n !== name));
+        return on;
+      },
+    };
+  }
+
+  /** Inline styles, kept as plain properties. */
+  get style() {
+    this.styles ??= {};
+    return this.styles;
   }
 
   /** The element's `data-*` attributes as camel-case properties, readable, writable and deletable. */
@@ -231,6 +295,16 @@ export class Element extends Node {
   }
 }
 
+/** Whether an element matches the last selector of a chain and has ancestors matching the ones before, in order. */
+function matchesChain(el, parts) {
+  if (!el.matchesOne(parts[parts.length - 1])) return false;
+  let rest = parts.slice(0, -1);
+  for (let n = el.parentNode; n instanceof Element && rest.length; n = n.parentNode) {
+    if (n.matchesOne(rest[rest.length - 1])) rest = rest.slice(0, -1);
+  }
+  return rest.length === 0;
+}
+
 const decode = (text) => text.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).replace(/&amp;/g, '&');
 
 function parseInto(root, html) {
@@ -265,6 +339,8 @@ function parseInto(root, html) {
 /** Puts `document` and `location` on the global object for code that reads them. */
 export function installDom({ href = 'https://shop.example.com/' } = {}) {
   const url = new URL(href);
+  // The editor's element builder checks its children against the browser's Node.
+  globalThis.Node = Node;
   globalThis.location = { href: url.href, origin: url.origin };
   const body = new Element('body');
   const documentElement = new Element('html');
@@ -276,6 +352,8 @@ export function installDom({ href = 'https://shop.example.com/' } = {}) {
     activeElement: body,
     listeners,
     createElement: (tag) => new Element(tag),
+    createElementNS: (_, tag) => new Element(tag),
+    createTextNode: (text) => new Text(String(text)),
     importNode: (node, deep) => node.clone(deep),
     querySelector: (selector) => body.querySelector(selector),
     querySelectorAll: (selector) => body.querySelectorAll(selector),

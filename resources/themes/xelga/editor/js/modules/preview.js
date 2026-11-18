@@ -28,6 +28,8 @@ import { flush, setFatal } from './drafts.js';
 import { isPhone, radioItems, radioKeys } from './selection.js';
 import { isSameOrigin } from './api.js';
 import { placeFor, placeIn, scrollBy, OPEN_OFFSET } from './board/place.js';
+import { storeAddressFor } from './store-address.js';
+import { addressPill } from './board/board.js';
 
 /* The widths Preview offers. A computer is at least this wide, scaled down to fit when the panel leaves less. */
 const DEVICES = {
@@ -122,8 +124,24 @@ function reloadFrame() {
   return whenReady();
 }
 
+/*
+ * The frame's top bar: the address of the page shown, on the store's own
+ * domain. It follows the frame, so a link followed inside Preview names
+ * its own page; the preview key in the query is never shown.
+ */
+function showAddress() {
+  const bar = $('#preview-address');
+  if (!bar) return;
+  const href = frameWin()?.location.href || S.page?.url || S.store?.url || '';
+  const text = storeAddressFor(href, { shared: false });
+  bar.title = text;
+  bar.hidden = !text;
+  bar.replaceChildren(...(text ? [addressPill(text)] : []));
+}
+
 function onFrameLoad() {
   const win = frameWin();
+  showAddress();
   if (!win) return;
   ready = true;
   if (restoreY !== null) {
@@ -149,6 +167,7 @@ function setState(text) {
 export function previewPage() {
   const url = address();
   if (!S.page) return;
+  showAddress();
   if (!url) {
     shown = '';
     ready = false;
@@ -394,10 +413,12 @@ export function fitFrame() {
   const device = DEVICES[S.device] || DEVICES.computer;
   const width = S.device === 'computer' ? Math.max(Math.floor(availW), device.width) : device.width;
   scale = Math.min(1, availW / width);
+  // The address bar takes its own height at the top of the frame; the store has the rest.
+  const bar = $('#preview-address')?.offsetHeight || 0;
   Object.assign(wrap.style, { width: `${Math.floor(width * scale)}px`, height: `${Math.floor(availH)}px` });
   Object.assign(el.style, {
     width: `${width}px`,
-    height: `${Math.floor(availH / scale)}px`,
+    height: `${Math.floor((availH - bar) / scale)}px`,
     transform: scale < 1 ? `scale(${scale})` : '',
     transformOrigin: '0 0',
   });

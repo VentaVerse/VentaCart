@@ -16,6 +16,7 @@
 
 /* The layout board in the canvas. */
 @import "./board.css";
+@import "./frame.css";
 @import "./drawer.css";
 @import "./picker.css";
 @import "./preview.css";

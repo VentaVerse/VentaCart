@@ -172,6 +172,10 @@ export function pickerWhere(spot) {
   }
 
   const target = spot.target;
+  if (target?.drop === 'band') {
+    const list = doc(target.group)?.content?.order || [];
+    return inList(`in the ${target.group}`, list, target.before == null ? list.length : list.indexOf(target.before), null);
+  }
   if (target?.drop === 'gap') {
     const { index } = gapAt(rows, target);
     return (index >= 0 && between(rows[index - 1], rows[index])) || ['Goes on the page'];

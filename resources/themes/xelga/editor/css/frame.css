@@ -1,0 +1,300 @@
+/*
+ * One frame around the whole board: the store page as a single object.
+ *
+ * The board sits on a warm paper canvas; the panel keeps its white. On the
+ * canvas one frame holds the Header band, the page and the Footer band,
+ * with a real gap between the three, so a change to a band is never
+ * mistaken for a change to this page, while the frame says they are still
+ * one page. The frame's top bar names the store address the layout
+ * serves, the way a browser bar would, without drawing a browser. Preview
+ * shows the store in the same frame, with the address of the page shown.
+ *
+ * The bands share one calm tint and a link mark: anything on blue-grey is
+ * shared by every page. The page stays white.
+ */
+
+:root {
+  --paper: #e9e6e0;
+  --frame-bg: #f6f4f0;
+  --frame-line: #d8d2c7;
+  --frame-rule: #e4dfd6;
+  --frame-ink: #575149;
+  --frame-pill: #ece8e1;
+  --frame-shadow: 0 1px 2px rgb(48 40 28 / .06), 0 14px 36px -12px rgb(48 40 28 / .22);
+  --band-bg: #edf1f7;
+  --band-line: #d3dae5;
+  --band-ink: #3f4b5c;
+  --group-gap: 14px;
+}
+
+/* The warm canvas: the board only, so the panel and Preview keep their own surfaces. */
+.board { background: var(--paper); }
+
+.frame {
+  min-width: 0;
+  background: var(--frame-bg);
+  border: 1px solid var(--frame-line);
+  border-radius: 14px;
+  box-shadow: var(--frame-shadow);
+}
+
+/* ---------------------------------------------------------------- top bar */
+
+.frame__bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 42px;
+  padding: 6px 16px;
+  border-block-end: 1px solid var(--frame-rule);
+}
+
+.frame__address {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: min(560px, 100%);
+  margin: 0;
+  padding: 4px 14px 4px 10px;
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--frame-ink);
+  background: var(--frame-pill);
+  border-radius: 999px;
+}
+
+.frame__lock {
+  flex: none;
+  margin-inline-end: 6px;
+  color: #6f685d;
+}
+
+.frame__domain {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.frame__path {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "any product": the records a shared layout serves, set apart from the path. */
+.frame__any {
+  flex: none;
+  margin-inline-start: 4px;
+  padding: 0 7px;
+  color: var(--frame-ink);
+  background: var(--surface);
+  border: 1px solid var(--frame-line);
+  border-radius: 999px;
+}
+
+/* ------------------------------------------------------------- the groups */
+
+.page-groups {
+  display: grid;
+  gap: var(--group-gap);
+  padding: 16px;
+}
+
+/* Inside the frame the page sits lighter: the frame carries the depth. */
+.frame .sheet { box-shadow: 0 1px 2px rgb(48 40 28 / .07), 0 0 0 1px rgb(48 40 28 / .05); }
+
+/* A group's heading: its name, then after a dot who it reaches; the page's names only its reach. */
+.group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  margin: 0 0 8px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.group-head__icon { color: var(--text-3); }
+
+.group-head__dot {
+  font-weight: 400;
+  color: var(--text-3);
+}
+
+.group-head__scope {
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+/* ---------------------------------------------------------------- the bands */
+
+.band {
+  display: grid;
+  min-width: 0;
+  padding: 12px 16px;
+  background: var(--band-bg);
+  border: 1px solid var(--band-line);
+  border-radius: var(--radius-lg);
+}
+
+.band .group-head__icon,
+.band .group-head__scope { color: var(--band-ink); }
+
+.band__items {
+  display: grid;
+  min-width: 0;
+}
+
+/* Between the band's sections: a drop place and, while the band has room, an Add line on hover. */
+.bandgap {
+  position: relative;
+  height: 8px;
+}
+
+.bandgap:first-child { height: 0; }
+
+.bandgap:last-child { height: 4px; }
+
+/* A line shown on hover is drawn above the sections next to it. */
+.bandgap--line,
+.bandgap--line:first-child,
+.bandgap--line:last-child { height: 12px; }
+
+.bandgap--line:hover,
+.bandgap--line:focus-within { z-index: 5; }
+
+.bandgap .gap__pill { box-shadow: 0 0 0 3px var(--band-bg); }
+
+.bandgap--open,
+.bandgap--open:first-child {
+  height: auto;
+  padding-block-end: 8px;
+}
+
+.bandgap--open:last-child { padding-block: 8px 0; }
+
+.bandgap--target,
+.bandgap--target:first-child {
+  height: auto;
+  padding-block: 0 8px;
+}
+
+.bandgap--target .newspot { min-height: 48px; }
+
+/* While the band has room: a quiet Add section where a new bar usually goes. */
+.band-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--band-ink);
+  background: rgb(255 255 255 / .55);
+  border: 1px dashed #b9c3d2;
+  border-radius: var(--radius-lg);
+  transition: background-color .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease);
+}
+
+.band-add:hover {
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.band-add:focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* ------------------------------------------------------------ drag and drop */
+
+body.is-dragging .band-add { pointer-events: none; }
+
+body.is-dragging .bandgap .gap__add { opacity: 0; pointer-events: none; }
+
+body.is-dragging .bandgap.is-valid { height: 8px; }
+
+body.is-dragging .bandgap.is-valid::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  height: 2px;
+  margin-block-start: -1px;
+  background: var(--accent-line);
+  border-radius: 2px;
+}
+
+body.is-dragging .bandgap.is-over { height: 14px; }
+
+body.is-dragging .bandgap.is-over::after {
+  height: 4px;
+  margin-block-start: -2px;
+  background: var(--accent);
+}
+
+/* --------------------------------------------------------------- Preview */
+
+/* Preview shows the store page in the same frame, under the address of the page shown. */
+.preview__wrap.frame {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--frame-bg);
+  border-radius: 14px;
+}
+
+.preview__view {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+/* ------------------------------------------------------------------ narrower */
+
+@media (max-width: 899px) {
+  .page-groups { padding: 10px; }
+}
+
+@media (max-width: 719px) {
+  :root { --group-gap: 10px; }
+
+  .board { padding-inline: 6px; }
+
+  .frame { border-radius: 12px; }
+
+  .frame__bar {
+    min-height: 38px;
+    padding: 6px 8px;
+  }
+
+  .frame__address { padding-inline: 8px 10px; }
+
+  .page-groups { padding: 8px 6px; }
+
+  .band { padding: 10px 8px 8px; }
+
+  .group-head { margin-block-end: 6px; }
+
+  .band-add { min-height: 44px; }
+
+  .preview__wrap.frame {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .band-add { transition: none; }
+}

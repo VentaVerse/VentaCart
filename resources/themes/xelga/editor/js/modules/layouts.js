@@ -140,6 +140,23 @@ export function pageFacts({ fixed = false, label = '', words = null, subject = n
   };
 }
 
+/**
+ * Who a layout reaches, in a few words, for the heading of the page on
+ * the board: "All 24 products" when every record of its type uses it, a
+ * count when only some do, "This page only" for a page that shows no
+ * records. No DOM, no state.
+ *   words    { one, many } for the records the page shows, or null
+ *   users    the records that use this layout
+ *   total    every record of the type
+ *   special  the layout is a special one, used by the records chosen for it
+ */
+export function pageReach({ words = null, users = 0, total = 0, special = false } = {}) {
+  if (!words) return 'This page only';
+  if (!users) return `No ${words.many} yet`;
+  if (users === 1) return `1 ${words.one}`;
+  return !special && users === total ? `All ${users} ${words.many}` : `${users} ${words.many}`;
+}
+
 /* The facts of the page open now. */
 function factsNow() {
   const page = S.page;
