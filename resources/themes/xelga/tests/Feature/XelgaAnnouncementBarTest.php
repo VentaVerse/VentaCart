@@ -7,6 +7,8 @@ use Tests\Support\UsesSampleExtension;
 use Tests\TestCase;
 use Themes\Xelga\Catalog\CatalogLinter;
 use Themes\Xelga\Documents\Document;
+use Themes\Xelga\Documents\Layout;
+use Themes\Xelga\Documents\LayoutRules;
 use Themes\Xelga\Extensions\Registrar;
 use Themes\Xelga\Rendering\Storefront;
 use Themes\Xelga\Tests\XelgaExtensionHelpers;
@@ -155,6 +157,31 @@ class XelgaAnnouncementBarTest extends TestCase
         $home['order'][] = 'bar-2';
         $this->saveWithRows('home', $home, 0)->assertStatus(422)
             ->assertJsonValidationErrors(['content.sections.bar-2.type']);
+    }
+
+    public function test_a_bar_is_copied_only_into_an_area_with_room_for_it(): void
+    {
+        $product = $this->productWithBars(['bar-1' => 'top', 'bar-2' => 'bottom']);
+        $version = (int) $this->saveWithRows('product', $product, 0)->assertOk()->json('data.document.draft_version');
+
+        // The page holds two bars, but each area only its own.
+        $areas = Layout::sectionAreas($this->draft('product'), app(LayoutRules::class, ['handle' => 'product']));
+        $this->assertSame('top', $areas['bar-1']);
+        $this->assertSame('bottom', $areas['bar-2']);
+        $this->assertSame('content', $areas['product-main-1']);
+
+        // The copy would sit just under its original, in Top, which has its bar already.
+        $this->actingAs($this->admin())->postJson(route('admin.xelga.documents.duplicate', ['handle' => 'product']), ['section' => 'bar-1', 'draft_version' => $version])
+            ->assertStatus(422)->assertJsonPath('errors.section.0', 'Top holds at most 1 Announcement bar.');
+
+        // Home has no areas: its limit counts the page.
+        $home = $this->defaults('home');
+        $home['sections']['bar-1'] = $this->bar();
+        array_splice($home['order'], 1, 0, ['bar-1']);
+        $version = (int) $this->saveWithRows('home', $home, 0)->assertOk()->json('data.document.draft_version');
+        $this->assertSame([], Layout::sectionAreas($this->draft('home'), app(LayoutRules::class, ['handle' => 'home'])));
+        $this->actingAs($this->admin())->postJson(route('admin.xelga.documents.duplicate', ['handle' => 'home']), ['section' => 'bar-1', 'draft_version' => $version])
+            ->assertStatus(422)->assertJsonPath('errors.section.0', 'A page holds at most 1 Announcement bar.');
     }
 
     public function test_two_bars_in_one_area_after_a_side_is_added_still_save(): void

@@ -34,7 +34,7 @@ import { sectionDef, sectionIcon } from '../catalog.js';
 import { layoutPayload, rulesFor, sidesFor } from '../operations.js';
 import { openSheet, isPhone } from '../selection.js';
 import { refreshNeeds, needTag } from '../needs.js';
-import { rowsOf, contentSpan } from './model.js';
+import { rowsOf, contentSpan, gapTargets } from './model.js';
 import { fixedPanel } from '../layouts.js';
 import { openPicker, pickerSpot, pickerReplacing } from './picker.js';
 import { splitOf, listWords, columnName } from './words.js';
@@ -164,9 +164,8 @@ function newSpot() {
   return h('div', { class: 'newspot', 'aria-hidden': 'true' }, icon('plus', 'icon--sm'), 'New section goes here');
 }
 
-/** Between two rows: an Add line, shown on hover or focus (always on touch and narrow screens). */
-function gapEl(before, above, below) {
-  const target = { drop: 'gap', before };
+/** Between two rows (a gap of the row model): an Add line, shown on hover or focus (always on touch and narrow screens). */
+function gapEl(target, above, below) {
   if (isAddTarget(target)) return h('div', { class: 'gap gap--target', dataset: dropData(target) }, newSpot());
   const where = above && below ? `between ${above} and ${below}` : below ? `above ${below}` : above ? `below ${above}` : '';
   return h('div', { class: 'gap', dataset: dropData(target) },
@@ -191,7 +190,7 @@ function rowEl(row, sections) {
     el.append(h('button', {
       type: 'button', class: 'row__tab', 'aria-pressed': String(selected),
       'aria-label': `Row, ${split.label.toLowerCase()}${named.length ? `: ${listWords(named)}` : ''}`,
-      'aria-keyshortcuts': shortcuts(rowKeyMoves(rowsOf(doc(groupHandle('template')).content, layoutPayload()), row.id)),
+      'aria-keyshortcuts': shortcuts(rowKeyMoves(rowsOf(doc(groupHandle('template')).content, layoutPayload(), rulesFor(groupHandle('template'))), row.id)),
       title: 'Row settings. Drag to move the row.',
       onclick: () => {
         if (dragJustEnded()) return;
@@ -309,10 +308,17 @@ function pageRows() {
   // Every row draws at the width the sides leave the page's content.
   const area = offered.length ? contentSpan(content, rulesFor(handle)) : 12;
   const rows = h('div', { class: 'rows' });
-  const list = rowsOf(content, layoutPayload());
+  const list = rowsOf(content, layoutPayload(), rulesFor(handle));
   const nameOf = (row) => (row ? listWords(row.columns.flat().filter((sid) => sections[sid]).map((sid) => labelOf(sid))) || 'an empty row' : null);
-  list.forEach((row, i) => rows.append(gapEl(row.id, nameOf(list[i - 1]), nameOf(row)), rowEl(row, sections)));
-  rows.append(gapEl('end', nameOf(list[list.length - 1]), null));
+  // Each gap before the row it names; on a page with areas, each area also ends with a gap.
+  let drawn = 0;
+  gapTargets(list).forEach((gap) => {
+    rows.append(gapEl(gap, nameOf(list[drawn - 1]), nameOf(list[drawn])));
+    if (gap.before !== 'end') {
+      rows.append(rowEl(list[drawn], sections));
+      drawn += 1;
+    }
+  });
   if (!offered.length) return rows;
   // Sides run the full height of the page content, beside every row; on a phone they stack around it.
   return h('div', { class: 'zone', dataset: { sides: `${left.length ? 'l' : ''}${right.length ? 'r' : ''}`, content: String(area) } },

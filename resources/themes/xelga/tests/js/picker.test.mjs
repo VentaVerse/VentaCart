@@ -89,7 +89,7 @@ const row = (id, split, columns) => ({ id, split, columns, settings: { ...DEFAUL
  * narrows every column to three quarters of its part).
  */
 function samplePage({ side = false } = {}) {
-  return {
+  const c = {
     schema: 1,
     order: ['note', 'hero', 'words', 'shop', 'a', 'b', 'c', 'seen'],
     sections: {
@@ -116,8 +116,14 @@ function samplePage({ side = false } = {}) {
       row('r-three', '4-4-4', [['a'], ['b'], ['c']]),
       row('r-seen', '12', [['seen']]),
     ],
-    ...(side ? { sides: { left: ['note'] } } : {}),
   };
+  if (!side) return c;
+  // Only a page with page content has sides; they stand beside its Content rows.
+  c.sections.main = { type: 'product-main', label: 'Product', disabled: false, settings: {}, block_order: [], blocks: {} };
+  c.order.push('main');
+  c.rows = [...c.rows, row('r-main', '12', [['main']])].map((r) => ({ ...r, area: 'content' }));
+  c.sides = { left: ['note'] };
+  return c;
 }
 
 const offered = Object.fromEntries(Object.entries(CATALOG).filter(([, def]) => !def.main));

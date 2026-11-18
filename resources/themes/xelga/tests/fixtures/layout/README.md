@@ -74,9 +74,9 @@ A page without areas (one that may not have sides, or that holds no main
 section) has no `area` keys and no sides: its side sections go to rows at
 the end.
 
-These cases live in `areas/`. Only the PHP test reads them for now. For
-them, `rows` is what rows() gives for input with the case's rules, so each
-row carries its area.
+These cases live in `areas/`, read by both the PHP and the JS tests. For
+them, `rows` is what rows() (the editor's rowsOf()) gives for input with
+the case's rules, so each row carries its area.
 
 ## Reasons in `moved`
 

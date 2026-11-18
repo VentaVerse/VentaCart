@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import {
   useLayout, normalize, rowsOf, rowIdFor, freshRowId, locate, spanAt, fits, place,
   addRow, moveRow, removeRow, changeSplit, setRow, effectsOf, tidy, checkAddSpot,
-  contentSpan, sideTargets, catalogRules, roomOf,
+  contentSpan, sideTargets, catalogRules, roomOf, areasOf, countInPlace,
 } from '../../editor/js/modules/board/model.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -31,6 +31,8 @@ function rulesOf(spec) {
     minSpan: (section) => spec.min?.[section?.type] ?? 12,
     isMain: (section) => (spec.main || []).includes(section?.type),
     sidesAllowed: Boolean(spec.sides ?? true),
+    ownRow: (section) => (spec.own_row || []).includes(section?.type),
+    contentOnly: (section) => (spec.content_only || []).includes(section?.type),
   };
 }
 
@@ -46,16 +48,34 @@ function page(types, extra = {}) {
 const row = (id, split, columns, settings = DEFAULTS) => ({ id, split, columns, settings: { ...settings } });
 const json = (value) => JSON.stringify(value);
 
-/** The shared cases: the top folder and content-width/, whose cases measure columns beside the sides. */
+const AREA_RULES = {
+  ...rulesOf({
+    min: { text: 3, half: 6, wide: 8, banner: 12, bar: 6, filters: 3 },
+    main: ['product-main'],
+    sides: true,
+    own_row: ['bar'],
+    content_only: ['filters'],
+  }),
+  limitPerArea: (section) => section?.type === 'bar' || section?.type === 'notice',
+};
+
+/** A one-column row (or a row of columns) stored in an area. */
+const arow = (id, area, columns, split = '12') => ({ id, split, columns, settings: { ...DEFAULTS }, area });
+
+/**
+ * The shared cases: the top folder, content-width/, whose cases measure
+ * columns beside the sides, and areas/, the pages with areas.
+ */
 function fixtureFiles() {
   const list = (dir) => readdirSync(join(FIXTURES, dir)).filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => join(FIXTURES, dir, f));
-  return [...list('.'), ...list('content-width')];
+  return [...list('.'), ...list('content-width'), ...list('areas')];
 }
 
 test('normalize matches every shared fixture', () => {
   const files = fixtureFiles();
   assert.ok(files.length > 15);
   assert.ok(files.some((f) => f.includes('content-width')), 'the content width cases are read');
+  assert.ok(files.some((f) => f.includes('/areas/')), 'the cases with areas are read');
   files.forEach((file) => {
     const fixture = JSON.parse(readFileSync(file, 'utf8'));
     const rules = rulesOf(fixture.rules);
@@ -70,7 +90,9 @@ test('normalize matches every shared fixture', () => {
     assert.equal(json(again.content), json(fixture.expected), `${fixture.name}: normalizing twice changes nothing`);
     assert.deepEqual(again.moved, [], `${fixture.name}: normalizing twice moves nothing`);
 
-    if (fixture.rows) assert.equal(json(rowsOf(fixture.input)), json(fixture.rows), `${fixture.name}: rows`);
+    // The cases with areas give rowsOf the rules, so their rows carry an area.
+    const withRules = file.includes('/areas/') ? rules : undefined;
+    if (fixture.rows) assert.equal(json(rowsOf(fixture.input, LAYOUT, withRules)), json(fixture.rows), `${fixture.name}: rows`);
   });
 });
 
@@ -104,7 +126,9 @@ test('locate finds a section in a column or a side', () => {
 });
 
 test('spanAt gives a column its part of the content area beside the sides', () => {
-  const c = page({ a: 'text', b: 'text', f: 'text', g: 'text' }, { rows: [row('r1', '8-4', [['a'], ['b']])], sides: { left: ['f'] } });
+  const c = page({ main: 'product-main', a: 'text', b: 'text', f: 'text', g: 'text' }, {
+    rows: [arow('rm', 'content', [['main']]), arow('r1', 'content', [['a'], ['b']], '8-4')], sides: { left: ['f'] },
+  });
   assert.equal(spanAt(c, { drop: 'column', rowId: 'r1', column: 0, before: null }, RULES), 6);
   assert.equal(spanAt(c, { drop: 'column', rowId: 'r1', column: 1, before: null }, RULES), 3);
   assert.equal(spanAt(c, { drop: 'side', side: 'right', before: null }, RULES), 3);
@@ -114,12 +138,17 @@ test('spanAt gives a column its part of the content area beside the sides', () =
   assert.equal(spanAt(both, { drop: 'column', rowId: 'r1', column: 0, before: null }, RULES), 4);
   assert.equal(roomOf(both, 'a', RULES), 4);
   // A page that cannot have sides is measured whole.
-  assert.equal(spanAt(c, { drop: 'column', rowId: 'r1', column: 0, before: null }, rulesOf({ min: {}, sides: false })), 8);
+  assert.equal(spanAt(c, { drop: 'column', rowId: 'r1', column: 0, before: null }, rulesOf({ min: {}, main: ['product-main'], sides: false })), 8);
+  // So are Top and Bottom, beside no side.
+  const top = { ...c, rows: [arow('r1', 'top', [['a'], ['b']], '8-4'), arow('rm', 'content', [['main']])] };
+  assert.equal(spanAt(top, { drop: 'column', rowId: 'r1', column: 0, before: null }, RULES), 8);
 });
 
 test('fits measures a column beside the sides, as the server does', () => {
-  const c = page({ h: 'half', a: 'text', f: 'text', x: 'half' }, { rows: [row('r1', '6-6', [['a'], []]), row('rx', '12', [['x']])], sides: { left: ['f'] } });
-  c.order = ['f', 'a', 'x'];
+  const c = page({ main: 'product-main', h: 'half', a: 'text', f: 'text', x: 'half' }, {
+    rows: [arow('rm', 'content', [['main']]), arow('r1', 'content', [['a'], []], '6-6'), arow('rx', 'content', [['x']])], sides: { left: ['f'] },
+  });
+  c.order = ['f', 'main', 'a', 'x'];
   // A half beside one side is 4.5 twelfths: too narrow for a section of 6.
   assert.equal(fits(c, 'x', { drop: 'column', rowId: 'r1', column: 1, before: null }, RULES), false);
   assert.equal(checkAddSpot(c, { drop: 'column', rowId: 'r1', column: 1, before: null }, { type: 'half' }, RULES).reason, 'narrow');
@@ -131,25 +160,30 @@ test('fits measures a column beside the sides, as the server does', () => {
 });
 
 test('a section dropped in an empty side narrows the page and moves what no longer fits', () => {
-  const c = page({ h: 'half', a: 'text', t: 'text' }, { rows: [row('r1', '6-6', [['h'], ['a']]), row('rt', '12', [['t']])] });
-  c.order = ['h', 'a', 't'];
+  const c = page({ main: 'product-main', h: 'half', a: 'text', t: 'text' }, {
+    rows: [arow('rm', 'content', [['main']]), arow('r1', 'content', [['h'], ['a']], '6-6'), arow('rt', 'content', [['t']])],
+  });
+  c.order = ['main', 'h', 'a', 't'];
   const result = place(c, 't', { drop: 'side', side: 'left', before: null }, RULES);
   assert.deepEqual(result.content.sides, { left: ['t'] });
   assert.deepEqual(result.moved, ['h']);
-  assert.deepEqual(rowsOf(result.content).map((r) => r.columns), [[[], ['a']], [['h']]]);
+  assert.deepEqual(rowsOf(result.content, LAYOUT, RULES).map((r) => [r.columns, r.area]), [[[['main']], 'content'], [[[], ['a']], 'content'], [[['h']], 'content']]);
 });
 
 test('contentSpan ignores a side of hidden sections', () => {
-  const c = page({ a: 'text', f: 'text', g: 'text' }, { sides: { left: ['f'], right: ['g'] } });
+  const c = page({ main: 'product-main', a: 'text', f: 'text', g: 'text' }, { sides: { left: ['f'], right: ['g'] } });
   assert.equal(contentSpan(c, RULES), 6);
   c.sections.g.disabled = true;
   assert.equal(contentSpan(c, RULES), 9);
   c.sections.f.disabled = true;
   assert.equal(contentSpan(c, RULES), 12);
   // A side of a type the catalog does not know draws nothing either.
-  const unknown = page({ a: 'text', f: 'gone' }, { sides: { left: ['f'] } });
-  assert.equal(contentSpan(unknown, catalogRules(LAYOUT, (type) => (type === 'text' ? { span: { min: 3 } } : null), true)), 12);
-  assert.equal(contentSpan(page({ a: 'text', f: 'text' }, { sides: { left: ['f'] } }), rulesOf({ min: { text: 3 }, sides: false })), 12);
+  const defs = { text: { span: { min: 3 } }, 'product-main': { main: true, span: { min: 12 } } };
+  const unknown = page({ main: 'product-main', a: 'text', f: 'gone' }, { sides: { left: ['f'] } });
+  assert.equal(contentSpan(unknown, catalogRules(LAYOUT, (type) => defs[type] || null, true)), 12);
+  assert.equal(contentSpan(page({ main: 'product-main', a: 'text', f: 'text' }, { sides: { left: ['f'] } }), rulesOf({ min: { text: 3 }, main: ['product-main'], sides: false })), 12);
+  // A page without its main section has no sides to narrow it.
+  assert.equal(contentSpan(page({ a: 'text', f: 'text' }, { sides: { left: ['f'] } }), RULES), 12);
 });
 
 test('sideTargets offers both sides on the page types that may have them, never on Home or the cart', () => {
@@ -176,10 +210,12 @@ test('removing the last section of a side drops the side', () => {
 });
 
 test('effectsOf names every section whose width a new side changed', () => {
-  const c = page({ a: 'text', b: 'text', t: 'text' }, { rows: [row('r1', '6-6', [['a'], ['b']]), row('rt', '12', [['t']])] });
-  c.order = ['a', 'b', 't'];
+  const c = page({ main: 'product-main', a: 'text', b: 'text', t: 'text' }, {
+    rows: [arow('rm', 'content', [['main']]), arow('r1', 'content', [['a'], ['b']], '6-6'), arow('rt', 'content', [['t']])],
+  });
+  c.order = ['main', 'a', 'b', 't'];
   const after = place(c, 't', { drop: 'side', side: 'right', before: null }, RULES).content;
-  assert.deepEqual(effectsOf(c, after).sections.sort(), ['a', 'b', 't']);
+  assert.deepEqual(effectsOf(c, after).sections.sort(), ['a', 'b', 'main', 't']);
 });
 
 test('spanAt gives a column its split part, a side 3, a gap 12 and beside 6', () => {
@@ -278,14 +314,18 @@ test('place into a gap never takes the id of an empty row of columns', () => {
 });
 
 test('place into a side and back into a row', () => {
-  const c = page({ a: 'text', b: 'text' });
+  const c = page({ main: 'product-main', a: 'text', b: 'text' });
   const toSide = place(c, 'b', { drop: 'side', side: 'left', before: null }, RULES);
   assert.deepEqual(toSide.content.sides, { left: ['b'] });
-  assert.deepEqual(toSide.content.order, ['b', 'a']);
-  assert.equal('rows' in toSide.content, false, 'plain rows say no more than order');
+  assert.deepEqual(toSide.content.order, ['b', 'main', 'a'], 'the side stands beside Content, above Bottom');
+  assert.deepEqual(toSide.content.rows.map((r) => r.area), ['content', 'bottom'], 'a page with sides keeps its rows, which carry the areas');
 
-  const back = place(toSide.content, 'b', { drop: 'gap', before: 'end' }, RULES);
-  assert.equal(json(back.content), json(c));
+  const back = place(toSide.content, 'b', { drop: 'gap', area: 'bottom', before: 'end' }, RULES);
+  assert.equal(json(back.content), json(c), 'plain rows in the areas their places give say no more than order');
+
+  // A page without its main section has no areas, so no sides.
+  const plain = page({ a: 'text', b: 'text' });
+  assert.equal(place(plain, 'b', { drop: 'side', side: 'left', before: null }, RULES).content, plain);
 });
 
 test('changeSplit to thirds pours the fourth column into the third, moves misfits below and returns their new row ids', () => {
@@ -376,7 +416,7 @@ test('effectsOf names a changed multi-column row', () => {
   assert.deepEqual(effects.sections, ['c'], 'c now draws at 6 twelfths');
 
   const reordered = moveRow(c, 'rc', 'r1');
-  assert.deepEqual(effectsOf(c, reordered), { board: true, rows: [], sections: [] });
+  assert.deepEqual(effectsOf(c, reordered), { board: true, rows: [], sections: [], left: [] });
 });
 
 test('tidy drops removed ids and places new sections after their predecessor', () => {
@@ -404,13 +444,15 @@ test('each operation undone returns the identical content', async () => {
     text: { label: 'Text', span: { min: 3, variants: {} } },
     half: { label: 'Half', span: { min: 6, variants: {} } },
     wide: { label: 'Wide', span: { min: 8, variants: {} } },
+    'product-main': { label: 'Product', main: true, span: { min: 12, variants: {} } },
   } });
 
-  const start = page({ a: 'text', b: 'half', c: 'text', w: 'wide' }, {
-    rows: [row('r1', '6-6', [['a'], ['b']]), row('rc', '12', [['c']])],
+  // The page content first, so the rows below it are in Bottom.
+  const start = page({ main: 'product-main', a: 'text', b: 'half', c: 'text', w: 'wide' }, {
+    rows: [row('rm', '12', [['main']]), row('r1', '6-6', [['a'], ['b']]), row('rc', '12', [['c']])],
     placed: ['x'],
   });
-  start.order = ['a', 'b', 'c', 'w'];
+  start.order = ['main', 'a', 'b', 'c', 'w'];
   const normal = normalize(start, RULES).content;
 
   // Each step and what the row model alone makes of the same page, which the operation must match.
@@ -418,12 +460,14 @@ test('each operation undone returns the identical content', async () => {
     [{ t: 'place', sid: 'c', target: { drop: 'column', rowId: 'r1', column: 0, before: 'a' } }, (c) => place(c, 'c', { drop: 'column', rowId: 'r1', column: 0, before: 'a' }, RULES).content],
     [{ t: 'place', sid: 'a', target: { drop: 'gap', before: 'end' } }, (c) => place(c, 'a', { drop: 'gap', before: 'end' }, RULES).content],
     [{ t: 'place', sid: 'c', target: { drop: 'side', side: 'right', before: null } }, (c) => place(c, 'c', { drop: 'side', side: 'right', before: null }, RULES).content],
-    [{ t: 'row-add', split: '4-8', before: 'r1', rowId: 'row-added' }, (c) => addRow(c, '4-8', 'r1', 'row-added')],
-    [{ t: 'row-move', rowId: 'rc', before: 'r1' }, (c) => moveRow(c, 'rc', 'r1')],
-    [{ t: 'row-remove', rowId: 'r1' }, (c) => removeRow(c, 'r1').content],
+    [{ t: 'row-add', split: '4-8', before: 'r1', rowId: 'row-added' }, (c) => addRow(c, '4-8', 'r1', 'row-added', RULES)],
+    [{ t: 'row-add', split: '6-6', area: 'content', before: 'end', rowId: 'row-content' }, (c) => addRow(c, '6-6', { drop: 'gap', area: 'content', before: 'end' }, 'row-content', RULES)],
+    [{ t: 'row-move', rowId: 'rc', before: 'r1' }, (c) => moveRow(c, 'rc', 'r1', RULES)],
+    [{ t: 'row-move', rowId: 'r1', area: 'top', before: 'end' }, (c) => moveRow(c, 'r1', { drop: 'gap', area: 'top', before: 'end' }, RULES)],
+    [{ t: 'row-remove', rowId: 'r1' }, (c) => removeRow(c, 'r1', RULES).content],
     [{ t: 'row-split', rowId: 'r1', split: '3-3-3-3' }, (c) => changeSplit(c, 'r1', '3-3-3-3', RULES).content],
     [{ t: 'row-split', rowId: 'r1', split: '12' }, (c) => changeSplit(c, 'r1', '12', RULES).content],
-    [{ t: 'row-set', rowId: 'r1', key: 'scheme', to: 'scheme-1' }, (c) => setRow(c, 'r1', 'scheme', 'scheme-1')],
+    [{ t: 'row-set', rowId: 'r1', key: 'scheme', to: 'scheme-1' }, (c) => setRow(c, 'r1', 'scheme', 'scheme-1', RULES)],
   ];
   steps.forEach(([step, expected]) => {
     // A product page, which may have sides.
@@ -522,4 +566,107 @@ test('a spot that is no longer on the page is refused, never moved to the end', 
     assert.deepEqual(checkAddSpot(c, target, { type: 'text' }, RULES), { ok: false, reason: 'gone' }, JSON.stringify(target));
   });
   assert.deepEqual(checkAddSpot(c, { drop: 'column', rowId: 'r2', column: 0, before: null }, { type: 'wide' }, RULES), { ok: false, reason: 'narrow' });
+});
+
+/* ------------------------------------------------------------------------
+   Pages with areas: Top, Content between the sides, Bottom
+   ------------------------------------------------------------------------ */
+
+test('home has no areas', () => {
+  const defs = { text: { span: { min: 3 } }, 'product-main': { main: true, span: { min: 12 } } };
+  const sectionDef = (type) => defs[type] || null;
+  const c = page({ a: 'text', main: 'product-main', b: 'text' });
+
+  const home = catalogRules(LAYOUT, sectionDef, sideTargets('home', LAYOUT).length > 0);
+  assert.equal(areasOf(c, home), null);
+  assert.ok(rowsOf(c, LAYOUT, home).every((r) => !Object.hasOwn(r, 'area')), 'its rows carry no area');
+
+  // A product page has them: Top above the page content, Bottom below it.
+  const product = catalogRules(LAYOUT, sectionDef, sideTargets('product', LAYOUT).length > 0);
+  const names = (rows) => rows.map((r) => r.columns[0][0]);
+  const areas = areasOf(c, product);
+  assert.deepEqual({ top: names(areas.top), content: names(areas.content), bottom: names(areas.bottom) }, { top: ['a'], content: ['main'], bottom: ['b'] });
+  assert.deepEqual(rowsOf(c, LAYOUT, product).map((r) => r.area), ['top', 'content', 'bottom']);
+  // Without its page content a product page has no areas either.
+  assert.equal(areasOf(page({ a: 'text' }), product), null);
+});
+
+test('the first side section reports the rows it moves out of Content', () => {
+  const c = page({ main: 'product-main', banner: 'banner', best: 'text', f: 'text' }, {
+    rows: [arow('rm', 'content', [['main']]), arow('rb', 'content', [['banner']]), arow('rs', 'content', [['best']]), arow('rf', 'bottom', [['f']])],
+  });
+  const result = place(c, 'f', { drop: 'side', side: 'left', before: null }, AREA_RULES);
+  assert.deepEqual(result.content.sides, { left: ['f'] });
+  assert.deepEqual(result.moved, [], 'no section moved to a row of its own');
+  assert.deepEqual(rowsOf(result.content, LAYOUT, AREA_RULES).map((r) => [r.id, r.area]), [['rm', 'content'], ['rb', 'bottom'], ['rs', 'bottom']]);
+  // The banner is too wide beside the side; the row below it goes too, so the page keeps its order.
+  assert.deepEqual(effectsOf(c, result.content, AREA_RULES).left, [{ sid: 'banner', area: 'bottom' }, { sid: 'best', area: 'bottom' }]);
+  assert.deepEqual(effectsOf(result.content, c, AREA_RULES).left, [], 'undo moves nothing out of Content');
+});
+
+test('countInPlace counts a bar per area and per band', () => {
+  const c = page({ bar1: 'bar', main: 'product-main', bar2: 'bar', t: 'text' }, {
+    rows: [arow('r1', 'top', [['bar1']]), arow('rm', 'content', [['main']]), arow('r2', 'bottom', [['bar2']]), arow('rt', 'bottom', [['t']])],
+  });
+  assert.equal(countInPlace(c, 'bar', { drop: 'gap', area: 'top', before: 'end' }, AREA_RULES), 1);
+  assert.equal(countInPlace(c, 'bar', { drop: 'gap', area: 'content', before: 'rm' }, AREA_RULES), 0);
+  assert.equal(countInPlace(c, 'bar', { drop: 'side', side: 'left', before: null }, AREA_RULES), 0, 'a side counts as Content');
+  assert.equal(countInPlace(c, 'bar', { drop: 'gap', area: 'bottom', before: 'end' }, AREA_RULES), 1);
+  assert.equal(countInPlace(c, 'bar', { drop: 'column', rowId: 'r1', column: 0, before: null }, AREA_RULES), 1, 'a row counts in its area');
+  // A type whose limit is per page counts the whole page.
+  assert.equal(countInPlace(c, 'text', { drop: 'gap', area: 'top', before: 'end' }, AREA_RULES), 1);
+  // A page without areas counts the page.
+  assert.equal(countInPlace(c, 'bar', { drop: 'gap', area: null, before: 'end' }, { ...AREA_RULES, sidesAllowed: false }), 2);
+  // A band is a document of its own.
+  const header = { schema: 1, order: ['bar3', 'header'], sections: { bar3: { type: 'bar' }, header: { type: 'header' } } };
+  assert.equal(countInPlace(header, 'bar', { drop: 'band', group: 'header', before: null }, { ...AREA_RULES, sidesAllowed: false }), 1);
+});
+
+test('a second bar in another area can be added and duplicated', async () => {
+  // The editor's messages look for their holder in the page; Node has none.
+  globalThis.document ??= { querySelector: () => null, querySelectorAll: () => [], addEventListener: () => {} };
+  globalThis.window ??= { setTimeout, clearTimeout, addEventListener: () => {}, requestAnimationFrame: () => 0 };
+  const { S, ctx } = await import('../../editor/js/modules/state.js');
+  const { setCatalog } = await import('../../editor/js/modules/catalog.js');
+  const { resetHistory } = await import('../../editor/js/modules/operations.js');
+  const { addSection, canDuplicate, duplicateSection } = await import('../../editor/js/modules/actions.js');
+
+  ctx.boot = { layout: LAYOUT };
+  ctx.api = {};
+  const bar = { label: 'Announcement bar', group: 'template', templates: ['*'], limit: 1, limit_per_area: true, own_row: true, span: { min: 6, variants: {} }, settings: [] };
+  setCatalog({ sections: {
+    bar,
+    notice: { ...bar, label: 'Notice', limit: 2 },
+    text: { label: 'Text', group: 'template', templates: ['*'], span: { min: 3, variants: {} }, settings: [] },
+    'product-main': { label: 'Product', group: 'template', main: true, span: { min: 12, variants: {} }, settings: [] },
+  } });
+  const start = page({ bar1: 'bar', main: 'product-main', t: 'text' }, {
+    rows: [arow('r1', 'top', [['bar1']]), arow('rm', 'content', [['main']]), arow('rt', 'bottom', [['t']])],
+  });
+  S.docs = { product: { handle: 'product', kind: 'template', content: JSON.parse(json(start)), savedSeq: 0 } };
+  S.page = { handle: 'product', pageType: 'product', kind: 'template' };
+  S.loaded = true;
+  S.fatal = null;
+  resetHistory();
+
+  const added = addSection('bar', { target: { drop: 'gap', area: 'bottom', before: 'end' } });
+  assert.ok(added, 'Bottom takes a bar while Top has one');
+  const rows = rowsOf(S.docs.product.content, LAYOUT, AREA_RULES);
+  assert.deepEqual(rows.map((r) => [r.columns[0][0], r.area]), [['bar1', 'top'], ['main', 'content'], ['t', 'bottom'], [added.sid, 'bottom']]);
+  // Each bar's area is full, so neither is copied into it.
+  assert.equal(canDuplicate('bar1'), false);
+  assert.equal(canDuplicate(added.sid), false);
+
+  // A type allowed twice in an area is copied while its own area has room, whatever the page holds.
+  const n = page({ n1: 'notice', main: 'product-main', n2: 'notice', n3: 'notice' }, {
+    rows: [arow('r1', 'top', [['n1']]), arow('rm', 'content', [['main']]), arow('r2', 'bottom', [['n2']]), arow('r3', 'bottom', [['n3']])],
+  });
+  S.docs = { product: { handle: 'product', kind: 'template', content: JSON.parse(json(n)), savedSeq: 0 } };
+  resetHistory();
+  assert.equal(canDuplicate('n1'), true);
+  assert.equal(canDuplicate('n2'), false);
+  await duplicateSection('n1');
+  const copied = rowsOf(S.docs.product.content, LAYOUT, AREA_RULES);
+  assert.equal(copied.length, 5);
+  assert.deepEqual(copied.slice(0, 2).map((r) => r.area), ['top', 'top'], 'the copy sits under its original, in Top');
 });

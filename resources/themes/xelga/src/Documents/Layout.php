@@ -179,6 +179,38 @@ final class Layout
     }
 
     /**
+     * The area each section of a page with areas is in, by section id:
+     * its row's area, Content for a section in a side. Empty on a page
+     * without areas.
+     *
+     * @return array<string, string>
+     */
+    public static function sectionAreas(array $content, LayoutRules $rules): array
+    {
+        $out = [];
+        foreach (self::rows($content, $rules) as $row) {
+            if (! isset($row['area'])) {
+                return [];
+            }
+            foreach ($row['columns'] as $column) {
+                foreach ($column as $id) {
+                    $out[$id] = $row['area'];
+                }
+            }
+        }
+        $sides = is_array($content['sides'] ?? null) ? $content['sides'] : [];
+        foreach (self::SIDES as $which) {
+            foreach (is_array($sides[$which] ?? null) ? $sides[$which] : [] as $id) {
+                if (is_string($id)) {
+                    $out[$id] = 'content';
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * The document with every section placed once and `order` derived from
      * where it sits. Never refuses: what does not fit is moved and reported.
      *
