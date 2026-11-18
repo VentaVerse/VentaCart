@@ -181,7 +181,8 @@
             "key": "image_mobile",
             "type": "image",
             "label": "Photo on phones",
-            "default": ""
+            "default": "",
+            "live": "render"
           },
           {
             "key": "image_alt",

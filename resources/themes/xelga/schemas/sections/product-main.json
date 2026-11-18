@@ -11,6 +11,11 @@
   "main": true,
   "class": "s-product",
   "extension_blocks": true,
+  "render_keys": [
+    "picker_color",
+    "picker_size",
+    "zoom"
+  ],
   "settings": [
     {
       "key": "gallery",

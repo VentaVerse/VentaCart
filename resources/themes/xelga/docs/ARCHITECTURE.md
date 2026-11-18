@@ -198,6 +198,7 @@ Keys a section schema may carry:
 | `picker_order` | where the type sits within its picker group: a whole number above 0, lower first (the most used types lead). Types without one follow in catalog order. |
 | `blocks.types[].limit` | most blocks of that type in one section. |
 | `span` | `{"min": N}`: the narrowest place the section fits, in twelfths of the page: 3, 4, 6, 8 or 12. Absent means 12, full width only. A variant may carry its own `"span": N`, which wins while that variant is chosen (a wide layout of a section that otherwise fits a narrow column). Main sections never go below 12. The linter refuses other values. See section 5.2 for how it is measured. |
+| setting `live` | how the preview applies a change: `text`, `attr`, `css`, or `render` (server re-render, section 7.5). Inferred when absent: picker types, `url` on a data-driven section, and any setting named in the section's `render_keys` are `render`; text types are `text`; everything else `attr`. |
 | setting `visible_if` | unchanged from the draft: shown only when every listed key matches. |
 | setting `options_source` | options filled at boot from core data: `blog_categories`, `menus`, `font_pairs`. |
 

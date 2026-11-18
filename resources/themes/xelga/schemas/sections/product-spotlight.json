@@ -236,6 +236,9 @@
       "control": "segmented"
     }
   ],
+  "render_keys": [
+    "product"
+  ],
   "presets": [
     {
       "key": "split",
