@@ -8,6 +8,7 @@ use Tests\TestCase;
 use Themes\Xelga\Documents\Document;
 use Themes\Xelga\Documents\Defaults;
 use Themes\Xelga\Documents\Layout;
+use Themes\Xelga\Documents\Revision;
 use Themes\Xelga\Documents\TemplateManager;
 use Themes\Xelga\Tests\XelgaExtensionHelpers;
 use Themes\Xelga\Tests\XelgaTestHelpers;
@@ -192,10 +193,16 @@ class XelgaExtensionDormancyTest extends TestCase
         $stored = [$before->draft['sides'], $before->draft['rows']];
 
         $this->switchOffSampleExtension();
-        $this->saveProductDraft();
+        // While the extension is away: another page is saved and published, and the waiting page is asked for.
+        $this->saveAndPublish();
         $this->forgetXelgaState();
+        $this->actingAs($this->admin())->getJson(route('admin.xelga.documents.show', ['handle' => 'sample_page']))->assertNotFound();
+        $revision = Revision::create(['document_id' => $before->id, 'version' => 1, 'content' => $page, 'source' => 'publish', 'created_by' => $this->admin()->id]);
+        $this->forgetXelgaState();
+        $this->actingAs($this->admin())->postJson(route('admin.xelga.revisions.restore', ['handle' => 'sample_page', 'revision' => $revision->id]), ['draft_version' => 0]);
+        $this->forgetXelgaState();
+        $this->publish($this->admin(), ['sample_page' => 0]);
         $this->switchOnSampleExtension();
-        $this->saveProductDraft();
 
         $after = Document::where('handle', 'sample_page')->firstOrFail();
         $this->assertSame(json_encode($stored), json_encode([$after->draft['sides'], $after->draft['rows']]));
