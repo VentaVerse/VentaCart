@@ -381,7 +381,7 @@ class MediaLibrary
      * snapshot on past order lines, or those records show a broken image.
      */
 
-    private static function isImage(string $path): bool
+    public static function isImage(string $path): bool
     {
         if (str_contains($path, '_thumb.')) {
             return false;
