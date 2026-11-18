@@ -96,3 +96,92 @@ test('every call uses its own method, URL, body fields and headers', async () =>
         }
     }
 });
+
+/** A stand-in XMLHttpRequest that answers with a fixed reply after reporting progress. */
+function fakeXhr({ status = 200, body = '{"ok":true}', headers = {}, steps = [], fail = false } = {}) {
+    const sent = [];
+    class FakeXhr {
+        constructor() {
+            this.headers = {};
+            this.upload = {};
+            sent.push(this);
+        }
+
+        open(method, url) {
+            this.method = method;
+            this.url = url;
+        }
+
+        setRequestHeader(name, value) {
+            this.headers[name] = value;
+        }
+
+        getResponseHeader(name) {
+            return headers[name] ?? null;
+        }
+
+        send(payload) {
+            this.body = payload;
+            setTimeout(() => {
+                steps.forEach(([loaded, total]) => this.upload.onprogress?.({ lengthComputable: true, loaded, total }));
+                if (fail) {
+                    this.onerror?.();
+                    return;
+                }
+                this.status = status;
+                this.responseText = body;
+                this.onload?.();
+            }, 0);
+        }
+    }
+    return { FakeXhr, sent };
+}
+
+const noFetch = async () => {
+    throw new Error('fetch must not be used for an upload with progress');
+};
+
+test('an upload with onProgress reports how much was sent and sends the same request', async () => {
+    const { FakeXhr, sent } = fakeXhr({ body: '{"ok":true,"files":[{"path":"media/demo-001.jpg"}]}', steps: [[25, 100], [50, 100], [100, 100]] });
+    const api = createApi(config, noFetch, FakeXhr);
+    const seen = [];
+    const data = await api.upload([new File(['x'], 'demo-001.jpg', { type: 'image/jpeg' })], 'media/products', { onProgress: (p) => seen.push(p) });
+
+    assert.deepEqual(seen, [25, 50, 100, 100]);
+    assert.equal(data.files[0].path, 'media/demo-001.jpg');
+    const xhr = sent[0];
+    assert.equal(xhr.method, 'POST');
+    assert.equal(xhr.url, '/u');
+    assert.equal(xhr.headers['X-CSRF-TOKEN'], 'tok');
+    assert.equal(xhr.headers.Accept, 'application/json');
+    assert.equal(xhr.headers['X-Requested-With'], 'XMLHttpRequest');
+    assert.equal('Content-Type' in xhr.headers, false);
+    assert.ok(xhr.body instanceof FormData);
+    assert.deepEqual([...new Set(xhr.body.keys())], ['files[]', 'path']);
+    assert.equal(xhr.body.get('path'), 'media/products');
+});
+
+test('an upload with onProgress maps failures the same way as every other call', async () => {
+    const upload = (Xhr) => createApi(config, noFetch, Xhr).upload([new File(['x'], 'a.jpg', { type: 'image/jpeg' })], 'media', { onProgress: () => {} });
+
+    await assert.rejects(upload(fakeXhr({ status: 422, body: '{"ok":false,"message":"Bad","errors":{"files.0":["a.jpg is not a photo. Use a JPG, PNG or WebP file."]}}' }).FakeXhr),
+        (e) => e instanceof MediaApiError && e.kind === 'validation' && e.status === 422 && e.fields['files.0'][0].startsWith('a.jpg'));
+    await assert.rejects(upload(fakeXhr({ status: 429, body: '{}', headers: { 'Retry-After': '30' } }).FakeXhr),
+        (e) => e.kind === 'too-many' && e.retryAfter === 30 && e.message === 'Too many requests. Wait a moment and try again.');
+    await assert.rejects(upload(fakeXhr({ status: 419, body: 'not json' }).FakeXhr), (e) => e.kind === 'unauthenticated');
+    await assert.rejects(upload(fakeXhr({ status: 200, body: '{"ok":false,"message":"That folder cannot be written to."}' }).FakeXhr),
+        (e) => e.kind === 'server' && e.message === 'That folder cannot be written to.');
+    await assert.rejects(upload(fakeXhr({ fail: true }).FakeXhr), (e) => e.kind === 'network');
+});
+
+test('an upload without onProgress still goes through fetch', async () => {
+    let used = false;
+    const { FakeXhr, sent } = fakeXhr();
+    const api = createApi(config, async () => {
+        used = true;
+        return new Response('{"ok":true}');
+    }, FakeXhr);
+    await api.upload([new File(['x'], 'a.jpg', { type: 'image/jpeg' })], 'media');
+    assert.equal(used, true);
+    assert.equal(sent.length, 0);
+});

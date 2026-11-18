@@ -102,8 +102,12 @@
 .ml-root button { cursor: pointer; }
 .ml-root button:disabled { cursor: default; }
 
+/*
+ * Focus rings are drawn with box-shadow. The transparent outline beside it
+ * is what forced-colors mode paints, where shadows are removed.
+ */
 .ml-root :focus-visible {
-  outline: none;
+  outline: 2px solid transparent;
   box-shadow: var(--ml-focus);
 }
 
@@ -241,7 +245,7 @@
 .ml-root .ml-select:focus-visible,
 .ml-input:focus,
 .ml-select:focus {
-  outline: none;
+  outline: 2px solid transparent;
   border-color: var(--ml-accent);
   box-shadow: 0 0 0 3px var(--ml-accent-soft);
 }
@@ -295,7 +299,8 @@
 /* Only a message to show: no room for a library. */
 .ml-modal--small {
   width: min(440px, calc(100% - 32px));
-  height: auto;
+  height: fit-content;
+  max-height: calc(100dvh - 32px);
 }
 
 .ml-modal--small .ml-frame { grid-template-rows: auto auto auto; }
@@ -450,7 +455,7 @@
 
 .ml-tree__row:hover { background: var(--ml-hover); }
 
-.ml-tree__item:focus-visible > .ml-tree__row { box-shadow: inset 0 0 0 2px var(--ml-accent); }
+.ml-tree__item:focus-visible > .ml-tree__row { outline: 2px solid transparent; outline-offset: -2px; box-shadow: inset 0 0 0 2px var(--ml-accent); }
 
 .ml-tree__item[aria-selected="true"] > .ml-tree__row {
   color: var(--ml-accent-press);
@@ -745,7 +750,7 @@
 
 .ml-tile:hover .ml-tile__img { box-shadow: inset 0 0 0 1px rgb(16 20 28 / .06), 0 0 0 1px #aeb5bf; }
 
-.ml-tile:focus-visible .ml-tile__img { box-shadow: var(--ml-focus); }
+.ml-tile:focus-visible .ml-tile__img { outline: 2px solid transparent; outline-offset: 2px; box-shadow: var(--ml-focus); }
 
 .ml-tile[aria-selected="true"] .ml-tile__img { box-shadow: 0 0 0 2px var(--ml-accent); }
 
@@ -890,24 +895,8 @@
 }
 
 .ml-tile__progress::-webkit-progress-bar { background: transparent; }
-.ml-tile__progress::-webkit-progress-value { background: var(--ml-accent); border-radius: 2px; }
+.ml-tile__progress::-webkit-progress-value { background: var(--ml-accent); border-radius: 2px; transition: width .25s linear; }
 .ml-tile__progress::-moz-progress-bar { background: var(--ml-accent); border-radius: 2px; }
-
-/* The file being sent: the browser reports no upload progress, so a band runs. */
-.ml-tile__progress:indeterminate {
-  background:
-    linear-gradient(90deg, transparent 0 35%, var(--ml-accent) 35% 65%, transparent 65%) 0 0 / 300% 100% no-repeat,
-    rgb(255 255 255 / .85);
-  animation: ml-progress 1.2s linear infinite;
-}
-
-.ml-tile__progress:indeterminate::-webkit-progress-bar { background: transparent; }
-.ml-tile__progress:indeterminate::-moz-progress-bar { background: transparent; }
-
-@keyframes ml-progress {
-  from { background-position: 100% 0, 0 0; }
-  to { background-position: 0 0, 0 0; }
-}
 
 .ml-tile__upnote {
   font-size: var(--ml-fs-xs);
@@ -1159,7 +1148,7 @@
 @media (max-width: 1100px) {
   .ml-root { --ml-side-w: 248px; }
   .ml-modal { width: calc(100% - 32px); height: calc(100dvh - 32px); }
-  .ml-modal--small { width: min(440px, calc(100% - 32px)); height: auto; }
+  .ml-modal--small { width: min(440px, calc(100% - 32px)); height: fit-content; max-height: calc(100dvh - 32px); }
 }
 
 @media (max-width: 719px) {
@@ -1177,7 +1166,8 @@
 
   .ml-modal--small {
     width: calc(100% - 32px);
-    height: auto;
+    height: fit-content;
+    max-height: calc(100dvh - 32px);
     margin: auto;
     border-radius: var(--ml-radius-xl);
   }
@@ -1282,6 +1272,6 @@
 @media (prefers-reduced-motion: reduce) {
   .ml-modal[open] { animation: none; }
   .ml-tile.is-picked-now .ml-tile__mark { animation: none; }
-  .ml-sk,
-  .ml-tile__progress:indeterminate { animation: none; }
+  .ml-sk { animation: none; }
+  .ml-tile__progress::-webkit-progress-value { transition: none; }
 }
