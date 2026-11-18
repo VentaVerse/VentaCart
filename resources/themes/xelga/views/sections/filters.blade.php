@@ -1,8 +1,10 @@
 {{--
     Filters: the category page's filter form in a section of its own, so
-    it can sit in a page side. Below 990px it is a box that starts closed
-    (the listing's Filter button opens it); from 990px it stands open.
-    A page with nothing to filter draws nothing, so its side takes no room.
+    it can sit in a page side or a Content column. From 990px it stands
+    where it was put. Below 990px the script draws it as the listing's
+    filter drawer (the same form, never a copy), closed until the
+    listing's Filter button opens it. A page with nothing to filter draws
+    only a note.
 --}}
 @php
     $filters = $data['filters'];
@@ -10,19 +12,18 @@
 @endphp
 @if ($shows || $context->preview)
 <section class="s {{ $section['class'] }} {{ $settings['scheme'] }}" id="{{ $section['id'] }}" @include('xelga::snippets.section-attrs') aria-label="Filters">
-    <div class="s__inner">
-        @if ($shows)
-            <details class="filters-box" data-filters-box>
-                <summary class="filters-box__summary">
-                    <span class="filters-box__label"><svg class="icon" aria-hidden="true"><use href="#i-filter"></use></svg>Filter</span>
-                    @if ($filters['active'] > 0)<span class="toolbar__badge"><span class="visually-hidden">Filters on: </span>{{ $filters['active'] }}</span>@endif
-                    <svg class="icon filters-box__chevron" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
-                </summary>
-                @include('xelga::blocks.listing.filters')
-            </details>
-        @else
+    @if ($shows)
+        <div class="drawer__head filters-drawer__head">
+            <h2 class="filters__title" id="{{ $section['id'] }}-title" tabindex="-1" data-filters-title>Filter @if ($filters['active'] > 0)<span class="toolbar__badge"><span class="visually-hidden">Filters on: </span>{{ $filters['active'] }}</span> @endif</h2>
+            <button type="button" class="icon-btn" data-filters-close aria-label="Close filters"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+        </div>
+        <div class="s__inner drawer__body filters-drawer__body">
+            @include('xelga::blocks.listing.filters')
+        </div>
+    @else
+        <div class="s__inner">
             <p class="filters-box__note muted">There is nothing to filter on this page. Filters show on category pages whose products have prices, brands or details to choose from; which ones show is set in VentaCart, Settings, Catalog.</p>
-        @endif
-    </div>
+        </div>
+    @endif
 </section>
 @endif

@@ -1,9 +1,13 @@
 /*
- * Filters: the category page's filter form in a section of its own. The
- * form itself (facets, price, checkboxes) is styled with the listing in
- * components/listing.css. Below 990px, where page sides stack, the form
- * sits in a box with a Filter bar that opens it; from 990px the open box
- * shows the form's own head, and a change sends itself.
+ * The Filters section: the category page's filter form in a section of
+ * its own, in a page side or a Content column. The form itself (facets,
+ * price, checkboxes) is styled with the listing in components/listing.css.
+ *
+ * From 990px the section stands where it was put and a change sends
+ * itself. Below 990px, once the script runs (data-drawer), the same
+ * section is the listing's filter drawer: out of sight until the Filter
+ * button opens it (data-open), then fixed over the page like the other
+ * drawers. Without the script it stands open in the page.
  */
 .s-filters {
   container-type: inline-size;
@@ -11,38 +15,69 @@
   --pad: calc(var(--space-section) * .5);
 }
 
-.filters-box__summary {
-  display: flex;
-  align-items: center;
-  gap: .625rem;
-  min-height: 52px;
-  padding-inline: 1rem;
-  border: 1px solid color-mix(in srgb, var(--c-text) 22%, var(--c-border));
-  border-radius: var(--radius-button);
-  font-size: var(--fs-sm);
-  font-weight: 650;
-  list-style: none;
-  cursor: pointer;
-}
-
-.filters-box__summary::-webkit-details-marker { display: none; }
-.filters-box__label { display: inline-flex; align-items: center; gap: .5rem; margin-inline-end: auto; }
-.filters-box__chevron { transition: transform .25s var(--ease-out); }
-.filters-box[open] .filters-box__chevron { transform: rotate(180deg); }
-.filters-box[open] > .filters-box__summary { margin-block-end: .5rem; }
-
-/* In the box the bar already says Filter; the form's head keeps only Clear all. */
-.s-filters .filters__title { display: none; }
-.s-filters .filters__head { justify-content: flex-end; }
-.s-filters .filters__head:not(:has(.filters__clear)) { display: none; }
 .filters-box__note { font-size: var(--fs-sm); }
 
+/* The drawer's own head: only below 990px, where the section is a drawer. */
+.filters-drawer__head { display: none; }
+.filters-drawer__head .filters__title { display: inline-flex; align-items: center; gap: .5rem; }
+.filters-drawer__head .filters__title:focus { outline: none; }
+.filters-drawer__head .filters__title:focus-visible { outline: 2px solid var(--c-text); outline-offset: 4px; }
+
+@media (max-width: 989px) {
+  .s-filters[data-drawer] { display: none; }
+
+  .s-filters[data-drawer][data-open] {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    width: min(88vw, 400px);
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    color: var(--c-text);
+    background: var(--c-bg);
+    /* The shadow's spread dims the page behind the drawer. */
+    box-shadow: 0 0 0 100vmax rgb(var(--overlay-rgb) / .5);
+    animation: drawer-in .38s var(--ease-out);
+  }
+
+  html[data-drawer-side="end"] .s-filters[data-drawer][data-open] {
+    inset: 0 0 0 auto;
+    animation-name: drawer-in-end;
+  }
+
+  .s-filters[data-drawer] .filters-drawer__head { display: flex; }
+
+  .s-filters[data-drawer] .filters-drawer__body {
+    flex: 1;
+    max-width: none;
+    margin: 0;
+    overflow-y: auto;
+    padding: 0 1.25rem 1.5rem;
+  }
+
+  /* The drawer's head already says Filter; the form's head keeps only Clear all. */
+  .s-filters[data-drawer] .filters__head .filters__title { display: none; }
+  .s-filters[data-drawer] .filters__head { justify-content: flex-end; }
+  .s-filters[data-drawer] .filters__head:not(:has(.filters__clear)) { display: none; }
+
+  .s-filters[data-drawer] .filters { display: flex; flex-direction: column; min-height: 100%; }
+  .s-filters[data-drawer] .filters__foot {
+    position: sticky;
+    bottom: 0;
+    margin-block-start: auto;
+    margin-inline: -1.25rem;
+    padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom));
+    background: var(--c-bg);
+    border-block-start: 1px solid var(--c-border);
+  }
+
+  html[data-filters-open] { overflow: hidden; }
+}
+
 @media (min-width: 990px) {
-  /* Open beside the page: the form's own head stands in for the bar. */
-  .filters-box[open] > .filters-box__summary { display: none; }
-  .s-filters .filters__title { display: block; }
-  .s-filters .filters__head { justify-content: space-between; }
-  .s-filters .filters__head:not(:has(.filters__clear)) { display: flex; }
   /* A change sends itself here, so the form's button goes once the script runs. */
   .s-filters[data-live-filters="true"] .filters__foot { display: none; }
 }
