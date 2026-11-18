@@ -1,0 +1,137 @@
+{
+  "name": "unplaced-first-starts-top",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8,
+      "nine": 9,
+      "banner": 12,
+      "filters": 3,
+      "bar": 6
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "x",
+      "main",
+      "details"
+    ],
+    "sections": {
+      "x": {
+        "type": "text"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "details": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "details"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "bottom"
+      }
+    ]
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "x",
+      "main",
+      "details"
+    ],
+    "sections": {
+      "x": {
+        "type": "text"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "details": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-11f6ad8e",
+        "split": "12",
+        "columns": [
+          [
+            "x"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "top"
+      },
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "details"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "bottom"
+      }
+    ]
+  },
+  "moved": []
+}

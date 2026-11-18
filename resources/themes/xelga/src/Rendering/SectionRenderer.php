@@ -420,7 +420,7 @@ final class SectionRenderer
         }
 
         $main = ($schema->raw['main'] ?? false) === true;
-        if ($main && ! in_array($schema->type, self::mainTypes((string) $pageType), true)) {
+        if ($main && ! in_array($schema->type, Defaults::mainTypes((string) $pageType), true)) {
             return false;
         }
 
@@ -428,24 +428,6 @@ final class SectionRenderer
         $limit = $main ? 1 : $schema->limit();
 
         return $limit === null || $count <= $limit;
-    }
-
-    /**
-     * The main section types of a page type, from its shipped template.
-     *
-     * @return list<string>
-     */
-    private static function mainTypes(string $pageType): array
-    {
-        $types = [];
-        foreach ((array) (Defaults::content($pageType)['sections'] ?? []) as $section) {
-            $schema = Catalog::section((string) (is_array($section) ? ($section['type'] ?? '') : ''));
-            if ($schema !== null && ($schema->raw['main'] ?? false) === true) {
-                $types[] = $schema->type;
-            }
-        }
-
-        return $types;
     }
 
     /**

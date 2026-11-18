@@ -1,0 +1,252 @@
+{
+  "name": "sides-wide-row-below-goes-bottom",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8,
+      "nine": 9,
+      "banner": 12,
+      "filters": 3,
+      "bar": 6
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "f",
+      "crumbs",
+      "main",
+      "best",
+      "banner",
+      "recent"
+    ],
+    "sections": {
+      "f": {
+        "type": "text"
+      },
+      "crumbs": {
+        "type": "text"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "best": {
+        "type": "half"
+      },
+      "banner": {
+        "type": "banner"
+      },
+      "recent": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "crumbs"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-3",
+        "split": "12",
+        "columns": [
+          [
+            "best"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-4",
+        "split": "12",
+        "columns": [
+          [
+            "banner"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-5",
+        "split": "12",
+        "columns": [
+          [
+            "recent"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ],
+    "sides": {
+      "left": [
+        "f"
+      ]
+    }
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "f",
+      "crumbs",
+      "main",
+      "best",
+      "banner",
+      "recent"
+    ],
+    "sections": {
+      "f": {
+        "type": "text"
+      },
+      "crumbs": {
+        "type": "text"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "best": {
+        "type": "half"
+      },
+      "banner": {
+        "type": "banner"
+      },
+      "recent": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "crumbs"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-3",
+        "split": "12",
+        "columns": [
+          [
+            "best"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-4",
+        "split": "12",
+        "columns": [
+          [
+            "banner"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "bottom"
+      },
+      {
+        "id": "row-5",
+        "split": "12",
+        "columns": [
+          [
+            "recent"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "bottom"
+      }
+    ],
+    "sides": {
+      "left": [
+        "f"
+      ]
+    }
+  },
+  "moved": [
+    {
+      "path": "content.sections.banner",
+      "reason": "too-wide",
+      "value": "bottom"
+    },
+    {
+      "path": "content.sections.recent",
+      "reason": "in-order",
+      "value": "bottom"
+    }
+  ]
+}

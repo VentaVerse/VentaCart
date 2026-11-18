@@ -1,5 +1,5 @@
 {
-  "name": "side-misfit",
+  "name": "column-fit-counts-a-hidden-side",
   "rules": {
     "min": {
       "text": 3,
@@ -15,19 +15,24 @@
   "input": {
     "schema": 1,
     "order": [
+      "h",
       "a",
-      "s1",
-      "f"
+      "g",
+      "m"
     ],
     "sections": {
+      "h": {
+        "type": "half"
+      },
       "a": {
         "type": "text"
       },
-      "s1": {
-        "type": "four"
+      "g": {
+        "type": "text",
+        "disabled": true
       },
-      "f": {
-        "type": "text"
+      "m": {
+        "type": "product-main"
       }
     },
     "rows": [
@@ -36,51 +41,11 @@
         "split": "6-6",
         "columns": [
           [
-            "a"
+            "h"
           ],
-          []
-        ],
-        "settings": {
-          "width": "page",
-          "scheme": "",
-          "space": "md"
-        }
-      }
-    ],
-    "sides": {
-      "right": [
-        "s1",
-        "f"
-      ]
-    }
-  },
-  "expected": {
-    "schema": 1,
-    "order": [
-      "a",
-      "s1",
-      "f"
-    ],
-    "sections": {
-      "a": {
-        "type": "text"
-      },
-      "s1": {
-        "type": "four"
-      },
-      "f": {
-        "type": "text"
-      }
-    },
-    "rows": [
-      {
-        "id": "row-1",
-        "split": "6-6",
-        "columns": [
           [
             "a"
-          ],
-          []
+          ]
         ],
         "settings": {
           "width": "page",
@@ -89,11 +54,11 @@
         }
       },
       {
-        "id": "row-640d87e7",
+        "id": "row-m",
         "split": "12",
         "columns": [
           [
-            "s1"
+            "m"
           ]
         ],
         "settings": {
@@ -105,15 +70,92 @@
     ],
     "sides": {
       "right": [
-        "f"
+        "g"
+      ]
+    }
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "a",
+      "h",
+      "m",
+      "g"
+    ],
+    "sections": {
+      "h": {
+        "type": "half"
+      },
+      "a": {
+        "type": "text"
+      },
+      "g": {
+        "type": "text",
+        "disabled": true
+      },
+      "m": {
+        "type": "product-main"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [],
+          [
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-27d5482e",
+        "split": "12",
+        "columns": [
+          [
+            "h"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-m",
+        "split": "12",
+        "columns": [
+          [
+            "m"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      }
+    ],
+    "sides": {
+      "right": [
+        "g"
       ]
     }
   },
   "moved": [
     {
-      "path": "content.sections.s1",
+      "path": "content.sections.h",
       "reason": "too-wide",
-      "value": "row-640d87e7"
+      "value": "row-27d5482e"
     }
   ]
 }

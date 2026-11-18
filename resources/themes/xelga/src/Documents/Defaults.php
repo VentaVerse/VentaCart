@@ -54,6 +54,28 @@ final class Defaults
         return self::$shipped[$handle] = $data;
     }
 
+    /**
+     * The section types marked main in the page type's shipped document:
+     * what the page is for (product information on the product page, the
+     * results on the search page). Empty for Home and for a page type
+     * that ships no main section. Reads the shipped file only, never the
+     * database, since record references do not change a section's type.
+     *
+     * @return list<string>
+     */
+    public static function mainTypes(string $pageType): array
+    {
+        $types = [];
+        foreach ((array) (self::shipped($pageType)['sections'] ?? []) as $section) {
+            $schema = Catalog::section((string) (is_array($section) ? ($section['type'] ?? '') : ''));
+            if ($schema !== null && ($schema->raw['main'] ?? false) === true) {
+                $types[$schema->type] = true;
+            }
+        }
+
+        return array_keys($types);
+    }
+
     /** @return list<string> */
     public static function handles(): array
     {

@@ -1,0 +1,212 @@
+{
+  "name": "top-and-bottom-measured-at-twelve",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8,
+      "nine": 9,
+      "banner": 12,
+      "filters": 3,
+      "bar": 6
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "f",
+      "g",
+      "h1",
+      "h2",
+      "main",
+      "h3",
+      "h4"
+    ],
+    "sections": {
+      "f": {
+        "type": "text"
+      },
+      "g": {
+        "type": "text"
+      },
+      "h1": {
+        "type": "half"
+      },
+      "h2": {
+        "type": "half"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "h3": {
+        "type": "half"
+      },
+      "h4": {
+        "type": "half"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [
+            "h1"
+          ],
+          [
+            "h2"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "top"
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-3",
+        "split": "6-6",
+        "columns": [
+          [
+            "h3"
+          ],
+          [
+            "h4"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "bottom"
+      }
+    ],
+    "sides": {
+      "left": [
+        "f"
+      ],
+      "right": [
+        "g"
+      ]
+    }
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "h1",
+      "h2",
+      "f",
+      "main",
+      "g",
+      "h3",
+      "h4"
+    ],
+    "sections": {
+      "f": {
+        "type": "text"
+      },
+      "g": {
+        "type": "text"
+      },
+      "h1": {
+        "type": "half"
+      },
+      "h2": {
+        "type": "half"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "h3": {
+        "type": "half"
+      },
+      "h4": {
+        "type": "half"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [
+            "h1"
+          ],
+          [
+            "h2"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "top"
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-3",
+        "split": "6-6",
+        "columns": [
+          [
+            "h3"
+          ],
+          [
+            "h4"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "bottom"
+      }
+    ],
+    "sides": {
+      "left": [
+        "f"
+      ],
+      "right": [
+        "g"
+      ]
+    }
+  },
+  "moved": []
+}

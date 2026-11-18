@@ -45,9 +45,13 @@ class XelgaLayoutTest extends TestCase
     public function test_normalizer_cases(): void
     {
         // content-width/ holds the cases that measure a column beside the
-        // sides; the editor's tests read them too.
-        $files = [...(glob(self::FIXTURES . '/[!_]*.json') ?: []), ...(glob(self::FIXTURES . '/content-width/[!_]*.json') ?: [])];
-        $this->assertNotEmpty($files);
+        // sides, areas/ the cases of pages with areas.
+        $files = [
+            ...(glob(self::FIXTURES . '/[!_]*.json') ?: []),
+            ...(glob(self::FIXTURES . '/content-width/[!_]*.json') ?: []),
+            ...(glob(self::FIXTURES . '/areas/[!_]*.json') ?: []),
+        ];
+        $this->assertNotEmpty(glob(self::FIXTURES . '/areas/[!_]*.json'));
 
         foreach ($files as $file) {
             $case = json_decode((string) file_get_contents($file), true, flags: JSON_THROW_ON_ERROR);
@@ -63,7 +67,9 @@ class XelgaLayoutTest extends TestCase
             $this->assertSame([], $again['moved'], "{$name}: normalizing twice moves nothing");
 
             if (isset($case['rows'])) {
-                $this->assertSame($case['rows'], Layout::rows($case['input']), "{$name}: rows");
+                // The cases with areas give rows() the rules, so their rows carry an area.
+                $withRules = str_contains($file, '/areas/') ? $rules : null;
+                $this->assertSame($case['rows'], Layout::rows($case['input'], $withRules), "{$name}: rows");
             }
         }
     }
@@ -136,18 +142,6 @@ class XelgaLayoutTest extends TestCase
         $this->assertFalse($rules->isMain(['type' => 'no-such-section']));
     }
 
-    public function test_sides_are_allowed_on_template_pages_except_cart(): void
-    {
-        foreach (['home', 'product', 'category', 'page', 'not-found', 'product.gift-guide', 'sample_page'] as $handle) {
-            $this->assertTrue(Layout::sidesAllowed($handle), $handle);
-        }
-        foreach (['cart', 'header', 'footer', 'settings'] as $handle) {
-            $this->assertFalse(Layout::sidesAllowed($handle), $handle);
-        }
-        $this->assertTrue(app(LayoutRules::class, ['handle' => 'home'])->sidesAllowed());
-        $this->assertFalse(app(LayoutRules::class, ['handle' => 'cart'])->sidesAllowed());
-    }
-
     public function test_the_shared_layout_fixture_matches_the_payload(): void
     {
         $shared = json_decode((string) file_get_contents(self::FIXTURES . '/_layout.json'), true, flags: JSON_THROW_ON_ERROR);
@@ -169,7 +163,8 @@ class XelgaLayoutTest extends TestCase
 
     /**
      * Rules as a case file states them: spans by type (12 when not listed),
-     * main types, and whether the page may have sides.
+     * main types, whether the page may have areas and sides, and the types
+     * that keep a row of their own or belong in Content.
      */
     private function fakeRules(array $rules): LayoutRules
     {
@@ -190,6 +185,21 @@ class XelgaLayoutTest extends TestCase
             public function sidesAllowed(): bool
             {
                 return (bool) $this->rules['sides'];
+            }
+
+            public function ownRow(array $section): bool
+            {
+                return in_array($section['type'] ?? null, $this->rules['own_row'] ?? [], true);
+            }
+
+            public function contentOnly(array $section): bool
+            {
+                return in_array($section['type'] ?? null, $this->rules['content_only'] ?? [], true);
+            }
+
+            public function pageTypeKnown(): bool
+            {
+                return true;
             }
         };
     }

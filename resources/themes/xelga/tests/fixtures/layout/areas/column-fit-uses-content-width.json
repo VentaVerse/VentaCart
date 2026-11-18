@@ -1,5 +1,5 @@
 {
-  "name": "side-order",
+  "name": "column-fit-uses-content-width",
   "rules": {
     "min": {
       "text": 3,
@@ -15,71 +15,53 @@
   "input": {
     "schema": 1,
     "order": [
-      "crumbs",
-      "main",
-      "p",
-      "q",
       "f",
-      "g"
+      "h",
+      "a",
+      "g",
+      "m"
     ],
     "sections": {
-      "crumbs": {
-        "type": "text"
-      },
-      "main": {
-        "type": "product-main"
-      },
-      "p": {
-        "type": "text"
-      },
-      "q": {
-        "type": "text"
-      },
       "f": {
+        "type": "text"
+      },
+      "h": {
+        "type": "half"
+      },
+      "a": {
         "type": "text"
       },
       "g": {
         "type": "text"
+      },
+      "m": {
+        "type": "product-main"
       }
     },
     "rows": [
       {
         "id": "row-1",
-        "split": "12",
-        "columns": [
-          [
-            "crumbs"
-          ]
-        ],
-        "settings": {
-          "width": "page",
-          "scheme": "",
-          "space": "md"
-        }
-      },
-      {
-        "id": "row-2",
-        "split": "12",
-        "columns": [
-          [
-            "main"
-          ]
-        ],
-        "settings": {
-          "width": "page",
-          "scheme": "",
-          "space": "md"
-        }
-      },
-      {
-        "id": "row-3",
         "split": "6-6",
         "columns": [
           [
-            "p"
+            "h"
           ],
           [
-            "q"
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-m",
+        "split": "12",
+        "columns": [
+          [
+            "m"
           ]
         ],
         "settings": {
@@ -102,77 +84,74 @@
     "schema": 1,
     "order": [
       "f",
-      "crumbs",
-      "main",
-      "p",
-      "q",
+      "a",
+      "h",
+      "m",
       "g"
     ],
     "sections": {
-      "crumbs": {
-        "type": "text"
-      },
-      "main": {
-        "type": "product-main"
-      },
-      "p": {
-        "type": "text"
-      },
-      "q": {
-        "type": "text"
-      },
       "f": {
+        "type": "text"
+      },
+      "h": {
+        "type": "half"
+      },
+      "a": {
         "type": "text"
       },
       "g": {
         "type": "text"
+      },
+      "m": {
+        "type": "product-main"
       }
     },
     "rows": [
       {
         "id": "row-1",
-        "split": "12",
-        "columns": [
-          [
-            "crumbs"
-          ]
-        ],
-        "settings": {
-          "width": "page",
-          "scheme": "",
-          "space": "md"
-        }
-      },
-      {
-        "id": "row-2",
-        "split": "12",
-        "columns": [
-          [
-            "main"
-          ]
-        ],
-        "settings": {
-          "width": "page",
-          "scheme": "",
-          "space": "md"
-        }
-      },
-      {
-        "id": "row-3",
         "split": "6-6",
         "columns": [
+          [],
           [
-            "p"
-          ],
-          [
-            "q"
+            "a"
           ]
         ],
         "settings": {
           "width": "page",
           "scheme": "",
           "space": "md"
-        }
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-27d5482e",
+        "split": "12",
+        "columns": [
+          [
+            "h"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-m",
+        "split": "12",
+        "columns": [
+          [
+            "m"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
       }
     ],
     "sides": {
@@ -184,5 +163,11 @@
       ]
     }
   },
-  "moved": []
+  "moved": [
+    {
+      "path": "content.sections.h",
+      "reason": "too-wide",
+      "value": "row-27d5482e"
+    }
+  ]
 }

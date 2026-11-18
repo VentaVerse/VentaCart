@@ -14,5 +14,5 @@
   "max_per_column": 6,
   "max_per_side": 6,
   "side_span": 3,
-  "sides_on": ["home", "product", "category", "brand", "brand-list", "search", "blog", "blog-post", "page", "contact", "not-found"]
+  "sides_on": ["product", "category", "brand", "brand-list", "search", "blog", "blog-post", "page", "contact", "not-found"]
 }

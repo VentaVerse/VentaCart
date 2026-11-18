@@ -1,0 +1,149 @@
+{
+  "name": "implied-by-main",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8,
+      "nine": 9,
+      "banner": 12,
+      "filters": 3,
+      "bar": 6
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "crumbs",
+      "main",
+      "details"
+    ],
+    "sections": {
+      "crumbs": {
+        "type": "text"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "details": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-07f86c40",
+        "split": "12",
+        "columns": [
+          [
+            "crumbs"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-b28b7af6",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-e9711657",
+        "split": "12",
+        "columns": [
+          [
+            "details"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "crumbs",
+      "main",
+      "details"
+    ],
+    "sections": {
+      "crumbs": {
+        "type": "text"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "details": {
+        "type": "text"
+      }
+    }
+  },
+  "moved": [],
+  "rows": [
+    {
+      "id": "row-07f86c40",
+      "split": "12",
+      "columns": [
+        [
+          "crumbs"
+        ]
+      ],
+      "settings": {
+        "width": "page",
+        "scheme": "",
+        "space": "md"
+      },
+      "area": "top"
+    },
+    {
+      "id": "row-b28b7af6",
+      "split": "12",
+      "columns": [
+        [
+          "main"
+        ]
+      ],
+      "settings": {
+        "width": "page",
+        "scheme": "",
+        "space": "md"
+      },
+      "area": "content"
+    },
+    {
+      "id": "row-e9711657",
+      "split": "12",
+      "columns": [
+        [
+          "details"
+        ]
+      ],
+      "settings": {
+        "width": "page",
+        "scheme": "",
+        "space": "md"
+      },
+      "area": "bottom"
+    }
+  ]
+}

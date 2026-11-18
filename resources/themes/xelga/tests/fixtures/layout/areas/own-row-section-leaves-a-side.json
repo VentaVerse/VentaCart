@@ -1,0 +1,126 @@
+{
+  "name": "own-row-section-leaves-a-side",
+  "rules": {
+    "min": {
+      "bar": 3,
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8,
+      "nine": 9,
+      "banner": 12,
+      "filters": 3
+    },
+    "main": [
+      "product-main"
+    ],
+    "own_row": [
+      "bar"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "bar",
+      "f",
+      "main"
+    ],
+    "sections": {
+      "bar": {
+        "type": "bar"
+      },
+      "f": {
+        "type": "text"
+      },
+      "main": {
+        "type": "product-main"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ],
+    "sides": {
+      "left": [
+        "bar",
+        "f"
+      ]
+    }
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "f",
+      "main",
+      "bar"
+    ],
+    "sections": {
+      "bar": {
+        "type": "bar"
+      },
+      "f": {
+        "type": "text"
+      },
+      "main": {
+        "type": "product-main"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-62cdb702",
+        "split": "12",
+        "columns": [
+          [
+            "bar"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      }
+    ],
+    "sides": {
+      "left": [
+        "f"
+      ]
+    }
+  },
+  "moved": [
+    {
+      "path": "content.sections.bar",
+      "reason": "own-row",
+      "value": "row-62cdb702"
+    }
+  ]
+}
