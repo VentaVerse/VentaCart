@@ -54,3 +54,24 @@ test('the button names how many will be added', () => {
     s.toggle('c');
     assert.equal(s.buttonLabel(), 'Add 3 images');
 });
+
+test('shift picks a run backwards, from the last pick outward', () => {
+    const s = new Selection({ mode: 'multi', limit: 10 });
+    s.toggle('d');
+    s.toggle('a', { range: true, list });
+    assert.deepEqual(s.paths(), ['d', 'c', 'b', 'a']);
+});
+
+test('a run is cut short by the limit', () => {
+    const s = new Selection({ mode: 'multi', limit: 3 });
+    s.toggle('a');
+    s.toggle('e', { range: true, list });
+    assert.deepEqual(s.paths(), ['a', 'b', 'c']);
+});
+
+test('adding a path already picked changes nothing', () => {
+    const s = new Selection({ mode: 'multi', limit: 5 });
+    s.toggle('a');
+    assert.deepEqual(s.add(['a', 'b']), ['b']);
+    assert.deepEqual(s.paths(), ['a', 'b']);
+});

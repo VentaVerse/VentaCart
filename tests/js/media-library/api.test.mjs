@@ -55,3 +55,44 @@ test('other failures are classified', async () => {
     await assert.rejects(createApi(config, reply(500, {})).tree(), (e) => e.kind === 'server');
     await assert.rejects(createApi(config, async () => { throw new TypeError('down'); }).tree(), (e) => e.kind === 'network');
 });
+
+test('every call uses its own method, URL, body fields and headers', async () => {
+    const png = new File(['x'], 'a.png', { type: 'image/png' });
+    const cases = [
+        { name: 'tree', call: (a) => a.tree(), method: 'GET', url: '/t', fields: null },
+        { name: 'browse', call: (a) => a.browse({ path: 'p', q: 'z', sort: 'name', page: 3 }), method: 'GET', url: '/b?path=p&q=z&sort=name&page=3', fields: null },
+        { name: 'upload', call: (a) => a.upload([png], 'p'), method: 'POST', url: '/u', form: ['files[]', 'path'] },
+        { name: 'importUrl', call: (a) => a.importUrl('https://example.com/a.jpg', 'p'), method: 'POST', url: '/i', fields: ['url', 'path'] },
+        { name: 'makeFolder', call: (a) => a.makeFolder('p', 'New'), method: 'POST', url: '/f', fields: ['path', 'name'] },
+        { name: 'rename', call: (a) => a.rename('p', 'New'), method: 'POST', url: '/r', fields: ['path', 'name'] },
+        { name: 'move', call: (a) => a.move(['p'], 'q'), method: 'POST', url: '/m', fields: ['paths', 'to'] },
+        { name: 'remove', call: (a) => a.remove(['p']), method: 'POST', url: '/d', fields: ['paths'] },
+        { name: 'usage', call: (a) => a.usage('p'), method: 'GET', url: '/us?path=p', fields: null },
+    ];
+
+    for (const c of cases) {
+        let seen;
+        const api = createApi(config, async (url, init) => {
+            seen = { url, init };
+            return new Response('{"ok":true}');
+        });
+        await c.call(api);
+        const headers = seen.init.headers;
+        assert.equal(seen.init.method, c.method, c.name);
+        assert.equal(seen.url, c.url, c.name);
+        if (c.method === 'GET') {
+            assert.equal('X-CSRF-TOKEN' in headers, false, c.name);
+            assert.equal(seen.init.body, undefined, c.name);
+        } else {
+            assert.equal(headers['X-CSRF-TOKEN'], 'tok', c.name);
+        }
+        if (c.form) {
+            assert.ok(seen.init.body instanceof FormData, c.name);
+            assert.deepEqual([...new Set(seen.init.body.keys())], c.form, c.name);
+            assert.equal('Content-Type' in headers, false, c.name);
+        } else if (c.fields) {
+            assert.deepEqual(Object.keys(JSON.parse(seen.init.body)), c.fields, c.name);
+            assert.equal(headers['Content-Type'], 'application/json', c.name);
+        }
+    }
+});
