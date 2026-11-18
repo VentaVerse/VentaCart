@@ -1,19 +1,14 @@
-{{-- Image manager, v dress. Same contract as the v2 partial: the
-     hidden images_json input carries the ordered list; the modal
-     browses, multi-selects, uploads, imports, and deletes through the
-     products image endpoints. Every mutation calls _markDirty() so the
-     save doctrine sees edits that never fire an input event. --}}
+{{-- The product's images, in order: the first is the main image. The
+     hidden images_json input carries the ordered list of {path, url}; the
+     shared media library adds images to it. --}}
 <div x-data="imageManager()" x-init="init()">
 
     <input type="hidden" name="images_json" :value="JSON.stringify(items)">
 
-    {{-- The shared browser, in multi mode. Selection still STAGES and arms
-         this page's Save, which is what it always did and what the doctrine
-         asks for; the component dispatches the input event itself, so the
-         _markDirty() dance every copy had to remember is gone. --}}
-    <x-admin.media-picker name="__product_images" root="products" mode="multi"
-                          can="upload,url,delete,folder" bare
-                          @media:picked="addPaths($event.detail.paths)" />
+    {{-- Adding stages the images, and this page's Save writes them. The
+         field dispatches the form's input event itself. --}}
+    <x-admin.media-picker name="__product_images" root="products" kind="products" mode="multi" bare
+                          @media:picked="addPaths($event.detail.paths, $event.detail.files)" />
 
     <div class="v-filterbar v-gap-sm">
         <button type="button" class="v-btn v-btn--secondary" @click="openPicker($event)">Image manager</button>
@@ -37,11 +32,8 @@ function imageManager() {
     return {
         items: @json($existingImages ?? []),
         pimToken: '{{ $pimToken ?? Str::uuid() }}',
-        root: 'products',
-        // Browsing, selecting, uploading, importing and deleting all left
-        // with the modal: eighteen keys and fifteen methods, now the shared
-        // component's. What stays is this grid, which is the one thing here
-        // no picker does: order, and the Main badge that order decides.
+        // Browsing, uploading and deleting belong to the media library.
+        // What stays here is the order, and the Main badge it decides.
 
         _dragFromIndex: null,
         _dragEl: null,
@@ -52,8 +44,8 @@ function imageManager() {
         },
 
         // The hidden images_json input tracks `items` through :value, which
-        // fires no input event; every mutation routes through here so the
-        // doctrine save bar sees it.
+        // fires no input event; every change routes through here so the
+        // form's save bar sees it.
         _markDirty() {
             this.$el.closest('form')?.dispatchEvent(new Event('input'));
         },
@@ -281,23 +273,25 @@ function imageManager() {
             this.$nextTick(() => this.renderGrid());
         },
 
-        // --- Image manager modal ---
-        /** Aim the shared panel, seeded with what is already attached. */
+        /**
+         * Opens the media library to add images. What the product already
+         * carries shows as added, so the same photo is never offered twice.
+         */
         openPicker(event) {
             const el = this.$root.querySelector('[data-media-picker="__product_images"]');
             if (!el) return;
 
-            // The panel marks what this product already carries, so a
-            // merchant is never offered the same photo twice.
             window.Alpine.$data(el).value = this.items.map((i) => i.path);
             el.dispatchEvent(new CustomEvent('media:open', { detail: { from: event.currentTarget } }));
         },
 
         /** What came back. Order is the merchant's, so new ones go last. */
-        addPaths(paths) {
+        addPaths(paths, files = []) {
+            const urls = new Map((files || []).map((f) => [f.path, f.url]));
+
             (paths || []).forEach((path) => {
                 if (this.items.some((i) => i.path === path)) return;
-                this.items.push({ path, url: '/storage/' + path.split('/').map(encodeURIComponent).join('/') });
+                this.items.push({ path, url: urls.get(path) || '/storage/' + path.split('/').map(encodeURIComponent).join('/') });
             });
 
             this.renderGrid();

@@ -20,7 +20,7 @@
             </x-admin.field>
             <div class="v-gap">
                 <x-admin.media-picker name="image" :value="$brand?->image"
-                                      root="brands" label="Logo / image"
+                                      root="brands" kind="brands" label="Logo / image"
                                       help="Recommended: transparent PNG, square or horizontal." />
                 @error('image') <span class="v-field__error">{{ $message }}</span> @enderror
             </div>

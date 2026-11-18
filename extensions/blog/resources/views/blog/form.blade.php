@@ -61,12 +61,9 @@
         </x-admin.panel>
 
         <x-admin.panel title="Featured image">
-            {{-- Was its own hand-rolled browser: read-only, no upload, no
-                 search, no delete, and a root crumb labelled "blog" that
-                 rendered "blog / blog / blog / eamusic". --}}
             <x-admin.media-picker name="featured_image"
                                   :value="old('featured_image', $post?->featured_image)"
-                                  root="blog" label="Featured image" />
+                                  root="blog" kind="blog" label="Featured image" />
         </x-admin.panel>
 
         <x-admin.panel title="Tags">
