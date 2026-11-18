@@ -5,7 +5,8 @@
  *
  * The same view runs in a near full-screen <dialog> (choosing images for a
  * field) and inside a page (the Media library page). The page adds its own
- * tools (rename, move, delete) through extend(), so this file only chooses.
+ * tools (rename, move, delete) through extend(), so this file only chooses;
+ * it offers the page a menu, the focused image and a hook on every change.
  */
 
 import { Selection } from './selection.js';
@@ -13,10 +14,10 @@ import { buildTree, filterTree, ancestors, folderLabel } from './tree.js';
 import { lastFolder, rememberFolder, thumbSize, rememberThumbSize } from './memory.js';
 import { usedByText, checkFiles } from './files.js';
 import { icon } from './icons.js';
+import { folderNameError } from './names.js';
 
 const ROOT = 'media';
 const PHONE = '(max-width: 719px)';
-const FOLDER_NAME = /^[^/\\:*?"<>|]+$/;
 const MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
 
 let views = 0;
@@ -98,7 +99,11 @@ export function provideManage(factory) {
  * - toolbar(view): nodes added to the tools row, before Upload
  * - selectionBar(view): what the footer shows, drawn again on every change
  * - sidePanel(view): a panel beside the images
- * - treeMenu({ path, anchor, view }): opened on a folder's context menu
+ * - change(view): called when the selection or the focused image changes
+ * - uploadMenu(view): more items for Upload, which then opens a menu whose
+ *   first item is "Upload images"
+ * - treeMenu({ path, anchor, view }): opened from a folder's actions button,
+ *   its context menu or Shift+F10
  */
 export function extend(view, hooks = {}) {
     Object.assign(view.hooks, hooks);
@@ -165,8 +170,8 @@ export function createView({ api, config, options, modal, onDone }) {
         path: ROOT, q: '', sort: 'newest', size: thumbSize(), filter: '', expanded: new Set([ROOT]),
         tree: new Map(), files: [], folders: [], page: 0, lastPage: 1, total: 0,
         error: null, moreError: null, loading: false, loadingMore: false, token: 0,
-        uploads: [], running: false, creating: null, focus: 0, anchor: null,
-        known: new Map(), closed: false,
+        uploads: [], running: false, creating: null, focus: 0, focused: null, anchor: null,
+        known: new Map(), closed: false, menu: null,
         sel: new Selection({ mode, limit: mode === 'single' ? 1 : (options.limit ?? null), value: values, inUse: [...inUse] }),
     };
 
@@ -200,7 +205,8 @@ export function createView({ api, config, options, modal, onDone }) {
         'aria-label': size === 'small' ? 'Small thumbnails' : 'Large thumbnails',
     }, icon(`grid-${size}`)));
     els.upload = can.upload ? h('button', { type: 'button', class: 'ml-btn ml-btn--secondary ml-upload' },
-        icon('upload', 'ml-icon--sm'), h('span', { class: 'ml-upload-label', text: 'Upload' })) : null;
+        icon('upload', 'ml-icon--sm'), h('span', { class: 'ml-upload-label', text: 'Upload' }),
+        icon('chevron-down', 'ml-icon--xs ml-upload-caret')) : null;
     els.file = can.upload ? h('input', {
         type: 'file', multiple: true, hidden: true,
         accept: [...(config.uploadAccept || []).map((e) => `.${e}`), ...uploadMimes].join(','),
@@ -233,13 +239,13 @@ export function createView({ api, config, options, modal, onDone }) {
     els.foot = h('footer', { class: 'ml-foot' }, els.picked, els.actions);
     els.live = h('p', { class: 'ml-sr', 'aria-live': 'polite' });
 
+    els.frame = h('div', { class: 'ml-frame' },
+        h('header', { class: 'ml-head' }, h('div', { class: 'ml-heading' }, els.title, els.where), els.close),
+        els.body, els.foot, els.live);
     const root = h(modal ? 'dialog' : 'div', {
         class: `ml-root ${modal ? 'ml-modal' : 'ml-page'}`, 'aria-labelledby': `${id}-title`,
         'data-mode': mode, 'data-size': S.size,
-    },
-    h('div', { class: 'ml-frame' },
-        h('header', { class: 'ml-head' }, h('div', { class: 'ml-heading' }, els.title, els.where), els.close),
-        els.body, els.foot, els.live));
+    }, els.frame);
 
     const where = (options.where || []).filter(Boolean).map(String);
     if (where.length) {
@@ -291,7 +297,11 @@ export function createView({ api, config, options, modal, onDone }) {
                     : h('span'),
                 icon(node.path === ROOT ? 'image' : 'folder', 'ml-icon--sm ml-tree__icon'),
                 h('span', { class: 'ml-tree__name' }, ...highlight(node.name, term)),
-                h('span', { class: 'ml-tree__count', text: fmt(node.count) })));
+                h('span', { class: 'ml-tree__count', text: fmt(node.count) }),
+                view.hooks.treeMenu ? h('button', {
+                    type: 'button', class: 'ml-icon-btn ml-icon-btn--sm ml-tree__more', tabindex: '-1',
+                    'aria-label': `Actions for ${node.name}`, 'aria-haspopup': 'menu',
+                }, icon('more')) : null));
             items.set(node.path, li);
 
             const parent = items.get(node.parent);
@@ -307,6 +317,7 @@ export function createView({ api, config, options, modal, onDone }) {
             }
         });
 
+        els.tree.classList.toggle('has-menu', Boolean(view.hooks.treeMenu));
         els.tree.replaceChildren(...(top ? [top] : []));
         if (matched === 0) els.tree.append(h('li', { class: 'ml-tree__none', role: 'none', text: 'No folder matches.' }));
         if (S.creating !== null) drawNewFolderRow();
@@ -341,6 +352,11 @@ export function createView({ api, config, options, modal, onDone }) {
     els.tree.addEventListener('click', (e) => {
         const li = e.target.closest('.ml-tree__item');
         if (!li || !e.target.closest('.ml-tree__row')) return;
+        const more = e.target.closest('.ml-tree__more');
+        if (more && view.hooks.treeMenu) {
+            view.hooks.treeMenu({ path: li.dataset.path, anchor: more, view });
+            return;
+        }
         if (e.target.closest('.ml-tree__toggle')) {
             toggle(li.dataset.path);
             return;
@@ -471,10 +487,8 @@ export function createView({ api, config, options, modal, onDone }) {
     async function createFolder(raw) {
         const name = raw.trim();
         const parent = S.tree.get(S.creating);
-        let error = '';
-        if (!name) error = 'Type a name for the folder.';
-        else if (!FOLDER_NAME.test(name)) error = 'A folder name cannot contain / \\ : * ? " < > |';
-        else if (parent?.children.some((c) => S.tree.get(c)?.name === name)) error = `A folder called ${name} is already here.`;
+        let error = folderNameError(raw) || '';
+        if (!error && parent?.children.some((c) => S.tree.get(c)?.name === name)) error = `A folder called ${name} is already here.`;
         if (error) {
             drawNewFolderRow(error, raw).focus();
             return;
@@ -583,6 +597,7 @@ export function createView({ api, config, options, modal, onDone }) {
         S.lastPage = 1;
         S.total = 0;
         S.focus = 0;
+        S.focused = null;
         els.scroll.scrollTop = 0;
         drawBar();
         showLoading(false);
@@ -885,6 +900,7 @@ export function createView({ api, config, options, modal, onDone }) {
         const tile = e.target.closest('.ml-tile[role="option"]');
         if (!tile) return;
         S.focus = Number(tile.dataset.index);
+        S.focused = tile.dataset.path;
         syncTabStops();
         tile.focus({ preventScroll: true });
         select(tile.dataset.path, { range: e.shiftKey });
@@ -929,6 +945,7 @@ export function createView({ api, config, options, modal, onDone }) {
             case 'PageUp': next = Math.max(0, i - cols * 4); break;
             case ' ':
                 e.preventDefault();
+                S.focused = tile.dataset.path;
                 select(tile.dataset.path);
                 return;
             case 'Enter':
@@ -949,8 +966,10 @@ export function createView({ api, config, options, modal, onDone }) {
         if (!t) return;
         t.focus({ preventScroll: true });
         t.scrollIntoView({ block: 'nearest' });
+        S.focused = t.dataset.path;
         if (mode === 'single' && !e.shiftKey) select(t.dataset.path);
-        if (mode === 'multi' && e.shiftKey) select(t.dataset.path, { range: true });
+        else if (mode === 'multi' && e.shiftKey) select(t.dataset.path, { range: true });
+        else changed();
     });
 
     function thumbOf(file, cls) {
@@ -970,6 +989,12 @@ export function createView({ api, config, options, modal, onDone }) {
             els.choose.textContent = S.sel.buttonLabel();
             els.choose.disabled = S.sel.paths().length === 0;
         }
+        changed();
+    }
+
+    /** Tells the page the selection or the focused image may have changed. */
+    function changed() {
+        view.hooks.change?.(view);
     }
 
     function drawFootSingle() {
@@ -1049,6 +1074,10 @@ export function createView({ api, config, options, modal, onDone }) {
         root.addEventListener('close', () => finish(null));
         root.addEventListener('cancel', (e) => {
             e.preventDefault();
+            if (S.menu) {
+                closeMenu();
+                return;
+            }
             if (S.creating !== null) {
                 cancelNewFolder();
                 return;
@@ -1087,7 +1116,16 @@ export function createView({ api, config, options, modal, onDone }) {
     /* ------------------------------------------------------------ uploads */
 
     if (can.upload) {
-        els.upload.addEventListener('click', () => els.file.click());
+        els.upload.addEventListener('click', () => {
+            if (!view.hooks.uploadMenu) {
+                els.file.click();
+                return;
+            }
+            openMenu(els.upload, [
+                { label: 'Upload images', icon: 'upload', run: () => els.file.click() },
+                ...[view.hooks.uploadMenu(view)].flat(),
+            ]);
+        });
         els.file.addEventListener('change', () => {
             const files = [...els.file.files];
             els.file.value = '';
@@ -1222,6 +1260,88 @@ export function createView({ api, config, options, modal, onDone }) {
         drawCount();
     }
 
+    /* --------------------------------------------------------------- menus */
+
+    /**
+     * A small menu under `anchor`. Items are { label, icon, hint, disabled,
+     * run }; a disabled item stays in the list with its hint, so the reason
+     * an action is missing is said rather than hidden. Arrow keys move,
+     * Esc and Tab close, and focus goes back to the anchor.
+     */
+    function openMenu(anchor, items) {
+        closeMenu(false);
+        const list = items.filter(Boolean);
+        if (!list.length) return null;
+
+        const buttons = list.map((item) => {
+            const b = h('button', {
+                type: 'button', class: 'ml-menu__item', role: 'menuitem', tabindex: '-1',
+                'aria-disabled': item.disabled ? 'true' : null,
+            },
+            item.icon ? icon(item.icon, 'ml-icon--sm') : h('span', { class: 'ml-menu__blank' }),
+            h('span', { class: 'ml-menu__text' }, h('span', { text: item.label }),
+                item.hint ? h('span', { class: 'ml-menu__hint', text: item.hint }) : null));
+            b.addEventListener('click', () => {
+                if (item.disabled) return;
+                closeMenu(false);
+                item.run();
+            });
+            return b;
+        });
+        const menu = h('div', { class: 'ml-menu', role: 'menu' }, buttons);
+        const enabled = () => buttons.filter((b) => b.getAttribute('aria-disabled') !== 'true');
+
+        menu.addEventListener('keydown', (e) => {
+            const all = enabled();
+            const i = all.indexOf(document.activeElement);
+            const to = { ArrowDown: all[(i + 1) % all.length], ArrowUp: all[(i - 1 + all.length) % all.length], Home: all[0], End: all[all.length - 1] }[e.key];
+            if (to) {
+                e.preventDefault();
+                to.focus();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                closeMenu();
+            } else if (e.key === 'Tab') {
+                closeMenu(false);
+            }
+        });
+
+        const outside = (e) => {
+            if (!menu.contains(e.target) && !anchor.contains(e.target)) closeMenu(false);
+        };
+        document.addEventListener('pointerdown', outside, true);
+
+        els.frame.append(menu);
+        place(menu, anchor);
+        anchor.setAttribute('aria-expanded', 'true');
+        S.menu = { menu, anchor, outside };
+        (enabled()[0] || buttons[0]).focus();
+        return menu;
+    }
+
+    function place(menu, anchor) {
+        const frame = els.frame.getBoundingClientRect();
+        const a = anchor.getBoundingClientRect();
+        const width = menu.offsetWidth || 220;
+        const height = menu.offsetHeight || 0;
+        let top = a.bottom - frame.top + 4;
+        if (height && top + height > frame.height - 8) top = Math.max(8, a.top - frame.top - height - 4);
+        const left = Math.min(Math.max(8, a.left - frame.left), Math.max(8, frame.width - width - 8));
+        menu.style.top = `${top}px`;
+        menu.style.left = `${left}px`;
+    }
+
+    function closeMenu(refocus = true) {
+        if (!S.menu) return;
+        const { menu, anchor, outside } = S.menu;
+        S.menu = null;
+        document.removeEventListener('pointerdown', outside, true);
+        anchor.setAttribute('aria-expanded', 'false');
+        menu.remove();
+        if (refocus && anchor.isConnected) anchor.focus();
+    }
+
     function announce(text) {
         els.live.textContent = '';
         setTimeout(() => { els.live.textContent = text; }, 30);
@@ -1293,6 +1413,7 @@ export function createView({ api, config, options, modal, onDone }) {
         S.closed = true;
         S.token += 1;
         clearTimeout(searchTimer);
+        closeMenu(false);
         observer?.disconnect();
         media?.removeEventListener?.('change', onMedia);
         S.uploads.forEach((u) => { if (u.src) URL.revokeObjectURL(u.src); });
@@ -1308,14 +1429,30 @@ export function createView({ api, config, options, modal, onDone }) {
         start,
         destroy,
         go: (path) => goFolder(path),
-        refresh: async () => {
+        /** Reloads the tree and the images; with a path, opens that folder. */
+        refresh: async (path = null) => {
             await loadTree().catch(() => {});
+            if (path && S.tree.has(path)) return goFolder(path);
+            if (!S.tree.has(S.path)) return goFolder(ROOT);
             drawTree();
             return load();
         },
+        /** True while the folder tree is on screen (not on a phone). */
+        treeShown: () => els.side.offsetParent !== null,
         announce,
         state: () => ({ path: S.path, q: S.q, files: [...S.files], picked: S.sel.paths(), tree: S.tree }),
         selection: () => S.sel,
+        /** The image last clicked or moved to with the keyboard, or null. */
+        focused: () => (S.focused ? S.known.get(S.focused) || null : null),
+        /** What browse said about an image this view has shown. */
+        file: (path) => S.known.get(path) || null,
+        menu: (anchor, items) => openMenu(anchor, items),
+        closeMenu: () => closeMenu(),
+        newFolder: (parent) => {
+            if (!can.upload) return;
+            startNewFolder(parent);
+        },
+        pickFiles: () => els.file?.click(),
         redraw: () => {
             syncMarks();
             drawFoot();
@@ -1327,11 +1464,22 @@ export function createView({ api, config, options, modal, onDone }) {
                 if (els.upload) els.upload.before(extra);
                 else els.tools.append(extra);
             }
+            if (els.upload) {
+                els.upload.classList.toggle('has-menu', Boolean(view.hooks.uploadMenu));
+                if (view.hooks.uploadMenu) {
+                    els.upload.setAttribute('aria-haspopup', 'menu');
+                    els.upload.setAttribute('aria-expanded', 'false');
+                } else {
+                    els.upload.removeAttribute('aria-haspopup');
+                    els.upload.removeAttribute('aria-expanded');
+                }
+            }
             els.body.querySelector('.ml-panel')?.remove();
             els.body.classList.toggle('has-panel', Boolean(view.hooks.sidePanel));
             if (view.hooks.sidePanel) {
                 els.body.append(h('aside', { class: 'ml-panel' }, ...[view.hooks.sidePanel(view)].flat().filter(Boolean)));
             }
+            if (S.tree.size) drawTree();
             drawFoot();
         },
     };

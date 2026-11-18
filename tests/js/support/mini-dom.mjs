@@ -107,6 +107,13 @@ class Node extends Target {
         this.append(...kids);
     }
 
+    before(...kids) {
+        const parent = this.parentNode;
+        if (!parent) return;
+        const nodes = kids.map((k) => parent.adopt(k));
+        parent.childNodes.splice(parent.childNodes.indexOf(this), 0, ...nodes);
+    }
+
     remove() {
         if (!this.parentNode) return;
         const list = this.parentNode.childNodes;

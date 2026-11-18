@@ -1,0 +1,267 @@
+/*
+ * The Media library page: the shared library filling the content area,
+ * with the page's own tools (the selection bar's Rename, Move to... and
+ * Delete, the details and "Used by" panel, and the small dialogs they open).
+ * Every color comes from the library's own --ml- properties, so the tools
+ * look like the rest of the library.
+ */
+
+/* The library takes the height the page has left, and never less than a
+   usable grid. */
+.ml-host {
+  height: calc(100dvh - 176px);
+  min-height: 520px;
+  margin-block-end: 16px;
+}
+
+/* The page's own heading names the library, so the component's heading is
+   kept for screen readers only. */
+.ml-page .ml-head {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.ml-page > .ml-frame { grid-template-rows: minmax(0, 1fr) auto; }
+
+.ml-btn--danger { color: var(--ml-on-accent); background: var(--ml-danger); }
+.ml-btn--danger:hover:not(:disabled) { background: #a51f26; }
+.ml-btn--danger:active:not(:disabled) { background: #8e1a20; }
+
+.ml-mng-folder { flex: none; }
+
+/* The page's panel takes width from the images, so the tools wrap rather
+   than squeeze the search box to nothing. */
+.ml-page .ml-tools { flex-wrap: wrap; }
+.ml-page .ml-search { flex: 1 1 200px; min-width: 200px; }
+
+/* ------------------------------------------------------- selection bar */
+
+.ml-mng-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.ml-mng-rename {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.ml-mng-rename__label {
+  font-weight: 600;
+}
+
+.ml-mng-rename__field {
+  display: flex;
+  align-items: center;
+  flex: 1 1 240px;
+  max-width: 420px;
+}
+
+.ml-mng-rename__field .ml-input { height: 34px; min-height: 34px; padding-block: 4px; }
+.ml-mng-rename__field .ml-input:has(+ .ml-mng-rename__ext) { border-start-end-radius: 0; border-end-end-radius: 0; }
+
+.ml-mng-rename__ext {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 10px;
+  font-size: var(--ml-fs-sm);
+  color: var(--ml-text-2);
+  background: var(--ml-surface-2);
+  border: 1px solid var(--ml-line-2);
+  border-inline-start: 0;
+  border-start-end-radius: var(--ml-radius);
+  border-end-end-radius: var(--ml-radius);
+}
+
+.ml-mng-rename .ml-mng-error { flex-basis: 100%; }
+
+.ml-mng-error {
+  margin: 0;
+  font-size: var(--ml-fs-sm);
+  font-weight: 500;
+  color: var(--ml-danger);
+}
+
+/* ---------------------------------------------------------- side panel */
+
+.ml-mng-panel {
+  width: 280px;
+  padding: 16px 18px 24px;
+}
+
+.ml-mng-panel__title {
+  margin: 0 0 10px;
+  font-size: var(--ml-fs-xs);
+  font-weight: 600;
+  color: var(--ml-text-3);
+}
+
+.ml-mng-panel__title--gap { margin-block-start: 20px; }
+
+.ml-mng-panel__img {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--ml-thumb-bg);
+  border-radius: var(--ml-radius-lg);
+}
+
+.ml-mng-panel__img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.ml-mng-panel__name {
+  margin: 10px 0 8px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ml-mng-facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0 0 10px;
+  font-size: var(--ml-fs-sm);
+}
+
+.ml-mng-facts dt { color: var(--ml-text-3); }
+.ml-mng-facts dd { margin: 0; overflow-wrap: anywhere; color: var(--ml-text); }
+
+.ml-mng-uses {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ml-mng-uses li {
+  padding: 6px 10px;
+  background: var(--ml-surface-2);
+  border-radius: var(--ml-radius);
+}
+
+.ml-mng-text {
+  margin: 0 0 8px;
+  font-size: var(--ml-fs-md);
+  color: var(--ml-text);
+}
+
+.ml-mng-text--quiet { color: var(--ml-text-2); }
+.ml-mng-text--strong { font-weight: 600; }
+
+/* ------------------------------------------------------------- dialogs */
+
+.ml-mng-dialog { width: min(480px, calc(100% - 32px)); }
+
+.ml-mng-dialog__main {
+  display: grid;
+  gap: 8px;
+  max-height: min(60dvh, 520px);
+  padding: 16px 24px;
+  overflow-y: auto;
+}
+
+.ml-mng-dialog__body { display: grid; gap: 8px; }
+
+.ml-mng-label {
+  font-size: var(--ml-fs-sm);
+  font-weight: 600;
+}
+
+.ml-mng-targets {
+  display: grid;
+  max-height: 320px;
+  padding: 4px;
+  overflow-y: auto;
+  border: 1px solid var(--ml-line);
+  border-radius: var(--ml-radius);
+}
+
+.ml-mng-target {
+  display: grid;
+  grid-template-columns: 16px 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding-inline: 8px;
+  border-radius: var(--ml-radius);
+  cursor: pointer;
+}
+
+.ml-mng-target:hover { background: var(--ml-hover); }
+.ml-mng-target:has(input:checked) { color: var(--ml-accent-press); background: var(--ml-accent-soft); }
+.ml-mng-target input { margin: 0; accent-color: var(--ml-accent); }
+.ml-mng-target .ml-icon { color: var(--ml-text-3); }
+.ml-mng-target__name { display: grid; min-width: 0; }
+.ml-mng-target__name > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ml-mng-target__where { font-size: var(--ml-fs-xs); color: var(--ml-text-3); }
+
+.ml-mng-blocked {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ml-mng-blocked li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  background: var(--ml-danger-soft);
+  border: 1px solid var(--ml-danger-line);
+  border-radius: var(--ml-radius);
+}
+
+.ml-mng-thumb {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  background: var(--ml-thumb-bg);
+  border-radius: var(--ml-radius-sm);
+}
+
+.ml-mng-blocked__text { display: grid; min-width: 0; }
+.ml-mng-blocked__name { overflow: hidden; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+.ml-mng-blocked__uses { font-size: var(--ml-fs-sm); color: var(--ml-text-2); }
+
+/* ----------------------------------------------------------- phones */
+
+@media (max-width: 719px) {
+  .ml-host {
+    height: calc(100dvh - 120px);
+    min-height: 480px;
+  }
+
+  /* The admin keeps its page gutter on a phone, so the library keeps its
+     frame inside it. */
+  .ml-host .ml-page { border-inline: 1px solid var(--ml-line); border-radius: var(--ml-radius-lg); }
+
+  .ml-mng-folder__label { display: none; }
+  .ml-mng-folder { min-height: 40px; padding-inline: 10px; }
+
+  .ml-mng-acts { width: 100%; margin-inline-start: 0; }
+  .ml-mng-acts .ml-btn { flex: 1 1 0; min-height: 40px; }
+  .ml-picked { flex-wrap: wrap; }
+
+  .ml-mng-dialog__main { padding: 16px; }
+  .ml-mng-target { min-height: 44px; }
+}

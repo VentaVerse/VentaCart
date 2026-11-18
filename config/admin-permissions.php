@@ -53,7 +53,6 @@ return [
 
         // Catalog
         'admin.products.*' => 'products',
-        'admin.products.images.*' => 'products.edit',
         'admin.categories.*' => 'categories',
         'admin.brands.*' => 'brands',
         'admin.tags.*' => 'tags',

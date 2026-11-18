@@ -144,22 +144,22 @@ class UploadedImageNamingTest extends TestCase
         $this->assertNamedAsImage($media->path, 'png');
     }
 
-    // ------------------------------------------------------ product image upload
+    // ------------------------------------------------- media library endpoint
 
     public function test_product_upload_names_a_jpeg_by_its_content(): void
     {
         foreach (['shell.html', 'shell.pht'] as $name) {
-            $path = $this->postJson(route('admin.products.images.upload'), [
-                'file' => $this->upload($name, $this->jpeg()),
-                'store_id' => $this->store->id,
-            ])->assertOk()->json('path');
+            $path = $this->postJson(route('admin.media.upload'), [
+                'files' => [$this->upload($name, $this->jpeg())],
+                'path' => 'media/products',
+            ])->assertOk()->json('files.0.path');
 
             $this->assertNamedAsImage($path, 'jpg');
         }
 
-        $this->postJson(route('admin.products.images.upload'), [
-            'file' => $this->upload('shell.php', $this->jpeg()),
-            'store_id' => $this->store->id,
+        $this->postJson(route('admin.media.upload'), [
+            'files' => [$this->upload('shell.php', $this->jpeg())],
+            'path' => 'media/products',
         ])->assertStatus(422);
 
         $this->assertNothingStoredEndingIn('html', 'pht', 'php');
@@ -167,9 +167,9 @@ class UploadedImageNamingTest extends TestCase
 
     public function test_product_upload_refuses_a_file_that_is_not_an_image(): void
     {
-        $this->postJson(route('admin.products.images.upload'), [
-            'file' => $this->upload('photo.jpg', 'plain text'),
-            'store_id' => $this->store->id,
+        $this->postJson(route('admin.media.upload'), [
+            'files' => [$this->upload('photo.jpg', 'plain text')],
+            'path' => 'media/products',
         ])->assertStatus(422);
 
         $this->assertSame([], Storage::disk('public')->allFiles());
@@ -177,20 +177,20 @@ class UploadedImageNamingTest extends TestCase
 
     public function test_product_upload_still_keeps_a_normal_png(): void
     {
-        $path = $this->postJson(route('admin.products.images.upload'), [
-            'file' => $this->upload('photo.png', $this->png()),
-            'store_id' => $this->store->id,
-        ])->assertOk()->json('path');
+        $path = $this->postJson(route('admin.media.upload'), [
+            'files' => [$this->upload('photo.png', $this->png())],
+            'path' => 'media/products',
+        ])->assertOk()->json('files.0.path');
 
         $this->assertNamedAsImage($path, 'png');
     }
 
     public function test_catalog_upload_names_a_jpeg_by_its_content(): void
     {
-        $path = $this->postJson(route('admin.products.images.upload-to-catalog'), [
-            'file' => $this->upload('shell.html', $this->jpeg()),
-            'catalog_path' => 'catalog',
-        ])->assertOk()->json('path');
+        $path = $this->postJson(route('admin.media.upload'), [
+            'files' => [$this->upload('shell.html', $this->jpeg())],
+            'path' => 'media/catalog',
+        ])->assertOk()->json('files.0.path');
 
         $this->assertNamedAsImage($path, 'jpg');
         $this->assertNothingStoredEndingIn('html');
@@ -198,15 +198,15 @@ class UploadedImageNamingTest extends TestCase
 
     public function test_catalog_upload_refuses_a_non_image_and_keeps_a_normal_png(): void
     {
-        $this->postJson(route('admin.products.images.upload-to-catalog'), [
-            'file' => $this->upload('photo.jpg', 'plain text'),
-            'catalog_path' => 'catalog',
+        $this->postJson(route('admin.media.upload'), [
+            'files' => [$this->upload('photo.jpg', 'plain text')],
+            'path' => 'media/catalog',
         ])->assertStatus(422);
 
-        $path = $this->postJson(route('admin.products.images.upload-to-catalog'), [
-            'file' => $this->upload('photo.png', $this->png()),
-            'catalog_path' => 'catalog',
-        ])->assertOk()->json('path');
+        $path = $this->postJson(route('admin.media.upload'), [
+            'files' => [$this->upload('photo.png', $this->png())],
+            'path' => 'media/catalog',
+        ])->assertOk()->json('files.0.path');
 
         $this->assertNamedAsImage($path, 'png');
     }
