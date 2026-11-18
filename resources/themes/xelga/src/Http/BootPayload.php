@@ -74,7 +74,10 @@ final class BootPayload
      * tiles the section picker shows it in (`picker_group`, null for an
      * extension's section, which is grouped under the extension) with its
      * place in that group (`picker_order`, null to follow catalog order);
-     * and whether it is fixed in its band (`fixed`: the Header, the Footer).
+     * whether it is fixed in its band (`fixed`: the Header, the Footer);
+     * the shared groups it may also go in (`shared_groups`); and where on
+     * a page it may sit (`own_row`, `limit_per_area`, `content_only`, see
+     * SectionSchema). Only the theme's own sections set these four.
      *
      * @return array<string, array>
      */
@@ -89,6 +92,10 @@ final class BootPayload
                 'picker_group' => $schema->pickerGroup(),
                 'picker_order' => $schema->pickerOrder(),
                 'fixed' => $schema->fixed(),
+                'shared_groups' => $schema->sharedGroups(),
+                'own_row' => $schema->ownRow(),
+                'limit_per_area' => $schema->limitPerArea(),
+                'content_only' => $schema->contentOnly(),
             ] + $spec;
         }
 

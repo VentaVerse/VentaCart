@@ -1,4 +1,4 @@
-{{-- Announcement bar: up to three short messages above the header, in one line, taking turns or scrolling. --}}
+{{-- Announcement bar: up to three short messages in a strip, in one line, taking turns or scrolling. --}}
 @php
     $messages = [];
     foreach ($blocks as $block) {

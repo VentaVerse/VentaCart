@@ -9,6 +9,7 @@
     "*custom"
   ],
   "limit": 1,
+  "content_only": true,
   "main": false,
   "span": {
     "min": 3

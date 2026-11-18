@@ -56,9 +56,14 @@ export const isFormSetting = (setting) => setting.key !== 'visible';
 /**
  * True when the schema allows this section type in the template being
  * edited. `*extension` opens it to every page type an extension added.
+ * Given a shared group (`header`, `footer`), true when the type belongs to
+ * that group or lists it in `shared_groups`; the page arguments are then
+ * not read.
  */
-export function allowedIn(def, pageType, isCustom, isExtensionPage = false) {
-  if (!def || def.group !== 'template') return false;
+export function allowedIn(def, pageType, isCustom, isExtensionPage = false, group = null) {
+  if (!def) return false;
+  if (group) return def.group === group || (def.shared_groups || []).includes(group);
+  if (def.group !== 'template') return false;
   const list = def.templates;
   if (!list || list.includes('*')) return true;
   if (isExtensionPage && list.includes('*extension')) return true;

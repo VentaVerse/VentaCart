@@ -1,9 +1,23 @@
 {
   "type": "announcement-bar",
   "label": "Announcement bar",
-  "group": "header",
+  "group": "template",
+  "picker_group": "text",
+  "picker_order": 75,
+  "templates": [
+    "*"
+  ],
+  "shared_groups": [
+    "header",
+    "footer"
+  ],
   "limit": 1,
+  "limit_per_area": true,
+  "own_row": true,
   "main": false,
+  "span": {
+    "min": 6
+  },
   "class": "s-announcement",
   "variants": [
     {

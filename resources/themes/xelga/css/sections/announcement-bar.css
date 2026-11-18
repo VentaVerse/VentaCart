@@ -2,7 +2,9 @@
    8. Announcement bar
    ========================================================================== */
 
+/* Measured on itself: a row beside the sides of a page can be half the page wide. */
 .s-announcement {
+  container-type: inline-size;
   padding-block: 0;
   font-size: var(--fs-xs);
   font-weight: 500;

@@ -219,14 +219,57 @@ final class SectionSchema
     }
 
     /**
+     * The shared groups (the header band, the footer band) the section may
+     * also go in, besides the page types its `templates` lists. Only the
+     * theme's own sections can: the header and the footer are drawn on
+     * every page, checkout and account included, where an extension's
+     * section never goes.
+     *
+     * @return list<string>
+     */
+    public function sharedGroups(): array
+    {
+        if ($this->source() !== null) {
+            return [];
+        }
+        $groups = (array) ($this->raw['shared_groups'] ?? []);
+
+        return array_values(array_intersect(\Themes\Xelga\Documents\Handles::GROUPS, $groups));
+    }
+
+    /** Whether the section keeps a one-column row of its own, never a column or a side. */
+    public function ownRow(): bool
+    {
+        return $this->ownFlag('own_row');
+    }
+
+    /**
+     * Whether `limit` counts per area on a page with areas (Top, Content,
+     * Bottom), instead of per page.
+     */
+    public function limitPerArea(): bool
+    {
+        return $this->ownFlag('limit_per_area');
+    }
+
+    /**
+     * Whether the section belongs beside the page content: on a page with
+     * areas, only in Content or a side, never in Top or Bottom.
+     */
+    public function contentOnly(): bool
+    {
+        return $this->ownFlag('content_only');
+    }
+
+    /**
      * Whether a section of this type may sit in the document with this
-     * handle: a group section only in its own group, a template section
-     * only in the page types it lists.
+     * handle: a group section in its own group, a section in a shared
+     * group it lists, a template section only in the page types it lists.
      */
     public function allowedIn(string $handle, string $kind, ?string $pageType): bool
     {
         if ($kind === 'group') {
-            return $this->group === $handle;
+            return $this->group === $handle || in_array($handle, $this->sharedGroups(), true);
         }
         if ($kind !== 'template' || $this->group !== 'template') {
             return false;
@@ -241,6 +284,12 @@ final class SectionSchema
         $isCustom = str_contains($handle, '.');
 
         return $isCustom ? in_array('*custom', $templates, true) && in_array($pageType, $templates, true) : in_array($pageType, $templates, true);
+    }
+
+    /** A placement key only the theme's own sections may set. */
+    private function ownFlag(string $key): bool
+    {
+        return $this->source() === null && ($this->raw[$key] ?? false) === true;
     }
 
     /** @return array<string, SettingSchema> */
