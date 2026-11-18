@@ -18,9 +18,6 @@ use Themes\Xelga\Documents\Shape;
  */
 final class SectionRenderer
 {
-    /** @var list<array> what the editor preview needs to know about the drawn sections */
-    private array $pageData = [];
-
     /**
      * The extension sections of the document being drawn that may be drawn
      * where they sit, decided once in reading order (see placeableIds()),
@@ -61,15 +58,10 @@ final class SectionRenderer
             return $html;
         }
 
-        // The preview's page data keeps the reading order, so what the
-        // sides add is set aside here and put back around Content.
         $sides = self::sides($content);
         $drawnSides = [];
-        $sideData = [];
         foreach (Layout::SIDES as $which) {
-            $mark = count($this->pageData);
             $drawnSides[$which] = $this->side($sides[$which], $sections, $context);
-            $sideData[$which] = array_splice($this->pageData, $mark);
         }
 
         // A side that shows nothing (its sections hidden, or with nothing to
@@ -88,16 +80,10 @@ final class SectionRenderer
         $html = array_fill_keys(Layout::AREAS, '');
         $inner = $context->withSpan($this->contentSpan);
         foreach (Layout::AREAS as $area) {
-            if ($area === 'content') {
-                array_push($this->pageData, ...$sideData['left']);
-            }
             foreach ($rows as $row) {
                 if (self::areaOf($row) === $area) {
                     $html[$area] .= $this->row($row, $sections, $area === 'content' ? $inner : $context);
                 }
-            }
-            if ($area === 'content') {
-                array_push($this->pageData, ...$sideData['right']);
             }
         }
 
@@ -355,12 +341,6 @@ final class SectionRenderer
         return $this->contentSpan;
     }
 
-    /** @return list<array> */
-    public function pageData(): array
-    {
-        return $this->pageData;
-    }
-
     private function section(string $id, array $section, RenderContext $context): string
     {
         $type = (string) ($section['type'] ?? '');
@@ -371,17 +351,7 @@ final class SectionRenderer
             if (! $context->preview) {
                 return '';
             }
-            // The preview draws a note in its place; the editor knows it is
-            // shown, and names it by its own name rather than its id.
-            $this->pageData[] = [
-                'id' => $id,
-                'type' => $type,
-                'group' => $context->group,
-                'label' => self::nameOf($section),
-                'disabled' => (bool) ($section['disabled'] ?? false),
-                'blocks' => [],
-            ];
-
+            // The preview draws a note in its place, named by the section's own name.
             return $this->wrap($id, view('xelga::snippets.section-missing', ['id' => $id, 'type' => $type, 'name' => self::nameOf($section)] + self::owner($type))->render());
         }
         // Where an extension section sits is checked again here, whatever
@@ -444,14 +414,6 @@ final class SectionRenderer
         }
 
         $label = (string) (($section['label'] ?? '') !== '' ? $section['label'] : $schema->label);
-        $this->pageData[] = [
-            'id' => $id,
-            'type' => $type,
-            'group' => $context->group,
-            'label' => $label,
-            'disabled' => $disabled,
-            'blocks' => array_map(fn (array $b) => ['id' => $b['id'], 'type' => $b['type'], 'label' => $b['label'] !== '' ? $b['label'] : (string) ($schema->blockType($b['type'])['label'] ?? $b['type']), 'disabled' => $b['disabled']], $blocks),
-        ];
 
         try {
             $data = [];

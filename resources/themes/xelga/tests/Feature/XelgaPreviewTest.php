@@ -39,7 +39,7 @@ class XelgaPreviewTest extends TestCase
         $this->asGuest();
 
         foreach (['anything', $nonce, ''] as $value) {
-            $this->get('/?xelga_preview=' . urlencode($value))->assertOk()->assertSee(self::LIVE)->assertDontSee(self::DRAFT)->assertDontSee('xelga-page-data');
+            $this->get('/?xelga_preview=' . urlencode($value))->assertOk()->assertSee(self::LIVE)->assertDontSee(self::DRAFT);
         }
         $this->get('/', ['Sec-Fetch-Dest' => 'iframe'])->assertOk()->assertDontSee(self::DRAFT);
     }
@@ -51,7 +51,6 @@ class XelgaPreviewTest extends TestCase
         $this->get('/?xelga_preview=' . $nonce)
             ->assertOk()
             ->assertSee(self::DRAFT)
-            ->assertSee('id="xelga-page-data"', false)
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
             ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'")
             ->assertHeader('Cache-Control', 'no-store, private');
@@ -66,14 +65,14 @@ class XelgaPreviewTest extends TestCase
 
         // A tab of its own sends no frame header; the nonce in the address is
         // what shows the draft. The page is drawn in preview mode, with the
-        // preview script that keeps the nonce on the store's own links.
+        // headers that keep it out of search results and out of other sites' frames.
         $this->get('/?xelga_preview=' . $nonce, ['Sec-Fetch-Dest' => 'document'])
             ->assertOk()
             ->assertSee(self::DRAFT)
             ->assertDontSee(self::LIVE)
-            ->assertSee('id="xelga-page-data"', false)
             ->assertHeader('Cache-Control', 'no-store, private')
-            ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
+            ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'");
     }
 
     public function test_a_plain_tab_without_the_nonce_shows_the_published_page(): void
@@ -84,8 +83,7 @@ class XelgaPreviewTest extends TestCase
         $this->get('/', ['Sec-Fetch-Dest' => 'document'])
             ->assertOk()
             ->assertSee(self::LIVE)
-            ->assertDontSee(self::DRAFT)
-            ->assertDontSee('xelga-page-data');
+            ->assertDontSee(self::DRAFT);
     }
 
     public function test_a_request_saving_an_older_session_does_not_close_the_window(): void
@@ -259,12 +257,12 @@ class XelgaPreviewTest extends TestCase
         $this->get('/')->assertOk()->assertDontSee(self::LIVE);
 
         $nonce = $this->openEditor($this->admin());
-        $this->get('/?xelga_preview=' . $nonce)->assertOk()->assertSee('id="xelga-page-data"', false);
+        $this->get('/?xelga_preview=' . $nonce)->assertOk()->assertSee(self::DRAFT);
 
         // The same application serves the next request, as a long-running worker would.
         $this->assertSame($live, app(ThemeService::class)->getActiveTheme());
         $this->asGuest();
-        $this->get('/')->assertOk()->assertDontSee('id="xelga-page-data"', false)->assertDontSee(self::LIVE)->assertDontSee(self::DRAFT);
+        $this->get('/')->assertOk()->assertDontSee(self::LIVE)->assertDontSee(self::DRAFT);
         $this->assertSame($live, app(ThemeService::class)->getActiveTheme());
         $this->assertStringNotContainsString('/xelga', (string) (app('view')->getFinder()->getPaths()[0] ?? ''));
     }

@@ -51,8 +51,7 @@ class XelgaStorefrontTest extends TestCase
             ->assertSee('/storage/media/xelga/gadgets/cat-phones.jpg', false)
             ->assertSee('/xelga/tokens/0.css', false)
             ->assertSee('<!--xelga:hero-1-->', false)
-            ->assertSee('© ' . now()->year . ' Demo Store')
-            ->assertDontSee('xelga-page-data');
+            ->assertSee('© ' . now()->year . ' Demo Store');
 
         // Gadgets is the shipped store; its name is never printed as the store's.
         $response->assertDontSee('>Gadgets<', false);

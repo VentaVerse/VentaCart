@@ -82,12 +82,12 @@ class XelgaEditorEndpointsTest extends TestCase
     {
         $html = $this->actingAs($this->admin())->get(route('admin.xelga.editor'))->assertOk()->getContent();
 
-        // The layout board is the whole editor: the store is only seen in a tab of its own.
+        // The layout board is the whole editor: the preview frame is built by the editor's script, so the shell holds none.
         $this->assertStringNotContainsString('<iframe', $html);
         $this->assertStringNotContainsString('frame.js', $html);
         $this->assertStringContainsString('id="xelga-editor"', $html);
 
-        // No frame, so no message protocol to agree on with one.
+        // The boot payload carries the editor's data; the store page sends none of its own.
         preg_match('#<script type="application/json" id="xelga-boot">(.*?)</script>#s', $html, $m);
         $boot = json_decode($m[1] ?? '', true);
         $this->assertIsArray($boot);

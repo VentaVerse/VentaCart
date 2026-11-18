@@ -197,29 +197,6 @@ final class Storefront
         }
     }
 
-    /**
-     * What the editor's preview needs to know about the drawn page: its
-     * sections and blocks, which page it is, and how theme settings apply.
-     */
-    public function pageData(): array
-    {
-        $targets = [];
-        foreach (Catalog::themeSettings() as $key => $setting) {
-            $targets[$key] = $setting->raw['target'] ?? null;
-        }
-
-        return [
-            'protocol' => 1,
-            'preview' => true,
-            'page' => ['type' => $this->pageType, 'handle' => $this->handle, 'subject' => is_object($this->subject) && isset($this->subject->id) ? (int) $this->subject->id : null],
-            'url' => request()->fullUrlWithoutQuery([PreviewMode::QUERY]),
-            'sections' => $this->renderer->pageData(),
-            'theme_settings' => $targets,
-            'font_pairs' => array_map(fn (array $p) => ['value' => $p['value'], 'heading' => $p['heading'], 'body' => $p['body'], 'heading_weight' => $p['heading_weight'] ?? null, 'tokens' => $p['tokens'] ?? (object) []], Catalog::fontPairs()),
-            'storage_url' => '/storage/',
-        ];
-    }
-
     /** Drop what the last request loaded, so nothing carries over to the next one. */
     public static function forgetRequestState(): void
     {

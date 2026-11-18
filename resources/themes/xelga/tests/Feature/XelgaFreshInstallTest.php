@@ -102,7 +102,6 @@ class XelgaFreshInstallTest extends TestCase
         $nonce = $this->openEditor($admin);
         Storefront::forgetRequestState();
         $html = $this->get('/?xelga_preview=' . $nonce)->assertOk()->getContent();
-        $this->assertStringContainsString('id="xelga-page-data"', $html);
         preg_match_all('#<p class="editor-note"[^>]*>(.*?)</p>#s', $html, $notes);
         $notes = array_map(fn (string $note) => trim(strip_tags($note)), $notes[1]);
         // Two notes always ship, both for shoppers who have not acted yet:
