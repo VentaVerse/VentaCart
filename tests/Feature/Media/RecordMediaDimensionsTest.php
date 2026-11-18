@@ -94,7 +94,7 @@ class RecordMediaDimensionsTest extends TestCase
         $this->assertSame(2, MediaFile::count());
 
         $this->artisan('media:dimensions', ['--prune' => true])
-            ->expectsOutput('Removed 1 rows whose file is gone.')
+            ->expectsOutput('Removed 1 rows whose file is gone, skipped 0 that could not be checked.')
             ->assertSuccessful();
 
         $this->assertSame(['media/products/demo-001.png'], MediaFile::pluck('path')->all());
@@ -122,5 +122,51 @@ class RecordMediaDimensionsTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame(0, MediaFile::count());
+    }
+
+    public function test_prune_refuses_when_the_media_folder_is_missing(): void
+    {
+        MediaFile::create(['path' => 'media/products/demo-001.png', 'width' => 5, 'height' => 5]);
+
+        $this->artisan('media:dimensions', ['--prune' => true])->assertFailed();
+
+        $this->assertSame(1, MediaFile::count());
+    }
+
+    public function test_prune_refuses_when_the_media_folder_is_empty(): void
+    {
+        Storage::disk('public')->makeDirectory('media');
+        MediaFile::create(['path' => 'media/products/demo-001.png', 'width' => 5, 'height' => 5]);
+
+        $this->artisan('media:dimensions', ['--prune' => true])->assertFailed();
+
+        $this->assertSame(1, MediaFile::count());
+    }
+
+    public function test_prune_refuses_to_remove_most_rows_without_force(): void
+    {
+        Storage::disk('public')->put('media/products/demo-001.png', $this->png(2, 2));
+        $now = now();
+        MediaFile::insert(array_map(fn ($i) => ['path' => "media/gone/demo-{$i}.png", 'width' => 1, 'height' => 1, 'created_at' => $now, 'updated_at' => $now], range(1, 150)));
+
+        $this->artisan('media:dimensions', ['--prune' => true])->assertFailed();
+        $this->assertSame(151, MediaFile::count());
+
+        $this->artisan('media:dimensions', ['--prune' => true, '--force' => true])->assertSuccessful();
+        $this->assertSame(['media/products/demo-001.png'], MediaFile::pluck('path')->all());
+    }
+
+    public function test_prune_keeps_a_row_whose_path_cannot_be_checked(): void
+    {
+        Storage::disk('public')->put('media/products/demo-001.png', $this->png(2, 2));
+        MediaFile::create(['path' => "media/products/../bad.png", 'width' => 5, 'height' => 5]);
+        MediaFile::create(['path' => 'media/products/gone.png', 'width' => 5, 'height' => 5]);
+
+        $this->artisan('media:dimensions', ['--prune' => true])
+            ->expectsOutput('Removed 1 rows whose file is gone, skipped 1 that could not be checked.')
+            ->assertSuccessful();
+
+        $this->assertNotNull(MediaFile::where('path', 'media/products/../bad.png')->first());
+        $this->assertNull(MediaFile::where('path', 'media/products/gone.png')->first());
     }
 }
