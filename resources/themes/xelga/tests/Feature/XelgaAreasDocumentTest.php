@@ -366,4 +366,67 @@ class XelgaAreasDocumentTest extends TestCase
         $probe(['fixed' => 'yes', 'group' => 'header', 'templates' => []], fn (array $problems) => $this->assertContains('Section zz-probe: fixed is true or false.', $problems));
         $this->assertSame([], CatalogLinter::check());
     }
+
+    /** The shipped header without its Header, as a store that removed it before it was locked has it. */
+    private function headerWithoutHeader(): array
+    {
+        $header = $this->defaults('header');
+        unset($header['sections']['header-1']);
+        $header['order'] = ['announcement-1'];
+
+        return $header;
+    }
+
+    public function test_a_copy_in_a_header_stored_without_its_header_saves(): void
+    {
+        // Two messages, so a third fits.
+        $header = $this->headerWithoutHeader();
+        unset($header['sections']['announcement-1']['blocks']['announcement-1-b3']);
+        $header['sections']['announcement-1']['block_order'] = ['announcement-1-b1', 'announcement-1-b2'];
+        $this->publishedDocument('header', $header);
+
+        $this->forgetXelgaState();
+        $this->actingAs($this->admin())->postJson(route('admin.xelga.documents.duplicate', ['handle' => 'header']), [
+            'section' => 'announcement-1', 'block' => 'announcement-1-b1', 'draft_version' => 0,
+        ])->assertOk();
+
+        $draft = $this->draft('header');
+        $this->assertSame(['announcement-1', 'header-1'], $draft['order']);
+        $this->assertTrue($draft['sections']['header-1']['disabled']);
+        $this->assertCount(3, $draft['sections']['announcement-1']['block_order']);
+    }
+
+    public function test_a_layout_copied_from_a_page_stored_without_its_page_content_keeps_it(): void
+    {
+        $product = $this->defaults('product');
+        unset($product['sections']['product-main-1']);
+        $product['order'] = array_values(array_diff($product['order'], ['product-main-1']));
+        $this->publishedDocument('product', $product);
+
+        $this->forgetXelgaState();
+        $layout = app(TemplateManager::class)->create('product', 'Gift guide', null, $this->admin())['document'];
+
+        $this->assertSame('product-main', $layout->draft['sections']['product-main-1']['type']);
+        $this->assertFalse($layout->draft['sections']['product-main-1']['disabled']);
+        $this->assertSame(array_search('product-main-1', $this->defaults('product')['order'], true), array_search('product-main-1', $layout->draft['order'], true));
+    }
+
+    public function test_undoing_a_starting_store_puts_back_a_header_draft_without_its_header(): void
+    {
+        $this->publishedDocument('header', $this->defaults('header'), $this->headerWithoutHeader());
+        $versions = [];
+        foreach (['settings', 'header', 'footer', 'home'] as $handle) {
+            $versions[$handle] = (int) (Document::where('handle', $handle)->value('draft_version') ?? 0);
+        }
+
+        $this->forgetXelgaState();
+        $token = $this->actingAs($this->admin())->postJson(route('admin.xelga.store-templates.apply', ['slug' => 'parts']), ['bring' => 'all', 'versions' => $versions])
+            ->assertOk()->json('data.undo');
+        $this->forgetXelgaState();
+        $this->actingAs($this->admin())->postJson(route('admin.xelga.store-templates.undo'), ['token' => $token])->assertOk();
+
+        $draft = $this->draft('header');
+        $this->assertSame(['announcement-1', 'header-1'], $draft['order']);
+        $this->assertTrue($draft['sections']['header-1']['disabled']);
+    }
 }

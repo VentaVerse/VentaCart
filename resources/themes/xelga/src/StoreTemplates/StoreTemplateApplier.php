@@ -179,7 +179,10 @@ final class StoreTemplateApplier
                 $draft = $before['draft'];
                 if ($draft !== null) {
                     $decoded = json_decode((string) $draft, true);
-                    $draft = DocumentWriter::clean($handle, $decoded, [$decoded])['json'];
+                    // A draft saved before its Header, Footer or page content
+                    // was locked goes back with it, as the storefront draws it.
+                    $locked = is_array($decoded) ? \Themes\Xelga\Rendering\Storefront::withLockedSections($decoded, (string) $handle) : $decoded;
+                    $draft = DocumentWriter::clean($handle, $locked, [$decoded])['json'];
                 }
                 DB::table('xelga_documents')->where('id', $row->id)->update([
                     'draft' => $draft,
