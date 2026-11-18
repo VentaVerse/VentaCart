@@ -467,14 +467,14 @@ final class CatalogLinter
     }
 
     /**
-     * Where a container may not be set. A column, a side, the content
-     * wrapper, `main` and a main section take their width from the page,
+     * Where a container may not be set. A column, a side, the sides
+     * wrapper, Content, `main` and a main section take their width from the page,
      * and a container there would make the sections inside answer to the
      * wrong width; a section sets it on itself.
      */
     private function containers(): void
     {
-        $names = ['\.xr__col', '\.xp__side', '\.xp__content'];
+        $names = ['\.xr__col', '\.xp', '\.xp__side', '\.xp__content'];
         foreach (Catalog::sections() as $spec) {
             if (($spec['main'] ?? false) === true && is_string($spec['class'] ?? null) && ($spec['source'] ?? null) === null) {
                 $names[] = '\.' . preg_quote($spec['class'], '/');

@@ -7,6 +7,7 @@ use Themes\Xelga\Catalog\Catalog;
 use Themes\Xelga\Documents\Defaults;
 use Themes\Xelga\Documents\Handles;
 use Themes\Xelga\Documents\Layout;
+use Themes\Xelga\Documents\LayoutRules;
 use Themes\Xelga\Documents\Shape;
 
 /**
@@ -32,63 +33,101 @@ final class SectionRenderer
     /** How wide the page's content area was drawn, in twelfths of the page. */
     private int $contentSpan = 12;
 
-    /** @var array{left: string, right: string} the sides the last page template drew, empty when not drawn */
-    private array $sides = ['left' => '', 'right' => ''];
-
     /**
      * Draws a document. For a page template, the context's span is the
-     * width of the page (12): its sides are drawn first, three twelfths
-     * each, kept for sideHtml(); every row is then drawn in the content area
-     * left between the sides that show something, and only the rows are
-     * returned. Header and footer are always the whole page wide and leave
-     * the content area and the sides as they were.
+     * width of the page (12). Its sides are drawn first, three twelfths
+     * each, since only what they show decides how wide Content is. When a
+     * side shows something, the page reads Top, then a wrapper holding the
+     * left side, Content (drawn at the width the sides leave) and the right
+     * side, then Bottom; Top and Bottom stay the whole page wide. When no
+     * side shows anything, the rows of every area are drawn one after
+     * another, the whole page wide, with no wrapper. Header and footer are
+     * always the whole page wide.
      */
     public function render(array $content, RenderContext $context): string
     {
         $sections = (array) ($content['sections'] ?? []);
+        $rows = self::rowsOf($content, $context);
         $this->placeableIds = $this->placeableIds($content, $context);
         $firstIds = $this->drawnIds($content, $context);
         $context = $context->withTypes(array_keys($firstIds), $firstIds);
-        $sides = self::sides($content);
 
         if ($context->group !== 'template') {
             $html = '';
-            foreach (Layout::rows($content) as $row) {
+            foreach ($rows as $row) {
                 $html .= $this->row($row, $sections, $context);
             }
 
             return $html;
         }
 
-        // Both sides are drawn first: only what they show decides the
-        // content area every row is drawn in. Their entries in the preview's
-        // page data keep the reading order (left side, rows, right side).
-        $this->sides['left'] = $this->side($sides['left'], $sections, $context);
-        $mark = count($this->pageData);
-        $this->sides['right'] = $this->side($sides['right'], $sections, $context);
-        $rightData = array_splice($this->pageData, $mark);
+        // The preview's page data keeps the reading order, so what the
+        // sides add is set aside here and put back around Content.
+        $sides = self::sides($content);
+        $drawnSides = [];
+        $sideData = [];
+        foreach (Layout::SIDES as $which) {
+            $mark = count($this->pageData);
+            $drawnSides[$which] = $this->side($sides[$which], $sections, $context);
+            $sideData[$which] = array_splice($this->pageData, $mark);
+        }
 
         // A side that shows nothing (its sections hidden, or with nothing to
         // show this shopper) is not drawn and takes no room. The editor's
         // preview keeps every side that holds a section, so the editor can
         // still reach a hidden one.
         foreach (Layout::SIDES as $which) {
-            $shows = $context->preview ? $sides[$which] !== [] : self::shows($this->sides[$which]);
+            $shows = $context->preview ? $sides[$which] !== [] : self::shows($drawnSides[$which]);
             if (! $shows) {
-                $this->sides[$which] = '';
+                $drawnSides[$which] = '';
             }
         }
-        $drawn = count(array_filter($this->sides, fn (string $html) => $html !== ''));
-        $this->contentSpan = Layout::contentSpan($drawn, $context->span);
+        $drawnSides = array_filter($drawnSides, fn (string $html) => $html !== '');
+        $this->contentSpan = Layout::contentSpan(count($drawnSides), $context->span);
 
+        $html = array_fill_keys(Layout::AREAS, '');
         $inner = $context->withSpan($this->contentSpan);
-        $html = '';
-        foreach (Layout::rows($content) as $row) {
-            $html .= $this->row($row, $sections, $inner);
+        foreach (Layout::AREAS as $area) {
+            if ($area === 'content') {
+                array_push($this->pageData, ...$sideData['left']);
+            }
+            foreach ($rows as $row) {
+                if (self::areaOf($row) === $area) {
+                    $html[$area] .= $this->row($row, $sections, $area === 'content' ? $inner : $context);
+                }
+            }
+            if ($area === 'content') {
+                array_push($this->pageData, ...$sideData['right']);
+            }
         }
-        array_push($this->pageData, ...$rightData);
 
-        return $html;
+        if ($drawnSides === []) {
+            return implode('', $html);
+        }
+
+        return $html['top'] . $this->sidesWrapper($drawnSides, $html['content']) . $html['bottom'];
+    }
+
+    /**
+     * Content between the sides that show something, left before it and
+     * right after it, so the reading order and a phone's stacking order
+     * agree. A side is a named region, not an aside: it stands inside
+     * main, where a complementary landmark does not belong.
+     *
+     * @param  array<'left'|'right', string>  $sides  the drawn sides
+     */
+    private function sidesWrapper(array $sides, string $content): string
+    {
+        $which = count($sides) === 2 ? 'both' : (string) array_key_first($sides);
+        $side = fn (string $at, string $label) => isset($sides[$at])
+            ? '<section class="xp__side xp__side--' . $at . '" aria-label="' . e(__($label)) . '">' . $sides[$at] . '</section>'
+            : '';
+
+        return '<div class="xp" data-sides="' . $which . '">'
+            . $side('left', 'Left side')
+            . '<div class="xp__content" data-content="' . $this->contentSpan . '">' . $content . '</div>'
+            . $side('right', 'Right side')
+            . '</div>';
     }
 
     /** Whether drawn HTML shows anything: more than section markers and white space. */
@@ -116,14 +155,29 @@ final class SectionRenderer
     }
 
     /**
-     * The HTML of a side the last page template drew, or an empty string
-     * when it drew none.
+     * The document's rows, each with its area on a page template that has
+     * areas (see Layout::rows()). When the page's layout rules fail, the
+     * rows are drawn without areas, so the shopper still gets the page;
+     * Storefront::template() reports that failure.
      *
-     * @param  'left'|'right'  $which
+     * @return list<array>
      */
-    public function sideHtml(string $which): string
+    private static function rowsOf(array $content, RenderContext $context): array
     {
-        return $this->sides[$which] ?? '';
+        if ($context->group !== 'template') {
+            return Layout::rows($content);
+        }
+        try {
+            return Layout::rows($content, app(LayoutRules::class, ['handle' => $context->handle]));
+        } catch (\Throwable) {
+            return Layout::rows($content);
+        }
+    }
+
+    /** A row's area; a row without one (a page without areas) is Content. */
+    private static function areaOf(array $row): string
+    {
+        return in_array($row['area'] ?? null, Layout::AREAS, true) ? $row['area'] : 'content';
     }
 
     /**
@@ -151,7 +205,7 @@ final class SectionRenderer
         $sections = (array) ($content['sections'] ?? []);
         $placeable = $this->placeableIds($content, $context);
         $ids = [];
-        foreach (self::drawOrder($content) as $id) {
+        foreach (self::drawOrder($content, $context) as $id) {
             $section = $sections[$id] ?? null;
             $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
             if ($schema === null || ($schema->source() !== null && ! isset($placeable[$id])) || (bool) ($section['disabled'] ?? false)) {
@@ -165,7 +219,7 @@ final class SectionRenderer
 
     /**
      * The extension sections of the document that may be drawn where they
-     * sit, counted in reading order (left side, rows, right side), hidden
+     * sit, counted in reading order (see drawOrder()), hidden
      * ones included, as a save counts them.
      *
      * @return array<string, true>
@@ -175,7 +229,7 @@ final class SectionRenderer
         $sections = (array) ($content['sections'] ?? []);
         $counts = [];
         $ids = [];
-        foreach (self::drawOrder($content) as $id) {
+        foreach (self::drawOrder($content, $context) as $id) {
             $section = $sections[$id] ?? null;
             $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
             if ($schema !== null && $schema->source() !== null && $this->placeable($schema, $context, $counts)) {
@@ -242,22 +296,35 @@ final class SectionRenderer
     }
 
     /**
-     * Section ids in the order the page draws them: the left side, each
-     * row's columns left to right, the right side.
+     * Section ids in the order the page reads them: Top's rows, the left
+     * side, Content's rows, the right side, Bottom's rows, each row's
+     * columns left to right. A page without areas reads the left side, its
+     * rows, the right side.
      *
      * @return list<string>
      */
-    private static function drawOrder(array $content): array
+    private static function drawOrder(array $content, RenderContext $context): array
     {
         $sides = self::sides($content);
-        $ids = $sides['left'];
-        foreach (Layout::rows($content) as $row) {
-            foreach ($row['columns'] as $column) {
-                array_push($ids, ...$column);
+        $rows = self::rowsOf($content, $context);
+        $ids = [];
+        foreach (Layout::AREAS as $area) {
+            if ($area === 'content') {
+                array_push($ids, ...$sides['left']);
+            }
+            foreach ($rows as $row) {
+                if (self::areaOf($row) === $area) {
+                    foreach ($row['columns'] as $column) {
+                        array_push($ids, ...$column);
+                    }
+                }
+            }
+            if ($area === 'content') {
+                array_push($ids, ...$sides['right']);
             }
         }
 
-        return [...$ids, ...$sides['right']];
+        return $ids;
     }
 
     /** @return array{left: list<string>, right: list<string>} */

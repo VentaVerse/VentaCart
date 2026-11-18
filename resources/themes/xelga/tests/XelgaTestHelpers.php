@@ -137,4 +137,38 @@ trait XelgaTestHelpers
         $this->app['auth']->forgetGuards();
         session()->flush();
     }
+
+    /** The element whose opening tag starts at $start in $html, up to its matching end tag. */
+    protected function outerHtml(string $html, int $start): string
+    {
+        preg_match('#<(\w+)#A', $html, $m, 0, $start);
+        $this->assertNotEmpty($m, "A tag opens at {$start}.");
+        $depth = 0;
+        preg_match_all('#<(/?)' . $m[1] . '\b[^>]*>#', $html, $tags, PREG_OFFSET_CAPTURE | PREG_SET_ORDER, $start);
+        foreach ($tags as $found) {
+            $depth += $found[1][0] === '/' ? -1 : 1;
+            if ($depth === 0) {
+                return substr($html, $start, $found[0][1] + strlen($found[0][0]) - $start);
+            }
+        }
+        $this->fail("<{$m[1]}> at {$start} is never closed.");
+    }
+
+    /** Content, drawn between the sides: the whole wrapper element. */
+    protected function contentArea(string $html): string
+    {
+        $start = strpos($html, '<div class="xp__content"');
+        $this->assertNotFalse($start, 'Content is drawn between the sides.');
+
+        return $this->outerHtml($html, $start);
+    }
+
+    /** One side's region, the whole element. */
+    protected function sideArea(string $html, string $which): string
+    {
+        $start = strpos($html, "<section class=\"xp__side xp__side--{$which}\"");
+        $this->assertNotFalse($start, "The {$which} side is drawn.");
+
+        return $this->outerHtml($html, $start);
+    }
 }

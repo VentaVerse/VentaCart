@@ -14,8 +14,8 @@
 @media (min-width: 990px) { .brand-index { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); } }
 /* Beside sides the content area is narrower, so a line holds fewer tiles. */
 @media (min-width: 990px) {
-    main[data-content="9"] .brand-index { grid-template-columns: repeat(min(var(--cols), 4), minmax(0, 1fr)); }
-    main[data-content="6"] .brand-index { grid-template-columns: repeat(min(var(--cols), 3), minmax(0, 1fr)); }
+    .xp__content[data-content="9"] .brand-index { grid-template-columns: repeat(min(var(--cols), 4), minmax(0, 1fr)); }
+    .xp__content[data-content="6"] .brand-index { grid-template-columns: repeat(min(var(--cols), 3), minmax(0, 1fr)); }
 }
 .brand-tile {
     display: grid; gap: .375rem; height: 100%; padding: 1rem; color: inherit; text-decoration: none;

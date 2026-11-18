@@ -145,42 +145,6 @@ final class Storefront
         return min($index, count($order));
     }
 
-    /**
-     * How wide the page's content area is drawn, in twelfths of the page:
-     * 12 for a page without sides, or one drawn without a template.
-     */
-    public function contentSpan(): int
-    {
-        return $this->renderer->contentSpan();
-    }
-
-    /**
-     * Which sides the page's template drew beside its content: 'left',
-     * 'right', 'both', or '' for a page without sides.
-     */
-    public function sides(): string
-    {
-        $left = $this->renderer->sideHtml('left') !== '';
-        $right = $this->renderer->sideHtml('right') !== '';
-
-        return match (true) {
-            $left && $right => 'both',
-            $left => 'left',
-            $right => 'right',
-            default => '',
-        };
-    }
-
-    /**
-     * The sections of one side the page's template drew.
-     *
-     * @param  'left'|'right'  $which
-     */
-    public function side(string $which): HtmlString
-    {
-        return new HtmlString($this->renderer->sideHtml($which));
-    }
-
     /** Remember which page this is, for a page drawn without a template. */
     public function page(string $pageType): void
     {

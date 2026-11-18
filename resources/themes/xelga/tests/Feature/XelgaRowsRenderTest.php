@@ -634,7 +634,7 @@ class XelgaRowsRenderTest extends TestCase
         // The store's own pages are drawn the whole page wide, so main carries no width.
         $page = $this->page('/')->getContent();
         $this->assertStringContainsString('<main id="main-content">', $page);
-        $this->assertSame(12, app(Storefront::class)->contentSpan());
+        $this->assertSame(12, app(SectionRenderer::class)->contentSpan());
     }
 
     protected function tearDown(): void
