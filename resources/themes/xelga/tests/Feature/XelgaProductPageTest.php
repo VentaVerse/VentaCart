@@ -317,6 +317,44 @@ class XelgaProductPageTest extends TestCase
             ->assertDontSee('data-section-type="recently-viewed"', false);
     }
 
+    public function test_the_editor_preview_shows_the_latest_products_as_recently_viewed_stand_ins(): void
+    {
+        $this->product('Linen Shirt');
+        $this->product('Cotton Scarf');
+        $this->product('Linen Dress');
+        // Storefront requests here run as from a browser, so the editor's POST would need a form token.
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+        $nonce = $this->openEditor($this->admin());
+
+        // The editor's preview: the list is empty, so the latest products stand in, never the one viewed.
+        Storefront::forgetRequestState();
+        $html = $this->get('/product/linen-dress?xelga_preview=' . $nonce)->assertOk()->getContent();
+        $list = $this->sectionHtml($html, 'recently-viewed');
+        $this->assertNotNull($list, 'Recently viewed is drawn in the preview.');
+        $this->assertStringContainsString('Cotton Scarf', $list);
+        $this->assertStringContainsString('Linen Shirt', $list);
+        $this->assertStringNotContainsString('Linen Dress', $list);
+
+        // The same admin outside the preview, and every shopper, get no stand-ins.
+        Storefront::forgetRequestState();
+        $this->get('/product/linen-dress')->assertOk()->assertDontSee('data-section-type="recently-viewed"', false);
+        $this->asGuest();
+        Storefront::forgetRequestState();
+        $this->get('/product/linen-dress')->assertOk()->assertDontSee('data-section-type="recently-viewed"', false);
+    }
+
+    /** The markup of the first section of a type on a page, or null when the page does not draw one. */
+    private function sectionHtml(string $html, string $type): ?string
+    {
+        $start = strpos($html, 'data-section-type="' . $type . '"');
+        if ($start === false) {
+            return null;
+        }
+        $end = strpos($html, 'data-section-type=', $start + 20);
+
+        return substr($html, $start, $end === false ? null : $end - $start);
+    }
+
     public function test_reviews_hide_while_the_extension_is_off(): void
     {
         $this->product('Linen Shirt');

@@ -5,6 +5,7 @@ namespace Themes\Xelga\Sections;
 use App\Models\Product;
 use App\Support\ProductFeed;
 use Illuminate\Support\Facades\Cookie;
+use Themes\Xelga\Preview\PreviewMode;
 use Themes\Xelga\Rendering\RenderContext;
 use Themes\Xelga\Rendering\SectionData;
 
@@ -14,6 +15,10 @@ use Themes\Xelga\Rendering\SectionData;
  * products themselves come from core's product feed, so a product the
  * shopper may no longer see (hidden for their group, switched off) simply
  * drops out. The product being viewed is left out of its own page.
+ *
+ * In the editor's preview an empty list would hide the section, so the
+ * merchant could not see or style it: there the store's latest products
+ * stand in, through the same feed. Shoppers never get stand-ins.
  */
 final class RecentlyViewed implements SectionData
 {
@@ -32,12 +37,24 @@ final class RecentlyViewed implements SectionData
         $ids = array_values(array_filter(self::ids(), fn ($id) => ! ($current instanceof Product && $id === (int) $current->id)));
 
         $products = $ids === [] ? collect() : ProductFeed::get(['ids' => array_slice($ids, 0, self::KEEP), 'limit' => $count]);
+        if ($products->isEmpty() && PreviewMode::active()) {
+            $products = self::standIns($count, $current instanceof Product ? (int) $current->id : null);
+        }
 
         return [
             'cols' => $context->fitColumns($settings['cols'] ?? 4),
             'cards' => ProductCards::for($products, Swatches::wanted($context), CardLines::wanted($context)),
             'empty' => 'Shoppers see the products they opened last here. It stays hidden until they have opened one.',
         ];
+    }
+
+    /** The store's latest products, for the editor's preview only; never the one being viewed. */
+    private static function standIns(int $count, ?int $exclude)
+    {
+        return ProductFeed::get(['filter' => 'new', 'limit' => $count + 1])
+            ->reject(fn (Product $p) => (int) $p->id === $exclude)
+            ->take($count)
+            ->values();
     }
 
     /** The ids in the cookie, newest first. @return list<int> */
