@@ -150,4 +150,55 @@ class IdentityFromLibraryTest extends TestCase
         $this->assertStringContainsString('Or upload an ICO or SVG file', $html);
         $this->assertStringNotContainsString('name="logo"', $html);
     }
+
+    private function bigPng(string $path, int $side): void
+    {
+        // Noise does not compress, so a modest image still passes the size cap.
+        $image = imagecreatetruecolor($side, $side);
+        for ($i = 0; $i < $side * 4; $i++) {
+            imagesetpixel($image, random_int(0, $side - 1), random_int(0, $side - 1), random_int(0, 0xFFFFFF));
+        }
+        ob_start();
+        imagepng($image, null, 0);
+        Storage::disk('public')->put($path, (string) ob_get_clean());
+    }
+
+    public function test_a_library_image_over_the_logo_size_limit_is_refused(): void
+    {
+        $this->bigPng('media/branding/big.png', 600);
+
+        $this->post(route('admin.settings.identity.update'), [
+            'site_name' => 'Demo Store',
+            'logo_media' => 'media/branding/big.png',
+        ])->assertSessionHasErrors(['logo_media' => 'The logo may not be larger than 512 KB.']);
+
+        $this->assertNull($this->setting('logo'));
+    }
+
+    public function test_a_library_image_over_the_favicon_size_limit_is_refused(): void
+    {
+        $this->bigPng('media/branding/big-icon.png', 300);
+
+        $this->post(route('admin.settings.identity.update'), [
+            'site_name' => 'Demo Store',
+            'favicon_media' => 'media/branding/big-icon.png',
+        ])->assertSessionHasErrors(['favicon_media' => 'The favicon may not be larger than 256 KB.']);
+
+        $this->assertNull($this->setting('favicon'));
+    }
+
+    public function test_replacing_a_mark_never_deletes_a_file_outside_the_identity_folder(): void
+    {
+        $this->png('media/branding/demo-logo.png', 480, 120);
+        $this->png('media/branding/other.png', 480, 120);
+        Setting::create(['group' => 'identity', 'key' => 'logo', 'value' => 'media/branding/other.png']);
+
+        $this->post(route('admin.settings.identity.update'), [
+            'site_name' => 'Demo Store',
+            'logo_media' => 'media/branding/demo-logo.png',
+        ])->assertSessionHasNoErrors();
+
+        Storage::disk('public')->assertExists('media/branding/other.png');
+        $this->assertStringStartsWith('identity/', $this->setting('logo'));
+    }
 }

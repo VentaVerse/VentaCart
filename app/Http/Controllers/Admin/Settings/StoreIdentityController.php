@@ -161,7 +161,8 @@ class StoreIdentityController extends Controller
 
         $path = trim(str_replace('\\', '/', $path));
 
-        if ($path === '' || str_contains($path, '..') || str_starts_with($path, '/')) {
+        // Only the identity folder is ours to delete from.
+        if ($path === '' || str_contains($path, '..') || ! str_starts_with($path, self::DIRECTORY.'/')) {
             return;
         }
 
