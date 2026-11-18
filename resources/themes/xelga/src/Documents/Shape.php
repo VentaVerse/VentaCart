@@ -485,11 +485,8 @@ final class Shape
     private function mainSections(string $pageType, array $sections): void
     {
         $required = [];
-        foreach ((array) (Defaults::content($pageType)['sections'] ?? []) as $section) {
-            $schema = Catalog::section((string) (is_array($section) ? ($section['type'] ?? '') : ''));
-            if ($schema !== null && ($schema->raw['main'] ?? false) === true) {
-                $required[$schema->type] = $schema;
-            }
+        foreach (Defaults::mainTypes($pageType) as $type) {
+            $required[$type] = Catalog::section($type);
         }
 
         foreach ($required as $type => $schema) {

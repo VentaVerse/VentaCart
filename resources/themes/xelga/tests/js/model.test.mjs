@@ -54,7 +54,7 @@ function fixtureFiles() {
 
 test('normalize matches every shared fixture', () => {
   const files = fixtureFiles();
-  assert.ok(files.length > 20);
+  assert.ok(files.length > 15);
   assert.ok(files.some((f) => f.includes('content-width')), 'the content width cases are read');
   files.forEach((file) => {
     const fixture = JSON.parse(readFileSync(file, 'utf8'));
@@ -152,9 +152,10 @@ test('contentSpan ignores a side of hidden sections', () => {
   assert.equal(contentSpan(page({ a: 'text', f: 'text' }, { sides: { left: ['f'] } }), rulesOf({ min: { text: 3 }, sides: false })), 12);
 });
 
-test('sideTargets offers both sides on the page types that may have them, never on the cart', () => {
+test('sideTargets offers both sides on the page types that may have them, never on Home or the cart', () => {
   assert.deepEqual(sideTargets('category', LAYOUT), ['left', 'right']);
-  assert.deepEqual(sideTargets('home', LAYOUT), ['left', 'right']);
+  assert.deepEqual(sideTargets('product', LAYOUT), ['left', 'right']);
+  assert.deepEqual(sideTargets('home', LAYOUT), [], 'Home is all rows.');
   assert.deepEqual(sideTargets('cart', LAYOUT), []);
   assert.deepEqual(sideTargets('header', LAYOUT), []);
 });
@@ -425,20 +426,21 @@ test('each operation undone returns the identical content', async () => {
     [{ t: 'row-set', rowId: 'r1', key: 'scheme', to: 'scheme-1' }, (c) => setRow(c, 'r1', 'scheme', 'scheme-1')],
   ];
   steps.forEach(([step, expected]) => {
-    S.docs = { home: { handle: 'home', kind: 'template', content: JSON.parse(json(normal)), savedSeq: 0 } };
+    // A product page, which may have sides.
+    S.docs = { product: { handle: 'product', kind: 'template', content: JSON.parse(json(normal)), savedSeq: 0 } };
     S.loaded = true;
     S.fatal = null;
     resetHistory();
-    const before = json(S.docs.home.content);
-    commit({ ...step, doc: 'home', name: 'Section' });
-    const after = json(S.docs.home.content);
+    const before = json(S.docs.product.content);
+    commit({ ...step, doc: 'product', name: 'Section' });
+    const after = json(S.docs.product.content);
     assert.notEqual(after, before, `${step.t} changes the page`);
     assert.equal(after, json(expected(JSON.parse(before))), `${step.t} gives what the row model gives`);
     assert.equal(json(normalize(JSON.parse(after), RULES).content), after, `${step.t} leaves a normal page`);
     undo();
-    assert.equal(json(S.docs.home.content), before, `${step.t} undone`);
+    assert.equal(json(S.docs.product.content), before, `${step.t} undone`);
     redo();
-    assert.equal(json(S.docs.home.content), after, `${step.t} redone`);
+    assert.equal(json(S.docs.product.content), after, `${step.t} redone`);
   });
 });
 

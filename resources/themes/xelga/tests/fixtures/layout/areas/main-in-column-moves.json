@@ -1,5 +1,5 @@
 {
-  "name": "main-in-side-moves",
+  "name": "main-in-column-moves",
   "rules": {
     "min": {
       "text": 3,
@@ -27,8 +27,11 @@
     "rows": [
       {
         "id": "row-1",
-        "split": "12",
+        "split": "8-4",
         "columns": [
+          [
+            "m"
+          ],
           [
             "a"
           ]
@@ -39,12 +42,7 @@
           "space": "md"
         }
       }
-    ],
-    "sides": {
-      "left": [
-        "m"
-      ]
-    }
+    ]
   },
   "expected": {
     "schema": 1,
@@ -63,8 +61,9 @@
     "rows": [
       {
         "id": "row-1",
-        "split": "12",
+        "split": "8-4",
         "columns": [
+          [],
           [
             "a"
           ]
@@ -73,7 +72,8 @@
           "width": "page",
           "scheme": "",
           "space": "md"
-        }
+        },
+        "area": "top"
       },
       {
         "id": "row-6b0d31c0",
@@ -87,7 +87,8 @@
           "width": "page",
           "scheme": "",
           "space": "md"
-        }
+        },
+        "area": "content"
       }
     ]
   },

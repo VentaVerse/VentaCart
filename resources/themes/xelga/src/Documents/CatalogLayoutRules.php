@@ -41,4 +41,24 @@ final class CatalogLayoutRules implements LayoutRules
     {
         return Layout::sidesAllowed($this->handle);
     }
+
+    public function ownRow(array $section): bool
+    {
+        return ($this->schema($section)?->raw['own_row'] ?? false) === true;
+    }
+
+    public function contentOnly(array $section): bool
+    {
+        return ($this->schema($section)?->raw['content_only'] ?? false) === true;
+    }
+
+    public function pageTypeKnown(): bool
+    {
+        return Handles::kind($this->handle) !== 'template' || Handles::known($this->handle);
+    }
+
+    private function schema(array $section): ?\Themes\Xelga\Catalog\SectionSchema
+    {
+        return Catalog::section((string) ($section['type'] ?? ''));
+    }
 }

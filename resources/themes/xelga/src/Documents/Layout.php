@@ -12,10 +12,14 @@ namespace Themes\Xelga\Documents;
  * as one full-width row per section in `order`, which is how every page
  * was stored before rows existed, so such a page draws exactly as before.
  *
+ * A page with page content (see sidesAllowed()) also has areas: each row
+ * is in Top, Content or Bottom (its `area`), in that order down the page.
+ * Top and Bottom run the whole page width; the sides stand beside Content.
+ *
  * `order` stays in every document as the reading order, derived here
- * from the rows and sides: left side, then each row's columns left to
- * right, then right side. That is also the DOM order, so phones stack the
- * page the way it reads.
+ * from the rows and sides: Top rows, left side, Content rows (each row's
+ * columns left to right), right side, Bottom rows. That is also the DOM
+ * order, so phones stack the page the way it reads.
  */
 final class Layout
 {
@@ -48,12 +52,24 @@ final class Layout
     public const SIDES = ['left', 'right'];
 
     /**
-     * Whether a document may have sides: page templates only, never the
-     * header or footer, and not the cart, which stays focused on buying.
+     * The areas a page with page content has, top to bottom: Top and
+     * Bottom run the whole page width, Content stands between the sides.
+     */
+    public const AREAS = ['top', 'content', 'bottom'];
+
+    /**
+     * Whether a document may have areas and sides: page templates whose
+     * page type has a main section, so there is page content for Top and
+     * Bottom to stand around and for the sides to stand beside. Never the
+     * header or footer, not Home, whose page is all rows, and not the cart,
+     * which stays focused on buying. A custom template follows its page
+     * type.
      */
     public static function sidesAllowed(string $handle): bool
     {
-        return Handles::kind($handle) === 'template' && Handles::pageType($handle) !== 'cart';
+        $pageType = Handles::pageType($handle);
+
+        return Handles::kind($handle) === 'template' && $pageType !== 'cart' && Defaults::mainTypes((string) $pageType) !== [];
     }
 
     /**
@@ -72,7 +88,7 @@ final class Layout
      * defaults and the limits have one source.
      *
      * `sides_on` lists every page type the catalog knows, the pages of
-     * installed extensions included, that may have sides.
+     * installed extensions included, that have areas and sides.
      *
      * @return array{splits: array, row_defaults: array, row_choices: array, max_rows: int, max_per_column: int, max_per_side: int, side_span: int, sides_on: list<string>}
      */
@@ -108,16 +124,17 @@ final class Layout
      * The document's rows: its own when it has them, else one full-width
      * row per section in `order` that is not in a side.
      *
-     * @return list<array{id: string, split: string, columns: list<list<string>>, settings: array}>
+     * Given the page's rules, on a page with areas each row also has its
+     * `area` (see areasOf()): the one it is stored with, else the one its
+     * place on the page gives it.
+     *
+     * @return list<array{id: string, split: string, columns: list<list<string>>, settings: array, area?: string}>
      */
-    public static function rows(array $content): array
+    public static function rows(array $content, ?LayoutRules $rules = null): array
     {
-        if (! is_array($content['rows'] ?? null)) {
-            return self::impliedRows($content);
-        }
-
+        $explicit = is_array($content['rows'] ?? null);
         $rows = [];
-        foreach ($content['rows'] as $row) {
+        foreach ($explicit ? $content['rows'] : self::impliedRows($content) as $row) {
             if (! is_array($row)) {
                 continue;
             }
@@ -125,10 +142,40 @@ final class Layout
             foreach (is_array($row['columns'] ?? null) ? $row['columns'] : [] as $column) {
                 $columns[] = array_values(array_filter(is_array($column) ? $column : [], 'is_string'));
             }
-            $rows[] = self::row((string) ($row['id'] ?? ''), (string) ($row['split'] ?? '12'), $columns, self::settings($row['settings'] ?? []));
+            $out = self::row((string) ($row['id'] ?? ''), (string) ($row['split'] ?? '12'), $columns, self::settings($row['settings'] ?? []));
+            $out['_area'] = self::storedArea($row);
+            $rows[] = $out;
         }
 
-        return $rows;
+        $sections = [];
+        foreach ((array) ($content['sections'] ?? []) as $id => $section) {
+            $sections[(string) $id] = (array) $section;
+        }
+        if ($rules === null || ! $rules->pageTypeKnown() || ! self::hasAreas($sections, $rules)) {
+            return array_map(fn (array $row) => self::bare($row), $rows);
+        }
+
+        $inSides = false;
+        $sides = is_array($content['sides'] ?? null) ? $content['sides'] : [];
+        foreach (self::SIDES as $which) {
+            foreach (is_array($sides[$which] ?? null) ? $sides[$which] : [] as $id) {
+                $inSides = $inSides || (is_string($id) && isset($sections[$id]));
+            }
+        }
+        $stored = array_filter($rows, fn (array $row) => $row['_area'] !== null) !== [];
+
+        $main = INF;
+        foreach ($rows as $index => $row) {
+            foreach (array_merge(...$row['columns']) as $sid) {
+                if (isset($sections[$sid]) && $rules->isMain($sections[$sid])) {
+                    $main = min($main, $index);
+                }
+            }
+        }
+
+        $areas = self::areasOf($rows, $main, $inSides && ! $stored);
+
+        return array_map(fn (array $row, int $index) => self::bare($row) + ['area' => $areas[$index]], $rows, array_keys($rows));
     }
 
     /**
@@ -138,30 +185,42 @@ final class Layout
      * - A section in no row and no side (an extension placement, a section
      *   added by an older editor) gets its own full-width row after the row
      *   of the nearest section before it in `order`, or first.
-     * - A section too wide for its column or side, or a main section in a
-     *   column or side, gets its own full-width row: after its row, or at
+     * - A section too wide for its column or side, a main section in a
+     *   column or side, or a section that keeps a row of its own found in
+     *   a column or side, gets its own full-width row: after its row, or at
      *   the end when it came from a side. A column is measured at the width
-     *   it really draws: its part of the content area left between the
-     *   sides (part x content / 12), so a section never draws narrower than
-     *   it was made for. A theme update that narrows a section's span can
-     *   so never make a stored page invalid.
-     * - Sides on a page that cannot have them go to rows at the end.
+     *   it really draws: its part of the area it is in, so a section never
+     *   draws narrower than it was made for. A theme update that narrows a
+     *   section's span can so never make a stored page invalid.
+     * - On a page with areas (see areasOf()), each row gets its area. Top
+     *   and Bottom are measured at the whole page; Content at what the
+     *   sides leave, one-column rows included, and what does not fit there
+     *   leaves Content with the rows between it and the edge of Content, so
+     *   the page keeps its reading order. A section that only belongs in
+     *   Content moves into it from Top or Bottom.
+     * - A page without areas has no sides: they go to rows at the end.
      * - Ids that name no section are dropped, a one-column row holds one
      *   section, an empty one-column row goes; an empty multi-column row
      *   stays, since the merchant made it to fill, unless the page would
      *   then have more than MAX_ROWS rows (see fitRowLimit()).
      * - Empty sides are dropped, and rows that say no more than `order`
-     *   does (all plain full-width rows with the ids rows() would give)
-     *   are dropped, so a document only keeps `rows` when it needs them.
+     *   does (all plain full-width rows with the ids and areas rows() would
+     *   give) are dropped, so a document only keeps `rows` when it needs
+     *   them. A page with sides keeps its rows, which carry the areas.
      *
-     * A document with neither `rows` nor `sides` is returned as it is.
-     * Reads no database; running it twice changes nothing more.
+     * A document with neither `rows` nor `sides` is returned as it is, and
+     * so is a page whose page type is away (its extension is not
+     * registered), which waits untouched until it is back. Reads no
+     * database; running it twice changes nothing more.
      *
      * @return array{content: array, moved: list<array{path: string, reason: string, value: string}>}
      */
     public static function normalize(array $content, LayoutRules $rules): array
     {
         if (! array_key_exists('rows', $content) && ! array_key_exists('sides', $content)) {
+            return ['content' => $content, 'moved' => []];
+        }
+        if (! $rules->pageTypeKnown()) {
             return ['content' => $content, 'moved' => []];
         }
 
@@ -191,6 +250,8 @@ final class Layout
             return $placed[$id] = true;
         };
 
+        $areas = self::hasAreas($sections, $rules);
+
         $sides = ['left' => [], 'right' => []];
         $givenSides = is_array($content['sides'] ?? null) ? $content['sides'] : [];
         foreach (self::SIDES as $which) {
@@ -200,14 +261,14 @@ final class Layout
                 }
             }
         }
+        $hadSides = $sides['left'] !== [] || $sides['right'] !== [];
 
-        // What stays in the sides decides the content area every column is measured in.
-        $sidesAllowed = $rules->sidesAllowed();
+        // What stays in the sides decides the content area Content is measured in.
         $sideMisfits = [];
         foreach (self::SIDES as $which) {
             $keep = [];
             foreach ($sides[$which] as $sid) {
-                $reason = $sidesAllowed ? self::misfit($sections[$sid], self::SIDE_SPAN, $rules) : 'no-sides';
+                $reason = $areas ? self::misfit($sections[$sid], self::SIDE_SPAN, $rules) : 'no-sides';
                 if ($reason === null) {
                     $keep[] = $sid;
                 } else {
@@ -227,6 +288,23 @@ final class Layout
                 if (! isset($placed[$id])) {
                     $given[] = ['split' => '12', 'columns' => [[$id]]];
                 }
+            }
+        }
+
+        // The rows stored before areas ran beside the sides from top to bottom.
+        $beside = $areas && $hadSides && array_filter($given, fn (array $row) => self::storedArea($row) !== null) === [];
+
+        // The area each given row will be in, so its columns are measured at
+        // the width they draw: Top and Bottom at the whole page, Content at
+        // what the sides leave.
+        $spanOf = array_fill(0, count($given), $contentSpan);
+        if ($areas) {
+            $first = [];
+            foreach ($given as $i => $row) {
+                $first[$i] = ['_area' => self::storedArea($row), '_inherit' => false];
+            }
+            foreach (self::areasOf($first, self::mainPlace($given, $sides, $known, $sections, $rules), $beside) as $i => $area) {
+                $spanOf[$i] = $area === 'content' ? $contentSpan : 12;
             }
         }
 
@@ -259,6 +337,7 @@ final class Layout
                 $columns[$c] = array_values(array_filter($column, $claim));
             }
             $settings = self::settings($row['settings'] ?? []);
+            $area = $areas ? self::storedArea($row) : null;
             // An empty row with no usable id gets one from a fixed seed, lengthened while taken,
             // so its id does not depend on where the row sits.
             $seed = array_merge(...$columns)[0] ?? 'row';
@@ -269,9 +348,9 @@ final class Layout
                     continue;
                 }
                 $first = array_shift($column);
-                $rows[] = self::row($ids[$i] ?? self::freshId($first, $taken), '12', [[$first]], $settings);
+                $rows[] = self::row($ids[$i] ?? self::freshId($first, $taken), '12', [[$first]], $settings) + ['_area' => $area, '_inherit' => false];
                 foreach ($column as $id) {
-                    $rows[] = self::plainRow($id, $taken);
+                    $rows[] = self::plainRow($id, $taken, true);
                 }
                 continue;
             }
@@ -281,7 +360,7 @@ final class Layout
             foreach ($columns as $c => $column) {
                 $keep = [];
                 foreach ($column as $sid) {
-                    $reason = self::misfit($sections[$sid], $parts[$c], $rules, $contentSpan);
+                    $reason = self::misfit($sections[$sid], $parts[$c], $rules, $spanOf[$i]);
                     if ($reason === null) {
                         $keep[] = $sid;
                     } else {
@@ -290,12 +369,12 @@ final class Layout
                 }
                 $columns[$c] = $keep;
             }
-            $rows[] = self::row($id, $split, $columns, $settings);
+            $rows[] = self::row($id, $split, $columns, $settings) + ['_area' => $area, '_inherit' => false];
             if ($misfits !== [] && array_merge(...$columns) === []) {
                 $emptied[$id] = true;
             }
             foreach ($misfits as [$sid, $reason]) {
-                $rows[] = $plain = self::plainRow($sid, $taken);
+                $rows[] = $plain = self::plainRow($sid, $taken, true);
                 $moved[] = self::moved($sid, $reason, $plain['id']);
             }
         }
@@ -323,29 +402,341 @@ final class Layout
             $placed[$sid] = true;
         }
 
+        if ($areas) {
+            $main = self::mainRow($rows, $sections, $rules);
+            foreach (self::areasOf($rows, $main ?? INF, $beside) as $index => $area) {
+                $rows[$index]['_area'] = $area;
+            }
+            if ($main !== null) {
+                array_push($moved, ...self::fitContent($rows, $main, $sections, $rules, $contentSpan));
+            }
+            array_push($moved, ...self::contentOnlyIntoContent($rows, $emptied, $sections, $rules, $taken));
+        }
+
         $rows = self::fitRowLimit($rows, $emptied);
 
-        $order = $sides['left'];
-        foreach ($rows as $row) {
-            foreach ($row['columns'] as $column) {
-                array_push($order, ...$column);
+        // Top, then Content between the sides, then Bottom.
+        $order = [];
+        foreach ($areas ? self::AREAS : ['content'] as $area) {
+            if ($area === 'content') {
+                array_push($order, ...$sides['left']);
+            }
+            foreach ($rows as $row) {
+                if (! $areas || $row['_area'] === $area) {
+                    foreach ($row['columns'] as $column) {
+                        array_push($order, ...$column);
+                    }
+                }
+            }
+            if ($area === 'content') {
+                array_push($order, ...$sides['right']);
             }
         }
-        array_push($order, ...$sides['right']);
 
         $sides = array_filter($sides, fn (array $ids) => $ids !== []);
+
+        $bare = array_map(fn (array $row) => self::bare($row), $rows);
+        $plain = self::sayNoMoreThanOrder($bare, ['order' => $order, 'sections' => $content['sections'] ?? [], 'sides' => $sides]);
+        if ($areas) {
+            $plain = $plain && $sides === [] && self::areasArePlaces($rows, self::mainRow($rows, $sections, $rules));
+            $bare = array_map(fn (array $row) => self::bare($row) + ['area' => $row['_area']], $rows);
+        }
 
         $out = $content;
         $out['order'] = $order;
         unset($out['rows'], $out['sides']);
-        if (! self::sayNoMoreThanOrder($rows, ['order' => $order, 'sections' => $content['sections'] ?? [], 'sides' => $sides])) {
-            $out['rows'] = $rows;
+        if (! $plain) {
+            $out['rows'] = $bare;
         }
         if ($sides !== []) {
             $out['sides'] = $sides;
         }
 
         return ['content' => $out, 'moved' => $moved];
+    }
+
+    /**
+     * The area of each row, top to bottom.
+     *
+     * 1. A row keeps a valid stored area.
+     * 2. On a page stored with sides before rows had areas ($beside), the
+     *    sides ran beside every row, so a row without one is Content.
+     * 3. Otherwise a row takes its place on the page: Top above the main
+     *    section's row, Content for that row, Bottom below it. A row split
+     *    off another (a section moved out of its column) takes the area of
+     *    the row it left.
+     * 4. Then the main row is Content, a row above it at most Content, a row
+     *    below it at least Content, and down the page the area never goes
+     *    back, so the areas always read Top, Content, Bottom.
+     *
+     * @param  list<array{_area: ?string, _inherit: bool}>  $rows
+     * @param  float|int  $main  the index of the main row; between two rows
+     *                           or past the end while it is still to be placed
+     * @return list<string>
+     */
+    private static function areasOf(array $rows, float|int $main, bool $beside): array
+    {
+        $rank = array_flip(self::AREAS);
+        $out = [];
+        $least = 0;
+        foreach (array_values($rows) as $index => $row) {
+            $area = $row['_area'] ?? null;
+            if ($area === null && ($row['_inherit'] ?? false) && $index > 0) {
+                $area = $out[$index - 1];
+            }
+            $area ??= match (true) {
+                $beside => 'content',
+                $index < $main => 'top',
+                $index == $main => 'content',
+                default => 'bottom',
+            };
+            $r = $rank[$area];
+            $r = match (true) {
+                $index < $main => min($r, $rank['content']),
+                $index == $main => $rank['content'],
+                default => max($r, $rank['content']),
+            };
+            $least = max($least, $r);
+            $out[] = self::AREAS[$least];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Content holds what fits beside the sides. Each Content row is
+     * measured at the content span, one-column rows too, leaving out the
+     * main section and sections that belong in Content. The last row above
+     * the main row that does not fit goes to Top with every Content row
+     * above it; the first one below goes to Bottom with every Content row
+     * below it, so the page keeps its reading order.
+     *
+     * @param  list<array>  $rows  rows with `_area`, changed in place
+     * @return list<array{path: string, reason: string, value: string}>
+     */
+    private static function fitContent(array &$rows, int $main, array $sections, LayoutRules $rules, int $contentSpan): array
+    {
+        $misfits = [];
+        foreach ($rows as $index => $row) {
+            if ($row['_area'] !== 'content') {
+                continue;
+            }
+            $parts = self::SPLITS[$row['split']]['parts'];
+            foreach ($row['columns'] as $c => $column) {
+                foreach ($column as $sid) {
+                    $section = $sections[$sid];
+                    if (! $rules->isMain($section) && ! $rules->contentOnly($section) && $rules->minSpan($section) * 12 > $parts[$c] * $contentSpan) {
+                        $misfits[$index][$sid] = true;
+                    }
+                }
+            }
+        }
+
+        $above = array_filter(array_keys($misfits), fn (int $index) => $index < $main);
+        $below = array_filter(array_keys($misfits), fn (int $index) => $index > $main);
+        $leave = [];
+        if ($above !== []) {
+            $last = max($above);
+            foreach ($rows as $index => $row) {
+                if ($index <= $last && $row['_area'] === 'content') {
+                    $leave[$index] = 'top';
+                }
+            }
+        }
+        if ($below !== []) {
+            $first = min($below);
+            foreach ($rows as $index => $row) {
+                if ($index >= $first && $row['_area'] === 'content') {
+                    $leave[$index] = 'bottom';
+                }
+            }
+        }
+
+        $moved = [];
+        foreach ($leave as $index => $area) {
+            $rows[$index]['_area'] = $area;
+            foreach (array_merge(...$rows[$index]['columns']) as $sid) {
+                if (! $rules->contentOnly($sections[$sid])) {
+                    $moved[] = self::moved($sid, isset($misfits[$index][$sid]) ? 'too-wide' : 'in-order', $area);
+                }
+            }
+        }
+
+        return $moved;
+    }
+
+    /**
+     * A section that belongs in Content found in Top or Bottom moves to a
+     * one-column row of its own: at the start of Content from Top, at the
+     * end of Content from Bottom. A one-column row that holds only it moves
+     * as it is.
+     *
+     * @param  list<array>  $rows  rows with `_area` in area order, changed in place
+     * @param  array<string, true>  $emptied  ids of rows this run emptied, added to
+     * @param  array<string, true>  $taken
+     * @return list<array{path: string, reason: string, value: string}>
+     */
+    private static function contentOnlyIntoContent(array &$rows, array &$emptied, array $sections, LayoutRules $rules, array &$taken): array
+    {
+        $moved = [];
+        $into = ['top' => [], 'bottom' => []];
+        $kept = [];
+        foreach ($rows as $row) {
+            $area = $row['_area'];
+            if ($area === 'content') {
+                $kept[] = $row;
+                continue;
+            }
+            $out = [];
+            foreach ($row['columns'] as $c => $column) {
+                foreach ($column as $sid) {
+                    if ($rules->contentOnly($sections[$sid])) {
+                        $out[] = [$c, $sid];
+                    }
+                }
+            }
+            if ($out === []) {
+                $kept[] = $row;
+                continue;
+            }
+            if ($row['split'] === '12') {
+                $into[$area][] = ['_area' => 'content'] + $row;
+                $moved[] = self::moved($out[0][1], 'content-only', $row['id']);
+                continue;
+            }
+            foreach ($out as [$c, $sid]) {
+                $row['columns'][$c] = array_values(array_diff($row['columns'][$c], [$sid]));
+                $into[$area][] = $plain = ['_area' => 'content'] + self::plainRow($sid, $taken);
+                $moved[] = self::moved($sid, 'content-only', $plain['id']);
+            }
+            if (array_merge(...$row['columns']) === []) {
+                $emptied[$row['id']] = true;
+            }
+            $kept[] = $row;
+        }
+
+        if ($moved === []) {
+            return [];
+        }
+
+        $byArea = ['top' => [], 'content' => [], 'bottom' => []];
+        foreach ($kept as $row) {
+            $byArea[$row['_area']][] = $row;
+        }
+        $rows = [...$byArea['top'], ...$into['top'], ...$byArea['content'], ...$into['bottom'], ...$byArea['bottom']];
+
+        return $moved;
+    }
+
+    /** Whether each row's area is the one its place on the page gives it. */
+    private static function areasArePlaces(array $rows, ?int $main): bool
+    {
+        if ($main === null) {
+            return false;
+        }
+        foreach (array_values($rows) as $index => $row) {
+            $place = $index < $main ? 'top' : ($index === $main ? 'content' : 'bottom');
+            if ($row['_area'] !== $place) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** Whether the page has areas: it may have them, and it holds its main section. */
+    private static function hasAreas(array $sections, LayoutRules $rules): bool
+    {
+        if (! $rules->sidesAllowed()) {
+            return false;
+        }
+        foreach ($sections as $section) {
+            if ($rules->isMain($section)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** The index of the first row holding a main section, or null. */
+    private static function mainRow(array $rows, array $sections, LayoutRules $rules): ?int
+    {
+        foreach (array_values($rows) as $index => $row) {
+            foreach (array_merge(...$row['columns']) as $sid) {
+                if ($rules->isMain($sections[$sid])) {
+                    return $index;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Where the main section's row will be among the given rows: its row
+     * when that is one column, just after it when it sits in a column (it
+     * moves out to a row of its own), at the end when it sits in a side,
+     * and after the row of the section before it when it sits nowhere.
+     */
+    private static function mainPlace(array $given, array $sides, array $known, array $sections, LayoutRules $rules): float|int
+    {
+        $isMain = fn (mixed $id) => is_string($id) && isset($sections[$id]) && $rules->isMain($sections[$id]);
+        foreach (self::SIDES as $which) {
+            if (array_filter($sides[$which], $isMain) !== []) {
+                return INF;
+            }
+        }
+
+        $rowOf = [];
+        foreach ($given as $index => $row) {
+            $columns = is_array($row['columns'] ?? null) ? array_values($row['columns']) : [];
+            foreach ($columns as $column) {
+                foreach (is_array($column) ? $column : [] as $id) {
+                    if (is_string($id) && ! isset($rowOf[$id])) {
+                        $rowOf[$id] = $index;
+                    }
+                }
+            }
+            foreach ($columns as $column) {
+                foreach (is_array($column) ? $column : [] as $id) {
+                    if ($isMain($id)) {
+                        $split = (string) ($row['split'] ?? '12');
+
+                        return $split === '12' || ! isset(self::SPLITS[$split]) ? $index : $index + 0.5;
+                    }
+                }
+            }
+        }
+
+        foreach ($known as $k => $id) {
+            if (! $isMain($id)) {
+                continue;
+            }
+            for ($j = $k - 1; $j >= 0; $j--) {
+                if (isset($rowOf[$known[$j]])) {
+                    return $rowOf[$known[$j]] + 0.5;
+                }
+            }
+
+            return -0.5;
+        }
+
+        return INF;
+    }
+
+    /** A row's stored area when it is one of AREAS, else null. */
+    private static function storedArea(array $row): ?string
+    {
+        $area = $row['area'] ?? null;
+
+        return is_string($area) && in_array($area, self::AREAS, true) ? $area : null;
+    }
+
+    /** A row without the normalizer's own keys. */
+    private static function bare(array $row): array
+    {
+        return ['id' => $row['id'], 'split' => $row['split'], 'columns' => $row['columns'], 'settings' => $row['settings']];
     }
 
     /**
@@ -386,14 +777,17 @@ final class Layout
 
     /**
      * Why a section cannot sit in a column or side $span twelfths wide, or
-     * null when it can. A column's span is its part of a content area
-     * $content twelfths wide, so it really draws $span x $content / 12
-     * twelfths of the page; a side is always measured on the whole page.
+     * null when it can. A column's span is its part of an area $content
+     * twelfths wide, so it really draws $span x $content / 12 twelfths of
+     * the page; a side is always measured on the whole page.
      */
     private static function misfit(array $section, int $span, LayoutRules $rules, int $content = 12): ?string
     {
         if ($rules->isMain($section)) {
             return 'main-section';
+        }
+        if ($rules->ownRow($section)) {
+            return 'own-row';
         }
 
         return $rules->minSpan($section) * 12 > $span * $content ? 'too-wide' : null;
@@ -456,7 +850,7 @@ final class Layout
                 continue;
             }
             $seen[$id] = true;
-            $rows[] = self::plainRow($id, $taken);
+            $rows[] = self::bare(self::plainRow($id, $taken));
         }
 
         return $rows;
@@ -476,10 +870,13 @@ final class Layout
         return null;
     }
 
-    /** A full-width row for one section, with a fresh id. */
-    private static function plainRow(string $sectionId, array &$taken): array
+    /**
+     * A full-width row for one section, with a fresh id and no area yet;
+     * $inherit when it is split off the row before it, whose area it takes.
+     */
+    private static function plainRow(string $sectionId, array &$taken, bool $inherit = false): array
     {
-        return self::row(self::freshId($sectionId, $taken), '12', [[$sectionId]], self::ROW_DEFAULTS);
+        return self::row(self::freshId($sectionId, $taken), '12', [[$sectionId]], self::ROW_DEFAULTS) + ['_area' => null, '_inherit' => $inherit];
     }
 
     private static function row(string $id, string $split, array $columns, array $settings): array

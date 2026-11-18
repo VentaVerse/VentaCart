@@ -85,8 +85,8 @@ test('the cart board offers no side', () => {
   const rules = catalogRules(LAYOUT, (type) => defs[type] || null, sideTargets('cart', LAYOUT).length > 0);
   const c = page({ a: 'text', b: 'text' });
   assert.deepEqual(sidesIn(targetsFor(c, { kind: 'section', sid: 'a' }, rules)), []);
-  const home = catalogRules(LAYOUT, (type) => defs[type] || null, sideTargets('home', LAYOUT).length > 0);
-  assert.equal(sidesIn(targetsFor(c, { kind: 'section', sid: 'a' }, home)).length, 2);
+  const product = catalogRules(LAYOUT, (type) => defs[type] || null, sideTargets('product', LAYOUT).length > 0);
+  assert.equal(sidesIn(targetsFor(c, { kind: 'section', sid: 'a' }, product)).length, 2);
 });
 
 test('targetsFor beside the sides offers only the columns wide enough there', () => {

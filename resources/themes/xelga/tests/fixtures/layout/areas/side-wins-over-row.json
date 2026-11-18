@@ -1,0 +1,146 @@
+{
+  "name": "side-wins-over-row",
+  "rules": {
+    "min": {
+      "text": 3
+    },
+    "main": [],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "a",
+      "b",
+      "c"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      },
+      "c": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [
+            "a",
+            7,
+            null
+          ],
+          [
+            "b",
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "c"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ],
+    "sides": {
+      "left": [
+        "a",
+        "a"
+      ],
+      "right": [
+        5,
+        "zz"
+      ]
+    }
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "b",
+      "c",
+      "a"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "b": {
+        "type": "text"
+      },
+      "c": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [],
+          [
+            "b"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "c"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-86f7e437",
+        "split": "12",
+        "columns": [
+          [
+            "a"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ]
+  },
+  "moved": [
+    {
+      "path": "content.sections.a",
+      "reason": "no-sides",
+      "value": "row-86f7e437"
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+{
+  "name": "content-only-leaves-top",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8,
+      "nine": 9,
+      "banner": 12,
+      "filters": 3,
+      "bar": 6
+    },
+    "main": [
+      "product-main"
+    ],
+    "content_only": [
+      "filters"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "h",
+      "filters",
+      "main",
+      "more",
+      "details"
+    ],
+    "sections": {
+      "h": {
+        "type": "half"
+      },
+      "filters": {
+        "type": "filters"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "more": {
+        "type": "filters"
+      },
+      "details": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [
+            "h"
+          ],
+          [
+            "filters"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "top"
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-3",
+        "split": "12",
+        "columns": [
+          [
+            "more"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "bottom"
+      },
+      {
+        "id": "row-4",
+        "split": "12",
+        "columns": [
+          [
+            "details"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "bottom"
+      }
+    ]
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "h",
+      "filters",
+      "main",
+      "more",
+      "details"
+    ],
+    "sections": {
+      "h": {
+        "type": "half"
+      },
+      "filters": {
+        "type": "filters"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "more": {
+        "type": "filters"
+      },
+      "details": {
+        "type": "text"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [
+            "h"
+          ],
+          []
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "top"
+      },
+      {
+        "id": "row-9ce5ff45",
+        "split": "12",
+        "columns": [
+          [
+            "filters"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-3",
+        "split": "12",
+        "columns": [
+          [
+            "more"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-4",
+        "split": "12",
+        "columns": [
+          [
+            "details"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "bottom"
+      }
+    ]
+  },
+  "moved": [
+    {
+      "path": "content.sections.filters",
+      "reason": "content-only",
+      "value": "row-9ce5ff45"
+    },
+    {
+      "path": "content.sections.more",
+      "reason": "content-only",
+      "value": "row-3"
+    }
+  ]
+}

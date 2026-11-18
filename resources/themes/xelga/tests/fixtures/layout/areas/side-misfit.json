@@ -1,0 +1,158 @@
+{
+  "name": "side-misfit",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "a",
+      "s1",
+      "f",
+      "m"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "s1": {
+        "type": "four"
+      },
+      "f": {
+        "type": "text"
+      },
+      "m": {
+        "type": "product-main"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [
+            "a"
+          ],
+          []
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-m",
+        "split": "12",
+        "columns": [
+          [
+            "m"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ],
+    "sides": {
+      "right": [
+        "s1",
+        "f"
+      ]
+    }
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "a",
+      "m",
+      "s1",
+      "f"
+    ],
+    "sections": {
+      "a": {
+        "type": "text"
+      },
+      "s1": {
+        "type": "four"
+      },
+      "f": {
+        "type": "text"
+      },
+      "m": {
+        "type": "product-main"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "6-6",
+        "columns": [
+          [
+            "a"
+          ],
+          []
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-m",
+        "split": "12",
+        "columns": [
+          [
+            "m"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-640d87e7",
+        "split": "12",
+        "columns": [
+          [
+            "s1"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      }
+    ],
+    "sides": {
+      "right": [
+        "f"
+      ]
+    }
+  },
+  "moved": [
+    {
+      "path": "content.sections.s1",
+      "reason": "too-wide",
+      "value": "row-640d87e7"
+    }
+  ]
+}

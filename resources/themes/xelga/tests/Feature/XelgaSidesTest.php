@@ -25,7 +25,7 @@ require_once __DIR__ . '/../XelgaExtensionHelpers.php';
 /**
  * Left and right sides on the storefront: each side is three twelfths of
  * the page and runs the full height of the page's content, and every row
- * (the main banner and the page's own section included) is drawn in the
+ * (the page's own section included) is drawn in the
  * content area left between the sides. Header and footer stay the whole
  * page wide.
  */
@@ -161,36 +161,39 @@ class XelgaSidesTest extends TestCase
         $this->assertStringNotContainsString('note-1', $main);
     }
 
-    public function test_the_main_banner_draws_beside_a_side(): void
+    public function test_a_photo_section_draws_beside_a_side(): void
     {
         $this->fakePhoto();
-        $home = Defaults::content('home');
-        $home['sections']['hero-1']['settings']['variant'] = 'full-image';
-        foreach (array_keys($home['sections']['hero-1']['blocks']) as $blockId) {
-            $home['sections']['hero-1']['blocks'][$blockId]['settings']['image'] = self::PHOTO;
-        }
-        $this->publishedDocument('home', $this->withSides($home, [], ['note-1' => $this->text('Our promise')]));
+        $this->category();
+        $category = Defaults::content('category');
+        $category['sections']['promos-1'] = $this->promos('stacked');
+        array_splice($category['order'], 2, 0, ['promos-1']);
+        $this->publishedDocument('category', $this->withSides($category, [], ['note-1' => $this->text('Our promise')]));
 
-        $html = $this->page('/')->getContent();
+        $html = $this->page('/category/laptops')->getContent();
 
         $this->assertStringContainsString('<div class="xp" data-sides="right">', $html);
         $main = $this->content($html);
         $this->assertStringContainsString('data-content="9"', $main);
-        $this->assertStringContainsString('<!--xelga:hero-1-->', $main);
-        $this->assertSame([Picture::contentSizes(9, '100vw')], $this->sizesIn($this->cut($html, 'hero-1')));
+        $this->assertStringContainsString('<!--xelga:promos-1-->', $main);
+        // Sized for nine twelfths of the page from 990 pixels.
+        $sizes = $this->sizesIn($this->cut($html, 'promos-1'));
+        $this->assertCount(1, $sizes);
+        $this->assertStringStartsWith('(min-width: 1320px) 960px, (min-width: 990px) 75vw, ', $sizes[0]);
         // The right side follows the content, so phones read it after the page.
         $this->assertGreaterThan(strpos($html, '</main>'), strpos($html, '<aside class="xp__side xp__side--right" aria-label="Right side">'));
     }
 
     public function test_both_sides_leave_six_twelfths(): void
     {
-        $home = $this->withSides(Defaults::content('home'), ['note-1' => $this->text('Left')], ['note-2' => $this->text('Right')]);
-        $home['sections'] += ['tile-a' => $this->tile('Tile A'), 'tile-b' => $this->tile('Tile B')];
-        array_splice($home['order'], 2, 0, ['tile-a', 'tile-b']);
-        $home['rows'] = [['id' => 'row-tiles', 'split' => '6-6', 'columns' => [['tile-a'], ['tile-b']], 'settings' => []]];
-        $this->publishedDocument('home', $home);
+        $this->category();
+        $category = $this->withSides(Defaults::content('category'), ['note-1' => $this->text('Left')], ['note-2' => $this->text('Right')]);
+        $category['sections'] += ['tile-a' => $this->tile('Tile A'), 'tile-b' => $this->tile('Tile B')];
+        array_splice($category['order'], 2, 0, ['tile-a', 'tile-b']);
+        $category['rows'] = [['id' => 'row-tiles', 'split' => '6-6', 'columns' => [['tile-a'], ['tile-b']], 'settings' => []]];
+        $this->publishedDocument('category', $category);
 
-        $html = $this->page('/')->getContent();
+        $html = $this->page('/category/laptops')->getContent();
 
         $this->assertStringContainsString('<div class="xp" data-sides="both">', $html);
         $main = $this->content($html);
@@ -204,13 +207,14 @@ class XelgaSidesTest extends TestCase
 
     public function test_a_full_width_row_fills_the_content_area_only(): void
     {
-        $home = $this->withSides(Defaults::content('home'), ['note-1' => $this->text('Left')]);
-        $home['sections'] += ['tile-a' => $this->tile('Tile A'), 'tile-b' => $this->tile('Tile B')];
-        array_splice($home['order'], 2, 0, ['tile-a', 'tile-b']);
-        $home['rows'] = [['id' => 'row-tiles', 'split' => '6-6', 'columns' => [['tile-a'], ['tile-b']], 'settings' => ['width' => 'full']]];
-        $this->publishedDocument('home', $home);
+        $this->category();
+        $category = $this->withSides(Defaults::content('category'), ['note-1' => $this->text('Left')]);
+        $category['sections'] += ['tile-a' => $this->tile('Tile A'), 'tile-b' => $this->tile('Tile B')];
+        array_splice($category['order'], 2, 0, ['tile-a', 'tile-b']);
+        $category['rows'] = [['id' => 'row-tiles', 'split' => '6-6', 'columns' => [['tile-a'], ['tile-b']], 'settings' => ['width' => 'full']]];
+        $this->publishedDocument('category', $category);
 
-        $html = $this->page('/')->getContent();
+        $html = $this->page('/category/laptops')->getContent();
 
         $this->assertStringContainsString('data-row-id="row-tiles"', $this->content($html));
         $this->assertMatchesRegularExpression('#<div class="xr" data-row-id="row-tiles" data-split="6-6" data-width="full"#', $this->content($html));
@@ -218,9 +222,10 @@ class XelgaSidesTest extends TestCase
 
     public function test_header_and_footer_stay_outside_the_sides(): void
     {
-        $this->publishedDocument('home', $this->withSides(Defaults::content('home'), ['note-1' => $this->text('Left')], ['note-2' => $this->text('Right')]));
+        $this->category();
+        $this->publishedDocument('category', $this->withSides(Defaults::content('category'), ['note-1' => $this->text('Left')], ['note-2' => $this->text('Right')]));
 
-        $html = $this->page('/')->getContent();
+        $html = $this->page('/category/laptops')->getContent();
         $wrapper = $this->wrapper($html);
 
         $this->assertStringNotContainsString('data-section-type="header"', $wrapper);
@@ -233,31 +238,31 @@ class XelgaSidesTest extends TestCase
     public function test_a_side_with_nothing_to_show_is_not_drawn_and_takes_no_width(): void
     {
         $this->fakePhoto();
-        $home = Defaults::content('home');
-        $home['sections']['hero-1']['settings']['variant'] = 'full-image';
-        foreach (array_keys($home['sections']['hero-1']['blocks']) as $blockId) {
-            $home['sections']['hero-1']['blocks'][$blockId]['settings']['image'] = self::PHOTO;
-        }
-        $this->publishedDocument('home', $this->withSides($home, ['note-1' => $this->text('Hidden', true), 'note-2' => $this->text('Also hidden', true)]));
+        $this->category();
+        $category = Defaults::content('category');
+        $category['sections']['promos-1'] = $this->promos('stacked');
+        array_splice($category['order'], 2, 0, ['promos-1']);
+        $this->publishedDocument('category', $this->withSides($category, ['note-1' => $this->text('Hidden', true), 'note-2' => $this->text('Also hidden', true)]));
 
-        $html = $this->page('/')->getContent();
+        $html = $this->page('/category/laptops')->getContent();
 
         $this->assertStringNotContainsString('class="xp"', $html);
         $this->assertStringNotContainsString('<aside class="xp__side', $html);
         $this->assertStringContainsString('<main id="main-content">', $html);
-        $this->assertSame(['100vw'], $this->sizesIn($this->cut($html, 'hero-1')));
+        $this->assertSame(['(min-width: 750px) 50vw, 100vw'], $this->sizesIn($this->cut($html, 'promos-1')));
         $this->assertSame(12, app(Storefront::class)->contentSpan());
         $this->assertSame(12, app(SectionRenderer::class)->contentSpan());
     }
 
     public function test_a_side_whose_sections_show_nothing_is_not_drawn(): void
     {
+        $this->category();
         // Brand logos on a store with no brands prints nothing for a shopper.
         $brands = ['type' => 'brand-logos', 'label' => '', 'disabled' => false, 'settings' => ['variant' => 'grid', 'source' => 'all'], 'block_order' => [], 'blocks' => []];
-        $home = $this->withSides(Defaults::content('home'), ['brands-side' => $brands]);
-        $this->publishedDocument('home', $home, $home);
+        $category = $this->withSides(Defaults::content('category'), ['brands-side' => $brands]);
+        $this->publishedDocument('category', $category, $category);
 
-        $html = $this->page('/')->getContent();
+        $html = $this->page('/category/laptops')->getContent();
 
         $this->assertStringNotContainsString('class="xp"', $html);
         $this->assertStringContainsString('<main id="main-content">', $html);
@@ -265,7 +270,7 @@ class XelgaSidesTest extends TestCase
 
         // The editor's preview keeps the side, so the section can be reached there.
         $nonce = $this->openEditor($this->admin());
-        $preview = $this->get('/?xelga_preview=' . $nonce)->assertOk()->getContent();
+        $preview = $this->get('/category/laptops?xelga_preview=' . $nonce)->assertOk()->getContent();
         $this->assertStringContainsString('<div class="xp" data-sides="left">', $preview);
         $this->assertStringContainsString('data-section-id="brands-side"', $preview);
     }
@@ -273,9 +278,10 @@ class XelgaSidesTest extends TestCase
     public function test_side_sections_are_sized_for_three_twelfths(): void
     {
         $this->fakePhoto();
-        $this->publishedDocument('home', $this->withSides(Defaults::content('home'), ['promos-side' => $this->promos('stacked')]));
+        $this->category();
+        $this->publishedDocument('category', $this->withSides(Defaults::content('category'), ['promos-side' => $this->promos('stacked')]));
 
-        $html = $this->page('/')->getContent();
+        $html = $this->page('/category/laptops')->getContent();
 
         $side = $this->cut($html, 'promos-side');
         // Three twelfths from 990 pixels; below that the sides stack the
@@ -311,7 +317,7 @@ class XelgaSidesTest extends TestCase
 
     public function test_promo_banners_and_brand_logos_fit_a_side(): void
     {
-        $rules = new CatalogLayoutRules('home');
+        $rules = new CatalogLayoutRules('category');
         $promos = Catalog::section('promo-banners');
         $brands = Catalog::section('brand-logos');
         $this->assertSame(['min' => 3, 'variants' => ['overlay' => 4, 'mosaic' => 8]], $promos->spans());
@@ -324,36 +330,37 @@ class XelgaSidesTest extends TestCase
         $this->assertSame(4, $rules->minSpan(['type' => 'brand-logos', 'settings' => ['variant' => 'row']]));
 
         // In a side they stay; the layouts that need more room leave it.
-        $home = $this->withSides(Defaults::content('home'), [
+        $category = $this->withSides(Defaults::content('category'), [
             'promos-side' => $this->promos('stacked'),
             'brands-side' => ['type' => 'brand-logos', 'label' => '', 'disabled' => false, 'settings' => ['variant' => 'grid', 'source' => 'all'], 'block_order' => [], 'blocks' => []],
             'promos-wide' => $this->promos('overlay'),
         ]);
-        $result = Layout::normalize($home, $rules);
+        $result = Layout::normalize($category, $rules);
         $this->assertSame(['promos-side', 'brands-side'], $result['content']['sides']['left']);
-        $this->assertSame([['path' => 'content.sections.promos-wide', 'reason' => 'too-wide']], array_map(fn ($m) => array_diff_key($m, ['value' => 1]), $result['moved']));
+        $wide = array_values(array_filter($result['moved'], fn ($m) => $m['path'] === 'content.sections.promos-wide'));
+        $this->assertSame([['path' => 'content.sections.promos-wide', 'reason' => 'too-wide']], array_map(fn ($m) => array_diff_key($m, ['value' => 1]), $wide));
     }
 
     public function test_a_column_too_narrow_beside_the_sides_moves_out(): void
     {
         $products = ['type' => 'featured-products', 'label' => '', 'disabled' => false, 'settings' => [], 'block_order' => [], 'blocks' => []];
-        $home = $this->withSides(Defaults::content('home'), ['note-1' => $this->text('Left')], ['note-2' => $this->text('Right')]);
-        $home['sections'] += ['list-1' => $products, 'tile-b' => $this->tile('Tile B')];
-        array_splice($home['order'], 2, 0, ['list-1', 'tile-b']);
-        $home['rows'] = [['id' => 'row-list', 'split' => '8-4', 'columns' => [['list-1'], ['tile-b']], 'settings' => []]];
+        $category = $this->withSides(Defaults::content('category'), ['note-1' => $this->text('Left')], ['note-2' => $this->text('Right')]);
+        $category['sections'] += ['list-1' => $products, 'tile-b' => $this->tile('Tile B')];
+        array_splice($category['order'], 2, 0, ['list-1', 'tile-b']);
+        $category['rows'] = [['id' => 'row-list', 'split' => '8-4', 'columns' => [['list-1'], ['tile-b']], 'settings' => []]];
 
         // Beside two sides an 8 column is four twelfths of the page: too narrow
         // for a list of products, which needs six. It gets its own row, the
         // whole content area wide, and the save says so.
-        $adjusted = $this->saveWithRows('home', $home, 0)->assertOk()->json('data.adjusted');
+        $adjusted = $this->saveWithRows('category', $category, 0)->assertOk()->json('data.adjusted');
         $moved = array_values(array_filter($adjusted, fn ($a) => $a['path'] === 'content.sections.list-1'));
         $this->assertCount(1, $moved);
         $this->assertSame('too-wide', $moved[0]['reason']);
 
         // With one side the 8 column is six twelfths, wide enough.
-        unset($home['sides']['right'], $home['sections']['note-2']);
-        $home['order'] = array_values(array_diff($home['order'], ['note-2']));
-        $adjusted = $this->saveWithRows('home', $home, 1)->assertOk()->json('data.adjusted');
+        unset($category['sides']['right'], $category['sections']['note-2']);
+        $category['order'] = array_values(array_diff($category['order'], ['note-2']));
+        $adjusted = $this->saveWithRows('category', $category, 1)->assertOk()->json('data.adjusted');
         $this->assertSame([], array_values(array_filter($adjusted, fn ($a) => $a['path'] === 'content.sections.list-1')));
     }
 }

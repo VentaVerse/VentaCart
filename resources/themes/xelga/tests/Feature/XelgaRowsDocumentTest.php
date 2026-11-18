@@ -99,8 +99,10 @@ class XelgaRowsDocumentTest extends TestCase
         ]] + $home, 'content.rows.1.id');
         $refused('home', ['rows' => [['id' => 'row-tiles', 'split' => '6-6', 'columns' => [['tile-a'], ['tile-a']]]]] + $home, 'content.rows.0.columns.1.0');
         $refused('home', ['rows' => array_fill(0, Layout::MAX_ROWS + 1, ['split' => '6-6', 'columns' => [[], []]])] + $home, 'content.rows');
-        $refused('home', ['sides' => ['left' => ['tile-a'], 'right' => ['tile-a']]] + $home, 'content.sides.right.0');
-        $refused('home', ['sides' => ['middle' => ['tile-a']]] + $home, 'content.sides');
+        // Sides belong to page types with page content, so they are checked on the product page.
+        $product = $this->withTileRow($this->defaults('product'), 'product-main-1');
+        $refused('product', ['sides' => ['left' => ['tile-a'], 'right' => ['tile-a']]] + $product, 'content.sides.right.0');
+        $refused('product', ['sides' => ['middle' => ['tile-a']]] + $product, 'content.sides');
 
         $many = $this->defaults('home');
         $ids = [];
@@ -109,7 +111,12 @@ class XelgaRowsDocumentTest extends TestCase
             $many['order'][] = $ids[] = "tile-{$i}";
         }
         $refused('home', ['rows' => [['split' => '6-6', 'columns' => [$ids, []]]]] + $many, 'content.rows.0.columns.0');
-        $refused('home', ['sides' => ['left' => $ids]] + $many, 'content.sides.left');
+        $manyOnProduct = $this->defaults('product');
+        foreach ($ids as $id) {
+            $manyOnProduct['sections'][$id] = $this->tile();
+            $manyOnProduct['order'][] = $id;
+        }
+        $refused('product', ['sides' => ['left' => $ids]] + $manyOnProduct, 'content.sides.left');
 
         $cart = $this->defaults('cart');
         $refused('cart', ['sides' => ['left' => [$cart['order'][0]]]] + $cart, 'content.sides');
@@ -465,7 +472,8 @@ class XelgaRowsDocumentTest extends TestCase
             ->assertCreated()->assertJsonPath('data.left_out', ['Retired']);
 
         $copy = $this->draft('product.gift-guide');
-        $this->assertSame(['id' => 'row-tiles', 'split' => '6-6', 'columns' => [['tile-a'], ['tile-b']], 'settings' => ['width' => 'full'] + Layout::ROW_DEFAULTS], $this->rowOf($copy, 'tile-a'));
+        // Below the product's main section, the row is in Bottom.
+        $this->assertSame(['id' => 'row-tiles', 'split' => '6-6', 'columns' => [['tile-a'], ['tile-b']], 'settings' => ['width' => 'full'] + Layout::ROW_DEFAULTS, 'area' => 'bottom'], $this->rowOf($copy, 'tile-a'));
         $this->assertNotContains('gone-1', $copy['order']);
         $this->assertArrayNotHasKey('gone-1', $copy['sections']);
         $this->assertSame(['product-main-1', 'tile-a', 'tile-b'], array_slice($copy['order'], array_search('product-main-1', $copy['order'], true), 3));
@@ -487,6 +495,21 @@ class XelgaRowsDocumentTest extends TestCase
             }
 
             public function sidesAllowed(): bool
+            {
+                throw new \RuntimeException('The layout rules are unavailable.');
+            }
+
+            public function ownRow(array $section): bool
+            {
+                throw new \RuntimeException('The layout rules are unavailable.');
+            }
+
+            public function contentOnly(array $section): bool
+            {
+                throw new \RuntimeException('The layout rules are unavailable.');
+            }
+
+            public function pageTypeKnown(): bool
             {
                 throw new \RuntimeException('The layout rules are unavailable.');
             }

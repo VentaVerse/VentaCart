@@ -189,13 +189,13 @@ class XelgaFiltersSectionTest extends TestCase
         $this->assertStringNotContainsString('aria-current', $side);
     }
 
-    public function test_category_list_can_sit_beside_the_home_page_but_not_the_cart(): void
+    public function test_category_list_can_sit_beside_the_product_page_but_not_the_cart(): void
     {
-        $home = Defaults::content('home');
-        $home['sections']['category-list-1'] = $this->categoryList();
-        $home['order'] = ['category-list-1', ...$home['order']];
-        $home['sides'] = ['left' => ['category-list-1']];
-        $this->saveDraft($this->admin(), 'home', $home, 0)->assertOk();
+        $product = Defaults::content('product');
+        $product['sections']['category-list-1'] = $this->categoryList();
+        $product['order'] = ['category-list-1', ...$product['order']];
+        $product['sides'] = ['left' => ['category-list-1']];
+        $this->saveDraft($this->admin(), 'product', $product, 0)->assertOk();
 
         $this->assertTrue(Catalog::section('category-list')->allowedIn('category.gift-guide', 'template', 'category'));
         $this->assertFalse(Catalog::section('category-list')->allowedIn('cart', 'template', 'cart'));

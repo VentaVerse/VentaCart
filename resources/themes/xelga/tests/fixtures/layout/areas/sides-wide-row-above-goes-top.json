@@ -1,0 +1,215 @@
+{
+  "name": "sides-wide-row-above-goes-top",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8,
+      "nine": 9,
+      "banner": 12,
+      "filters": 3,
+      "bar": 6
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "f",
+      "crumbs",
+      "banner",
+      "main",
+      "best"
+    ],
+    "sections": {
+      "f": {
+        "type": "text"
+      },
+      "crumbs": {
+        "type": "text"
+      },
+      "banner": {
+        "type": "banner"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "best": {
+        "type": "half"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "crumbs"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "banner"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-3",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      },
+      {
+        "id": "row-4",
+        "split": "12",
+        "columns": [
+          [
+            "best"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        }
+      }
+    ],
+    "sides": {
+      "left": [
+        "f"
+      ]
+    }
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "crumbs",
+      "banner",
+      "f",
+      "main",
+      "best"
+    ],
+    "sections": {
+      "f": {
+        "type": "text"
+      },
+      "crumbs": {
+        "type": "text"
+      },
+      "banner": {
+        "type": "banner"
+      },
+      "main": {
+        "type": "product-main"
+      },
+      "best": {
+        "type": "half"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "crumbs"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "top"
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "banner"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "top"
+      },
+      {
+        "id": "row-3",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-4",
+        "split": "12",
+        "columns": [
+          [
+            "best"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      }
+    ],
+    "sides": {
+      "left": [
+        "f"
+      ]
+    }
+  },
+  "moved": [
+    {
+      "path": "content.sections.crumbs",
+      "reason": "in-order",
+      "value": "top"
+    },
+    {
+      "path": "content.sections.banner",
+      "reason": "too-wide",
+      "value": "top"
+    }
+  ]
+}

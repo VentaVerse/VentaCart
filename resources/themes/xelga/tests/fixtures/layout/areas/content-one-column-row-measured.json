@@ -1,0 +1,177 @@
+{
+  "name": "content-one-column-row-measured",
+  "rules": {
+    "min": {
+      "text": 3,
+      "half": 6,
+      "four": 4,
+      "wide": 8,
+      "nine": 9,
+      "banner": 12,
+      "filters": 3,
+      "bar": 6,
+      "product-main": 12
+    },
+    "main": [
+      "product-main"
+    ],
+    "sides": true
+  },
+  "input": {
+    "schema": 1,
+    "order": [
+      "f",
+      "wide",
+      "fits",
+      "main"
+    ],
+    "sections": {
+      "f": {
+        "type": "text"
+      },
+      "wide": {
+        "type": "banner"
+      },
+      "fits": {
+        "type": "nine"
+      },
+      "main": {
+        "type": "product-main"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "wide"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "fits"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-3",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      }
+    ],
+    "sides": {
+      "left": [
+        "f"
+      ]
+    }
+  },
+  "expected": {
+    "schema": 1,
+    "order": [
+      "wide",
+      "f",
+      "fits",
+      "main"
+    ],
+    "sections": {
+      "f": {
+        "type": "text"
+      },
+      "wide": {
+        "type": "banner"
+      },
+      "fits": {
+        "type": "nine"
+      },
+      "main": {
+        "type": "product-main"
+      }
+    },
+    "rows": [
+      {
+        "id": "row-1",
+        "split": "12",
+        "columns": [
+          [
+            "wide"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "top"
+      },
+      {
+        "id": "row-2",
+        "split": "12",
+        "columns": [
+          [
+            "fits"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      },
+      {
+        "id": "row-3",
+        "split": "12",
+        "columns": [
+          [
+            "main"
+          ]
+        ],
+        "settings": {
+          "width": "page",
+          "scheme": "",
+          "space": "md"
+        },
+        "area": "content"
+      }
+    ],
+    "sides": {
+      "left": [
+        "f"
+      ]
+    }
+  },
+  "moved": [
+    {
+      "path": "content.sections.wide",
+      "reason": "too-wide",
+      "value": "top"
+    }
+  ]
+}
