@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -29,6 +30,8 @@ class ProductVariantImageAndSwitchTest extends TestCase
     {
         parent::setUp();
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
+        Storage::fake('public');
+        Storage::disk('public')->put('media/variants/blue.jpg', 'bytes');
         $this->actingAs(User::factory()->create());
     }
 
@@ -69,10 +72,10 @@ class ProductVariantImageAndSwitchTest extends TestCase
         $product = $this->product();
 
         $this->put(route('admin.products.update', $product), $this->payload([
-            $this->variant(['image' => 'products/variants/blue.jpg']),
+            $this->variant(['image' => 'media/variants/blue.jpg']),
         ]))->assertRedirect();
 
-        $this->assertSame('products/variants/blue.jpg', ProductVariant::where('sku', 'STRAP-BLUE')->first()->image);
+        $this->assertSame('media/variants/blue.jpg', ProductVariant::where('sku', 'STRAP-BLUE')->first()->image);
     }
 
     /**
@@ -84,7 +87,7 @@ class ProductVariantImageAndSwitchTest extends TestCase
         $product = $this->product();
 
         $this->put(route('admin.products.update', $product), $this->payload([
-            $this->variant(['image' => 'products/variants/blue.jpg']),
+            $this->variant(['image' => 'media/variants/blue.jpg']),
         ]))->assertRedirect();
 
         $this->put(route('admin.products.update', $product), $this->payload([
@@ -94,14 +97,14 @@ class ProductVariantImageAndSwitchTest extends TestCase
         $fresh = ProductVariant::where('sku', 'STRAP-BLUE')->first();
 
         $this->assertSame(99, $fresh->quantity);
-        $this->assertSame('products/variants/blue.jpg', $fresh->image);
+        $this->assertSame('media/variants/blue.jpg', $fresh->image);
     }
 
     public function test_clearing_the_photo_still_clears_it(): void
     {
         $product = $this->product();
         $this->put(route('admin.products.update', $product), $this->payload([
-            $this->variant(['image' => 'products/variants/blue.jpg']),
+            $this->variant(['image' => 'media/variants/blue.jpg']),
         ]))->assertRedirect();
 
         // The control posts an empty string, which must beat the carry-forward
@@ -149,13 +152,13 @@ class ProductVariantImageAndSwitchTest extends TestCase
         $product = $this->product();
         $product->variants()->create([
             'sku' => 'STRAP-BLUE', 'price' => 1200, 'quantity' => 3,
-            'is_active' => false, 'image' => 'products/variants/blue.jpg',
+            'is_active' => false, 'image' => 'media/variants/blue.jpg',
         ]);
 
         $list = $this->get(route('admin.products.index'))->assertOk();
         $list->assertSee('STRAP-BLUE', false);
         $list->assertSee('1,200.00', false);
-        $list->assertSee('products/variants/blue.jpg', false);
+        $list->assertSee('media/variants/blue.jpg', false);
         $list->assertSee('Off', false);
 
         // And nothing is left to toggle.

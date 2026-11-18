@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Catalog;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\BulkSelectionRequest;
 use App\Models\Brand;
+use App\Rules\MediaImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -65,7 +66,7 @@ class BrandController extends Controller
             'store_id' => ['required', 'exists:stores,id'],
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]*$/'],
-            'image' => ['nullable', 'string', 'max:255'],
+            'image' => ['nullable', 'string', 'max:255', new MediaImage()],
             'description' => ['nullable', 'string', 'max:5000'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable'],
@@ -99,7 +100,7 @@ class BrandController extends Controller
             'store_id' => ['required', 'exists:stores,id'],
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]*$/'],
-            'image' => ['nullable', 'string', 'max:255'],
+            'image' => ['nullable', 'string', 'max:255', new MediaImage([$brand->image])],
             'description' => ['nullable', 'string', 'max:5000'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable'],
