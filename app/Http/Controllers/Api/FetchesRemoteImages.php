@@ -79,9 +79,8 @@ trait FetchesRemoteImages
         $message = $e->getMessage();
 
         if (str_contains($message, 'resolves to a disallowed address')) {
-            return "Refused for safety: {$named} is a private or internal network address (LAN, loopback, "
-                .'link-local or reserved range) that this store cannot and will not fetch from. Images have to be '
-                .'served from a URL reachable on the public internet, not from inside the ERP network.';
+            return "That address is on a private network and can't be imported: {$named} is a local, loopback, "
+                .'link-local or reserved address. Use an image address that is reachable on the public internet.';
         }
 
         if (str_contains($message, 'could not be resolved')) {

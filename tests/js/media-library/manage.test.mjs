@@ -126,18 +126,19 @@ const labels = (root, selector) => root.querySelectorAll(selector).map((b) => b.
 
 test('the tools the user lacks are not drawn', async () => {
     const looker = await pageWith({ upload: false, edit: false, delete: false });
-    assert.deepEqual(labels(looker.els.picked, '.ml-mng-acts button'), []);
+    // Details is the only tool: it opens what the side panel shows, for phones.
+    assert.deepEqual(labels(looker.els.picked, '.ml-mng-acts button'), ['Details']);
     assert.equal(looker.els.upload, null, 'no Upload without media.create');
     assert.equal(looker.root.querySelector('.ml-mng-folder'), null, 'no folder menu with nothing in it');
     assert.ok(looker.root.querySelector('.ml-panel'), 'the Used by panel is still there to look at');
     looker.destroy();
 
     const editor = await pageWith({ upload: false, edit: true, delete: false });
-    assert.deepEqual(labels(editor.els.picked, '.ml-mng-acts button'), ['Rename', 'Move to...']);
+    assert.deepEqual(labels(editor.els.picked, '.ml-mng-acts button'), ['Details', 'Rename', 'Move to...']);
     editor.destroy();
 
     const all = await pageWith({ upload: true, edit: true, delete: true });
-    assert.deepEqual(labels(all.els.picked, '.ml-mng-acts button'), ['Rename', 'Move to...', 'Delete']);
+    assert.deepEqual(labels(all.els.picked, '.ml-mng-acts button'), ['Details', 'Rename', 'Move to...', 'Delete']);
     assert.equal(all.els.upload.getAttribute('aria-haspopup'), 'menu');
 
     // Rename is for one image at a time.
@@ -145,4 +146,23 @@ test('the tools the user lacks are not drawn', async () => {
     all.redraw();
     assert.deepEqual(labels(all.els.picked, '.ml-mng-acts button'), ['Move to...', 'Delete']);
     all.destroy();
+});
+
+test('Details shows the image and what uses it in a dialog that gives focus back', async () => {
+    const looker = await pageWith({ upload: false, edit: false, delete: false });
+    const opener = looker.els.picked.querySelector('.ml-mng-details');
+    opener.focus();
+    opener.click();
+
+    const dialog = document.querySelector('dialog.ml-mng-dialog');
+    assert.ok(dialog?.open, 'the dialog is open');
+    assert.match(dialog.textContent, /demo-001\.jpg/);
+    assert.match(dialog.textContent, /Used by/);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.match(dialog.textContent, /2 products/);
+
+    [...dialog.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Close').click();
+    assert.equal(document.querySelector('dialog.ml-mng-dialog'), null, 'the dialog is gone');
+    assert.equal(document.activeElement, opener, 'focus is back on Details');
+    looker.destroy();
 });

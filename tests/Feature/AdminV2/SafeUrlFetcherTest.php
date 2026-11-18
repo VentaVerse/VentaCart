@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 /**
  * SafeUrlFetcher is the shared SSRF guard for every "download this
- * caller-supplied URL" code path (admin product-image import, ERP product
+ * caller-supplied URL" code path (the media library's import from a web address, ERP product
  * image sync, ERP review image sync). These tests exercise the guard
  * directly (no real outbound requests — Http::fake() throughout) plus one
  * end-to-end assertion that the admin import endpoint is actually wired

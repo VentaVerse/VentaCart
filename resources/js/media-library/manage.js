@@ -101,7 +101,7 @@ function firstMessage(error) {
  * A small dialog in the library's own look. Returns its parts; `close()`
  * removes it and puts focus back where it was.
  */
-function dialog({ title, labelText = null }) {
+function dialog({ title, labelText = null, refocus = null }) {
     const opener = document.activeElement;
     const titleEl = h('h2', { class: 'ml-title', id: `ml-mng-${Date.now()}`, tabindex: '-1', text: title });
     const close = h('button', { type: 'button', class: 'ml-icon-btn ml-close', 'aria-label': 'Close' }, icon('close'));
@@ -131,6 +131,7 @@ function dialog({ title, labelText = null }) {
             if (root.open) root.close();
             root.remove();
             if (opener?.isConnected && typeof opener.focus === 'function') opener.focus();
+            else refocus?.();
         },
     };
 
@@ -157,7 +158,6 @@ export function createManageHooks(view) {
         panel: h('div', { class: 'ml-mng-panel' }),
         shown: undefined,
         usage: new Map(),
-        usageToken: 0,
     };
 
     const folderTools = can.upload || can.edit || can.delete;
@@ -183,15 +183,24 @@ export function createManageHooks(view) {
         const picked = view.selection().paths();
         const n = picked.length;
 
-        // Someone who may only look has nothing to do with a selection.
+        // Shown on a phone only, where the side panel does not fit.
+        const details = n === 1
+            ? button('ml-btn ml-btn--secondary ml-btn--sm ml-mng-details', 'Details', () => detailsDialog(picked[0]), icon('image', 'ml-icon--sm'))
+            : null;
+
+        // Someone who may only look has nothing else to do with a selection.
         if (!n || !(can.edit || can.delete)) {
             const hint = can.edit || can.delete
                 ? 'Select images to rename, move or delete them.'
-                : 'Select an image to see where it is used.';
-            return h('p', { class: 'ml-pick-none', text: hint });
+                : n > 1 ? 'Select one image to see where it is used.' : 'Select an image to see where it is used.';
+            return [
+                h('p', { class: `ml-pick-none${details ? ' ml-mng-wide-only' : ''}`, text: hint }),
+                details ? h('div', { class: 'ml-mng-acts' }, details) : null,
+            ];
         }
 
         const tools = [
+            details,
             can.edit && n === 1 ? button('ml-btn ml-btn--secondary ml-btn--sm', 'Rename', () => startRename(picked[0]), icon('pencil', 'ml-icon--sm')) : null,
             can.edit ? button('ml-btn ml-btn--secondary ml-btn--sm', 'Move to...', () => moveDialog(picked), icon('move', 'ml-icon--sm')) : null,
             can.delete ? button('ml-btn ml-btn--danger ml-btn--sm', 'Delete', () => deleteDialog(picked), icon('trash', 'ml-icon--sm')) : null,
@@ -439,7 +448,6 @@ export function createManageHooks(view) {
         const key = file ? `${file.path}:${file.usedBy?.total ?? 0}` : null;
         if (key === M.shown) return;
         M.shown = key;
-        const token = (M.usageToken += 1);
 
         if (!file) {
             M.panel.replaceChildren(
@@ -448,6 +456,15 @@ export function createManageHooks(view) {
             return;
         }
 
+        M.panel.replaceChildren(h('h3', { class: 'ml-mng-panel__title', text: 'Details' }), ...details(file, () => M.shown === key));
+    }
+
+    /**
+     * One image's picture, facts and "Used by" list, for the side panel and
+     * for the phone's Details dialog. `current()` says whether the place
+     * they were drawn into still shows this image when its users arrive.
+     */
+    function details(file, current) {
         const facts = [
             ['Size', formatSize(file.size)],
             file.width && file.height ? ['Dimensions', `${file.width} × ${file.height}`] : null,
@@ -455,32 +472,52 @@ export function createManageHooks(view) {
         ].filter(Boolean);
 
         const used = h('div', { class: 'ml-mng-used', 'aria-live': 'polite' });
-        M.panel.replaceChildren(
-            h('h3', { class: 'ml-mng-panel__title', text: 'Details' }),
+        const parts = [
             h('a', { class: 'ml-mng-panel__img', href: file.url, target: '_blank', rel: 'noopener', 'aria-label': `Open ${file.name} full size` },
                 h('img', { src: file.thumb || file.url, alt: '' })),
             h('p', { class: 'ml-mng-panel__name', text: file.name }),
             h('dl', { class: 'ml-mng-facts' }, facts.map(([term, value]) => [h('dt', { text: term }), h('dd', { text: value })]).flat()),
             h('a', { class: 'ml-link-btn ml-mng-panel__open', href: file.url, target: '_blank', rel: 'noopener' }, 'Open full size'),
             h('h3', { class: 'ml-mng-panel__title ml-mng-panel__title--gap', text: 'Used by' }),
-            used);
+            used,
+        ];
 
         if (!(file.usedBy?.total > 0)) {
             used.append(h('p', { class: 'ml-mng-text ml-mng-text--quiet', text: 'Not used by anything.' }));
-            return;
+            return parts;
         }
 
         used.append(h('p', { class: 'ml-mng-text ml-mng-text--quiet', text: 'Checking...' }));
         usageOf(file.path).then((data) => {
-            if (token !== M.usageToken) return;
+            if (!current()) return;
             const uses = (data.uses || []).filter((u) => u.count > 0);
             used.replaceChildren(uses.length
                 ? h('ul', { class: 'ml-mng-uses' }, uses.map((u) => h('li', { text: kindCount(u) })))
                 : h('p', { class: 'ml-mng-text ml-mng-text--quiet', text: 'Not used by anything.' }));
         }).catch((e) => {
-            if (token !== M.usageToken) return;
+            if (!current()) return;
             used.replaceChildren(h('p', { class: 'ml-mng-error', text: firstMessage(e) }));
         });
+        return parts;
+    }
+
+    /**
+     * A phone has no room for the side panel, so the same details open in
+     * the library's small dialog from the selection bar.
+     */
+    function detailsDialog(path) {
+        const file = view.file(path) || { path, name: basename(path), size: 0, usedBy: { total: 1 } };
+        let open = true;
+        const d = dialog({
+            title: 'Details',
+            refocus: () => view.els.grid.querySelector(`[data-path="${CSS.escape(path)}"]`)?.focus(),
+        });
+        d.root.classList.add('ml-mng-dialog--details');
+        d.body.append(...details(file, () => open));
+        const done = button('ml-btn ml-btn--secondary', 'Close', () => d.close());
+        d.actions.append(done);
+        d.root.addEventListener('close', () => { open = false; });
+        done.focus();
     }
 
     /* ----------------------------------------------- import from a web address */

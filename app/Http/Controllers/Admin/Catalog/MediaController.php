@@ -19,10 +19,11 @@ use Illuminate\Support\Facades\Storage;
 class MediaController extends Controller
 {
     /**
-     * Images brought over from an earlier store sit in this folder, and
-     * nothing new is written there. It is the one place where many images
-     * can be left unused, and counting it alone keeps the page from asking
-     * every reference source about every image in the library on each visit.
+     * A store that moved its images over from an earlier layout keeps them
+     * in this folder, which is where many images are left unused. Only this
+     * folder is counted because counting the whole library would ask every
+     * reference source about every image on each visit to the page. On a
+     * store without the folder the panel is not shown.
      */
     private const IMPORTED = MediaLibrary::ROOT . '/catalog';
 

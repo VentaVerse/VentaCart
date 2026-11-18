@@ -28,8 +28,8 @@
 .ml-page > .ml-frame { grid-template-rows: minmax(0, 1fr) auto; }
 
 .ml-btn--danger { color: var(--ml-on-accent); background: var(--ml-danger); }
-.ml-btn--danger:hover:not(:disabled) { background: #a51f26; }
-.ml-btn--danger:active:not(:disabled) { background: #8e1a20; }
+.ml-btn--danger:hover:not(:disabled) { background: color-mix(in srgb, var(--ml-danger) 86%, var(--ml-text)); }
+.ml-btn--danger:active:not(:disabled) { background: color-mix(in srgb, var(--ml-danger) 74%, var(--ml-text)); }
 
 .ml-mng-folder { flex: none; }
 
@@ -39,6 +39,9 @@
 .ml-page .ml-search { flex: 1 1 200px; min-width: 200px; }
 
 /* ------------------------------------------------------- selection bar */
+
+/* Details opens the side panel's content in a dialog, for phones only. */
+.ml-mng-details { display: none; }
 
 .ml-mng-acts {
   display: flex;
@@ -254,6 +257,10 @@
   /* The admin keeps its page gutter on a phone, so the library keeps its
      frame inside it. */
   .ml-host .ml-page { border-inline: 1px solid var(--ml-line); border-radius: var(--ml-radius-lg); }
+
+  .ml-mng-details { display: inline-flex; }
+  .ml-mng-wide-only { display: none; }
+  .ml-mng-dialog--details .ml-mng-panel__img { aspect-ratio: auto; height: min(180px, 24dvh); }
 
   .ml-mng-folder__label { display: none; }
   .ml-mng-folder { min-height: 40px; padding-inline: 10px; }

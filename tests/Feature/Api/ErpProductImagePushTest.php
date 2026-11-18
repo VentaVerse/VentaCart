@@ -103,7 +103,7 @@ class ErpProductImagePushTest extends TestCase
         // The reason has to explain itself to whoever reads the ERP's log, so
         // it names the host, says what is wrong with it, and says what to do.
         $this->assertStringContainsString("host '192.168.0.224'", $reason);
-        $this->assertStringContainsString('private or internal network address', $reason);
+        $this->assertStringContainsString('on a private network', $reason);
         $this->assertStringContainsString('public internet', $reason);
         $this->assertStringNotContainsString('Exception', $reason);
 
