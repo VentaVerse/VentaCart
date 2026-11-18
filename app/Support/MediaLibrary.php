@@ -218,7 +218,8 @@ class MediaLibrary
 
     public static function store(UploadedFile $file, string $directory): string
     {
-        $path = $file->storeAs($directory, self::filename($file->getClientOriginalName(), $directory, $file->getClientOriginalExtension()), 'public');
+        $extension = ImageExtension::orRefuse($file, 'files');
+        $path = $file->storeAs($directory, self::filename($file->getClientOriginalName(), $directory, $extension), 'public');
 
         self::thumbnail($path);
 

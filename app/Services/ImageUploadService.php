@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\MediaFolder;
 use App\Models\StoreMedia;
+use App\Support\ImageExtension;
 use App\Support\ImageRenditions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -107,7 +108,7 @@ class ImageUploadService
 
     protected function generateFilename(UploadedFile $file): string
     {
-        $ext = $file->getClientOriginalExtension();
+        $ext = ImageExtension::orRefuse($file, 'file', ['jpg', 'png', 'webp', 'gif']);
         return Str::uuid() . '.' . $ext;
     }
 
