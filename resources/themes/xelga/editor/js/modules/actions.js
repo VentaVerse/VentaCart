@@ -502,9 +502,10 @@ export function addBlock(sid, type) {
 
 /**
  * The block type a section can be filled from photos with: the section's
- * only addable block type, when it holds exactly one image setting. Answers
- * { type, key, room, inUse } (room: how many more fit, null for no limit;
- * inUse: the photos its blocks already show) or null.
+ * only addable block type, when its schema names the image setting a photo
+ * fills (`photo_setting`). The block's other settings keep their defaults.
+ * Answers { type, key, room, inUse } (room: how many more fit, null for no
+ * limit; inUse: the photos its blocks already show) or null.
  */
 export function photoBlockOf(sid) {
   const s = sec(sid);
@@ -512,10 +513,9 @@ export function photoBlockOf(sid) {
   const { types } = addableBlocks(sid);
   if (!def?.blocks || types.length !== 1) return null;
   const type = types[0];
-  const images = (type.settings || []).filter((x) => x.type === 'image');
-  if (images.length !== 1) return null;
+  const key = type.photo_setting;
+  if (!key || !(type.settings || []).some((x) => x.key === key && x.type === 'image')) return null;
   const list = blockList(sid).filter((b) => blockDef(s.type, b.type));
-  const key = images[0].key;
   const rooms = [
     def.blocks.max ? def.blocks.max - list.length : null,
     type.limit ? type.limit - list.filter((b) => b.type === type.type).length : null,

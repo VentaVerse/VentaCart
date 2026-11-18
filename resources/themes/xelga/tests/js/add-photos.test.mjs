@@ -21,16 +21,21 @@ const text = { key: 'caption', type: 'text', label: 'Caption', default: '' };
 const CATALOG = {
   slides: {
     label: 'Slides', group: 'template', templates: ['*'], span: { min: 12, variants: {} }, settings: [],
-    blocks: { min: 0, max: 5, types: [{ type: 'slide', label: 'Slide', limit: null, settings: [image, text] }] },
+    blocks: { min: 0, max: 5, types: [{ type: 'slide', label: 'Slide', limit: null, photo_setting: 'image', settings: [image, text] }] },
   },
   twin: {
     label: 'Two photos', group: 'template', templates: ['*'], span: { min: 12, variants: {} }, settings: [],
-    blocks: { min: 0, max: 5, types: [{ type: 'slide', label: 'Slide', limit: null, settings: [image, { ...image, key: 'image_mobile' }] }] },
+    blocks: { min: 0, max: 5, types: [{ type: 'slide', label: 'Slide', limit: null, photo_setting: 'image', settings: [image, { ...image, key: 'image_mobile' }] }]
+    },
+  },
+  unnamed: {
+    label: 'Unnamed', group: 'template', templates: ['*'], span: { min: 12, variants: {} }, settings: [],
+    blocks: { min: 0, max: 5, types: [{ type: 'slide', label: 'Slide', limit: null, settings: [image] }] },
   },
   mixed: {
     label: 'Mixed', group: 'template', templates: ['*'], span: { min: 12, variants: {} }, settings: [],
     blocks: { min: 0, max: 5, types: [
-      { type: 'slide', label: 'Slide', limit: null, settings: [image] },
+      { type: 'slide', label: 'Slide', limit: null, photo_setting: 'image', settings: [image] },
       { type: 'note', label: 'Note', limit: null, settings: [text] },
     ] },
   },
@@ -98,7 +103,7 @@ test('the limit counts the slides already there', () => {
   assert.equal(photoBlockOf('hero'), null, 'and no button when full');
 });
 
-test('the button shows only for a block type with one image setting', () => {
+test('the button shows only for a block type that names its photo setting', () => {
   page('slides', { a: slide('media/banners/demo-009.jpg'), b: slide('') });
   assert.deepEqual(photoBlockOf('hero'), { type: 'slide', key: 'image', room: 3, inUse: ['media/banners/demo-009.jpg'] });
 
@@ -106,7 +111,12 @@ test('the button shows only for a block type with one image setting', () => {
   assert.equal(photoBlockOf('hero').room, 5);
 
   page('twin');
-  assert.equal(photoBlockOf('hero'), null, 'two image settings: which photo would it be?');
+  assert.deepEqual(photoBlockOf('hero'), { type: 'slide', key: 'image', room: 5, inUse: [] }, 'two image settings: the named one is filled');
+  page('twin', { a: { type: 'slide', label: 'Slide', disabled: false, settings: { image: 'media/banners/demo-001.jpg' } } });
+  addBlocksWithImages('hero', 'slide', 'image', ['media/banners/demo-002.jpg']);
+  assert.deepEqual(blocks()[order()[1]].settings, { image: 'media/banners/demo-002.jpg' }, 'the other image setting stays empty');
+  page('unnamed');
+  assert.equal(photoBlockOf('hero'), null, 'one image setting that is not named');
   page('mixed');
   assert.equal(addableBlocks('hero').types.length, 2);
   assert.equal(photoBlockOf('hero'), null, 'more than one addable type');

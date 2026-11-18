@@ -185,6 +185,7 @@
       {
         "type": "banner",
         "label": "Banner",
+        "photo_setting": "image",
         "settings": [
           {
             "key": "image",
