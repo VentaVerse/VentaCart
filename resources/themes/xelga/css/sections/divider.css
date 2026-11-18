@@ -1,0 +1,121 @@
+/* ==========================================================================
+   Divider (line, label, dots, space)
+   ========================================================================== */
+
+/*
+ * Merchants pick steps (Small, Medium, Large; Thin, Medium; Narrow, Page,
+ * Edge to edge); the values behind each step live here. The divider sets the
+ * gap between its neighbors: Medium is the distance of two sections meeting,
+ * Small half of it and Large one and a half.
+ *
+ * The line takes the scheme's text color, softened, rather than its border
+ * color: border colors are tuned to sit quietly around cards and are too
+ * faint to read as a line on some schemes.
+ */
+.s-divider {
+  --dv-step: .5;
+  --dv-weight: 1px;
+  --dv-ink: color-mix(in srgb, var(--c-text) 26%, var(--c-bg));
+  container-type: inline-size;
+  padding-block: calc(var(--space-section) * var(--dv-step));
+}
+
+.s-divider[data-pad="sm"] { --dv-step: .25; }
+.s-divider[data-pad="md"] { --dv-step: .5; }
+.s-divider[data-pad="lg"] { --dv-step: .75; }
+
+.s-divider[data-weight="medium"] { --dv-weight: 2px; }
+
+.dv {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(.75rem, 2cqi, 1.25rem);
+  width: min(100% - 2 * var(--gutter), var(--page-width));
+  margin-inline: auto;
+}
+
+.s-divider[data-width="narrow"] .dv { width: min(100% - 2 * var(--gutter), 14rem); }
+.s-divider[data-width="narrow"][data-variant="label"] .dv { width: min(100% - 2 * var(--gutter), 30rem); }
+.s-divider[data-width="edge"] .dv { width: 100%; }
+
+.dv__line {
+  flex: 1 1 0;
+  min-width: 1rem;
+  height: var(--dv-weight);
+  background: var(--dv-ink);
+}
+
+.dv__label {
+  flex: 0 1 auto;
+  max-width: 75%;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--fs-h4);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: var(--heading-tracking);
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  color: var(--c-text);
+}
+
+.dv__dot {
+  width: .375rem;
+  height: .375rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--c-text) 50%, var(--c-bg));
+}
+
+.s-divider[data-variant="dots"] .dv { gap: .75rem; }
+
+/* Space only: the padding is the divider. */
+.s-divider[data-variant="space"] .dv { min-height: 0; }
+
+/*
+ * Next to a divider a section drops its own space on that side, so the
+ * divider's padding is the whole gap. The header, footer, announcement bar,
+ * main banner and sections with a background photo keep theirs: their edge
+ * is part of what they look like. Tiles in a column or a side stand apart
+ * and keep theirs too.
+ */
+:where(:not(.xr__col, .xp__side)) > .s-divider + .s:not(.s-divider, .s-header, .s-footer, .s-announcement, .s-hero, [data-has-bg="true"]) {
+  padding-block-start: 0;
+}
+
+:where(:not(.xr__col, .xp__side)) > .s:not(.s-divider, .s-header, .s-footer, .s-announcement, .s-hero, [data-has-bg="true"]):has(+ .s-divider) {
+  padding-block-end: 0;
+}
+
+/*
+ * In a column or a side the divider draws no tile of its own: the row's
+ * background shows through and the line runs the column's width, so it
+ * reads as a break between the tiles above and below it. Edge to edge needs
+ * a row of its own, so here it is the column's width as well.
+ */
+:is(.xr__col, .xp__side) > .s-divider {
+  padding-block: calc(var(--space-section) * var(--dv-step) * .5);
+  padding-inline: 0;
+  background: transparent;
+}
+
+.xr__col > .s-divider .dv { width: 100%; }
+.xr__col > .s-divider[data-width="narrow"] .dv { width: min(100%, 8rem); }
+
+/* Below 990px a side stacks with the page, so its divider keeps the page's gutters. */
+.xp__side > .s-divider:not([data-width="narrow"]) .dv { width: min(100% - 2 * var(--gutter), var(--page-width)); }
+.xp__side > .s-divider[data-width="narrow"] .dv { width: min(100% - 2 * var(--gutter), 8rem); }
+
+/* Beside sides the content area is already inside the page's gutters. */
+@media (min-width: 990px) {
+  .xp__side > .s-divider:not([data-width="narrow"]) .dv { width: 100%; }
+  .xp__side > .s-divider[data-width="narrow"] .dv { width: min(100%, 8rem); }
+  .xp__content > .s-divider:not([data-width="narrow"]) .dv { width: 100%; }
+}
+
+/* A spot too narrow for lines beside a label keeps the label alone. */
+@container (max-width: 15rem) {
+  .s-divider[data-variant="label"] .dv__line { display: none; }
+  .s-divider[data-variant="label"] .dv__label { max-width: 100%; }
+}

@@ -529,6 +529,15 @@ a {
   box-shadow: 0 1px 2px rgb(16 20 28 / .12), 0 0 0 1px rgb(16 20 28 / .04);
 }
 
+.seg button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.seg button[aria-disabled="true"]:hover {
+  color: var(--text-2);
+}
+
 .seg button[aria-checked="true"]:focus-visible {
   box-shadow: var(--focus);
 }

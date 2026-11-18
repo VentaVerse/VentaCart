@@ -680,6 +680,21 @@ export function roomOf(content, sid, rules) {
 }
 
 /**
+ * Whether a section stands in a column of a row of two or more, or in a
+ * side: a place it shares with others, where a choice that needs a row of
+ * its own (Edge to edge) cannot be honored. False when it is not on the page.
+ */
+export function sharesRow(content, sid, rules) {
+  const layout = layoutOf(rules.layout);
+  const at = locate(content, sid, layout);
+  if (!at) return false;
+  if (at.where === 'side') return true;
+  const r = rowsOf(content, layout).find((x) => x.id === at.rowId);
+  const parts = r ? partsOf(layout, r.split) : null;
+  return Boolean(parts && parts.length > 1);
+}
+
+/**
  * Puts another section in a section's place: the same row, column or
  * side and the same position in it, under the new id. Answers null, and
  * changes nothing, when the old one is not on the page or is the page's

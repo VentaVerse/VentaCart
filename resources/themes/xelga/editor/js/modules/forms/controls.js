@@ -10,7 +10,7 @@ import { sec } from '../state.js';
 import { optionsOf, variantDrawing, SCHEMATICS, sectionDef } from '../catalog.js';
 import { humanize } from '../util.js';
 import { radioItems, radioKeys } from '../selection.js';
-import { variantFits } from '../board/drawer.js';
+import { variantFits, sharesRow } from '../board/drawer.js';
 import { richText } from './richtext.js';
 import { schemePicker, schemeEditor } from './schemes.js';
 import { fontPairPicker } from './fonts.js';
@@ -135,13 +135,25 @@ function selectControl(setting, value, change, id, fctx) {
 
   if (control === 'segmented' && options.length <= 4) {
     const group = h('div', { class: 'seg seg--fill', role: 'radiogroup', 'aria-labelledby': `${id}-label` });
-    options.forEach((o) => group.append(h('button', {
-      type: 'button', role: 'radio', dataset: { value: o.value },
-      onclick: () => {
-        radioItems(group, o.value);
-        change(o.value);
-      },
-    }, o.label)));
+    // A choice that needs a row of its own is shown, greyed, in a column or a side.
+    const crowded = options.some((o) => o.own_row) && fctx.sid ? sharesRow(fctx.sid) : false;
+    const needsRow = 'Needs a row of its own';
+    options.forEach((o) => {
+      const blocked = Boolean(o.own_row) && crowded;
+      group.append(h('button', {
+        type: 'button', role: 'radio', dataset: { value: o.value },
+        'aria-disabled': blocked ? 'true' : null, title: blocked ? needsRow : null,
+        'aria-description': blocked ? needsRow : null,
+        onclick: () => {
+          if (blocked) {
+            toast(`${o.label} needs a row of its own, not a column or a side.`, { tone: 'error' });
+            return;
+          }
+          radioItems(group, o.value);
+          change(o.value);
+        },
+      }, o.label));
+    });
     radioItems(group, value);
     radioKeys(group);
     return group;

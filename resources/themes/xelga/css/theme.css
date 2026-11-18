@@ -27,6 +27,7 @@
 @import './sections/header.css';
 @import './sections/hero.css';
 @import './sections/usp-bar.css';
+@import './sections/divider.css';
 @import './sections/category-tiles.css';
 @import './sections/featured-products.css';
 @import './sections/product-spotlight.css';

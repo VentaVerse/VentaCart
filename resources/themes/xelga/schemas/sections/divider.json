@@ -1,0 +1,182 @@
+{
+  "type": "divider",
+  "label": "Divider",
+  "group": "template",
+  "picker_group": "text",
+  "picker_order": 120,
+  "templates": [
+    "*"
+  ],
+  "limit": null,
+  "main": false,
+  "span": {
+    "min": 3
+  },
+  "class": "s-divider",
+  "variants": [
+    {
+      "value": "line",
+      "label": "Line"
+    },
+    {
+      "value": "label",
+      "label": "Line with a label"
+    },
+    {
+      "value": "dots",
+      "label": "Dots"
+    },
+    {
+      "value": "space",
+      "label": "Space only"
+    }
+  ],
+  "settings": [
+    {
+      "key": "variant",
+      "type": "select",
+      "label": "Layout",
+      "default": "line",
+      "options": [
+        {
+          "value": "line",
+          "label": "Line"
+        },
+        {
+          "value": "label",
+          "label": "Line with a label"
+        },
+        {
+          "value": "dots",
+          "label": "Dots"
+        },
+        {
+          "value": "space",
+          "label": "Space only"
+        }
+      ],
+      "control": "cards"
+    },
+    {
+      "key": "label",
+      "type": "text",
+      "label": "Label",
+      "default": "Our picks",
+      "max": 40,
+      "visible_if": {
+        "variant": "label"
+      }
+    },
+    {
+      "key": "width",
+      "type": "select",
+      "label": "Width",
+      "default": "page",
+      "options": [
+        {
+          "value": "narrow",
+          "label": "Narrow"
+        },
+        {
+          "value": "page",
+          "label": "Page"
+        },
+        {
+          "value": "edge",
+          "label": "Edge to edge",
+          "own_row": true
+        }
+      ],
+      "control": "segmented",
+      "visible_if": {
+        "variant": [
+          "line",
+          "label"
+        ]
+      }
+    },
+    {
+      "key": "pad",
+      "type": "select",
+      "label": "Space above and below",
+      "info": "The neighboring sections give up their own space next to a divider, so this sets the gap.",
+      "default": "md",
+      "options": [
+        {
+          "value": "sm",
+          "label": "Small"
+        },
+        {
+          "value": "md",
+          "label": "Medium"
+        },
+        {
+          "value": "lg",
+          "label": "Large"
+        }
+      ],
+      "control": "segmented"
+    },
+    {
+      "key": "scheme",
+      "type": "color-scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "key": "weight",
+      "type": "select",
+      "label": "Line thickness",
+      "default": "thin",
+      "options": [
+        {
+          "value": "thin",
+          "label": "Thin"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        }
+      ],
+      "control": "segmented",
+      "advanced": true,
+      "visible_if": {
+        "variant": [
+          "line",
+          "label"
+        ]
+      }
+    }
+  ],
+  "presets": [
+    {
+      "key": "line",
+      "label": "Line",
+      "settings": {
+        "variant": "line"
+      }
+    },
+    {
+      "key": "label",
+      "label": "Line with a label",
+      "settings": {
+        "variant": "label",
+        "label": "Our picks"
+      }
+    },
+    {
+      "key": "dots",
+      "label": "Dots",
+      "settings": {
+        "variant": "dots"
+      }
+    },
+    {
+      "key": "space",
+      "label": "Space only",
+      "settings": {
+        "variant": "space"
+      }
+    }
+  ]
+}

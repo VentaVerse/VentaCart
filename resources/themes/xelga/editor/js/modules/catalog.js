@@ -71,7 +71,7 @@ export const SECTION_ICONS = {
   'announcement-bar': 'info', header: 'menu', hero: 'image', 'usp-bar': 'shield-check',
   'category-tiles': 'columns', 'featured-products': 'tag', 'product-spotlight': 'bolt',
   'image-with-text': 'layout', 'promo-banners': 'layers', 'shop-the-look': 'map-pin',
-  'brand-logos': 'plus-square', testimonials: 'chat', 'rich-text': 'type',
+  'brand-logos': 'plus-square', testimonials: 'chat', 'rich-text': 'type', divider: 'minus',
   'blog-posts': 'align-left', footer: 'columns', filters: 'filter', 'category-list': 'menu',
 };
 
@@ -209,6 +209,12 @@ export const SCHEMATICS = {
     center: 'h16,10,32,4 t12,18,40,2 t14,22,36,2 t18,26,28,2 b26,31,12,4',
     start: 'h4,10,32,4 t4,18,40,2 t4,22,36,2 t4,26,28,2 b4,31,12,4',
     split: 'h4,12,22,4 h4,18,16,4 t34,12,26,2 t34,16,24,2 t34,20,26,2 t34,24,18,2 b34,29,12,4',
+  },
+  divider: {
+    line: 't4,19,56,2',
+    label: 't4,19,17,2 h25,17,14,5 t43,19,17,2',
+    dots: 'd26,18,4,4 d34,18,4,4 d42,18,4,4',
+    space: 'o4,8,56,24',
   },
   'blog-posts': {
     grid: 'h4,4,18,3 i4,10,17,12 h4,24,15,2 t4,28,12,2 i23,10,17,12 h23,24,15,2 t23,28,12,2 i42,10,18,12 h42,24,15,2 t42,28,12,2',
