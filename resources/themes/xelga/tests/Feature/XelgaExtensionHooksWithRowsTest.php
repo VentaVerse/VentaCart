@@ -243,7 +243,9 @@ class XelgaExtensionHooksWithRowsTest extends TestCase
             $last = $rows[array_key_last($rows)];
             $this->assertSame([[$this->card]], $last['columns']);
             $this->assertSame('bottom', $last['area']);
-            $this->assertGreaterThan($this->rowIndexOf($rows, 'product-main'), array_key_last($rows));
+            $main = $this->rowIndexOf($rows, 'product-main-1');
+            $this->assertNotNull($main);
+            $this->assertGreaterThan($main, array_key_last($rows));
         });
     }
 }
