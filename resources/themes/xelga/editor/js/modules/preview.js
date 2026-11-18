@@ -303,6 +303,7 @@ function follow(op) {
       queue(op.bid ? { section: op.sid } : { reload: true });
       return;
     case 'block-add':
+    case 'blocks-add':
     case 'block-remove':
     case 'block-move':
       queue({ section: op.sid });

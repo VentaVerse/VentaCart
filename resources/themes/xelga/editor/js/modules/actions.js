@@ -15,6 +15,7 @@ import { schemeSetting } from './board/choices.js';
 import { blockLabel } from './board/labels.js';
 import { clone, humanize } from './util.js';
 import { select } from './selection.js';
+import { libraryGate } from './pickers/image.js';
 import { flush, resolveConflict, setFatal } from './drafts.js';
 import { normalizeDocument } from './api.js';
 
@@ -497,6 +498,86 @@ export function addBlock(sid, type) {
   commit({ t: 'block-add', doc: at.handle, sid, bid, index, snapshot, name: snapshot.label });
   announce(`${snapshot.label} added to ${labelOf(sid)}`);
   select(sid, bid);
+}
+
+/**
+ * The block type a section can be filled from photos with: the section's
+ * only addable block type, when it holds exactly one image setting. Answers
+ * { type, key, room, inUse } (room: how many more fit, null for no limit;
+ * inUse: the photos its blocks already show) or null.
+ */
+export function photoBlockOf(sid) {
+  const s = sec(sid);
+  const def = sectionDef(s?.type);
+  const { types } = addableBlocks(sid);
+  if (!def?.blocks || types.length !== 1) return null;
+  const type = types[0];
+  const images = (type.settings || []).filter((x) => x.type === 'image');
+  if (images.length !== 1) return null;
+  const list = blockList(sid).filter((b) => blockDef(s.type, b.type));
+  const key = images[0].key;
+  const rooms = [
+    def.blocks.max ? def.blocks.max - list.length : null,
+    type.limit ? type.limit - list.filter((b) => b.type === type.type).length : null,
+  ].filter((n) => n !== null);
+  const room = rooms.length ? Math.max(0, Math.min(...rooms)) : null;
+  if (room === 0) return null;
+  const inUse = list.filter((b) => b.type === type.type).map((b) => b.settings?.[key]).filter(Boolean);
+  return { type: type.type, key, room, inUse };
+}
+
+/**
+ * Adds one block of `type` per photo, in the order given, with `key` set to
+ * its path, as one undo step. Photos past the section's room are dropped.
+ * Answers the new block ids.
+ */
+export function addBlocksWithImages(sid, type, key, paths) {
+  const at = locate(sid);
+  const def = blockDef(at?.data?.type, type);
+  const room = photoBlockOf(sid);
+  if (!at || !def || room?.type !== type) return [];
+  const chosen = (paths || []).filter(Boolean).slice(0, room.room ?? undefined);
+  if (!chosen.length) return [];
+  const used = usedIds();
+  const same = blockList(sid).filter((b) => b.type === type).length;
+  const limits = (taken) => blockLimits(sectionDef(at.data.type), type, taken);
+  const items = chosen.map((path, i) => {
+    const bid = newId(type, used);
+    used.add(bid);
+    return { bid, snapshot: { type, label: blockLabel(def.label || humanize(type), limits(same + i)), disabled: false, settings: { [key]: path } } };
+  });
+  const name = chosen.length === 1 ? items[0].snapshot.label : `${chosen.length} ${String(def.label || humanize(type)).toLowerCase()}s`;
+  commit({ t: 'blocks-add', doc: at.handle, sid, index: at.data.block_order.length, items, name });
+  announce(`${name} added to ${labelOf(sid)}`);
+  return items.map((item) => item.bid);
+}
+
+const photoGate = libraryGate();
+
+/**
+ * Opens the media library to pick several photos and adds a block for each,
+ * after the ones already there. The photos the blocks already show are
+ * marked, and no more can be picked than the section has room for.
+ */
+export function addPhotos(sid, opener) {
+  photoGate(opener, () => {
+    const found = photoBlockOf(sid);
+    if (!found) throw new Error('This section cannot take photos.');
+    return {
+      mode: 'multi',
+      limit: found.room,
+      inUse: found.inUse,
+      kind: 'theme',
+      title: 'Add photos',
+      onChoose: (files) => {
+        const ids = addBlocksWithImages(sid, found.type, found.key, (files || []).map((f) => f.path));
+        if (ids.length) {
+          toast(`${ids.length === 1 ? 'Photo' : `${ids.length} photos`} added.`, { action: { label: 'Undo', run: undo } });
+          window.requestAnimationFrame(() => focusInBlocks(ids[0]));
+        }
+      },
+    };
+  }, () => toast('The media library is not available on this page.', { tone: 'error' }));
 }
 
 export function removeBlock(sid, bid) {

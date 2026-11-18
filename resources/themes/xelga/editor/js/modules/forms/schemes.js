@@ -68,7 +68,7 @@ function loadUsage() {
 const usageShown = () => $$('[data-uses-of], [data-places-of], .scheme-swatch[data-value]').length > 0;
 
 /* The changes that can add, drop or move a use of a color scheme. */
-const SCHEME_OPS = new Set(['insert', 'remove', 'replace', 'block-add', 'block-remove', 'row-split', 'row-remove']);
+const SCHEME_OPS = new Set(['insert', 'remove', 'replace', 'block-add', 'blocks-add', 'block-remove', 'row-split', 'row-remove']);
 
 /**
  * Whether a change can change where a color scheme is used: a section or

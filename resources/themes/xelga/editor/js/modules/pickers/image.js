@@ -30,8 +30,7 @@ const UNAVAILABLE = 'The media library is not available on this page.';
  */
 export function imagePicker(value, change, setting = {}, fctx = null) {
   const wrap = h('div', { class: 'media' });
-  let open = false;
-  let waiting = false;
+  const gate = libraryGate();
 
   const draw = (v, note = '') => {
     const thumb = v ? h('img', { class: 'media__thumb', src: mediaUrl(v), alt: '' }) : h('span', { class: 'media__empty' }, icon('image'));
@@ -61,9 +60,35 @@ export function imagePicker(value, change, setting = {}, fctx = null) {
     wrap.querySelector('button')?.focus?.();
   };
 
-  // One open at a time: a click while the library's script is still
-  // loading marks Change busy, and further clicks wait with it.
-  const show = (opener, current) => {
+  const show = (opener, current) => gate(opener, () => ({
+    mode: 'single',
+    value: current || '',
+    kind: setting.media_kind || 'theme',
+    folder: FOLDER,
+    where: whereOf(setting, fctx),
+    onChoose: ([file] = []) => {
+      if (!file?.path) return;
+      pick(file.path);
+      // The library gave focus back to the button it opened from,
+      // which the redraw replaced; Change takes it instead.
+      wrap.querySelector('button')?.focus?.();
+    },
+  }), () => unavailable(current));
+
+  draw(value);
+  return wrap;
+}
+
+/**
+ * Opens the library for one control, one dialog at a time. A press while the
+ * library's script is still loading marks the opener busy, and presses after
+ * it wait with it. `options` is read when the library is ready, so what it
+ * holds is current; `missing` runs when there is no library to open.
+ */
+export function libraryGate() {
+  let open = false;
+  let waiting = false;
+  return (opener, options, missing) => {
     if (open || waiting) return;
     waiting = true;
     opener.setAttribute('aria-busy', 'true');
@@ -73,36 +98,26 @@ export function imagePicker(value, change, setting = {}, fctx = null) {
       opener.removeAttribute('aria-busy');
       opener.classList.remove('is-busy');
       if (!media) {
-        unavailable(current);
+        missing();
         return;
       }
       open = true;
       try {
+        const given = options();
         media.open({
-          mode: 'single',
-          value: current || '',
-          kind: setting.media_kind || 'theme',
-          folder: FOLDER,
-          where: whereOf(setting, fctx),
+          ...given,
           opener,
-          onChoose: ([file] = []) => {
-            if (!file?.path) return;
-            pick(file.path);
-            // The library gave focus back to the button it opened from,
-            // which the redraw replaced; Change takes it instead.
-            wrap.querySelector('button')?.focus?.();
+          onClose: () => {
+            open = false;
+            given.onClose?.();
           },
-          onClose: () => { open = false; },
         });
       } catch {
         open = false;
-        unavailable(current);
+        missing();
       }
     });
   };
-
-  draw(value);
-  return wrap;
 }
 
 /**

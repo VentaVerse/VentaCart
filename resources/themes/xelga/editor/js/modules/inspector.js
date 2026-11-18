@@ -23,7 +23,7 @@ import { buildForm, dependsOn, refreshVisibility, refreshFieldErrors } from './f
 import { startListDrag } from './board/drag.js';
 import {
   toggleVisible, startRename, rename, askRemoveSection, removeBlock, canRemoveBlock, duplicateSection, canDuplicate, duplicateHint, duplicateBlock, canDuplicateBlock,
-  addableBlocks, addBlock, moveBlockBy, moveBlockTo,
+  addableBlocks, addBlock, addPhotos, photoBlockOf, moveBlockBy, moveBlockTo,
 } from './actions.js';
 
 const body = () => $('#drawer-body');
@@ -50,6 +50,9 @@ export function renderInspector() {
   const sameTarget = key === shownKey;
   // Keep focus where it was when the same form is drawn again (undo, redo).
   const focusedField = sameTarget ? document.activeElement?.closest?.('[data-field]')?.dataset.field : null;
+  // The same goes for a block of the list: a saved draft draws the panel again.
+  const focusedBlock = sameTarget && document.activeElement?.classList?.contains('blist__main')
+    ? document.activeElement.closest('.blist__item')?.dataset.bid : null;
   let view = null;
   if (S.sel.kind === 'theme') {
     view = themeInspector(S.sel.group);
@@ -71,6 +74,7 @@ export function renderInspector() {
     if (b) b.scrollTop = scroll;
     if (focusedField) el.querySelector(`[data-field="${CSS.escape(focusedField)}"] input, [data-field="${CSS.escape(focusedField)}"] textarea, [data-field="${CSS.escape(focusedField)}"] select`)?.focus({ preventScroll: true });
   }
+  if (focusedBlock) el.querySelector(`.blist__item[data-bid="${CSS.escape(focusedBlock)}"] .blist__main`)?.focus({ preventScroll: true });
   if (S.renaming) {
     const input = $('.insp-rename', el);
     input?.focus();
@@ -266,10 +270,17 @@ function blocksField(sid) {
   const { types, full, max } = addableBlocks(sid);
   if (types.length) {
     const one = types.length === 1;
-    field.append(h('button', {
+    const add = h('button', {
       type: 'button', class: 'btn btn--secondary btn--sm blist__add', 'aria-haspopup': one ? null : 'true',
       onclick: (e) => (one ? addBlock(sid, types[0].type) : openMenu(e.currentTarget, blockMenu(s, types))),
-    }, icon('plus', 'icon--sm'), one ? `Add ${String(types[0].label || humanize(types[0].type)).toLowerCase()}` : 'Add block'));
+    }, icon('plus', 'icon--sm'), one ? `Add ${String(types[0].label || humanize(types[0].type)).toLowerCase()}` : 'Add block');
+    // The photo-first way to add, for a section whose blocks are one photo each.
+    field.append(photoBlockOf(sid)
+      ? h('div', { class: 'blist__adds' }, add, h('button', {
+        type: 'button', class: 'btn btn--secondary btn--sm blist__add-photos', 'aria-haspopup': 'dialog',
+        onclick: (e) => addPhotos(sid, e.currentTarget),
+      }, icon('image', 'icon--sm'), 'Add photos'))
+      : add);
   } else if (full) {
     field.append(h('p', { class: 'field__help', text: `Holds up to ${max}. Remove one to add another.` }));
   }
