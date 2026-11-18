@@ -295,6 +295,23 @@ class XelgaEditorEndpointsTest extends TestCase
         $this->pick('blog-posts')->assertOk()->assertJsonStructure(['data' => ['kind', 'results', 'more', 'available']]);
     }
 
+    public function test_the_page_of_one_record_is_answered_only_when_a_guest_can_open_it(): void
+    {
+        $laptops = $this->category('Laptops');
+        $hidden = $this->category('Clearance', null, false);
+        $admin = $this->admin();
+
+        $answer = $this->actingAs($admin)->getJson(route('admin.xelga.subject', ['type' => 'category', 'id' => $laptops->id]))->assertOk();
+        $answer->assertJsonPath('data.subject.id', $laptops->id)
+            ->assertJsonPath('data.subject.name', 'Laptops')
+            ->assertJsonPath('data.url', route('category.show', ['category' => $laptops->slug]));
+
+        // A switched-off record has no storefront page, and a kind the editor does not draw pages for is refused.
+        $this->actingAs($admin)->getJson(route('admin.xelga.subject', ['type' => 'category', 'id' => $hidden->id]))->assertNotFound();
+        $this->actingAs($admin)->getJson(route('admin.xelga.subject', ['type' => 'customer', 'id' => 1]))->assertUnprocessable();
+        $this->actingAs($admin)->getJson(route('admin.xelga.subject', ['type' => 'category', 'id' => 'x']))->assertUnprocessable();
+    }
+
     public function test_the_link_lookup_searches_every_kind_a_link_can_point_at(): void
     {
         $category = $this->category('Linen');

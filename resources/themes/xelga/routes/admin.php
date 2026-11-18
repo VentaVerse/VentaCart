@@ -46,4 +46,5 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::get('/schemes/usage', [SchemeController::class, 'usage'])->middleware('throttle:xelga-schemes')->name('schemes.usage');
 
         Route::get('/pick/{kind}', [PickerController::class, 'pick'])->where('kind', '[a-z\-]+')->middleware('throttle:xelga-pick')->name('pick');
+        Route::get('/subject', [EditorController::class, 'subject'])->middleware('throttle:xelga-pick')->name('subject');
     });

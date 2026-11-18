@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Themes\Xelga\Http\BootPayload;
+use Themes\Xelga\Http\Requests\SubjectPageRequest;
 use Themes\Xelga\Preview\PreviewSession;
 
 /**
@@ -36,6 +37,21 @@ class EditorController extends Controller
         $preview = PreviewSession::open($request->user());
 
         return $this->ok(BootPayload::preview($preview), 'Preview opened.');
+    }
+
+    /**
+     * The storefront page of one record, for opening a page type on it from
+     * the page menu. Only a record a guest can open is answered, the same
+     * rule the editor's sample records follow.
+     */
+    public function subject(SubjectPageRequest $request): JsonResponse
+    {
+        $page = BootPayload::subjectPage($request->subjectType(), $request->subjectId());
+        if ($page === null) {
+            return $this->fail('Shoppers cannot open that page.', 'not_found', 404);
+        }
+
+        return $this->ok($page, 'Loaded.');
     }
 
     /** Exit: close the preview window, so no request shows drafts until the editor opens again. */

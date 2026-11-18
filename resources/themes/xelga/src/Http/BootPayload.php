@@ -170,6 +170,7 @@ final class BootPayload
                 'revisions_restore' => route('admin.xelga.revisions.restore', ['handle' => $handleToken, 'revision' => 0]),
                 'presence' => route('admin.xelga.presence'),
                 'pick' => route('admin.xelga.pick', ['kind' => $kindToken]),
+                'subject' => route('admin.xelga.subject'),
                 'templates_index' => route('admin.xelga.templates.index'),
                 'templates_store' => route('admin.xelga.templates.store'),
                 'templates_update' => self::customRoute('admin.xelga.templates.update', $handleToken),
@@ -291,6 +292,21 @@ final class BootPayload
         }
 
         return ['url' => $url, 'subject' => $subject];
+    }
+
+    /**
+     * The page type that shows one record, and that record's storefront
+     * address, when a guest can open it. Null otherwise.
+     *
+     * @return array{subject: array{type: string, id: int, name: string, slug: string}, url: string}|null
+     */
+    public static function subjectPage(string $subjectType, int $id): ?array
+    {
+        $page = collect(self::PAGES)->firstWhere('subjects', $subjectType);
+        $subject = $page === null ? null : self::sample($subjectType, [$id]);
+        $url = $subject === null ? null : self::pageUrl($page['type'], $page['route'], $subject);
+
+        return $url === null ? null : ['subject' => $subject, 'url' => $url];
     }
 
     /**
