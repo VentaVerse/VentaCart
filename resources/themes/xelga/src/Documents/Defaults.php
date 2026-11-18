@@ -76,6 +76,70 @@ final class Defaults
         return array_keys($types);
     }
 
+    /**
+     * The section types a document always holds, once each: on a page
+     * template, its page type's main sections (see mainTypes()); in the
+     * header or footer, the sections fixed in that band in its shipped
+     * document (the Header, the Footer). Empty for the theme settings.
+     *
+     * @return list<string>
+     */
+    public static function lockedTypes(string $handle): array
+    {
+        return match (Handles::kind($handle)) {
+            'template' => self::mainTypes((string) Handles::pageType($handle)),
+            'group' => self::fixedTypes($handle),
+            default => [],
+        };
+    }
+
+    /**
+     * What a document lacks of its locked sections: the locked types it
+     * does not hold, the ones it holds more than once, and the ids of main
+     * sections that are hidden. A fixed section may be hidden, so it is
+     * never in `hidden_main`.
+     *
+     * @param  array<string, mixed>  $sections  the document's sections, keyed by id
+     * @return array{missing: list<string>, extra: list<string>, hidden_main: list<string>}
+     */
+    public static function lockedState(string $handle, array $sections): array
+    {
+        $locked = array_fill_keys(self::lockedTypes($handle), 0);
+        $hidden = [];
+        foreach ($sections as $id => $section) {
+            $section = (array) $section;
+            $type = (string) ($section['type'] ?? '');
+            if (! array_key_exists($type, $locked)) {
+                continue;
+            }
+            $locked[$type]++;
+            $schema = Catalog::section($type);
+            if ($schema !== null && ! $schema->fixed() && (bool) ($section['disabled'] ?? false)) {
+                $hidden[] = (string) $id;
+            }
+        }
+
+        return [
+            'missing' => array_keys(array_filter($locked, fn (int $n) => $n === 0)),
+            'extra' => array_keys(array_filter($locked, fn (int $n) => $n > 1)),
+            'hidden_main' => $hidden,
+        ];
+    }
+
+    /** @return list<string> the types fixed in a band's shipped document */
+    private static function fixedTypes(string $handle): array
+    {
+        $types = [];
+        foreach ((array) (self::shipped($handle)['sections'] ?? []) as $section) {
+            $schema = Catalog::section((string) (is_array($section) ? ($section['type'] ?? '') : ''));
+            if ($schema !== null && $schema->fixed()) {
+                $types[$schema->type] = true;
+            }
+        }
+
+        return array_keys($types);
+    }
+
     /** @return list<string> */
     public static function handles(): array
     {

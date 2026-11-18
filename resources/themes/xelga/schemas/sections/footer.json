@@ -4,6 +4,7 @@
   "group": "footer",
   "limit": 1,
   "main": false,
+  "fixed": true,
   "class": "s-footer",
   "variants": [
     {

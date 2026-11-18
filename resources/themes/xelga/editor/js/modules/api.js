@@ -123,6 +123,8 @@ export function normalizeDocument(raw, handle) {
     pageType: json.page_type || null,
     // The server fills content with the draft, else what is live, else the shipped default.
     content: json.content ?? draft ?? published ?? null,
+    // What the server moved in content when it read the page (a section that no longer fits, sides on a page without them).
+    adjusted: Array.isArray(json.adjusted) ? json.adjusted : [],
     published,
     hasDraft: json.has_draft ?? draft !== null,
     isDefault: Boolean(json.is_default),
@@ -310,8 +312,8 @@ export function createApi(boot, { fetchImpl } = {}) {
     /** Saves the whole draft. Throws `conflict` when draftVersion is stale. */
     async saveDraft(handle, content, draftVersion, { keepalive = false } = {}) {
       const json = unwrap(await send('PUT', route('documents.draft', { handle }), {
-        // This editor keeps a page's rows and sides, so the server lets it save pages that have them.
-        body: { content, draft_version: draftVersion, with_rows: true },
+        // This editor keeps a page's rows, sides and areas, so the server lets it save pages that have them.
+        body: { content, draft_version: draftVersion, with_rows: true, with_areas: true },
         keepalive,
       }));
       return savedAnswer(json, handle);

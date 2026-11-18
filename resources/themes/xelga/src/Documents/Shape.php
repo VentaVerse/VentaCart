@@ -263,8 +263,8 @@ final class Shape
             }
         }
 
-        if ($kind === 'template' && $pageType !== null) {
-            $this->mainSections($pageType, $outSections);
+        if ($kind === 'group' || ($kind === 'template' && $pageType !== null)) {
+            $this->lockedSections($handle, $outSections);
         }
 
         $layout = $this->layout($handle, $content, array_keys($outSections));
@@ -319,9 +319,12 @@ final class Shape
         };
 
         // Sides first: a section in a side and in a row is reported in the row.
+        // On a page that cannot have sides (Home, the cart), they are checked
+        // the same way and Layout::normalize moves what they hold to rows, so
+        // a page saved with sides, or a revision of one, still opens.
         $sides = $content['sides'] ?? null;
         if ($sides !== null) {
-            if (! Layout::sidesAllowed($handle)) {
+            if (Handles::kind($handle) !== 'template') {
                 // Empty sides say nothing; any section in one is refused.
                 if (self::holdsIds($sides)) {
                     $this->fail('content.sides', 'This page cannot have sides.');
@@ -432,6 +435,15 @@ final class Shape
             if (is_string($id)) {
                 $clean = ['id' => $id] + $clean;
             }
+            // Top, Content or Bottom. On a page without areas Layout::normalize drops it.
+            $area = $row['area'] ?? null;
+            if ($area !== null) {
+                if (! is_string($area) || ! in_array($area, Layout::AREAS, true)) {
+                    $this->fail("{$path}.area", 'A row is in the Top, Content or Bottom area.');
+                } else {
+                    $clean['area'] = $area;
+                }
+            }
             $out[] = $clean;
         }
         $layout['rows'] = $out;
@@ -474,35 +486,32 @@ final class Shape
     }
 
     /**
+     * The sections a document always holds (see Defaults::lockedState()).
      * A page type's main section (product information on the product page,
      * the results on the search page) is what the page is for: a template
      * of that page type, custom ones included, keeps exactly one of it and
-     * never hides it. Its blocks can still be hidden and reordered. Which
-     * types are main for a page comes from the shipped default template.
+     * never hides it. Its blocks can still be hidden and reordered. The
+     * Header and the Footer are fixed in their bands: always there, once,
+     * though either may be hidden.
      *
      * @param  array<string, array>  $sections  the cleaned sections
      */
-    private function mainSections(string $pageType, array $sections): void
+    private function lockedSections(string $handle, array $sections): void
     {
-        $required = [];
-        foreach (Defaults::mainTypes($pageType) as $type) {
-            $required[$type] = Catalog::section($type);
-        }
+        $state = Defaults::lockedState($handle, $sections);
+        $group = Handles::kind($handle) === 'group';
+        $label = fn (string $type) => Catalog::section($type)?->label ?? $type;
 
-        foreach ($required as $type => $schema) {
-            $found = array_filter($sections, fn ($s) => ($s['type'] ?? null) === $type);
-            if ($found === []) {
-                $this->fail('content.order', "{$schema->label} is the page's main section and cannot be removed.");
-                continue;
-            }
-            if (count($found) > 1) {
-                $this->fail('content.order', "A page holds one {$schema->label}.");
-            }
-            foreach ($found as $id => $section) {
-                if ($section['disabled'] === true) {
-                    $this->fail("content.sections.{$id}.disabled", "{$schema->label} is the page's main section and cannot be hidden. Hide its blocks instead.");
-                }
-            }
+        foreach ($state['missing'] as $type) {
+            $this->fail('content.order', $group
+                ? "{$label($type)} is fixed in the {$handle} band and cannot be removed."
+                : "{$label($type)} is the page's main section and cannot be removed.");
+        }
+        foreach ($state['extra'] as $type) {
+            $this->fail('content.order', $group ? "The {$handle} band holds one {$label($type)}." : "A page holds one {$label($type)}.");
+        }
+        foreach ($state['hidden_main'] as $id) {
+            $this->fail("content.sections.{$id}.disabled", "{$label((string) $sections[$id]['type'])} is the page's main section and cannot be hidden. Hide its blocks instead.");
         }
     }
 

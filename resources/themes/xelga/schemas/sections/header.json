@@ -4,6 +4,7 @@
   "group": "header",
   "limit": 1,
   "main": false,
+  "fixed": true,
   "class": "s-header",
   "variants": [
     { "value": "classic", "label": "Logo left, menu in line" },

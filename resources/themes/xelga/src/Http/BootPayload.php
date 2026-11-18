@@ -73,7 +73,8 @@ final class BootPayload
      * `span.variants` the variants that set their own; and the group of
      * tiles the section picker shows it in (`picker_group`, null for an
      * extension's section, which is grouped under the extension) with its
-     * place in that group (`picker_order`, null to follow catalog order).
+     * place in that group (`picker_order`, null to follow catalog order);
+     * and whether it is fixed in its band (`fixed`: the Header, the Footer).
      *
      * @return array<string, array>
      */
@@ -87,6 +88,7 @@ final class BootPayload
                 'span' => ['min' => $spans['min'], 'variants' => (object) $spans['variants']],
                 'picker_group' => $schema->pickerGroup(),
                 'picker_order' => $schema->pickerOrder(),
+                'fixed' => $schema->fixed(),
             ] + $spec;
         }
 

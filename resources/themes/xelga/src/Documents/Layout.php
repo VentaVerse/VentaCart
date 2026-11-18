@@ -645,7 +645,7 @@ final class Layout
     }
 
     /** Whether the page has areas: it may have them, and it holds its main section. */
-    private static function hasAreas(array $sections, LayoutRules $rules): bool
+    public static function hasAreas(array $sections, LayoutRules $rules): bool
     {
         if (! $rules->sidesAllowed()) {
             return false;
