@@ -80,8 +80,7 @@ final class Duplicator
             $sameType = array_filter($sameType, fn ($id) => ($areas[$id] ?? null) === $area);
         }
         if ($schema->limit() !== null && count($sameType) >= $schema->limit()) {
-            $where = $area !== null ? ucfirst($area) : 'A page';
-            throw new ShapeException(['section' => ["{$where} holds at most {$schema->limit()} {$schema->label}."]]);
+            throw new ShapeException(['section' => [$area !== null ? self::areaFull($area, $schema) : "A page holds at most {$schema->limit()} {$schema->label}."]]);
         }
         if (count($content['order']) >= Shape::MAX_SECTIONS) {
             throw new ShapeException(['section' => ['A page holds at most ' . Shape::MAX_SECTIONS . ' sections.']]);
@@ -179,6 +178,18 @@ final class Duplicator
                 return;
             }
         }
+    }
+
+    /** "Top already has an announcement bar.", in the words the editor uses for the same limit. */
+    private static function areaFull(string $area, \Themes\Xelga\Catalog\SectionSchema $schema): string
+    {
+        $name = ucfirst($area);
+        if ($schema->limit() !== 1) {
+            return "{$name} already has {$schema->limit()} {$schema->label} sections, the most it can have.";
+        }
+        $label = mb_strtolower($schema->label);
+
+        return "{$name} already has " . (preg_match('/^[aeiou]/i', $label) === 1 ? 'an' : 'a') . " {$label}.";
     }
 
     private static function copyLabel(string $label): string

@@ -6,7 +6,7 @@
 
 import { announce, toast } from './dom.js';
 import { S, ctx, ui, sec, blk, doc, locate, groupList, blockList, usedIds, labelOf, valueOf, ensureShape } from './state.js';
-import { sectionDef, blockDef, blockTypes, allowedIn } from './catalog.js';
+import { sectionDef, blockDef, blockTypes, allowedIn, isLocked } from './catalog.js';
 import { commit, undo, hasLayout, layoutPayload, rulesFor } from './operations.js';
 import { rowsOf, checkAddSpot, freshRowId, replaceIn, countInPlace, placeOf, areaAt, gapAt, hasAreas } from './board/model.js';
 import { fullWords } from './board/words.js';
@@ -18,6 +18,7 @@ import { flush, resolveConflict, setFatal } from './drafts.js';
 import { normalizeDocument } from './api.js';
 
 const isMain = (sid) => Boolean(sectionDef(sec(sid)?.type)?.main);
+const lockedSid = (sid) => isLocked(sectionDef(sec(sid)?.type));
 
 export function toggleVisible(sid, bid = null) {
   const at = locate(sid);
@@ -65,11 +66,24 @@ function limitReached(handle, def, type, spot) {
   return fullWords(def, { area, band: spot?.drop === 'band' ? spot.group : null });
 }
 
+/**
+ * Why a section cannot be copied, for its disabled Duplicate: its area
+ * already holds as many of a type limited per area (the copy would sit
+ * just below it, in that area), else the page. Null when it can be.
+ */
+export function duplicateHint(sid) {
+  if (canDuplicate(sid)) return null;
+  const at = locate(sid);
+  const def = sectionDef(at?.data?.type);
+  const area = def?.limit_per_area && at ? areaAt(at.doc.content, placeOf(at.doc.content, sid, rulesFor(at.handle)), rulesFor(at.handle)) : null;
+  return area ? 'This area already has one. Use Add section in another area.' : 'This page has as many as it can hold';
+}
+
 /** A section can be copied when its type has room where the copy goes: just below it, in its own area. */
 export function canDuplicate(sid) {
   const at = locate(sid);
   const def = sectionDef(at?.data?.type);
-  if (!at || !def || def.main) return false;
+  if (!at || !def || isLocked(def)) return false;
   if (!def.limit) return true;
   return countHere(at.handle, at.data.type, placeOf(at.doc.content, sid, rulesFor(at.handle))) < def.limit;
 }
@@ -224,7 +238,7 @@ function duplicateHere(sid) {
 
 export function removeSection(sid) {
   const at = locate(sid);
-  if (!at || isMain(sid)) return;
+  if (!at || lockedSid(sid)) return;
   const name = labelOf(sid);
   commit({ t: 'remove', doc: at.handle, sid, group: at.group });
   toast(`${name} removed.`, { action: { label: 'Undo', run: undo } });
@@ -325,7 +339,7 @@ export function buildSection(type, def, { variant = null, preset = null } = {}, 
 export function replaceSection(sid, type, { variant = null, preset = null } = {}) {
   const at = locate(sid);
   const def = sectionDef(type);
-  if (!at || at.group !== 'template' || !def || def.main || isMain(sid) || at.data.type === type) return null;
+  if (!at || at.group !== 'template' || !def || isLocked(def) || lockedSid(sid) || at.data.type === type) return null;
   const full = limitReached(at.handle, def, type, placeOf(at.doc.content, sid, rulesFor(at.handle)));
   if (full) {
     toast(full, { tone: 'error' });
