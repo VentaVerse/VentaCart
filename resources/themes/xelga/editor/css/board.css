@@ -1,10 +1,10 @@
 /*
  * The layout board: the page drawn in the shape of the storefront, at most
- * as wide as the store. The header band on top, the page's rows with their
- * columns at their true proportions, the footer band at the bottom. Each
- * section is a plain box of the same height as every other: its name bar
- * over the drawing of its layout. Under 720px it is drawn as a list
- * (phone.js).
+ * as wide as the store, in one frame (frame.css). The header band on top,
+ * the page's areas with their rows, columns at their true proportions, and
+ * the sides beside Content, the footer band at the bottom. Each section is
+ * a plain box of the same height as every other: its name bar over the
+ * drawing of its layout. Under 720px it is drawn as a list (phone.js).
  */
 
 :root {
@@ -41,35 +41,14 @@
 }
 
 
-
-
-
-/* The page itself: white, the width of the store. */
+/* The page itself: white, the width of the store; its areas follow its heading. */
 .sheet {
   display: grid;
-  gap: 12px;
+  align-content: start;
   padding: 12px 16px 16px;
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-frame);
-}
-
-.shared {
-  display: grid;
-  gap: 6px;
-  padding: 6px;
-  background: var(--surface-3);
-  border-radius: var(--radius-lg);
-}
-
-.shared__tag {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 4px;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--text-3);
 }
 
 .rows {
@@ -96,6 +75,10 @@
 .app[data-addline="always"] .gap {
   z-index: 5;
 }
+
+/* At the very start and end of an area the line stays inside it, clear of the area's rule. */
+.rows > .gap:first-child .gap__add { inset-block-start: 0; }
+.rows > .gap:last-child .gap__add { inset-block-end: 0; }
 
 .gap__add {
   position: absolute;
@@ -345,11 +328,6 @@
   border-radius: 2px;
 }
 
-/* In the header and footer bands the gap between sections stays the same. */
-.shared > .slot {
-  margin-block: -3px;
-}
-
 /* The left and right edge of a full-width section, to put another beside it. */
 .beside {
   position: absolute;
@@ -379,7 +357,8 @@ body.is-dragging * {
 body.is-dragging .gap__add,
 body.is-dragging .col__add,
 body.is-dragging .col__empty,
-body.is-dragging .side__add {
+body.is-dragging .side__empty,
+body.is-dragging .area-empty {
   pointer-events: none;
 }
 
@@ -400,14 +379,16 @@ body.is-dragging .slot.is-over {
 
 body.is-dragging .col__add.is-valid,
 body.is-dragging .col__empty.is-valid,
-body.is-dragging .side__add.is-valid {
+body.is-dragging .side__empty.is-valid,
+body.is-dragging .area-empty.is-valid {
   border-color: var(--accent-line);
   background: var(--accent-soft);
 }
 
 body.is-dragging .col__add.is-over,
 body.is-dragging .col__empty.is-over,
-body.is-dragging .side__add.is-over {
+body.is-dragging .side__empty.is-over,
+body.is-dragging .area-empty.is-over {
   color: var(--accent);
   background: var(--accent-soft);
   border: 2px solid var(--accent);
@@ -477,24 +458,94 @@ body.is-dragging .beside.is-over span { display: inline; }
   color: var(--danger);
 }
 
+/* --------------------------------------------------------------------- areas */
+
+/*
+ * A page with page content has Top, Content and Bottom, each named once on
+ * a thin rule above it, so the names never sit on the sections. A page
+ * without page content is its rows alone.
+ */
+.area {
+  display: grid;
+  min-width: 0;
+}
+
+.area-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 2px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: .01em;
+  color: var(--text-2);
+}
+
+.area-rule::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--line-2);
+}
+
+.area--top .area-rule { margin-block-start: 6px; }
+
+/* An area, or a page, with no rows: one calm box that adds its first section. */
+.area-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: var(--box-h);
+  margin-block: 8px 2px;
+  padding: 8px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--radius-lg);
+}
+
+.area-empty:hover {
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.area-empty:focus-visible { outline: none; box-shadow: var(--focus); }
+
+.area-empty--target {
+  display: block;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+
 /* --------------------------------------------------------------------- sides */
 
 /*
- * The page content between its left and right side. A side with sections
- * takes three twelfths; an empty one is a thin strip that adds the first.
+ * Content between its left and right side. On the board both sides always
+ * take three twelfths of the page, empty or not, so it is plain where they
+ * stand and how wide a section in one may be; the rows take the six between.
  */
 .zone {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 64px;
+  grid-template-columns: 25% minmax(0, 1fr) 25%;
   gap: 12px;
+  align-items: stretch;
+  margin-block-start: 8px;
 }
-
-.zone[data-sides="l"] { grid-template-columns: minmax(150px, 3fr) minmax(0, 9fr) 64px; }
-.zone[data-sides="r"] { grid-template-columns: 64px minmax(0, 9fr) minmax(150px, 3fr); }
-.zone[data-sides="lr"] { grid-template-columns: minmax(150px, 3fr) minmax(0, 6fr) minmax(150px, 3fr); }
 
 .zone > .rows {
   min-width: 0;
+}
+
+.zone > .rows > .area-empty {
+  height: 100%;
+  margin-block: 0;
 }
 
 .side {
@@ -516,46 +567,31 @@ body.is-dragging .beside.is-over span { display: inline; }
   color: var(--text-3);
 }
 
-.side.is-empty {
-  padding: 0;
-  background: transparent;
-  border: 0;
-}
-
-.side__add {
+/* An empty side: a full-size calm box, as wide as a side in use. */
+.side__empty {
   display: flex;
   flex: 1 1 auto;
-  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  min-height: 160px;
-  padding: 8px 4px;
-  font-size: var(--fs-xs);
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--box-h);
+  padding: 8px;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  line-height: 1.2;
   text-align: center;
-  color: var(--text-3);
-  background: transparent;
-  border: 2px dashed var(--line-2);
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px dashed var(--line-2);
   border-radius: var(--radius-lg);
 }
 
-/* The strip runs the page's height; its words stay in view while the board scrolls past it. */
-.side__addlabel {
-  position: sticky;
-  inset-block-start: 40%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  margin-block: 56px;
-}
-
-.side__add:hover {
+.side__empty:hover {
   color: var(--accent-hover);
   background: var(--accent-soft);
   border-color: var(--accent);
 }
+
+.side__empty:focus-visible { outline: none; box-shadow: var(--focus); }
 
 .side .col__add {
   align-self: flex-start;
@@ -768,6 +804,9 @@ body.is-dragging .beside.is-over span { display: inline; }
   border-color: #9aa1ab;
 }
 
+/* The page content, the Header and the Footer stay where they are: nothing to grab. */
+.piece.is-locked { cursor: pointer; }
+
 .piece--main .piece__bar {
   background: var(--surface-2);
 }
@@ -918,9 +957,8 @@ body.is-dragging .beside.is-over span { display: inline; }
     min-height: 44px;
   }
 
-  /* The sides stack around the page content, as a phone shows the store: left above, right below. */
-  .zone,
-  .zone[data-sides] {
+  /* The sides stack around Content's rows, as a phone shows the store: left above, right below. */
+  .zone {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
   }
@@ -929,19 +967,13 @@ body.is-dragging .beside.is-over span { display: inline; }
     padding: 6px;
   }
 
-  .side.is-empty {
-    padding: 0;
-  }
-
-  .side__add {
-    justify-content: center;
+  .side__empty,
+  .area-empty {
     min-height: 44px;
   }
 
-  .side__addlabel {
-    position: static;
-    flex-direction: row;
-    margin-block: 0;
+  .area-rule {
+    margin-block-start: 12px;
   }
 }
 

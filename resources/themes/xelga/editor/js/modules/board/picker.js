@@ -24,7 +24,7 @@
 
 import { $, $$, h, icon, schematic, toast, announce } from '../dom.js';
 import { S, ui, doc, groupHandle, labelOf, sec } from '../state.js';
-import { sectionTypes, sectionDef, allowedIn, variantDrawing } from '../catalog.js';
+import { sectionTypes, sectionDef, allowedIn, isLocked, variantDrawing } from '../catalog.js';
 import { rulesFor, layoutPayload, undo } from '../operations.js';
 import { addSection, addRowAt, replaceSection } from '../actions.js';
 import { select, isPhone } from '../selection.js';
@@ -45,7 +45,11 @@ let P = null;
 
 const dialog = () => $('#section-picker');
 const template = () => groupHandle('template');
-const content = () => doc(template())?.content || { order: [], sections: {} };
+/* The band a spot is in (header, footer), or null for a spot on the page. */
+const bandOf = (target) => (target?.drop === 'band' ? target.group : null);
+/* The document the window adds to: the band's own for a band spot, else the page's. */
+const handleNow = () => bandOf(P?.target) || template();
+const content = () => doc(handleNow())?.content || { order: [], sections: {} };
 
 /** The spot the window adds at while it is open, for the board to mark. */
 export const pickerSpot = () => (P?.mode === 'add' ? P.target : null);
@@ -55,11 +59,15 @@ export const pickerReplacing = () => (P?.mode === 'replace' ? P.sid : null);
 
 export const isPickerOpen = () => Boolean(P);
 
-/** The section types the page open now may hold; main sections are never added. */
-export function availableTypes() {
+/**
+ * The section types the page open now may hold, or with `group` the
+ * header or footer band; locked sections (main, Header, Footer) are
+ * never added.
+ */
+export function availableTypes(group = null) {
   const page = S.page || {};
   return Object.fromEntries(Object.entries(sectionTypes())
-    .filter(([, def]) => !def.main && allowedIn(def, page.pageType || page.handle, Boolean(page.custom), Boolean(page.extension))));
+    .filter(([, def]) => !isLocked(def) && allowedIn(def, page.pageType || page.handle, Boolean(page.custom), Boolean(page.extension), group)));
 }
 
 /* ------------------------------------------------------------------------
@@ -73,15 +81,19 @@ export function availableTypes() {
 export function openPicker(spot) {
   const dlg = dialog();
   if (!dlg || !S.loaded || !spot) return;
-  const rules = rulesFor(template());
+  const band = bandOf(spot.target);
+  const rules = rulesFor(band || template());
+  const page = doc(band || template())?.content || { order: [], sections: {} };
   if (spot.replace) {
     const s = sec(spot.replace);
-    const room = roomOf(content(), spot.replace, rules);
+    const room = roomOf(page, spot.replace, rules);
     if (!s || room === null) return;
-    P = { mode: 'replace', sid: spot.replace, span: room, whole: roomOf(content(), spot.replace, { ...rules, sidesAllowed: false }), type: null };
+    P = { mode: 'replace', sid: spot.replace, span: room, whole: roomOf(page, spot.replace, { ...rules, sidesAllowed: false }), type: null };
   } else {
     if (!spot.target) return;
-    P = { mode: 'add', target: spot.target, span: spanAt(content(), spot.target, rules), whole: wholeSpan(content(), spot.target, rules), type: spot.target.drop === 'gap' ? ROW_TILE : null };
+    // A band is a list of full-width sections.
+    const span = band ? 12 : spanAt(page, spot.target, rules);
+    P = { mode: 'add', target: spot.target, span, whole: band ? 12 : wholeSpan(page, spot.target, rules), type: spot.target.drop === 'gap' ? ROW_TILE : null };
   }
   P.query = '';
   P.step = 'types';
@@ -126,8 +138,8 @@ function openerOf(from) {
    ------------------------------------------------------------------------ */
 
 function states() {
-  const rules = rulesFor(template());
-  const types = availableTypes();
+  const rules = rulesFor(handleNow());
+  const types = availableTypes(bandOf(P.target));
   const now = P.mode === 'replace' ? sec(P.sid)?.type : null;
   return addableTypes(content(), P.target || null, types, rules, { span: P.span, now, whole: P.whole });
 }
@@ -204,7 +216,7 @@ function renderTiles() {
   const list = $('#spick-list');
   if (!list) return;
   const q = P.query.trim().toLowerCase();
-  const types = availableTypes();
+  const types = availableTypes(bandOf(P.target));
   const shown = states().filter((s) => matches(types[s.type], q));
   const groups = pickerGroups(shown, types);
   if (P.mode === 'add' && P.target.drop === 'gap' && rowMatches(q)) {
@@ -420,7 +432,7 @@ function cardKeys(e) {
 
 /** A small drawing of the page with the spot marked: where the section goes, or the one being replaced. */
 function spotMap() {
-  const c = content();
+  const c = doc(template())?.content || { order: [], sections: {} };
   const layout = layoutPayload();
   const mark = () => h('div', { class: 'smap__new' }, icon(P.mode === 'replace' ? 'replace' : 'plus', 'icon--xs'));
   const t = P.target || {};

@@ -62,8 +62,11 @@ export function buildShell(mount, { storeName = '', exitUrl = '/' } = {}) {
       pageHeading('preview'),
       h('div', { class: 'preview__width' }, devices, h('p', { class: 'preview__size', id: 'preview-size', 'aria-live': 'polite' }))),
     h('div', { class: 'preview__stage', id: 'preview-stage' },
-      h('div', { class: 'preview__wrap', id: 'preview-wrap' },
-        h('iframe', { class: 'preview__frame', id: 'preview-frame', title: 'Store preview', src: 'about:blank' })),
+      // The same frame as the board's, with the address of the page shown on top.
+      h('div', { class: 'preview__wrap frame', id: 'preview-wrap' },
+        h('div', { class: 'frame__bar', id: 'preview-address' }),
+        h('div', { class: 'preview__view' },
+          h('iframe', { class: 'preview__frame', id: 'preview-frame', title: 'Store preview', src: 'about:blank' }))),
       h('p', { class: 'preview__state', id: 'preview-state', role: 'status', hidden: true })));
 
   const canvas = h('main', { class: 'canvas', id: 'canvas' },

@@ -319,7 +319,7 @@ export function keyMoveBand(event, group, sid) {
     return false;
   }
   const moved = moveItem({ kind: 'band', group, sid }, target);
-  if (moved) refocus(`#board .shared--${group} .piece[data-sid="${CSS.escape(sid)}"]`);
+  if (moved) refocus(`#board .band--${group} .piece[data-sid="${CSS.escape(sid)}"]`);
   return moved;
 }
 
