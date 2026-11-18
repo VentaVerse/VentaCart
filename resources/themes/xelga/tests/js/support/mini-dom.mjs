@@ -128,13 +128,66 @@ export class Element extends Node {
     this.attrs = this.attrs.filter((a) => a.name !== name.toLowerCase());
   }
 
-  /** `tag`, `[attr]`, `[attr="value"]` or a tag followed by attribute tests. */
+  /**
+   * `tag`, `[attr]`, `[attr="value"]`, a tag followed by attribute tests,
+   * `:not([attr])` after them, and a comma-separated list of these.
+   */
   matches(selector) {
-    const m = /^([a-z0-9-]*)((?:\[[^\]]+\])*)$/i.exec(selector.trim());
+    return selector.split(',').some((one) => this.matchesOne(one));
+  }
+
+  matchesOne(selector) {
+    const m = /^([a-z0-9-]*)((?:\[[^\]]+\])*)((?::not\(\[[^\]]+\]\))*)$/i.exec(selector.trim());
     if (!m) throw new Error(`mini-dom cannot match ${selector}`);
     if (m[1] && m[1].toLowerCase() !== this.localName) return false;
+    const test = ([, name, value]) => (value === undefined ? this.hasAttribute(name) : this.getAttribute(name) === value);
     const tests = [...m[2].matchAll(/\[([^\]=]+)(?:="([^"]*)")?\]/g)];
-    return tests.every(([, name, value]) => (value === undefined ? this.hasAttribute(name) : this.getAttribute(name) === value));
+    const nots = [...m[3].matchAll(/:not\(\[([^\]=]+)(?:="([^"]*)")?\]\)/g)];
+    return tests.every(test) && !nots.some(test);
+  }
+
+  /** The element's `data-*` attributes as camel-case properties, readable, writable and deletable. */
+  get dataset() {
+    const attr = (key) => `data-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
+    return new Proxy({}, {
+      get: (_, key) => this.getAttribute(attr(key)) ?? undefined,
+      set: (_, key, value) => { this.setAttribute(attr(key), value); return true; },
+      deleteProperty: (_, key) => { this.removeAttribute(attr(key)); return true; },
+    });
+  }
+
+  contains(node) {
+    for (let n = node; n; n = n.parentNode) if (n === this) return true;
+    return false;
+  }
+
+  querySelector(selector) {
+    return this.querySelectorAll(selector)[0] ?? null;
+  }
+
+  addEventListener(type, fn) {
+    (this.listeners ??= []).push({ type, fn });
+  }
+
+  removeEventListener(type, fn) {
+    this.listeners = (this.listeners ?? []).filter((l) => l.type !== type || l.fn !== fn);
+  }
+
+  /** Runs listeners on this element, then each parent, then the document (when attached under `body`). */
+  dispatchEvent(event) {
+    event.target ??= this;
+    event.preventDefault ??= () => { event.defaultPrevented = true; };
+    for (let n = this; n; n = n.parentNode) {
+      (n.listeners ?? []).filter((l) => l.type === event.type).forEach((l) => l.fn(event));
+    }
+    if (this.contains(globalThis.document?.body) || globalThis.document?.body?.contains(this)) {
+      (globalThis.document.listeners ?? []).filter((l) => l.type === event.type).forEach((l) => l.fn(event));
+    }
+    return !event.defaultPrevented;
+  }
+
+  focus() {
+    if (globalThis.document) globalThis.document.activeElement = this;
   }
 
   set innerHTML(html) {
@@ -204,9 +257,23 @@ function parseInto(root, html) {
 export function installDom({ href = 'https://shop.example.com/' } = {}) {
   const url = new URL(href);
   globalThis.location = { href: url.href, origin: url.origin };
+  const body = new Element('body');
+  const documentElement = new Element('html');
+  const listeners = [];
   globalThis.document = {
     baseURI: url.href,
+    body,
+    documentElement,
+    activeElement: body,
+    listeners,
     createElement: (tag) => new Element(tag),
     importNode: (node, deep) => node.clone(deep),
+    querySelector: (selector) => body.querySelector(selector),
+    querySelectorAll: (selector) => body.querySelectorAll(selector),
+    addEventListener: (type, fn) => listeners.push({ type, fn }),
+    removeEventListener: (type, fn) => {
+      const at = listeners.findIndex((l) => l.type === type && l.fn === fn);
+      if (at >= 0) listeners.splice(at, 1);
+    },
   };
 }

@@ -107,7 +107,58 @@ class XelgaFiltersSectionTest extends TestCase
         $this->assertStringNotContainsString('listing__aside', $main);
         $this->assertStringNotContainsString('data-filter-drawer', $main);
         $this->assertStringNotContainsString('<form class="filters"', $main);
-        $this->assertMatchesRegularExpression('#<a class="btn btn--secondary btn--sm toolbar__filter" href="\#filters-1" data-filter-jump>#', $main);
+        $this->assertMatchesRegularExpression('#<button type="button" class="btn btn--secondary btn--sm toolbar__filter" data-filter-open aria-controls="filters-1" aria-expanded="false">#', $main);
+        $this->assertStringNotContainsString('data-filter-jump', $html);
+    }
+
+    public function test_the_filter_button_opens_the_filters_section(): void
+    {
+        $this->publishedDocument('category', $this->withLeft(['filters-1' => $this->filters()]));
+
+        $html = $this->page('/category/laptops')->getContent();
+
+        $this->assertSame(1, preg_match('#<button[^>]*data-filter-open[^>]*aria-controls="([^"]+)"[^>]*aria-expanded="false"#', $html, $button));
+        $this->assertStringContainsString('<section class="s s-filters scheme-1" id="' . $button[1] . '"', $html);
+        // The section carries the drawer's heading, which takes focus when it opens, and its close button.
+        $side = $this->leftSide($html);
+        $this->assertStringContainsString('id="filters-1-title" tabindex="-1" data-filters-title', $side);
+        $this->assertStringContainsString('data-filters-close', $side);
+        $this->assertStringNotContainsString('<details class="filters-box"', $side);
+    }
+
+    public function test_one_filter_form_on_the_page(): void
+    {
+        $this->publishedDocument('category', $this->withLeft(['filters-1' => $this->filters()]));
+        $html = $this->page('/category/laptops')->getContent();
+        $this->assertSame(1, substr_count($html, 'data-filters>'), 'In a side.');
+        $this->assertSame(1, substr_count($html, 'id="filters-1-filters"'));
+        $this->assertSame(0, substr_count($html, 'data-filter-drawer'));
+
+        // In a Content column.
+        $content = Defaults::content('category');
+        $content['sections']['filters-1'] = $this->filters();
+        $content['sections']['note-1'] = ['type' => 'rich-text', 'label' => '', 'disabled' => false, 'settings' => [], 'block_order' => [], 'blocks' => []];
+        $content['rows'] = [];
+        foreach ($content['order'] as $id) {
+            $area = match (true) {
+                $id === 'category-main-1' => 'content',
+                in_array($content['sections'][$id]['type'], ['breadcrumbs'], true) => 'top',
+                default => 'bottom',
+            };
+            $content['rows'][] = ['id' => 'row-' . $id, 'split' => '12', 'columns' => [[$id]], 'settings' => ['scheme' => 'scheme-1', 'width' => 'contained', 'space' => 'normal'], 'area' => $area];
+        }
+        array_splice($content['rows'], array_search('row-category-main-1', array_column($content['rows'], 'id')), 0, [
+            ['id' => 'row-filters', 'split' => '4-8', 'columns' => [['filters-1'], ['note-1']], 'settings' => ['scheme' => 'scheme-1', 'width' => 'contained', 'space' => 'normal'], 'area' => 'content'],
+        ]);
+        $content['order'] = ['filters-1', 'note-1', ...array_values(array_diff($content['order'], ['filters-1', 'note-1']))];
+        $this->publishedDocument('category', $content);
+
+        $html = $this->page('/category/laptops')->getContent();
+
+        $this->assertSame(1, substr_count($html, 'data-filters>'), 'In a Content column.');
+        $this->assertSame(1, substr_count($html, 'id="filters-1-filters"'));
+        $this->assertStringContainsString('aria-controls="filters-1"', $html);
+        $this->assertSame(1, substr_count($html, '<section class="s s-filters')); 
     }
 
     public function test_filters_keep_the_sort_and_active_values(): void

@@ -25,8 +25,8 @@
     .xp__content[data-content="6"] .s-listing[data-cols] { --cols: 2; }
     /* Beside one side, a narrower column leaves the products room for two cards a line. */
     .xp__content[data-content="9"] .s-listing[data-filters=sidebar] .listing { grid-template-columns: 13.5rem minmax(0, 1fr); gap: 2rem; }
-    /* A Filters section in a side stands beside the products, so the listing needs no button to reach it. */
-    .xp:has(> .xp__side .s-filters:not([hidden])) .s-listing[data-filters=elsewhere] .toolbar__filter { display: none; }
+    /* A Filters section stands on the page from here, so the listing's button has nothing to open. */
+    body:has(.s-filters:not([hidden]) [data-filters]) .s-listing[data-filters=elsewhere] .toolbar__filter { display: none; }
 }
 .filters__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block-end: .5rem; border-block-end: 1px solid var(--c-border); }
 .filters__title { font-size: var(--fs-h4); }
