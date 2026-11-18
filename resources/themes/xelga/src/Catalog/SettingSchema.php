@@ -3,7 +3,7 @@
 namespace Themes\Xelga\Catalog;
 
 /**
- * One setting: its type, default, bounds, options and live mode.
+ * One setting: its type, default, bounds, and options.
  */
 final class SettingSchema
 {

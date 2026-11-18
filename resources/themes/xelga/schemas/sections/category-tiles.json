@@ -237,9 +237,6 @@
       "control": "segmented"
     }
   ],
-  "render_keys": [
-    "link"
-  ],
   "blocks": {
     "min": 1,
     "max": 12,
@@ -272,8 +269,7 @@
             "key": "image",
             "type": "image",
             "label": "Custom photo",
-            "default": "",
-            "live": "render"
+            "default": ""
           },
           {
             "key": "focal",

@@ -198,9 +198,6 @@
       "control": "segmented"
     }
   ],
-  "render_keys": [
-    "image"
-  ],
   "blocks": {
     "min": 1,
     "max": 6,

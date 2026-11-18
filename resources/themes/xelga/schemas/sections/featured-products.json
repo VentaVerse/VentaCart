@@ -326,11 +326,6 @@
       "control": "segmented"
     }
   ],
-  "render_keys": [
-    "source",
-    "count",
-    "link"
-  ],
   "presets": [
     {
       "key": "grid",

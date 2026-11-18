@@ -96,8 +96,7 @@
             "key": "menu",
             "type": "menu-picker",
             "label": "Menu",
-            "default": "main",
-            "live": "render"
+            "default": "main"
           }
         ]
       },

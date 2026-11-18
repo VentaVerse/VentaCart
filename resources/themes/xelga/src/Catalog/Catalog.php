@@ -27,12 +27,6 @@ final class Catalog
         'product-picker', 'category-picker', 'brand-picker', 'page-picker', 'blog-post-picker',
     ];
 
-    /** Types whose live preview needs no server: text is written straight into the page. */
-    private const TEXT_TYPES = ['text', 'textarea', 'richtext'];
-
-    /** Types a preview can only show after the server draws the section again. */
-    private const RENDER_TYPES = ['menu-picker', 'product-picker', 'category-picker', 'brand-picker', 'page-picker', 'blog-post-picker'];
-
     private static ?array $compiled = null;
 
     /** The extension fingerprint the memo was compiled for. */
@@ -160,25 +154,6 @@ final class Catalog
         return array_column(self::schemeSetting()->raw['roles'] ?? [], 'role');
     }
 
-    /**
-     * How the preview applies a change to this setting: text, attr, css or
-     * render. Explicit `live` wins; otherwise inferred from the type.
-     */
-    public static function liveMode(array $setting, array $renderKeys = []): string
-    {
-        if (isset($setting['live']) && in_array($setting['live'], ['text', 'attr', 'css', 'render'], true)) {
-            return $setting['live'];
-        }
-        if (in_array($setting['key'] ?? '', $renderKeys, true) || in_array($setting['type'] ?? '', self::RENDER_TYPES, true)) {
-            return 'render';
-        }
-        if (in_array($setting['type'] ?? '', self::TEXT_TYPES, true)) {
-            return 'text';
-        }
-
-        return 'attr';
-    }
-
     private static function compile(): array
     {
         $sections = [];
@@ -233,7 +208,7 @@ final class Catalog
 
         $settings = json_decode((string) @file_get_contents(self::root('schemas/theme-settings.json')), true);
         $groups = array_map(function (array $group) {
-            $group['settings'] = array_map(fn (array $s) => $s + ['live' => 'css'], (array) ($group['settings'] ?? []));
+            $group['settings'] = array_values((array) ($group['settings'] ?? []));
 
             return $group;
         }, (array) ($settings['groups'] ?? []));
@@ -257,12 +232,11 @@ final class Catalog
 
     private static function compileSection(array $spec): array
     {
-        $renderKeys = (array) ($spec['render_keys'] ?? []);
-        $spec['settings'] = array_map(fn (array $s) => $s + ['live' => self::liveMode($s, $renderKeys)], (array) ($spec['settings'] ?? []));
+        $spec['settings'] = array_values((array) ($spec['settings'] ?? []));
         $blocks = (array) ($spec['blocks'] ?? []);
         $blocks += ['min' => 0, 'max' => 0, 'types' => []];
-        $blocks['types'] = array_map(function (array $type) use ($renderKeys) {
-            $type['settings'] = array_map(fn (array $s) => $s + ['live' => self::liveMode($s, $renderKeys)], (array) ($type['settings'] ?? []));
+        $blocks['types'] = array_map(function (array $type) {
+            $type['settings'] = array_values((array) ($type['settings'] ?? []));
 
             return $type + ['limit' => null];
         }, (array) $blocks['types']);
@@ -364,9 +338,7 @@ final class Catalog
             'label' => trim($spec['label']),
             'description' => is_string($spec['description'] ?? null) ? $spec['description'] : '',
             'icon' => is_string($spec['icon'] ?? null) ? $spec['icon'] : null,
-            // The preview draws an extension block again on the server after
-            // a change, unless its schema says how the change shows.
-            'settings' => array_map(fn (array $s) => $s + ['live' => 'render'], array_values(array_filter((array) ($spec['settings'] ?? []), 'is_array'))),
+            'settings' => array_values(array_filter((array) ($spec['settings'] ?? []), 'is_array')),
             'limit' => is_int($limit) && $limit >= 1 && $limit <= 4 ? $limit : 1,
             'targets' => array_values(array_unique($targets)),
             'source' => $part->name,
