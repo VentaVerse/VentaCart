@@ -143,15 +143,15 @@
  * its photo above its text.
  */
 @media (min-width: 990px) {
-  main[data-content="9"] .s-mainblog[data-cols="4"] {
+  .xp__content[data-content="9"] .s-mainblog[data-cols="4"] {
     --cols: 3;
   }
 
-  main[data-content="6"] .s-mainblog[data-cols] {
+  .xp__content[data-content="6"] .s-mainblog[data-cols] {
     --cols: 2;
   }
 
-  main[data-content="6"] .s-mainblog[data-variant="list"] .post {
+  .xp__content[data-content="6"] .s-mainblog[data-variant="list"] .post {
     grid-template-columns: minmax(0, 1fr);
     gap: .875rem;
   }

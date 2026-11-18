@@ -24,10 +24,9 @@ require_once __DIR__ . '/../XelgaExtensionHelpers.php';
 
 /**
  * Left and right sides on the storefront: each side is three twelfths of
- * the page and runs the full height of the page's content, and every row
- * (the page's own section included) is drawn in the
- * content area left between the sides. Header and footer stay the whole
- * page wide.
+ * the page and stands beside Content, whose rows (the page's own section
+ * included) are drawn in the width left between the sides. Top, Bottom,
+ * header and footer stay the whole page wide.
  */
 class XelgaSidesTest extends TestCase
 {
@@ -108,25 +107,21 @@ class XelgaSidesTest extends TestCase
         return substr($html, $start + strlen($open), $end - $start - strlen($open));
     }
 
-    /** The page wrapper, from its opening tag to the end of the right side or the content. */
+    /** The sides wrapper: the left side, Content and the right side. */
     private function wrapper(string $html): string
     {
         $start = strpos($html, '<div class="xp"');
         $this->assertNotFalse($start, 'The page draws its sides.');
-        $end = strrpos($html, '</aside>');
-        $main = strrpos($html, '</main>');
 
-        return substr($html, $start, max((int) $end, (int) $main) - $start);
+        return $this->outerHtml($html, $start);
     }
 
-    /** The content area: main, between its opening tag and its end. */
+    /** Content, between the sides. */
     private function content(string $html): string
     {
-        $this->assertMatchesRegularExpression('#<main id="main-content" class="xp__content" data-content="\d+">#', $html);
-        $start = strpos($html, '<main id="main-content"');
-        $end = strrpos($html, '</main>');
+        $this->assertMatchesRegularExpression('#<div class="xp__content" data-content="\d+">#', $html);
 
-        return substr($html, $start, $end - $start);
+        return $this->contentArea($html);
     }
 
     /** @return list<string> the sizes attribute of every photo in the HTML */
@@ -137,7 +132,7 @@ class XelgaSidesTest extends TestCase
         return array_values(array_unique(array_map('html_entity_decode', $m[1])));
     }
 
-    public function test_sides_run_beside_every_row(): void
+    public function test_sides_run_beside_content(): void
     {
         $this->category();
         $this->publishedDocument('category', $this->withSides(Defaults::content('category'), ['note-1' => $this->text('Need help choosing?')]));
@@ -146,8 +141,8 @@ class XelgaSidesTest extends TestCase
 
         $this->assertStringContainsString('<div class="xp" data-sides="left">', $html);
         $wrapper = $this->wrapper($html);
-        $left = strpos($wrapper, '<aside class="xp__side xp__side--left" aria-label="Left side">');
-        $content = strpos($wrapper, '<main id="main-content" class="xp__content" data-content="9">');
+        $left = strpos($wrapper, '<section class="xp__side xp__side--left" aria-label="Left side">');
+        $content = strpos($wrapper, '<div class="xp__content" data-content="9">');
         $this->assertNotFalse($left);
         $this->assertNotFalse($content);
         $this->assertLessThan($content, $left);
@@ -156,9 +151,11 @@ class XelgaSidesTest extends TestCase
         $side = substr($wrapper, $left, $content - $left);
         $this->assertStringContainsString('<!--xelga:note-1-->', $side);
         $main = $this->content($html);
-        $this->assertStringContainsString('data-section-type="breadcrumbs"', $main);
         $this->assertStringContainsString('data-section-type="category-main"', $main);
         $this->assertStringNotContainsString('note-1', $main);
+        // Breadcrumbs are too wide for the content beside a side, so they run above it, in Top.
+        $this->assertStringNotContainsString('data-section-type="breadcrumbs"', $main);
+        $this->assertLessThan(strpos($html, '<div class="xp"'), strpos($html, 'data-section-type="breadcrumbs"'));
     }
 
     public function test_a_photo_section_draws_beside_a_side(): void
@@ -181,7 +178,7 @@ class XelgaSidesTest extends TestCase
         $this->assertCount(1, $sizes);
         $this->assertStringStartsWith('(min-width: 1320px) 960px, (min-width: 990px) 75vw, ', $sizes[0]);
         // The right side follows the content, so phones read it after the page.
-        $this->assertGreaterThan(strpos($html, '</main>'), strpos($html, '<aside class="xp__side xp__side--right" aria-label="Right side">'));
+        $this->assertGreaterThan(strpos($html, '<div class="xp__content"'), strpos($html, '<section class="xp__side xp__side--right" aria-label="Right side">'));
     }
 
     public function test_both_sides_leave_six_twelfths(): void
@@ -202,7 +199,7 @@ class XelgaSidesTest extends TestCase
         $this->assertStringContainsString('<div class="xr__col" data-span="6">', $row);
         $this->assertStringContainsString('data-span="3"', $this->cut($row, 'tile-a'));
         $this->assertStringContainsString('data-span="3"', $this->cut($row, 'tile-b'));
-        $this->assertSame(6, app(Storefront::class)->contentSpan());
+        $this->assertSame(6, app(SectionRenderer::class)->contentSpan());
     }
 
     public function test_a_full_width_row_fills_the_content_area_only(): void
@@ -247,10 +244,10 @@ class XelgaSidesTest extends TestCase
         $html = $this->page('/category/laptops')->getContent();
 
         $this->assertStringNotContainsString('class="xp"', $html);
-        $this->assertStringNotContainsString('<aside class="xp__side', $html);
+        $this->assertStringNotContainsString('class="xp__side', $html);
         $this->assertStringContainsString('<main id="main-content">', $html);
         $this->assertSame(['(min-width: 750px) 50vw, 100vw'], $this->sizesIn($this->cut($html, 'promos-1')));
-        $this->assertSame(12, app(Storefront::class)->contentSpan());
+        $this->assertSame(12, app(SectionRenderer::class)->contentSpan());
         $this->assertSame(12, app(SectionRenderer::class)->contentSpan());
     }
 
@@ -266,7 +263,7 @@ class XelgaSidesTest extends TestCase
 
         $this->assertStringNotContainsString('class="xp"', $html);
         $this->assertStringContainsString('<main id="main-content">', $html);
-        $this->assertSame(12, app(Storefront::class)->contentSpan());
+        $this->assertSame(12, app(SectionRenderer::class)->contentSpan());
 
         // The editor's preview keeps the side, so the section can be reached there.
         $nonce = $this->openEditor($this->admin());
@@ -300,18 +297,16 @@ class XelgaSidesTest extends TestCase
         $card = Placements::insertId('sample-extension:card');
         $product = Defaults::content('product');
         // The placement goes after the product's main section, in the order
-        // the page reads; it gets its own row in the content area.
+        // the page reads; it gets its own row in Bottom, below the sides.
         $this->publishedDocument('product', $this->withSides($product, ['note-1' => $this->text('Left')], ['note-2' => $this->text('Right')]));
 
         $html = $this->page('/product/linen-shirt')->getContent();
 
-        $main = $this->content($html);
-        $this->assertStringContainsString("<!--xelga:{$card}-->", $main);
-        $this->assertStringContainsString('data-sample-card', $this->cut($main, $card));
+        $wrapper = strpos($html, '<div class="xp"');
+        $this->assertGreaterThanOrEqual($wrapper + strlen($this->wrapper($html)), strpos($html, "<!--xelga:{$card}-->"));
+        $this->assertStringContainsString('data-sample-card', $this->cut($html, $card));
         foreach (['left', 'right'] as $which) {
-            $start = strpos($html, "<aside class=\"xp__side xp__side--{$which}\"");
-            $end = strpos($html, '</aside>', $start);
-            $this->assertStringNotContainsString($card, substr($html, $start, $end - $start));
+            $this->assertStringNotContainsString($card, $this->sideArea($html, $which));
         }
     }
 

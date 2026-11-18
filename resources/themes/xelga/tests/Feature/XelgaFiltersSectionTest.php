@@ -80,19 +80,13 @@ class XelgaFiltersSectionTest extends TestCase
     /** The left side's HTML. */
     private function leftSide(string $html): string
     {
-        $start = strpos($html, '<aside class="xp__side xp__side--left"');
-        $this->assertNotFalse($start, 'The left side is drawn.');
-
-        return substr($html, $start, strpos($html, '</aside>', $start) - $start);
+        return $this->sideArea($html, 'left');
     }
 
-    /** The content area's HTML. */
+    /** Content, beside the sides. */
     private function content(string $html): string
     {
-        $start = strpos($html, '<main id="main-content"');
-        $this->assertNotFalse($start);
-
-        return substr($html, $start, strrpos($html, '</main>') - $start);
+        return $this->contentArea($html);
     }
 
     public function test_a_filters_section_takes_over_the_listing_filter_column(): void
