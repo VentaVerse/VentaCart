@@ -226,8 +226,7 @@
                 "label": "Info"
               }
             ],
-            "control": "icons",
-            "live": "render"
+            "control": "icons"
           },
           {
             "key": "title",

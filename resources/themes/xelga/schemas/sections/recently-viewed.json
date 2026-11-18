@@ -14,9 +14,6 @@
     "min": 6
   },
   "class": "s-products",
-  "render_keys": [
-    "count"
-  ],
   "settings": [
     {
       "key": "heading",

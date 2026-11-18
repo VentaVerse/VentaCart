@@ -228,11 +228,6 @@
       "control": "segmented"
     }
   ],
-  "render_keys": [
-    "source",
-    "blog_category",
-    "count"
-  ],
   "presets": [
     {
       "key": "grid",
