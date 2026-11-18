@@ -6,10 +6,15 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Support\ImageRenditions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\UsesSampleExtension;
 use Tests\TestCase;
 use Themes\Xelga\Documents\Defaults;
+use Themes\Xelga\Documents\Layout;
+use Themes\Xelga\Documents\LayoutRules;
+use Themes\Xelga\Rendering\RenderContext;
+use Themes\Xelga\Rendering\SectionRenderer;
 use Themes\Xelga\Rendering\Storefront;
 use Themes\Xelga\Tests\XelgaExtensionHelpers;
 use Themes\Xelga\Tests\XelgaTestHelpers;
@@ -267,5 +272,76 @@ class XelgaAreasRenderTest extends TestCase
         $this->assertStringNotContainsString('class="xp', $withAreas);
         $this->assertStringNotContainsString('data-content', $withAreas);
         $this->assertStringNotContainsString('data-area', $withAreas);
+    }
+
+    /** Layout rules that always fail. */
+    private function failingRules(): void
+    {
+        $this->app->bind(LayoutRules::class, fn () => new class implements LayoutRules
+        {
+            private function fail(): never
+            {
+                throw new \RuntimeException('The layout rules are unavailable.');
+            }
+
+            public function minSpan(array $section): int
+            {
+                $this->fail();
+            }
+
+            public function isMain(array $section): bool
+            {
+                $this->fail();
+            }
+
+            public function sidesAllowed(): bool
+            {
+                $this->fail();
+            }
+
+            public function ownRow(array $section): bool
+            {
+                $this->fail();
+            }
+
+            public function contentOnly(array $section): bool
+            {
+                $this->fail();
+            }
+
+            public function pageTypeKnown(): bool
+            {
+                $this->fail();
+            }
+        });
+    }
+
+    public function test_failing_layout_rules_are_reported_once_and_the_page_still_draws(): void
+    {
+        $this->catalog();
+        $content = $this->category(['note-1' => $this->text('Left')]);
+
+        // Failing while the page is drawn: reported once, and every section still drawn.
+        $this->publishedDocument('category', $content);
+        $this->failingRules();
+        Exceptions::fake();
+        $html = $this->page('/category/laptops')->getContent();
+        foreach (['breadcrumbs-1', 'banner', 'category-main-1', 'best', 'note-1'] as $id) {
+            $this->assertStringContainsString("<!--xelga:{$id}-->", $html);
+        }
+        Exceptions::assertReportedCount(1);
+
+        // Failing only where the rows are drawn, after a good normalize: reported
+        // once, and the rows draw beside the side without their areas.
+        $normalized = Layout::normalize($content, new \Themes\Xelga\Documents\CatalogLayoutRules('category'))['content'];
+        Exceptions::fake();
+        $drawn = app(SectionRenderer::class)->render($normalized, new RenderContext('category', 'category', 'template', false));
+        Exceptions::assertReportedCount(1);
+        Exceptions::assertReported(fn (\RuntimeException $e) => $e->getMessage() === 'The layout rules are unavailable.');
+        $area = $this->contentArea($drawn);
+        foreach (['breadcrumbs-1', 'banner', 'category-main-1', 'best'] as $id) {
+            $this->assertStringContainsString("<!--xelga:{$id}-->", $area);
+        }
+        $this->assertStringContainsString('<!--xelga:note-1-->', $this->sideArea($drawn, 'left'));
     }
 }
