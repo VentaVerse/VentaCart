@@ -93,14 +93,10 @@ class XelgaExtensionDormancyTest extends TestCase
         $this->page('/product/linen-shirt')->assertDontSee('data-sample-card', false)->assertDontSee('section-note', false);
 
         $nonce = $this->openEditor($this->admin());
-        $html = $this->page('/product/linen-shirt?xelga_preview=' . $nonce)
+        // The note names the section by its own name.
+        $this->page('/product/linen-shirt?xelga_preview=' . $nonce)
             ->assertSee('data-section-source="Sample Extension"', false)
-            ->assertSee('Seller: Sample Extension is switched off.')
-            ->getContent();
-        // The editor learns the note is drawn, and by the section's own name.
-        preg_match('#<script type="application/json" id="xelga-page-data">(.*?)</script>#s', $html, $m);
-        $sections = array_column(json_decode(html_entity_decode($m[1] ?? 'null'), true)['sections'] ?? [], null, 'id');
-        $this->assertSame('Seller', $sections['card-1']['label'] ?? null);
+            ->assertSee('Seller: Sample Extension is switched off.');
 
         $this->removeSampleExtension();
         $this->page('/product/linen-shirt?xelga_preview=' . $nonce)->assertSee('sample-extension is not installed.');

@@ -67,9 +67,6 @@
 
     @include('xelga::snippets.cart-drawer')
 
-    @if ($xelga->preview())
-        <script type="application/json" id="xelga-page-data">@json($xelga->pageData())</script>
-    @endif
     @stack('scripts')
 </body>
 </html>
