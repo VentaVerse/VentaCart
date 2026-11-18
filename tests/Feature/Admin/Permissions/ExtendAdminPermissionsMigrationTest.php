@@ -30,6 +30,9 @@ class ExtendAdminPermissionsMigrationTest extends TestCase
         'users' => ['view', 'create', 'edit', 'delete'],
     ];
 
+    /** Slugs in the catalog that a later migration adds, not this one. */
+    private const LATER = ['media.edit'];
+
     private function migrate(): void
     {
         (require database_path('migrations/2026_10_25_230000_extend_admin_permissions.php'))->up();
@@ -71,11 +74,12 @@ class ExtendAdminPermissionsMigrationTest extends TestCase
 
         // The migration keeps the catalog as it was then, Layout's two
         // permissions included; a later migration takes those away.
-        $this->assertEqualsCanonicalizing([...AdminPermissions::slugs(), 'layout.view', 'layout.edit'], Permission::pluck('slug')->all());
+        // Slugs from later migrations are not here yet.
+        $this->assertEqualsCanonicalizing([...array_diff(AdminPermissions::slugs(), self::LATER), 'layout.view', 'layout.edit'], Permission::pluck('slug')->all());
         $this->assertSame(Permission::count(), Role::where('slug', 'super-admin')->first()->permissions()->count());
 
         $manager = $this->slugsOf('store-manager');
-        $this->assertEqualsCanonicalizing(AdminPermissions::defaultsFor('store-manager'), $manager);
+        $this->assertEqualsCanonicalizing(array_values(array_diff(AdminPermissions::defaultsFor('store-manager'), self::LATER)), $manager);
 
         $this->assertEqualsCanonicalizing(AdminPermissions::defaultsFor('staff'), $this->slugsOf('staff'));
     }
@@ -130,7 +134,8 @@ class ExtendAdminPermissionsMigrationTest extends TestCase
         $this->migrate();
         $this->seed(RolePermissionSeeder::class);
 
-        $this->assertSame($count, Permission::count());
+        // The seeder only fills in what later migrations add.
+        $this->assertSame($count + count(self::LATER), Permission::count());
         $this->assertNotContains('brands.delete', $this->slugsOf('store-manager'));
     }
 

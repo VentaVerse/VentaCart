@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Support\Media\MediaReferences;
+use App\Support\ImageExtension;
 use App\Support\MediaLibrary;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -92,19 +93,32 @@ class MediaLibraryController extends Controller
         foreach ((array) $request->file('files', []) as $i => $file) {
             $names["files.{$i}"] = $file instanceof \Illuminate\Http\UploadedFile ? $file->getClientOriginalName() : 'That file';
         }
+        $side = MediaLibrary::MAX_SIDE;
         $validated = $request->validate([
-            'files' => ['required', 'array', 'max:20'],
-            'files.*' => ['bail', 'required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'files' => ['required', 'array', 'max:' . MediaLibrary::MAX_FILES],
+            'files.*' => [
+                'bail', 'required', 'image', 'mimes:jpg,jpeg,png,webp',
+                'max:' . MediaLibrary::MAX_KB,
+                'dimensions:max_width=' . $side . ',max_height=' . $side,
+            ],
             'path' => ['nullable', 'string'],
             'root' => ['nullable', 'string'],
         ], [
             'files.required' => 'Choose a photo to upload.',
-            'files.max' => 'Upload at most 20 photos at a time.',
+            'files.max' => 'Upload at most ' . MediaLibrary::MAX_FILES . ' photos at a time.',
             'files.*.image' => ':attribute is not a photo. Use a JPG, PNG or WebP file.',
             'files.*.mimes' => ':attribute is not a JPG, PNG or WebP file.',
-            'files.*.max' => ':attribute is larger than 5 MB. Make it smaller and upload it again.',
+            'files.*.max' => ':attribute is larger than ' . intdiv(MediaLibrary::MAX_KB, 1024) . ' MB. Make it smaller and upload it again.',
+            'files.*.dimensions' => ':attribute is larger than ' . $side . ' x ' . $side . ' pixels. Make it smaller and upload it again.',
             'files.*.uploaded' => ':attribute did not finish uploading. It may be larger than the server allows.',
         ], $names);
+
+        // The content check runs on every file before any is saved, so a
+        // refused file leaves nothing of its request behind. No extensions
+        // rule: the bytes decide the ending, not the name the browser sent.
+        foreach ($request->file('files') as $file) {
+            ImageExtension::orRefuse($file, 'files');
+        }
 
         // Same rule as browse: nothing given means the folder this picker is
         // aimed at, anything given is honoured as written.
@@ -216,7 +230,9 @@ class MediaLibraryController extends Controller
     {
         $validated = $request->validate([
             'path' => ['nullable', 'string'],
-            'name' => ['required', 'string', 'max:120', 'regex:/^[^\/\\\\:*?"<>|]+$/'],
+            'name' => ['required', 'string', 'max:80', 'regex:/^[^\/\\\\:*?"<>|]+$/', 'not_regex:/^\./'],
+        ], [
+            'name.not_regex' => 'A folder name cannot start with a dot.',
         ]);
 
         $parent = MediaLibrary::safePath($validated['path'] ?? null);
@@ -233,6 +249,7 @@ class MediaLibraryController extends Controller
         }
 
         MediaLibrary::ensure($target);
+        MediaLibrary::touched();
 
         return response()->json(['ok' => true, 'path' => $target]);
     }

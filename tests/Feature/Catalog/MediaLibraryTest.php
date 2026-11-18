@@ -15,11 +15,11 @@ use Tests\TestCase;
 /**
  * One library, one contract.
  *
- * Five hand-rolled browsers used to call the product image endpoints, each
- * with its own idea of what a safe path was and what root meant. root was
- * only ever a starting folder, never a boundary, so a product picker could
- * browse and delete the store's bank QR code. And the delete asked nothing
- * about references: one image in the real catalogue is on fourteen products.
+ * Every picker calls the same endpoints, so what counts as a safe path is
+ * decided once. root is a starting folder, never a boundary, and the library
+ * tree is the only boundary: nothing outside it, such as the store's payment
+ * QR codes, can be browsed or deleted. A delete says how many records use
+ * each image, since one image can be on many products.
  */
 class MediaLibraryTest extends TestCase
 {
@@ -28,7 +28,7 @@ class MediaLibraryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Store::firstOrCreate(['code' => 'test'], ['name' => 'Test Store']);
+        Store::firstOrCreate(['code' => 'test'], ['name' => 'Demo Store']);
         Storage::fake('public');
         $this->actingAs(User::factory()->create());
     }
@@ -82,7 +82,7 @@ class MediaLibraryTest extends TestCase
         // tree rather than a list of names somebody has to maintain.
         $this->assertSame('media/summer-sale/x.jpg', MediaLibrary::safePath('media/summer-sale/x.jpg'));
 
-        // The retired OpenCart tree moves in with everything else.
+        // A folder carried over from an earlier store is media like any other.
         $this->assertSame('media/catalog/old.jpg', MediaLibrary::safePath('media/catalog/old.jpg'));
     }
 
@@ -156,38 +156,38 @@ class MediaLibraryTest extends TestCase
      */
     public function test_browse_returns_the_folders_inside_a_root(): void
     {
-        $this->putFile('media/products/wampler/a.jpg');
-        $this->putFile('media/products/boss/b.jpg');
+        $this->putFile('media/products/demo/a.jpg');
+        $this->putFile('media/products/acme/b.jpg');
         $this->putFile('media/products/loose.jpg');
 
         $body = $this->getJson(route('admin.media.browse', ['root' => 'products']))->assertOk()->json();
 
-        $this->assertSame(['boss', 'wampler'], collect($body['folders'])->pluck('name')->all());
+        $this->assertSame(['acme', 'demo'], collect($body['folders'])->pluck('name')->all());
         $this->assertSame(['loose.jpg'], collect($body['files'])->pluck('name')->all());
     }
 
     public function test_search_looks_through_the_whole_root_not_one_folder(): void
     {
-        $this->putFile('media/products/wampler/tumnus.jpg');
-        $this->putFile('media/products/boss/ds1.jpg');
-        $this->putFile('media/brands/wampler-logo.jpg');
+        $this->putFile('media/products/acme/demo-001.jpg');
+        $this->putFile('media/products/demo/demo-002.jpg');
+        $this->putFile('media/brands/acme-logo.jpg');
 
-        $body = $this->getJson(route('admin.media.browse', ['root' => 'products', 'q' => 'wampler']))->assertOk()->json();
+        $body = $this->getJson(route('admin.media.browse', ['root' => 'products', 'q' => 'acme']))->assertOk()->json();
 
         $this->assertTrue($body['searching']);
-        $this->assertSame(['tumnus.jpg'], collect($body['files'])->pluck('name')->all(), 'a folder deep in the root is reachable');
+        $this->assertSame(['demo-001.jpg'], collect($body['files'])->pluck('name')->all(), 'a folder deep in the root is reachable');
     }
 
     public function test_an_upload_keeps_the_merchants_filename(): void
     {
         $this->postJson(route('admin.media.upload'), [
-            'files' => [UploadedFile::fake()->image('Hipshot Bridge Black.jpg')],
+            'files' => [UploadedFile::fake()->image('Demo Bridge Black.jpg')],
             'path' => 'media/products',
         ])->assertOk();
 
         // It used to become a UUID, and the filename is the only identifier
         // the grid shows.
-        Storage::disk('public')->assertExists('media/products/hipshot-bridge-black.jpg');
+        Storage::disk('public')->assertExists('media/products/demo-bridge-black.jpg');
     }
 
     public function test_a_refused_upload_names_the_file_and_what_is_allowed(): void
@@ -219,30 +219,29 @@ class MediaLibraryTest extends TestCase
     }
 
     /**
-     * Moving image files is deliberately not a capability. A folder merge was
-     * built and removed: repointing product_images, products.image and
-     * product_variants.image is not enough, because order_products.image holds
-     * a denormalised path on 31,278 rows and order history must not break.
+     * Making a folder never moves one. A rename has to change every stored
+     * copy of the paths inside it, including the snapshot on past order
+     * lines, so it is not something the make-a-folder request can do.
      */
     public function test_a_folder_cannot_be_renamed_from_here(): void
     {
-        Storage::disk('public')->makeDirectory('media/products/wampler');
+        Storage::disk('public')->makeDirectory('media/products/demo');
 
         $this->postJson(route('admin.media.folder'), [
-            'path' => 'media/products', 'name' => 'Wampler', 'from' => 'media/products/wampler',
+            'path' => 'media/products', 'name' => 'Demo', 'from' => 'media/products/demo',
         ])->assertOk();
 
         // 'from' is ignored, not honoured: the old folder is untouched and a
         // new empty one is created beside it.
-        Storage::disk('public')->assertExists('media/products/wampler');
-        Storage::disk('public')->assertExists('media/products/Wampler');
+        Storage::disk('public')->assertExists('media/products/demo');
+        Storage::disk('public')->assertExists('media/products/Demo');
     }
 
     public function test_a_folder_cannot_land_on_an_existing_one(): void
     {
-        Storage::disk('public')->makeDirectory('media/products/wampler');
+        Storage::disk('public')->makeDirectory('media/products/demo');
 
-        $this->postJson(route('admin.media.folder'), ['path' => 'media/products', 'name' => 'wampler'])
+        $this->postJson(route('admin.media.folder'), ['path' => 'media/products', 'name' => 'demo'])
             ->assertStatus(422);
     }
 
