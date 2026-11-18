@@ -25,11 +25,12 @@
  * `data-target`.
  */
 
-import { $, h, icon, schematic, announce } from '../dom.js';
+import { $, h, icon, announce } from '../dom.js';
+import { sketch } from './sketch.js';
 import {
   S, ui, doc, groupHandle, groupList, isFixed, labelOf, pageTitle, valueOf, schemes,
 } from '../state.js';
-import { sectionDef, sectionIcon, variantDrawing } from '../catalog.js';
+import { sectionDef, sectionIcon } from '../catalog.js';
 import { layoutPayload, rulesFor, sidesFor } from '../operations.js';
 import { openSheet, isPhone } from '../selection.js';
 import { refreshNeeds, needTag } from '../needs.js';
@@ -116,7 +117,7 @@ function piece(section, { movable = false, changeable = false, band = null } = {
       words.layout ? h('span', { class: 'piece__variant', text: words.layout }) : null,
       ...flags.map(([iconName, text, title]) => h('span', { class: 'piece__flag', title }, icon(iconName, 'icon--xs'), h('span', { class: 'piece__flagtext', text }))))),
   h('span', { class: 'piece__shot' },
-    h('span', { class: 'piece__sketch' }, schematic(variantDrawing(section.type, variantOf(section.id))))));
+    h('span', { class: 'piece__sketch' }, sketch(section.type, variantOf(section.id), section.type === 'divider' ? valueOf(section.id, null, 'label') : ''))));
   // The header, the footer and the page's main section keep their section: they have no Change.
   if (!changeable || main || !def) return el;
   const replacing = pickerReplacing() === section.id;

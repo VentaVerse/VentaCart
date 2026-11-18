@@ -712,6 +712,34 @@ body.is-dragging .beside.is-over span { display: inline; }
   box-shadow: none;
 }
 
+/* A divider with a label draws the label between two lines, as the store does. */
+.piece__divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.piece__divider-line {
+  flex: 1 1 0;
+  min-width: 8px;
+  height: 1px;
+  background: var(--line-2);
+}
+
+.piece__divider-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 70%;
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /*
  * Every box is the same height, whatever the section's real height, so a
  * whole page fits on a screen or two. Its width stays true: as wide as its

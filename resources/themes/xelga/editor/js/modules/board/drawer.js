@@ -21,7 +21,7 @@ import { S, ui, doc, sec, groupHandle, labelOf, isFixed, templateOf, pageTitle, 
 import { ownThemeGroups } from '../catalog.js';
 import { commit, undo, layoutPayload, rulesFor } from '../operations.js';
 import { select, deselect, radioItems, radioKeys } from '../selection.js';
-import { rowsOf, roomOf as roomIn } from './model.js';
+import { rowsOf, roomOf as roomIn, sharesRow as sharesRowIn } from './model.js';
 import { splitOf, listWords } from './words.js';
 import { schemePicker, schemeGroupKey, schemeChoices } from '../forms/schemes.js';
 
@@ -47,6 +47,13 @@ export function roomOf(sid) {
   const at = locateSection(sid);
   if (!at || at.group !== 'template' || !layoutPayload()) return 12;
   return roomIn(at.doc.content, sid, rulesFor(at.handle)) ?? 12;
+}
+
+/** Whether a section stands in a column or a side, which a choice that needs a row of its own cannot use. */
+export function sharesRow(sid) {
+  const at = locateSection(sid);
+  if (!at || at.group !== 'template' || !layoutPayload()) return false;
+  return sharesRowIn(at.doc.content, sid, rulesFor(at.handle));
 }
 
 /** Whether a section would still fit its place with another layout (variant). */

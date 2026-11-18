@@ -130,7 +130,7 @@ class XelgaSectionsTest extends TestCase
     {
         $this->assertSame([
             'announcement-bar', 'blog-main', 'blog-posts', 'brand-list-main', 'brand-logos', 'brand-main', 'breadcrumbs',
-            'cart-main', 'category-list', 'category-main', 'category-tiles', 'contact-main', 'featured-products', 'filters', 'footer', 'header', 'hero',
+            'cart-main', 'category-list', 'category-main', 'category-tiles', 'contact-main', 'divider', 'featured-products', 'filters', 'footer', 'header', 'hero',
             'image-with-text', 'not-found-main', 'page-main', 'post-main', 'product-details', 'product-main', 'product-reviews',
             'product-spotlight', 'promo-banners', 'recently-viewed', 'related-products', 'rich-text', 'search-main',
             'shop-the-look', 'testimonials', 'usp-bar',
