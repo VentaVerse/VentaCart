@@ -100,3 +100,13 @@ test('the field waits for the library script when it loads later', () => {
     assert.equal(calls.length, 1);
     assert.equal(calls[0].kind, 'blog');
 });
+
+test('an accept list reaches the library, and no list leaves it out', () => {
+    const limited = field({ mode: 'single', kind: 'favicon', accept: ['png'] });
+    limited.picker.show(null);
+    assert.deepEqual(limited.calls[0].accept, ['png']);
+
+    const open = field({ mode: 'single', kind: 'brands' });
+    open.picker.show(null);
+    assert.equal('accept' in open.calls[0], false);
+});

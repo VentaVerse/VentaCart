@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\MediaImage;
 use App\Support\IdentityAsset;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Validator;
 
 /**
@@ -24,6 +26,9 @@ class StoreIdentityRequest extends FormRequest
     /** Extensions decided by inspection, keyed by field: 'logo' => 'png'. */
     private array $extensions = [];
 
+    /** The file each accepted mark is copied from, keyed by field. */
+    private array $sources = [];
+
     public function authorize(): bool
     {
         // The route already sits behind the admin auth middleware group.
@@ -36,6 +41,11 @@ class StoreIdentityRequest extends FormRequest
             'site_name' => ['required', 'string', 'max:120'],
             'logo' => ['nullable', 'file', 'max:'.IdentityAsset::LOGO_MAX_KB],
             'favicon' => ['nullable', 'file', 'max:'.IdentityAsset::FAVICON_MAX_KB],
+            // A mark chosen from the media library. It is copied into the
+            // store identity folder on save, so the library image can be
+            // deleted afterwards without breaking the store.
+            'logo_media' => ['nullable', 'string', new MediaImage()],
+            'favicon_media' => ['nullable', 'string', new MediaImage()],
             // The store email becomes every outgoing email's From address,
             // so it must also pass the check the mailer applies at boot.
             'email' => ['nullable', 'string', 'email:rfc,filter_unicode', 'max:255'],
@@ -122,7 +132,10 @@ class StoreIdentityRequest extends FormRequest
     {
         $file = $this->file($field);
 
+        // An uploaded file wins over a library choice sent with it.
         if (! $file instanceof UploadedFile) {
+            $this->inspectLibraryChoice($validator, $field, $identify, $message);
+
             return;
         }
 
@@ -141,6 +154,35 @@ class StoreIdentityRequest extends FormRequest
         }
 
         $this->extensions[$field] = $extension;
+        $this->sources[$field] = $file->getRealPath();
+    }
+
+    /** A library image goes through the same checks as an upload, on its disk path. */
+    private function inspectLibraryChoice(Validator $validator, string $field, callable $identify, string $message): void
+    {
+        $chosen = $this->input($field.'_media');
+
+        if (! is_string($chosen) || $chosen === '') {
+            return;
+        }
+
+        $path = Storage::disk('public')->path($chosen);
+        $extension = is_file($path) ? $identify($path) : null;
+
+        if ($extension === null) {
+            $validator->errors()->add($field.'_media', $message);
+
+            return;
+        }
+
+        $this->extensions[$field] = $extension;
+        $this->sources[$field] = $path;
+    }
+
+    /** The file a validated mark is copied from, or null when none was sent. */
+    public function sourceFor(string $field): ?string
+    {
+        return $this->sources[$field] ?? null;
     }
 
     /** The extension a validated upload must be stored under. */

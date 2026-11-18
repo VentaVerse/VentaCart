@@ -2,8 +2,8 @@
     @php
         $vStoreName = \App\Support\StoreIdentity::name();
         $vMarks = [
-            ['key' => 'logo', 'label' => 'Logo', 'help' => 'PNG, JPG or WebP, up to '.\App\Support\IdentityAsset::LOGO_MAX_KB.' KB.', 'accept' => 'image/png,image/jpeg,image/webp', 'url' => \App\Support\StoreIdentity::logoUrl()],
-            ['key' => 'favicon', 'label' => 'Favicon', 'help' => 'Square PNG, ICO or SVG, up to '.\App\Support\IdentityAsset::FAVICON_MAX_KB.' KB.', 'accept' => 'image/png,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico,.svg', 'url' => \App\Support\StoreIdentity::faviconUrl()],
+            ['key' => 'logo', 'label' => 'Logo', 'pick' => ['png', 'jpg', 'jpeg', 'webp'], 'help' => 'Choose a PNG, JPG or WebP image, up to '.\App\Support\IdentityAsset::LOGO_MAX_KB.' KB.', 'url' => \App\Support\StoreIdentity::logoUrl()],
+            ['key' => 'favicon', 'label' => 'Favicon', 'help' => 'Choose a square PNG, or upload an ICO or SVG file, up to '.\App\Support\IdentityAsset::FAVICON_MAX_KB.' KB.', 'upload' => 'image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico,.svg', 'pick' => ['png'], 'url' => \App\Support\StoreIdentity::faviconUrl()],
         ];
     @endphp
 
@@ -22,7 +22,7 @@
 
             <div class="v-grid v-grid--2 v-gap">
                 @foreach ($vMarks as $mark)
-                    <x-admin.field :name="$mark['key']" :label="$mark['label']" :hint="$mark['help']">
+                    <x-admin.field :name="$mark['key'].'_media'" :label="$mark['label']" :hint="$mark['help']">
                         {{-- Removal happens in place: no navigation, so typed
                              edits elsewhere on the page survive it. Two-step
                              confirm; the second click within 4s executes. --}}
@@ -51,7 +51,14 @@
                                         x-text="arm ? 'Really remove?' : 'Remove {{ strtolower($mark['label']) }}'">Remove {{ strtolower($mark['label']) }}</button>
                             </template>
                         </div>
-                        <input type="file" name="{{ $mark['key'] }}" accept="{{ $mark['accept'] }}" class="v-file">
+                        <x-admin.media-picker :name="$mark['key'].'_media'" :kind="$mark['key']" root="media" :accept="$mark['pick']" trigger="Choose from library" />
+                        @isset($mark['upload'])
+                            <span class="v-field__hint">Or upload an ICO or SVG file</span>
+                            <input type="file" name="{{ $mark['key'] }}" accept="{{ $mark['upload'] }}" class="v-file" aria-label="Upload an ICO or SVG {{ strtolower($mark['label']) }}">
+                            @error($mark['key'])
+                                <span class="v-field__error">{{ $message }}</span>
+                            @enderror
+                        @endisset
                     </x-admin.field>
                 @endforeach
             </div>

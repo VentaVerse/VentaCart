@@ -304,7 +304,7 @@ class StoreIdentityAssetsTest extends TestCase
         $response = $this->get(route('admin.settings.section', 'general'));
 
         $response->assertOk()
-            ->assertSee('name="logo"', false)
+            ->assertSee('data-media-picker="logo_media"', false)
             ->assertSee('name="favicon"', false)
             ->assertSee('enctype="multipart/form-data"', false)
             ->assertDontSee('managed in');
