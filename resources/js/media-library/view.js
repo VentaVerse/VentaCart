@@ -130,6 +130,7 @@ export function createRefusal({ modal, onClose }) {
 
     done.addEventListener('click', () => onClose?.());
     if (modal) {
+        root.addEventListener('close', () => onClose?.());
         root.addEventListener('cancel', (e) => {
             e.preventDefault();
             onClose?.();
@@ -820,14 +821,21 @@ export function createView({ api, config, options, modal, onDone }) {
                 h('span', { class: 'ml-tile__text' }, h('span', { class: 'ml-tile__name', text: u.name }), h('span', { class: 'ml-tile__upnote', text: u.error })));
         }
         const queued = u.state === 'queued';
-        // Fetch reports no upload progress, so the bar runs while the file is
-        // sending and the count above the grid says how many are done.
         const bar = h('progress', { class: 'ml-tile__progress', max: '100', 'aria-label': `Uploading ${u.name}` });
-        if (queued) bar.value = 0;
+        bar.value = u.progress || 0;
         return h('div', { class: `ml-tile ml-tile--up${queued ? ' ml-tile--queued' : ''}`, 'data-up': u.id },
             h('span', { class: 'ml-tile__img' }, u.src ? h('img', { src: u.src, alt: '', draggable: 'false' }) : null, bar),
             h('span', { class: 'ml-tile__text' }, h('span', { class: 'ml-tile__name', text: u.name }),
-                h('span', { class: 'ml-tile__upnote', text: queued ? 'Waiting' : 'Uploading' })));
+                h('span', { class: 'ml-tile__upnote', text: queued ? 'Waiting' : `${u.progress || 0}%` })));
+    }
+
+    /** Moves one tile's bar and percentage without drawing the grid again. */
+    function showProgress(u, percent) {
+        u.progress = percent;
+        const tile = els.grid.querySelector(`[data-up="${u.id}"]`);
+        if (!tile) return;
+        tile.querySelector('.ml-tile__progress').value = percent;
+        tile.querySelector('.ml-tile__upnote').textContent = `${percent}%`;
     }
 
     /* ----------------------------------------------------------- choosing */
@@ -975,7 +983,7 @@ export function createView({ api, config, options, modal, onDone }) {
             f.width && f.height ? `${f.width} × ${f.height}` : null,
             S.known.has(path) ? formatSize(f.size) : null,
             folderLabel(f.folder),
-            usedByText(f.usedBy) || null,
+            S.known.has(path) ? usedByText(f.usedBy) || 'Not used' : null,
         ].filter(Boolean);
         els.picked.replaceChildren(h('div', { class: 'ml-pick-one' },
             thumbOf(S.known.get(path), 'ml-pick-one__thumb'),
@@ -1036,6 +1044,9 @@ export function createView({ api, config, options, modal, onDone }) {
     }
 
     if (modal) {
+        // However the dialog closes (a browser may refuse to cancel a second
+        // Esc), the same cleanup runs: finish() is the one way out.
+        root.addEventListener('close', () => finish(null));
         root.addEventListener('cancel', (e) => {
             e.preventDefault();
             if (S.creating !== null) {
@@ -1133,7 +1144,8 @@ export function createView({ api, config, options, modal, onDone }) {
         drawGrid();
         drawCount();
         const going = added.filter((u) => !u.error).length;
-        announce(going ? `Uploading ${plural(going, 'image')} to ${nameOf(to)}` : 'Nothing was uploaded.');
+        const refusedText = added.filter((u) => u.error).map((u) => `${u.name} was not uploaded: ${u.error}.`);
+        announce([going ? `Uploading ${plural(going, 'image')} to ${nameOf(to)}.` : 'Nothing was uploaded.', ...refusedText].join(' '));
         runUploads();
     }
 
@@ -1147,12 +1159,15 @@ export function createView({ api, config, options, modal, onDone }) {
         S.running = true;
         let next;
         let last = null;
+        const refusedNow = [];
         while (!S.closed && (next = S.uploads.find((u) => u.state === 'queued'))) {
-            next.state = 'sending';
-            redrawUpload(next);
+            const sending = next;
+            sending.state = 'sending';
+            sending.progress = 0;
+            redrawUpload(sending);
             drawCount();
             try {
-                const data = await api.upload([next.file], next.to);
+                const data = await api.upload([sending.file], sending.to, { onProgress: (p) => showProgress(sending, p) });
                 if (S.closed) break;
                 last = finishUpload(next, (data.files || [])[0]);
             } catch (e) {
@@ -1163,13 +1178,18 @@ export function createView({ api, config, options, modal, onDone }) {
                 next.src = null;
                 redrawUpload(next);
                 drawCount();
+                refusedNow.push(`${next.name} was not uploaded: ${next.error}`);
+                announce(refusedNow[refusedNow.length - 1]);
             }
         }
         S.running = false;
         if (S.closed) return;
         // Counts in the tree include the new images.
         loadTree().then(() => !S.closed && drawTree()).catch(() => {});
-        if (last) announce(`${last.name} uploaded and selected.`);
+        // The last word in the live region names every refusal, so one said
+        // while another file was still sending is not lost.
+        const done = last ? [`${last.name} uploaded and selected.`] : [];
+        if (done.length || refusedNow.length) announce([...done, ...refusedNow].join(' '));
     }
 
     function finishUpload(u, file) {

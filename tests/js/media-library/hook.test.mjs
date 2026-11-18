@@ -67,3 +67,21 @@ test('the library explains a missing permission instead of opening empty', () =>
     assert.equal(closed, 1);
     assert.equal(requests, 0);
 });
+
+test('a dialog closed by the browser still cleans up and reports it', () => {
+    setConfig({ view: false, upload: false, edit: false, delete: false });
+
+    const opener = document.createElement('button');
+    document.body.append(opener);
+    opener.focus();
+
+    let closed = 0;
+    window.VentaCart.media.open({ opener, onClose: () => { closed += 1; } });
+    const dialog = document.querySelector('dialog.ml-root');
+
+    dialog.close();
+
+    assert.equal(dialog.isConnected, false);
+    assert.equal(document.activeElement, opener);
+    assert.equal(closed, 1);
+});
