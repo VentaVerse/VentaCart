@@ -53,7 +53,7 @@ import {
 } from './words.js';
 import { barWords } from './labels.js';
 import {
-  startDrag, keyMove, keyMoveRow, keyMoves, rowKeyMoves, dragJustEnded, afterRender, targetKey, initDrag, keyMoveBand, bandKeyMoves,
+  startDrag, keyMove, keyMoveRow, keyMoves, rowKeyMoves, dragJustEnded, afterRender, targetKey, initDrag, keyMoveBand, bandKeyMoves, keyStay,
 } from './drag.js';
 import { renderPhoneBoard } from './phone.js';
 import { addLineMode } from './place.js';
@@ -140,7 +140,8 @@ function piece(section, { movable = false, changeable = false, band = null } = {
     },
     onpointerdown: inBand ? (e) => startDrag(e, { kind: 'band', group: inBand, sid: section.id })
       : canMove ? (e) => startDrag(e, { kind: 'section', sid: section.id }) : null,
-    onkeydown: inBand ? (e) => keyMoveBand(e, inBand, section.id) : canMove ? (e) => keyMove(e, section.id) : null,
+    // A locked section never moves: Alt and an arrow only say why.
+    onkeydown: inBand ? (e) => keyMoveBand(e, inBand, section.id) : canMove ? (e) => keyMove(e, section.id) : locked ? (e) => keyStay(e, section.id) : null,
   },
   // Name, then the type when the section has a name of its own, then the layout.
   h('span', { class: 'piece__bar', title: words.title },

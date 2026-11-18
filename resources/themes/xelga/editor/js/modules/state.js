@@ -130,6 +130,8 @@ export function addDocument(remote) {
     retryTimer: 0,
     error: null, // { kind, message } of the last failed save
     fieldErrors: {}, // path -> messages, from a 422 answer
+    // What the server moved when it read the page, said once when the page opens.
+    adjusted: Array.isArray(remote.adjusted) ? remote.adjusted : [],
   };
   if (existing?.retryTimer) window.clearTimeout(existing.retryTimer);
   S.docs[remote.handle] = doc;

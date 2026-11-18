@@ -8,16 +8,26 @@
  *
  * A type's layouts are its presets (named starting points), else its
  * variants, else the type itself. A type whose narrowest layout is wider
- * than the spot, or that is at its limit on the page, stays offered but
- * greyed, with the reason; so does each layout that is too wide.
+ * than the spot, at its limit where the spot counts it, or that cannot go
+ * in the spot's area or column, stays offered but greyed, with the reason;
+ * so does each layout that is too wide.
  */
 
-import { spanAt } from './model.js';
+import { spanAt, areaAt, countInPlace } from './model.js';
+import { isLocked } from '../catalog.js';
 
 /** Why a type cannot be added at a spot. */
 export const ALREADY_THERE = 'Already on this page';
 export const TOO_WIDE = 'Need a wider spot';
 export const NOW_HERE = 'Now here';
+export const OWN_ROW = 'Needs a row of its own';
+export const CONTENT_ONLY = 'Goes beside the page content';
+
+/** The name of an area on screen. */
+export const AREA_NAMES = { top: 'Top', content: 'Content', bottom: 'Bottom' };
+
+/* Spots inside a row's column, a side or beside a section: never a row of their own. */
+const INSIDE = new Set(['column', 'side', 'beside']);
 
 /** The picker's groups of the theme's own sections, in order; a schema names its group in `picker_group`. */
 export const GROUPS = [
@@ -70,24 +80,36 @@ export function wholeSpan(content, target, rules) {
 
 const spanOf = (type, variant, rules) => rules.minSpan({ type, settings: variant == null ? {} : { variant } });
 
-const countOf = (content, type) => (Array.isArray(content?.order) ? content.order : [])
-  .filter((id) => content.sections?.[id]?.type === type).length;
-
 /**
  * Each section type of `catalog` (type => definition, already limited to
- * the types this page may hold) as `{type, disabled, reason?, need?}` for
- * a spot: a type at its limit on the page is disabled as already there,
- * one whose narrowest layout is wider than the spot as too wide (`need`
- * is that layout's span, `whole` how wide the spot would be without sides).
- * Main sections are never added, so they are left out. `now`, in replace
- * mode, is the type in the spot now; `whole` may be given with `span`.
+ * the types this page may hold) as `{type, disabled, reason?, ...}` for a
+ * spot, checked in this order:
+ * - `now`, in replace mode the type in the spot now: now here.
+ * - A type that keeps a row of its own, at a column or a side: own row.
+ * - A type that goes beside the page content only, in Top or Bottom:
+ *   content only, with the spot's `area`.
+ * - A type at its limit where the spot counts it: already there, with the
+ *   spot's `area` for a type limited per area on a page with areas, or the
+ *   `band` for a band spot (see countInPlace()).
+ * - A type whose narrowest layout is wider than the spot: too wide (`need`
+ *   is that layout's span, `whole` how wide the spot would be without sides).
+ * Locked types (the page content, the Header, the Footer) are never added,
+ * so they are left out. `place`, in replace mode, is the replaced
+ * section's own spot, for its area; `whole` may be given with `span`.
  */
-export function addableTypes(content, target, catalog, rules, { span = null, now = null, whole = null } = {}) {
+export function addableTypes(content, target, catalog, rules, { span = null, now = null, whole = null, place = null } = {}) {
+  const spot = place || target;
   const room = span ?? spanAt(content, target || FULL_WIDTH, rules);
   const unnarrowed = whole ?? (span === null ? wholeSpan(content, target, rules) : span);
-  return Object.entries(catalog || {}).filter(([, def]) => def && !def.main).map(([type, def]) => {
+  const area = spot ? areaAt(content, spot, rules) : null;
+  const band = spot?.drop === 'band' ? spot.group : null;
+  return Object.entries(catalog || {}).filter(([, def]) => def && !isLocked(def)).map(([type, def]) => {
     if (type === now) return { type, disabled: true, reason: NOW_HERE };
-    if (def.limit && countOf(content, type) >= def.limit) return { type, disabled: true, reason: ALREADY_THERE };
+    if (def.own_row === true && INSIDE.has(spot?.drop)) return { type, disabled: true, reason: OWN_ROW };
+    if (def.content_only === true && area && area !== 'content') return { type, disabled: true, reason: CONTENT_ONLY, area };
+    if (def.limit && countInPlace(content, type, spot || FULL_WIDTH, rules) >= def.limit) {
+      return { type, disabled: true, reason: ALREADY_THERE, area: def.limit_per_area === true ? area : null, band };
+    }
     const narrowest = Math.min(...choicesOf(def).map((c) => spanOf(type, c.variant, rules)));
     if (narrowest > room) return { type, disabled: true, reason: TOO_WIDE, need: narrowest, whole: unnarrowed };
     return { type, disabled: false };
@@ -98,6 +120,8 @@ export function addableTypes(content, target, catalog, rules, { span = null, now
 export function pillWords(state) {
   if (!state?.disabled) return null;
   if (state.reason === TOO_WIDE) return needsWords(state.need, state.whole ?? null);
+  if (state.reason === ALREADY_THERE && state.area) return `Already in ${AREA_NAMES[state.area]}`;
+  if (state.reason === ALREADY_THERE && state.band) return `Already in the ${state.band}`;
   return state.reason;
 }
 

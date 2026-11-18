@@ -118,6 +118,10 @@ export function useWindow(kind) {
 
 /** Opens a page of the Demo Store with its documents (`content` replaces the page's own). */
 export function openPage(type, { content = null, docs = documents() } = {}) {
+  // Another test of the same file may have set its own catalog or layout.
+  ctx.boot = { layout: LAYOUT, preview: { url: 'https://shop.example.com/', nonce: '', param: 'xelga_preview' } };
+  useLayout(LAYOUT);
+  setCatalog({ sections: CATALOG });
   S.store = { name: 'Demo Store', url: 'https://shop.example.com/' };
   S.pages = Object.values(PAGES);
   S.page = { ...PAGES[type] };
@@ -138,4 +142,4 @@ export function drawBoard() {
   return board;
 }
 
-export { S };
+export { S, ctx };

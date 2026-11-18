@@ -15,6 +15,11 @@
  * own defaults and the old section's color scheme. The type in the spot
  * is greyed "Now here": changing its layout belongs in its settings.
  *
+ * From an Add of the header or footer band the window is smaller, titled
+ * "Add to the header" (or footer), and has no search: it offers only the
+ * types the band may hold, and with one such type its layouts are open
+ * at once.
+ *
  * The window keeps the keyboard inside it: the search has focus at open,
  * Tab cycles through it, the arrow keys move between tiles by where they
  * sit, Enter goes into the layouts and adds, Escape closes and puts focus
@@ -28,12 +33,12 @@ import { sectionTypes, sectionDef, allowedIn, isLocked, variantDrawing } from '.
 import { rulesFor, layoutPayload, undo } from '../operations.js';
 import { addSection, addRowAt, replaceSection } from '../actions.js';
 import { select, isPhone } from '../selection.js';
-import { rowsOf, spanAt, roomOf } from './model.js';
+import { rowsOf, spanAt, roomOf, placeOf, AREAS } from './model.js';
 import {
   addableTypes, pickerGroups, matches, choicesOf, layoutsFor, pillWords, needsWords, replacedWords, wholeSpan, NARROW_BESIDE_SIDES,
-  ROW_TILE, TOO_WIDE, NOW_HERE, ALREADY_THERE,
+  ROW_TILE, TOO_WIDE, NOW_HERE, ALREADY_THERE, OWN_ROW, CONTENT_ONLY, AREA_NAMES,
 } from './choices.js';
-import { pickerWhere, splitOf, movedBesideSideWords, leftContentWords } from './words.js';
+import { pickerWhere, splitOf, movedBesideSideWords, leftContentWords, fullWords } from './words.js';
 import { targetKey } from './drag.js';
 
 const ROW_NAME = 'A row of columns';
@@ -97,12 +102,18 @@ export function openPicker(spot) {
   }
   P.query = '';
   P.step = 'types';
+  // A band offers one type or a few: with one, its layouts are the choice, so they open at once.
+  const offered = band ? Object.keys(availableTypes(band)) : [];
+  if (offered.length === 1) {
+    P.type = offered[0];
+    P.step = 'layouts';
+  }
   ui.renderBoard?.();
   render();
   if (!dlg.open) dlg.showModal();
   window.requestAnimationFrame(() => {
     if (!P) return;
-    if (isPhone()) $('.spick__title', dlg)?.focus({ preventScroll: true });
+    if (isPhone() || bandOf(P.target)) $(P.step === 'layouts' ? '.spick__pane-title' : '.spick__title', dlg)?.focus({ preventScroll: true });
     else $('.spick__search input', dlg)?.focus({ preventScroll: true });
   });
 }
@@ -141,7 +152,9 @@ function states() {
   const rules = rulesFor(handleNow());
   const types = availableTypes(bandOf(P.target));
   const now = P.mode === 'replace' ? sec(P.sid)?.type : null;
-  return addableTypes(content(), P.target || null, types, rules, { span: P.span, now, whole: P.whole });
+  // A replacement takes the replaced section's place: its area and its column count.
+  const place = P.mode === 'replace' ? placeOf(content(), P.sid, rules) : null;
+  return addableTypes(content(), P.target || null, types, rules, { span: P.span, now, whole: P.whole, place });
 }
 
 const typeName = (type) => (type === ROW_TILE ? ROW_NAME : sectionDef(type)?.label || type);
@@ -173,7 +186,8 @@ const drawing = (type, variant) => schematic(variantDrawing(type, variant ?? def
 
 function title() {
   if (P.mode === 'replace') return `Replace ${labelOf(P.sid)}`;
-  return 'Add a section';
+  const band = bandOf(P.target);
+  return band ? `Add to the ${band}` : 'Add a section';
 }
 
 function render() {
@@ -199,11 +213,14 @@ function render() {
         renderTiles();
       },
     }));
-  const types = h('section', { class: 'spick__types', 'aria-label': 'Section types' }, search, h('div', { class: 'spick__list', id: 'spick-list' }));
+  // A band offers one type or a few: nothing to search.
+  const band = Boolean(bandOf(P.target));
+  const types = h('section', { class: 'spick__types', 'aria-label': 'Section types' }, band ? null : search, h('div', { class: 'spick__list', id: 'spick-list' }));
   const pane = h('section', { class: 'spick__pane', id: 'spick-pane', 'aria-label': 'Layouts' });
   // Only the chosen type's name is announced as the choice moves, never the whole list of layouts.
   const status = h('p', { class: 'visually-hidden', id: 'spick-status', role: 'status' });
   dlg.dataset.mode = P.mode;
+  dlg.dataset.place = band ? 'band' : 'page';
   dlg.setAttribute('aria-labelledby', 'spick-title');
   dlg.setAttribute('aria-describedby', warn ? 'spick-where spick-warn' : 'spick-where');
   dlg.replaceChildren(h('div', { class: 'spick__frame' }, head, warn,
@@ -248,6 +265,11 @@ function renderTiles() {
   list.replaceChildren(...groups.map((g) => h('div', { class: 'spick__group', role: 'group', 'aria-labelledby': `spick-g-${g.id}` },
     h('h3', { class: 'spick__group-title', id: `spick-g-${g.id}`, text: g.name }),
     h('div', { class: 'spick__tiles' }, ...g.types.map((state) => tile(state, state.type === tabStop))))));
+  // A band's few tiles leave room under them for the drawing of where the section goes.
+  if (bandOf(P.target)) {
+    list.append(h('div', { class: 'spick__spot spick__spot--band' },
+      h('p', { class: 'spick__map-title', text: 'Goes here' }), spotMap()));
+  }
 }
 
 function splitPicture(parts) {
@@ -362,7 +384,11 @@ function tileBelowOrAbove(tiles, i, down) {
 function statusWords(type, state) {
   const name = typeName(type);
   if (state.reason === NOW_HERE) return `${name} is in this spot now. Change its layout in its settings.`;
-  if (state.reason === ALREADY_THERE) return `${name} is already on this page.`;
+  if (state.reason === ALREADY_THERE) {
+    return state.area || state.band ? fullWords(sectionDef(type), { area: state.area, band: state.band }) : `${name} is already on this page.`;
+  }
+  if (state.reason === OWN_ROW) return `${name} needs a row of its own. Add it with an Add line between rows.`;
+  if (state.reason === CONTENT_ONLY) return `${name} goes beside the page content, not in ${AREA_NAMES[state.area]}.`;
   if (state.reason === TOO_WIDE) {
     const words = needsWords(state.need, state.whole ?? null);
     if (words === NARROW_BESIDE_SIDES) return `${name} needs a wider spot: the sides leave this one too narrow.`;
@@ -430,27 +456,48 @@ function cardKeys(e) {
   next.focus();
 }
 
-/** A small drawing of the page with the spot marked: where the section goes, or the one being replaced. */
+/**
+ * A small drawing of the page with the spot marked: where the section
+ * goes, or the one being replaced. The header and footer bands are drawn
+ * with their sections, the Header and the Footer darker; on a page with
+ * areas, Top, Content with its sides, and Bottom one under the other.
+ */
 function spotMap() {
   const c = doc(template())?.content || { order: [], sections: {} };
   const layout = layoutPayload();
   const mark = () => h('div', { class: 'smap__new' }, icon(P.mode === 'replace' ? 'replace' : 'plus', 'icon--xs'));
   const t = P.target || {};
   const sectionEl = (sid) => (sid === P.sid ? mark() : h('span', { class: 'smap__sec' }));
-  const rows = h('div', { class: 'smap__rows' });
-  const list = layout ? rowsOf(c, layout) : [];
-  list.forEach((r) => {
-    if (t.drop === 'gap' && t.before === r.id) rows.append(mark());
-    const line = h('div', { class: 'smap__row' });
-    splitOf(r.split).parts.forEach((part, column) => {
-      const col = h('div', { class: 'smap__col', style: { gridColumn: `span ${part}` } });
-      (r.columns[column] || []).forEach((sid) => col.append(sectionEl(sid)));
-      if (t.drop === 'column' && t.rowId === r.id && t.column === column) col.append(mark());
-      line.append(col);
+  const bandMap = (group) => {
+    const el = h('div', { class: `smap__band${group === 'footer' ? ' smap__band--foot' : ''}` });
+    const band = doc(group)?.content || { order: [], sections: {} };
+    const here = t.drop === 'band' && t.group === group;
+    (band.order || []).forEach((sid) => {
+      if (here && t.before === sid) el.append(mark());
+      el.append(h('span', { class: `smap__sec${isLocked(sectionDef(band.sections?.[sid]?.type)) ? ' smap__sec--fixed' : ''}` }));
     });
-    rows.append(line);
-  });
-  if (t.drop === 'gap' && t.before === 'end') rows.append(mark());
+    if (here && (t.before ?? null) === null) el.append(mark());
+    return el;
+  };
+  const list = layout ? rowsOf(c, layout, rulesFor(template())) : [];
+  const rowsEl = (area) => {
+    const rows = h('div', { class: 'smap__rows' });
+    const own = list.filter((r) => (r.area ?? null) === area);
+    own.forEach((r) => {
+      if (t.drop === 'gap' && (t.area ?? null) === area && t.before === r.id) rows.append(mark());
+      const line = h('div', { class: 'smap__row' });
+      splitOf(r.split).parts.forEach((part, column) => {
+        const col = h('div', { class: 'smap__col', style: { gridColumn: `span ${part}` } });
+        (r.columns[column] || []).forEach((sid) => col.append(sectionEl(sid)));
+        if (t.drop === 'column' && t.rowId === r.id && t.column === column) col.append(mark());
+        line.append(col);
+      });
+      rows.append(line);
+    });
+    if (t.drop === 'gap' && t.before === 'end' && ((t.area ?? null) === area || (!area && !t.area))) rows.append(mark());
+    if (!rows.children.length) rows.append(h('span', { class: 'smap__empty' }));
+    return rows;
+  };
   const side = (which) => {
     const ids = c.sides?.[which] || [];
     const here = t.drop === 'side' && t.side === which;
@@ -463,10 +510,10 @@ function spotMap() {
     if (here && (t.before ?? null) === null) el.append(mark());
     return el;
   };
-  return h('div', { class: 'smap', 'aria-hidden': 'true' },
-    h('div', { class: 'smap__band' }),
-    h('div', { class: 'smap__zone' }, side('left'), rows, side('right')),
-    h('div', { class: 'smap__band smap__band--foot' }));
+  const page = list.some((r) => r.area)
+    ? AREAS.map((area) => (area === 'content' ? h('div', { class: 'smap__zone' }, side('left'), rowsEl(area), side('right')) : rowsEl(area)))
+    : [h('div', { class: 'smap__zone' }, side('left'), rowsEl(null), side('right'))];
+  return h('div', { class: 'smap', 'aria-hidden': 'true' }, bandMap('header'), h('div', { class: 'smap__page' }, ...page), bandMap('footer'));
 }
 
 /* ------------------------------------------------------------------------

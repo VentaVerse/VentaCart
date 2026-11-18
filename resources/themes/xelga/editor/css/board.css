@@ -408,6 +408,13 @@ body.is-dragging .beside.is-over span { display: inline; }
   opacity: .35;
 }
 
+/* A band, the page or an area the held item cannot go into fades, lighter than a column: it holds more to read. */
+.band.is-blocked,
+.sheet.is-blocked,
+.area.is-blocked {
+  opacity: .5;
+}
+
 .is-lifted {
   opacity: .4;
 }

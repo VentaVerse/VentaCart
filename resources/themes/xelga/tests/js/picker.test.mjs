@@ -12,6 +12,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Element } from './support/mini-dom.mjs';
+import * as board from './support/board-page.mjs';
 
 // The editor modules register a few listeners when they load; Node has no DOM.
 const noop = () => {};
@@ -339,4 +341,145 @@ test('the warning names what the merchant put in the section', () => {
   assert.equal(replacedWords({ settings: { heading: 'Best sellers' } }, CATALOG.products), null, 'The schema\'s own words are not the merchant\'s.');
   const one = { settings: {}, block_order: ['s'], blocks: { s: { type: 'slide', settings: { image: 'media/demo/one.jpg', heading: 'Hi' } } } };
   assert.equal(replacedWords(one, CATALOG.banner), 'photo and its text');
+});
+
+/* ------------------------------------------------------------------------
+   Areas and bands: the Demo Store's Product and Category pages
+   ------------------------------------------------------------------------ */
+
+const { openPicker, closePicker, availableTypes } = await import('../../editor/js/modules/board/picker.js');
+const { pickerWhere } = await import('../../editor/js/modules/board/words.js');
+
+const AREA_RULES = catalogRules(board.LAYOUT, (type) => board.CATALOG[type] || null, true);
+const areaRow = (id, area, columns, split = '12') => ({ id, split, columns, settings: { ...board.LAYOUT.row_defaults }, area });
+const bar = (label = 'Announcement bar') => ({ type: 'announcement-bar', label, disabled: false, settings: {}, block_order: [], blocks: {} });
+const pageTypes = () => Object.fromEntries(Object.entries(board.CATALOG).filter(([, def]) => def.group === 'template'));
+
+/* The Demo Store's product page, with a row of halves in Bottom and, when asked, bars in Top and Bottom. */
+function productPage({ top = false, bottom = false } = {}) {
+  const c = board.documents().product;
+  c.sections.l = { ...c.sections.words, label: 'Left text' };
+  c.sections.r = { ...c.sections.words, label: 'Right text' };
+  c.order.push('l', 'r');
+  c.rows.push(areaRow('r-halves', 'bottom', [['l'], ['r']], '6-6'));
+  if (top) {
+    c.sections['bar-top'] = bar('Top bar');
+    c.order.unshift('bar-top');
+    c.rows.unshift(areaRow('r-bar-top', 'top', [['bar-top']]));
+  }
+  if (bottom) {
+    c.sections['bar-bottom'] = bar('Bottom bar');
+    c.order.push('bar-bottom');
+    c.rows.push(areaRow('r-bar-bottom', 'bottom', [['bar-bottom']]));
+  }
+  return c;
+}
+
+const stateOf = (content, target, type) => addableTypes(content, target, pageTypes(), AREA_RULES).find((x) => x.type === type);
+
+test('the bar is grey in a column with Needs a row of its own', () => {
+  const column = stateOf(productPage(), { drop: 'column', rowId: 'r-halves', column: 0, before: null }, 'announcement-bar');
+  assert.equal(column.disabled, true);
+  assert.equal(pillWords(column), 'Needs a row of its own');
+  const side = stateOf(productPage(), { drop: 'side', side: 'left', before: null }, 'announcement-bar');
+  assert.equal(pillWords(side), 'Needs a row of its own');
+  // Between rows it fits.
+  assert.equal(stateOf(productPage(), { drop: 'gap', area: 'bottom', before: 'end' }, 'announcement-bar').disabled, false);
+});
+
+test('a second bar in Bottom is grey with Already in Bottom', () => {
+  const state = stateOf(productPage({ bottom: true }), { drop: 'gap', area: 'bottom', before: 'end' }, 'announcement-bar');
+  assert.equal(state.disabled, true);
+  assert.equal(pillWords(state), 'Already in Bottom');
+  // On a page without areas the whole page counts.
+  const home = board.documents().home;
+  home.sections.b = bar();
+  home.order.push('b');
+  assert.equal(pillWords(stateOf(home, { drop: 'gap', before: 'end' }, 'announcement-bar')), 'Already on this page');
+});
+
+test('a bar in Top does not grey a bar for Bottom', () => {
+  const c = productPage({ top: true });
+  assert.equal(stateOf(c, { drop: 'gap', area: 'bottom', before: 'end' }, 'announcement-bar').disabled, false);
+  assert.equal(pillWords(stateOf(c, { drop: 'gap', area: 'top', before: 'end' }, 'announcement-bar')), 'Already in Top');
+});
+
+test('filters is grey in Top with Goes beside the page content', () => {
+  const c = board.documents().category;
+  const top = stateOf(c, { drop: 'gap', area: 'top', before: 'end' }, 'filters');
+  assert.equal(top.disabled, true);
+  assert.equal(pillWords(top), 'Goes beside the page content');
+  assert.equal(pillWords(stateOf(c, { drop: 'gap', area: 'bottom', before: 'end' }, 'filters')), 'Goes beside the page content');
+  // In Content it is only at its limit.
+  assert.equal(pillWords(stateOf(c, { drop: 'gap', area: 'content', before: 'end' }, 'filters')), 'Already on this page');
+});
+
+test('a section too wide for Content beside a side is grey with the narrow words', () => {
+  const state = stateOf(productPage(), { drop: 'gap', area: 'content', before: 'end' }, 'banner');
+  assert.equal(pillWords(state), 'Too narrow beside the sides');
+  assert.equal(stateOf(productPage(), { drop: 'gap', area: 'top', before: 'end' }, 'banner').disabled, false);
+});
+
+test('locked types are never offered', () => {
+  const list = addableTypes(productPage(), { drop: 'gap', area: 'top', before: 'end' }, board.CATALOG, AREA_RULES).map((x) => x.type);
+  ['header', 'footer', 'product-main', 'category-main'].forEach((type) => assert.ok(!list.includes(type), type));
+  board.openPage('product');
+  assert.deepEqual(Object.keys(availableTypes()).filter((type) => ['header', 'footer', 'product-main'].includes(type)), []);
+  assert.deepEqual(Object.keys(availableTypes('header')), ['announcement-bar']);
+});
+
+test('where words name the area and the side', () => {
+  board.openPage('product');
+  assert.deepEqual(pickerWhere({ target: { drop: 'gap', area: 'top', before: 'end' } }), ['Goes in Top, below ', 'Breadcrumbs']);
+  assert.deepEqual(pickerWhere({ target: { drop: 'gap', area: 'content', before: 'r-main' } }), ['Goes in Content, beside the left side, above ', 'Product information']);
+  assert.deepEqual(pickerWhere({ target: { drop: 'gap', area: 'bottom', before: 'r-words' } }), ['Goes in Bottom, above ', 'Text']);
+  assert.deepEqual(pickerWhere({ replace: 'words' }), ['Stays in Bottom']);
+  board.openPage('category');
+  assert.deepEqual(pickerWhere({ target: { drop: 'gap', area: 'bottom', before: 'end' } }), ['Goes in Bottom']);
+  // A band is shared by every page.
+  assert.deepEqual(pickerWhere({ target: { drop: 'band', group: 'header', before: 'head' } }), ['Goes in the header on every page, above ', 'Header']);
+  // A page without areas.
+  board.openPage('home', { content: { schema: 1, order: [], sections: {} } });
+  assert.deepEqual(pickerWhere({ target: { drop: 'gap', area: null, before: 'end' } }), ['Goes on this page']);
+});
+
+/* The picker's window, as the board opens it. */
+function pickerDialog() {
+  document.querySelector('#section-picker')?.remove();
+  const dialog = new Element('dialog');
+  dialog.setAttribute('id', 'section-picker');
+  dialog.showModal = () => { dialog.open = true; };
+  dialog.close = () => { dialog.open = false; };
+  document.body.append(dialog);
+  return dialog;
+}
+
+const flat = (el) => el?.textContent.replace(/\s+/g, ' ').trim() ?? null;
+
+test('the band picker offers only the bar and opens its layouts', () => {
+  board.useWindow('computer');
+  const docs = board.documents();
+  docs.header = { schema: 1, order: ['head'], sections: { head: docs.header.sections.head } };
+  board.openPage('product', { docs });
+  const dialog = pickerDialog();
+  openPicker({ target: { drop: 'band', group: 'header', before: 'head' } });
+  assert.equal(flat(dialog.querySelector('.spick__title')), 'Add to the header');
+  assert.equal(dialog.dataset.place, 'band');
+  assert.equal(dialog.querySelector('.spick__search'), null, 'No search: there is one type to choose.');
+  assert.deepEqual(dialog.querySelectorAll('.stile').map((t) => t.dataset.type), ['announcement-bar']);
+  // Its layouts are open at once.
+  assert.equal(flat(dialog.querySelector('.spick__pane-title')), 'Announcement bar');
+  assert.equal(dialog.querySelectorAll('#spick-pane .lcard').length, 1);
+  // The map draws the band, with the new bar above the Header.
+  const band = dialog.querySelector('.smap__band');
+  assert.deepEqual(band.children.map((c) => c.className), ['smap__new', 'smap__sec smap__sec--fixed']);
+  closePicker({ focus: false });
+
+  // A page spot keeps the page's title and its search.
+  openPicker({ target: { drop: 'gap', area: 'bottom', before: 'end' } });
+  assert.equal(flat(dialog.querySelector('.spick__title')), 'Add a section');
+  assert.equal(dialog.dataset.place, 'page');
+  assert.ok(dialog.querySelector('.spick__search'));
+  closePicker({ focus: false });
+  dialog.remove();
 });

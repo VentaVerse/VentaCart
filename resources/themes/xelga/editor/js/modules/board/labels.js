@@ -8,6 +8,7 @@
 
 import { locate, rowsOf } from './model.js';
 import { columnName } from './words.js';
+import { AREA_NAMES } from './choices.js';
 
 /** Whether a section's name differs from its type's own name, ignoring case and spaces at the ends. */
 export function isRenamed(name, typeLabel) {
@@ -39,20 +40,32 @@ export function typeLine(name, typeLabel, where = null) {
   return { type, where: where || null };
 }
 
+/** The bands' names on screen. */
+const BAND_NAMES = { header: 'Header', footer: 'Footer' };
+
 /**
- * Where a section sits, for its settings header: "On every page" for the
- * header and footer, "In the left side", "In the middle column of a row";
- * null for a full-width row of its own, which needs no words.
+ * Where a section sits, for its settings header: "Header, on every page"
+ * for the header and footer bands; on a page with areas "In Top, this page
+ * only", "In Bottom, the right half of a row", and "The page content,
+ * fixed in place" for its main section; "In the left side"; "In the middle
+ * column of a row". Null for a full-width row of a page without areas,
+ * which needs no words. `rules` (the page's layout rules) tell the areas.
  */
-export function placeWords(content, sid, layout, group = 'template') {
-  if (group === 'header' || group === 'footer') return 'On every page';
+export function placeWords(content, sid, layout, group = 'template', rules = null) {
+  if (group === 'header' || group === 'footer') return `${BAND_NAMES[group]}, on every page`;
   if (!content || !layout) return null;
+  if (rules && typeof rules.isMain === 'function' && rules.isMain(content.sections?.[sid])) return 'The page content, fixed in place';
   const at = locate(content, sid, layout);
   if (at?.where === 'side') return `In the ${at.side} side`;
   if (at?.where !== 'row') return null;
-  const row = rowsOf(content, layout).find((r) => r.id === at.rowId);
+  const row = rowsOf(content, layout, rules).find((r) => r.id === at.rowId);
   const parts = layout.splits?.[row?.split]?.parts || [12];
-  return parts.length > 1 ? `In the ${columnName(parts, at.column).toLowerCase()} of a row` : null;
+  const area = row?.area ? AREA_NAMES[row.area] : null;
+  if (parts.length > 1) {
+    const column = columnName(parts, at.column).toLowerCase();
+    return area ? `In ${area}, the ${column} of a row` : `In the ${column} of a row`;
+  }
+  return area ? `In ${area}, this page only` : null;
 }
 
 /**

@@ -97,7 +97,6 @@ test('the page content piece has a lock and no pointerdown handler', () => {
   assert.deepEqual(flagsOf(main), ['Page content']);
   assert.equal(main.querySelector('.piece__flag svg use').getAttribute('href'), '#i-lock');
   assert.equal(listens(main, 'pointerdown'), false, 'Never picked up.');
-  assert.equal(listens(main, 'keydown'), false, 'Alt and the arrows never move it.');
   assert.equal(main.closest('.piece-wrap'), null, 'No Change.');
   assert.equal(main.parentNode.querySelectorAll('.beside').length, 0, 'Nothing goes beside it.');
   // Any other section of the page still moves and changes.
@@ -114,7 +113,6 @@ test('the Header has Fixed, Hide and no Change', () => {
   assert.deepEqual(flagsOf(head), ['Fixed']);
   assert.equal(head.closest('.piece-wrap'), null, 'No Change.');
   assert.equal(listens(head, 'pointerdown'), false);
-  assert.equal(listens(head, 'keydown'), false);
   // The bar beside it is an ordinary section of the band: it moves within it.
   assert.equal(listens(pieceOf(board, 'bar'), 'pointerdown'), true);
   // A fixed section can still be hidden; the page content cannot.
@@ -161,4 +159,91 @@ test('a band Add opens the picker with a band spot', () => {
   assert.deepEqual(Object.keys(availableTypes('footer')), ['announcement-bar']);
   closePicker({ focus: false });
   dialog.remove();
+});
+
+/* ------------------------------------------------------------------------
+   Moves that are refused, in words, with Alt and the arrow keys
+   ------------------------------------------------------------------------ */
+
+const { refusalWords } = await import('../../editor/js/modules/board/drag.js');
+
+function messages() {
+  ['toasts', 'announcer'].forEach((id) => {
+    document.querySelector(`#${id}`)?.remove();
+    const el = new Element('div');
+    el.setAttribute('id', id);
+    document.body.append(el);
+  });
+  return {
+    toast: () => text(document.querySelector('#toasts').children.at(-1)),
+    // The live region is filled a moment after it is cleared, so a screen reader hears it again.
+    said: () => new Promise((resolve) => { setTimeout(() => resolve(text(document.querySelector('#announcer'))), 40); }),
+  };
+}
+
+const alt = (key) => ({ type: 'keydown', key, altKey: true, ctrlKey: false, metaKey: false, preventDefault() {}, stopPropagation() {} });
+
+test('Alt and the arrows never move the page content, and say why', async () => {
+  useWindow('computer');
+  openPage('product');
+  const said = messages();
+  const before = JSON.stringify(S.docs.product.content);
+  pieceOf(drawBoard(), 'main').dispatchEvent(alt('ArrowUp'));
+  assert.equal(JSON.stringify(S.docs.product.content), before);
+  assert.equal(said.toast(), 'Product information is the page content. It stays where it is.');
+  assert.equal(await said.said(), 'Product information is the page content. It stays where it is.');
+});
+
+test('Alt and the arrows never move the Header, and say why', async () => {
+  useWindow('computer');
+  openPage('product');
+  const said = messages();
+  pieceOf(drawBoard(), 'head').dispatchEvent(alt('ArrowUp'));
+  assert.deepEqual(S.docs.header.content.order, ['bar', 'head']);
+  assert.equal(await said.said(), 'Header is fixed in the header band.');
+});
+
+test('the header bar never steps into the page, and a page bar never into the header', async () => {
+  useWindow('computer');
+  const docs = documents();
+  docs.header.order = ['head', 'bar'];
+  const content = docs.product;
+  content.sections['bar-top'] = { type: 'announcement-bar', label: 'Top bar', disabled: false, settings: {}, block_order: [], blocks: {} };
+  content.order.unshift('bar-top');
+  content.rows.unshift({ id: 'r-bar', split: '12', columns: [['bar-top']], settings: { ...documents().product.rows[0].settings }, area: 'top' });
+  openPage('product', { docs, content });
+  const said = messages();
+  pieceOf(drawBoard(), 'bar').dispatchEvent(alt('ArrowDown'));
+  assert.deepEqual(S.docs.header.content.order, ['head', 'bar']);
+  assert.equal(await said.said(), 'Announcement bar shows on every page. To show a bar on this page only, add one here.');
+  pieceOf(drawBoard(), 'bar-top').dispatchEvent(alt('ArrowUp'));
+  assert.equal(S.docs.product.content.rows[0].id, 'r-bar');
+  assert.equal(await said.said(), 'Top bar is on this page only. To show a bar on every page, add one to the header.');
+});
+
+test('a move refused for its area says why in the area words', () => {
+  useWindow('computer');
+  openPage('product');
+  const content = S.docs.product.content;
+  // A full-width banner in Top cannot go into Content beside the side.
+  content.sections.wide = { type: 'banner', label: 'Main banner', disabled: false, settings: {}, block_order: [], blocks: {} };
+  content.order.unshift('wide');
+  content.rows.splice(1, 0, { ...content.rows[0], id: 'r-wide', columns: [['wide']] });
+  assert.equal(refusalWords({ kind: 'section', sid: 'wide' }, { drop: 'gap', area: 'content', before: 'end' }), 'Main banner needs more width than Content has beside the side.');
+  // Filters belongs beside the page content.
+  openPage('category');
+  assert.equal(refusalWords({ kind: 'section', sid: 'filters' }, { drop: 'gap', area: 'top', before: 'end' }), 'Filters goes beside the page content, not in Top.');
+  // One bar per area.
+  openPage('product');
+  const c = S.docs.product.content;
+  c.sections.b1 = { type: 'announcement-bar', label: 'Bar one', disabled: false, settings: {}, block_order: [], blocks: {} };
+  c.sections.b2 = { type: 'announcement-bar', label: 'Bar two', disabled: false, settings: {}, block_order: [], blocks: {} };
+  c.order.unshift('b2');
+  c.order.push('b1');
+  c.rows.unshift({ ...c.rows[0], id: 'r-b2', columns: [['b2']] });
+  c.rows.push({ ...c.rows[3], id: 'r-b1', columns: [['b1']] });
+  assert.equal(refusalWords({ kind: 'section', sid: 'b2' }, { drop: 'gap', area: 'bottom', before: 'end' }), 'Bottom already has an announcement bar.');
+  // Bands and the page: by zone.
+  assert.equal(refusalWords({ kind: 'band', group: 'header', sid: 'bar' }, { zone: 'page' }), 'Announcement bar shows on every page. To show a bar on this page only, add one here.');
+  assert.equal(refusalWords({ kind: 'section', sid: 'b1' }, { zone: 'band', group: 'footer' }), 'Bar one is on this page only. To show a bar on every page, add one to the footer.');
 });

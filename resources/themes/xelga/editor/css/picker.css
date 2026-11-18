@@ -575,6 +575,36 @@ body.is-dragging .piece__change {
   gap: 14px;
 }
 
+/* ------------------------------------------- the window opened in a band */
+
+/* A band offers one type or a few: a smaller window, no search, and the drawing under the tiles. */
+@media (min-width: 720px) {
+  .spick[data-place="band"] {
+    width: min(760px, calc(100vw - 64px));
+    height: min(500px, calc(100dvh - 64px));
+  }
+}
+
+.spick[data-place="band"] .spick__types {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.spick[data-place="band"] .spick__list {
+  padding-block-start: 16px;
+}
+
+.spick__spot--band {
+  gap: 10px;
+  margin-block-start: 24px;
+}
+
+.spick__map-title {
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
 .smap {
   display: grid;
   gap: 4px;
@@ -586,14 +616,42 @@ body.is-dragging .piece__change {
   border-radius: var(--radius-lg);
 }
 
+/* The header and footer bands, tinted as on the board, with their sections; the Header and Footer darker. */
 .smap__band {
-  height: 12px;
-  background: var(--surface-3);
+  display: grid;
+  gap: 3px;
+  min-height: 12px;
+  padding: 3px;
+  background: var(--band-bg);
+  border: 1px solid var(--band-line);
   border-radius: 2px;
 }
 
-.smap__band--foot {
-  height: 18px;
+.smap__band .smap__sec {
+  height: 8px;
+  background: #c8d0dc;
+}
+
+.smap__band .smap__sec--fixed {
+  height: 12px;
+  background: #b3bdcb;
+}
+
+.smap__page {
+  display: grid;
+  gap: 4px;
+}
+
+/* Top, Content and Bottom one under the other, a hairline between them. */
+.smap__page > * + * {
+  padding-block-start: 4px;
+  border-block-start: 1px solid var(--line);
+}
+
+.smap__empty {
+  height: 12px;
+  border: 1px dashed var(--line-2);
+  border-radius: 2px;
 }
 
 .smap__zone {
