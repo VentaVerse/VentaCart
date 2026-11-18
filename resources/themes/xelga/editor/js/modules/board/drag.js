@@ -473,7 +473,7 @@ function onKey(event) {
   event.stopPropagation();
   const active = D.active;
   cancel();
-  if (active) announce('Move cancelled.');
+  if (active) announce('Move canceled.');
 }
 
 function begin() {

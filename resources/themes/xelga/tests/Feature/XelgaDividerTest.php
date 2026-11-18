@@ -88,7 +88,7 @@ class XelgaDividerTest extends TestCase
         $this->assertStringNotContainsString('dv__dot', $space);
     }
 
-    public function test_the_labelled_line_reads_its_label_and_hides_its_lines(): void
+    public function test_the_labeled_line_reads_its_label_and_hides_its_lines(): void
     {
         $html = $this->homeWith(['variant' => 'label']);
 

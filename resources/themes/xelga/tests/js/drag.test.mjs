@@ -290,7 +290,7 @@ const CATALOG_RULES = {
   sidesAllowed: true,
 };
 
-test('addableTypes greys out a used limit-1 type with its reason', () => {
+test('addableTypes grays out a used limit-1 type with its reason', () => {
   const c = { schema: 1, order: ['bar'], sections: { bar: { type: 'top-bar' } } };
   const list = addableTypes(c, { drop: 'gap', before: 'end' }, CATALOG, CATALOG_RULES);
   const bar = list.find((x) => x.type === 'top-bar');
@@ -311,7 +311,7 @@ test('addableTypes measures a column beside a side, and a side offers only types
   assert.equal(side.banner.disabled, true);
 });
 
-test('addableTypes greys out types too wide for a column, unless a variant fits', () => {
+test('addableTypes grays out types too wide for a column, unless a variant fits', () => {
   const c = page({ a: 'text', b: 'text' }, { rows: [row('r1', '8-4', [['a'], ['b']])] });
   const list = addableTypes(c, { drop: 'column', rowId: 'r1', column: 1, before: null }, CATALOG, CATALOG_RULES);
   const by = Object.fromEntries(list.map((x) => [x.type, x]));

@@ -3,7 +3,7 @@
 /*
  * The Divider in the editor: the picker offers it among the text and trust
  * types, every layout has a drawing, the board's box draws the divider's own
- * label, and Edge to edge is greyed where the section shares its row.
+ * label, and Edge to edge is grayed where the section shares its row.
  */
 
 import { test } from 'node:test';
@@ -62,7 +62,7 @@ test('every layout of the divider has a drawing and a name', () => {
   assert.equal(new Set(drawings).size, 4, 'No two layouts share a drawing.');
 });
 
-test('the board box draws the label of a labelled divider, the layout drawing otherwise', () => {
+test('the board box draws the label of a labeled divider, the layout drawing otherwise', () => {
   assert.deepEqual(sketchOf('divider', 'label', 'Our picks'), { label: 'Our picks' });
   assert.deepEqual(sketchOf('divider', 'label', '  New in  '), { label: 'New in' });
   assert.deepEqual(sketchOf('divider', 'label', ''), { drawing: variantDrawing('divider', 'label') });

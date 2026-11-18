@@ -7,13 +7,13 @@
  * A type with a single layout adds on the tile itself.
  *
  * Types that cannot go in the spot keep their place in their group,
- * greyed, with the reason on the tile; so does a layout too wide for it.
+ * grayed, with the reason on the tile; so does a layout too wide for it.
  * From the Add line between rows, "A row of columns" comes first and is
  * chosen at open, its layouts being the splits.
  *
  * Replace mode puts a section of another type in the same spot, with its
  * own defaults and the old section's color scheme. The type in the spot
- * is greyed "Now here": changing its layout belongs in its settings.
+ * is grayed "Now here": changing its layout belongs in its settings.
  *
  * From an Add of the header or footer band the window is smaller, titled
  * "Add to the header" (or footer), and has no search: it offers only the
@@ -296,7 +296,7 @@ function tile(state, tabStop) {
   tileSeq += 1;
   const id = `stile-${tileSeq}`;
   return h('button', {
-    type: 'button', class: `stile${state.disabled ? ' is-grey' : ''}`, id, dataset: { type },
+    type: 'button', class: `stile${state.disabled ? ' is-gray' : ''}`, id, dataset: { type },
     tabindex: tabStop ? '0' : '-1',
     'aria-pressed': String(P.type === type), 'aria-disabled': state.disabled ? 'true' : null,
     'aria-describedby': pill ? `${id}-why` : null,
@@ -427,7 +427,7 @@ function renderPane() {
     const pic = type === ROW_TILE ? h('span', { class: 'lcard__split' }, splitPicture(layout.parts)) : drawing(type, layout.variant);
     const why = !fits && !state.disabled ? needsWords(layout.need, P.whole ?? null) : null;
     cards.append(h('button', {
-      type: 'button', class: `lcard${fits ? '' : ' is-grey'}`, 'aria-disabled': fits ? null : 'true',
+      type: 'button', class: `lcard${fits ? '' : ' is-gray'}`, 'aria-disabled': fits ? null : 'true',
       tabindex: '-1',
       onclick: () => { if (fits) pick(type, layout); },
       onkeydown: cardKeys,
