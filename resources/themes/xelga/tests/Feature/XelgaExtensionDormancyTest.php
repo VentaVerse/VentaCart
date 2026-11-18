@@ -5,6 +5,9 @@ namespace Themes\Xelga\Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\UsesSampleExtension;
 use Tests\TestCase;
+use Themes\Xelga\Documents\Document;
+use Themes\Xelga\Documents\Defaults;
+use Themes\Xelga\Documents\Layout;
 use Themes\Xelga\Documents\TemplateManager;
 use Themes\Xelga\Tests\XelgaExtensionHelpers;
 use Themes\Xelga\Tests\XelgaTestHelpers;
@@ -38,9 +41,18 @@ class XelgaExtensionDormancyTest extends TestCase
         $this->forgetXelgaState();
         $state = $this->actingAs($this->admin())->getJson(route('admin.xelga.documents.show', ['handle' => 'product']))->assertOk()->json('data');
         $this->forgetXelgaState();
-        $saved = $this->saveDraft($this->admin(), 'product', $state['content'], (int) $state['draft_version'])->assertOk()->json('data.document');
+        $saved = $this->saveWithRows('product', $state['content'], (int) $state['draft_version'])->assertOk()->json('data.document');
         $this->forgetXelgaState();
         $this->publish($this->admin(), ['product' => (int) $saved['draft_version']])->assertOk();
+    }
+
+    /** Open the product template and save it as it came, without publishing. */
+    private function saveProductDraft(): void
+    {
+        $this->forgetXelgaState();
+        $state = $this->actingAs($this->admin())->getJson(route('admin.xelga.documents.show', ['handle' => 'product']))->assertOk()->json('data');
+        $this->forgetXelgaState();
+        $this->saveWithRows('product', $state['content'], (int) $state['draft_version'])->assertOk();
     }
 
     public function test_switched_off_the_section_survives_save_and_publish_exactly(): void
@@ -166,5 +178,28 @@ class XelgaExtensionDormancyTest extends TestCase
         $this->assertSame('sample-extension.card', $copy->draft['sections']['card-1']['type']);
         $this->assertTrue($copy->draft['sections']['card-1']['unchecked']);
         $this->assertSame('Sold by Demo Store', $copy->draft['sections']['card-1']['settings']['heading']);
+    }
+
+    public function test_a_waiting_page_keeps_its_sides(): void
+    {
+        $page = Defaults::content('sample_page');
+        $page['sections']['side-1'] = ['type' => 'rich-text', 'label' => '', 'disabled' => false, 'settings' => [], 'block_order' => [], 'blocks' => []];
+        $page['order'] = ['side-1', ...$page['order']];
+        $page['rows'] = array_values(array_filter(Layout::rows($page), fn ($row) => $row['columns'] !== [['side-1']]));
+        $page['sides'] = ['left' => ['side-1'], 'right' => []];
+        $this->publishedDocument('sample_page', $page, $page);
+        $before = Document::where('handle', 'sample_page')->firstOrFail();
+        $stored = [$before->draft['sides'], $before->draft['rows']];
+
+        $this->switchOffSampleExtension();
+        $this->saveProductDraft();
+        $this->forgetXelgaState();
+        $this->switchOnSampleExtension();
+        $this->saveProductDraft();
+
+        $after = Document::where('handle', 'sample_page')->firstOrFail();
+        $this->assertSame(json_encode($stored), json_encode([$after->draft['sides'], $after->draft['rows']]));
+        $this->assertSame(json_encode($stored), json_encode([$after->published['sides'], $after->published['rows']]));
+        $this->assertSame(['side-1'], $this->actingAs($this->admin())->getJson(route('admin.xelga.documents.show', ['handle' => 'sample_page']))->assertOk()->json('data.content.sides.left'));
     }
 }

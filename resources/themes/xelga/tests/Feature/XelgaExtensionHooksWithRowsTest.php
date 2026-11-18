@@ -148,4 +148,102 @@ class XelgaExtensionHooksWithRowsTest extends TestCase
         $this->assertArrayNotHasKey('sides', $stored);
         $this->assertSame($before, $this->page('/sample-extension/things/lamp')->getContent());
     }
+
+    /** Run $check with these placements in the fixture instead of its own. */
+    private function withPlacements(array $placements, callable $check): void
+    {
+        $file = base_path('tests/fixtures/extensions/sample-extension/resources/xelga/placements.json');
+        $original = (string) file_get_contents($file);
+        file_put_contents($file, json_encode(['placements' => $placements]));
+        try {
+            $this->forgetXelgaState();
+            $check();
+        } finally {
+            file_put_contents($file, $original);
+            $this->forgetXelgaState();
+        }
+    }
+
+    /** @return array{0: list<array>, 1: array} the rows the page is drawn with, and the content they are of */
+    private function rowsOf(array $content, string $handle = 'product'): array
+    {
+        $rules = app(\Themes\Xelga\Documents\LayoutRules::class, ['handle' => $handle]);
+        $content = \Themes\Xelga\Documents\Layout::normalize($content, $rules)['content'];
+
+        return [\Themes\Xelga\Documents\Layout::rows($content, $rules), $content];
+    }
+
+    private function rowIndexOf(array $rows, string $sectionId): ?int
+    {
+        foreach ($rows as $i => $row) {
+            foreach ($row['columns'] as $column) {
+                if (in_array($sectionId, $column, true)) {
+                    return $i;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public function test_a_placement_after_the_page_content_starts_bottom(): void
+    {
+        [$content] = $this->editorContent();
+        $this->assertArrayNotHasKey('rows', $content);
+        $this->assertArrayNotHasKey('sides', $content);
+
+        [$rows] = $this->rowsOf($content);
+        $main = $this->rowIndexOf($rows, 'product-main-1');
+        $card = $this->rowIndexOf($rows, $this->card);
+        $this->assertSame($main + 1, $card, 'Right after the page content.');
+        $this->assertSame('bottom', $rows[$card]['area']);
+        $this->assertSame([[$this->card]], $rows[$card]['columns']);
+
+        $html = $this->page('/product/linen-shirt')->getContent();
+        $this->assertSame(1, substr_count($html, 'data-sample-card'));
+        $this->assertLessThan(strpos($html, 'data-section-id="' . $this->card . '"'), strpos($html, 'data-section-type="product-main"'));
+    }
+
+    public function test_a_placement_after_the_page_content_starts_bottom_with_stored_rows(): void
+    {
+        $stored = $this->withTileRow(Defaults::content('product'), 'product-main-1');
+        $stored['sections']['side-1'] = ['type' => 'rich-text', 'label' => '', 'disabled' => false, 'settings' => [], 'block_order' => [], 'blocks' => []];
+        $stored['order'] = ['side-1', ...$stored['order']];
+        $stored['rows'] = \Themes\Xelga\Documents\Layout::rows(array_diff_key($stored, ['rows' => 1]));
+        $stored['sides'] = ['left' => ['side-1'], 'right' => []];
+        $stored['rows'] = array_values(array_filter($stored['rows'], fn ($row) => $row['columns'] !== [['side-1']]));
+        $this->publishedDocument('product', $stored);
+
+        [$content] = $this->editorContent();
+        $this->assertSame(['side-1'], $content['sides']['left']);
+        [$rows] = $this->rowsOf($content);
+        $main = $this->rowIndexOf($rows, 'product-main-1');
+        $card = $this->rowIndexOf($rows, $this->card);
+        $this->assertSame($main + 1, $card, 'The first row after the page content.');
+        $this->assertSame('bottom', $rows[$card]['area']);
+        $this->assertSame([[$this->card]], $rows[$card]['columns']);
+        $this->assertSame('content', $rows[$main]['area']);
+
+        $html = $this->page('/product/linen-shirt')->getContent();
+        $card = strpos($html, 'data-section-id="' . $this->card . '"');
+        $this->assertNotFalse($card);
+        $this->assertGreaterThan(strpos($html, '<!--/xelga:product-main-1-->'), $card);
+        $this->assertStringContainsString('class="xp" data-sides="left"', $html, 'The page has a side.');
+        $this->assertStringContainsString('</div></div><!--xelga:' . $this->card . '-->', $html, 'The placement stands after the sides wrapper closes.');
+    }
+
+    public function test_a_placement_otherwise_at_the_end_ends_bottom(): void
+    {
+        $this->withPlacements([
+            ['key' => 'card', 'section' => 'sample-extension.card', 'templates' => ['product'], 'after' => 'no-such-type', 'otherwise' => 'end'],
+        ], function () {
+            [$content] = $this->editorContent();
+            [$rows] = $this->rowsOf($content);
+            $this->assertSame($this->card, end($content['order']));
+            $last = $rows[array_key_last($rows)];
+            $this->assertSame([[$this->card]], $last['columns']);
+            $this->assertSame('bottom', $last['area']);
+            $this->assertGreaterThan($this->rowIndexOf($rows, 'product-main'), array_key_last($rows));
+        });
+    }
 }
