@@ -62,7 +62,9 @@ final class TemplateManager
         if ($from !== $pageType && $source === null) {
             throw new MissingDocumentException('The layout to copy has been deleted.');
         }
-        $content = $source?->draft ?? $source?->published ?? Defaults::content($pageType);
+        // With the page content the storefront would draw, so a stored layout
+        // that lost it still copies.
+        $content = \Themes\Xelga\Rendering\Storefront::withLockedSections($source?->draft ?? $source?->published ?? Defaults::content($pageType), $from);
 
         $document = DB::transaction(function () use ($pageType, $label, $content, $user) {
             $existing = Document::query()->where('kind', 'template')->where('page_type', $pageType)

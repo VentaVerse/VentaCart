@@ -37,7 +37,10 @@ final class Duplicator
         $row = Document::where('handle', $handle)->first();
         // What the writer compares against: a stale base version is refused
         // there as a conflict, with the current draft attached.
-        $content = $row?->draft ?? $row?->published ?? Defaults::content($handle);
+        // With the sections it always holds, as the editor shows it: a stored
+        // header without its Header gets it back hidden rather than the copy
+        // being refused for a section the merchant never removed.
+        $content = \Themes\Xelga\Rendering\Storefront::withLockedSections($row?->draft ?? $row?->published ?? Defaults::content($handle), $handle);
         $content['sections'] = (array) ($content['sections'] ?? []);
         $content['order'] = array_values((array) ($content['order'] ?? []));
 
