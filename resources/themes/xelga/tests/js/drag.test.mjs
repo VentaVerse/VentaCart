@@ -333,6 +333,8 @@ const AREAS = {
   ownRow: (section) => section?.type === 'bar',
   contentOnly: (section) => section?.type === 'filters',
   isLocked: (section) => section?.type === 'product-main' || section?.type === 'header',
+  limitPerArea: (section) => section?.type === 'bar',
+  limitOf: (section) => (section?.type === 'bar' ? 1 : null),
 };
 
 const arow = (id, area, columns, split = '12') => ({ id, split, columns, settings: { ...DEFAULTS }, area });
@@ -430,4 +432,43 @@ test('a template section has no band targets and a band section no page targets'
   assert.deepEqual(bandTargets('header', ['bar', 'header'], 'x'), []);
   assert.deepEqual(targetsFor(c, { kind: 'band', group: 'header', sid: 'bar' }, AREAS), []);
   assert.deepEqual(targetsFor(c, { kind: 'section', sid: 'bar' }, AREAS), [], 'a band section is not on the page');
+});
+
+test('a bar is never moved into an area that already has one', () => {
+  const c = areaPage({ bar: 'bar', bar2: 'bar' });
+  c.rows.splice(0, 0, arow('rbar', 'top', [['bar']]));
+  c.rows.push(arow('rbar2', 'bottom', [['bar2']]));
+  c.order = ['bar', ...c.order, 'bar2'];
+  const targets = targetsFor(c, { kind: 'section', sid: 'bar' }, AREAS);
+  assert.deepEqual(areasOfGaps(targets), ['top', 'content'], 'Bottom has its bar already');
+  // Within its own area it still moves.
+  assert.ok(targets.some((t) => t.area === 'top' && t.before === 'end'));
+  // Content has no bar, so Bottom's may go up into it.
+  assert.deepEqual(keyTarget(c, 'bar2', 'ArrowUp', AREAS), { drop: 'gap', area: 'bottom', before: 'rr' });
+  // A bar in Content would make Top's bar unable to go down past it into Content.
+  const two = areaPage({ bar: 'bar', bar2: 'bar' });
+  two.rows = [arow('rbar', 'top', [['bar']]), arow('rbar2', 'content', [['bar2']]), ...two.rows.filter((r) => r.area !== 'top')];
+  two.order = ['bar', 'bar2', 'x', 'main', 'y', 'recent'];
+  delete two.sections.crumbs; delete two.sections.p; delete two.sections.q;
+  assert.equal(keyTarget(two, 'bar', 'ArrowDown', AREAS), null, 'Content has a bar already');
+  assert.ok(keyTarget(two, 'bar', 'ArrowDown', { ...AREAS, limitOf: () => null }), 'the step is there but for the limit');
+});
+
+test('a row holding a bar never moves into an area that already has one', () => {
+  const c = areaPage({ bar: 'bar', bar2: 'bar', t: 'text' });
+  c.rows.splice(0, 0, arow('rpair', 'top', [['bar'], ['t']], '6-6'));
+  c.rows.push(arow('rbar2', 'bottom', [['bar2']]));
+  c.order = ['bar', 't', ...c.order, 'bar2'];
+  const gaps = targetsFor(c, { kind: 'row', rowId: 'rpair' }, AREAS);
+  assert.ok(gaps.length > 0);
+  assert.ok(!gaps.some((t) => t.area === 'bottom'), 'Bottom has its bar already');
+  assert.ok(gaps.some((t) => t.area === 'content'));
+});
+
+test('a full area is named in the same words as Add and the server use', async () => {
+  const { fullWords } = await import('../../editor/js/modules/board/words.js');
+  const bar = { label: 'Announcement bar', limit: 1 };
+  assert.equal(fullWords(bar, { area: 'bottom' }), 'Bottom already has an announcement bar.');
+  assert.equal(fullWords(bar, { area: 'top' }), 'Top already has an announcement bar.', 'as the server refuses a copy');
+  assert.equal(fullWords(bar, { band: 'header' }), 'The header already has an announcement bar.');
 });

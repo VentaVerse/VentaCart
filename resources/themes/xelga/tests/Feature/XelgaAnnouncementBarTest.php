@@ -172,7 +172,7 @@ class XelgaAnnouncementBarTest extends TestCase
 
         // The copy would sit just under its original, in Top, which has its bar already.
         $this->actingAs($this->admin())->postJson(route('admin.xelga.documents.duplicate', ['handle' => 'product']), ['section' => 'bar-1', 'draft_version' => $version])
-            ->assertStatus(422)->assertJsonPath('errors.section.0', 'Top holds at most 1 Announcement bar.');
+            ->assertStatus(422)->assertJsonPath('errors.section.0', 'Top already has an announcement bar.');
 
         // Home has no areas: its limit counts the page.
         $home = $this->defaults('home');

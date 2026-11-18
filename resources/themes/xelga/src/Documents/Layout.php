@@ -173,7 +173,7 @@ final class Layout
             }
         }
 
-        $areas = self::areasOf($rows, $main, $inSides && ! $stored);
+        $areas = self::areasOf($rows, $main, $inSides && ! $stored, $stored);
 
         return array_map(fn (array $row, int $index) => self::bare($row) + ['area' => $areas[$index]], $rows, array_keys($rows));
     }
@@ -324,7 +324,8 @@ final class Layout
         }
 
         // The rows stored before areas ran beside the sides from top to bottom.
-        $beside = $areas && $hadSides && array_filter($given, fn (array $row) => self::storedArea($row) !== null) === [];
+        $stored = array_filter($given, fn (array $row) => self::storedArea($row) !== null) !== [];
+        $beside = $areas && $hadSides && ! $stored;
 
         // The area each given row will be in, so its columns are measured at
         // the width they draw: Top and Bottom at the whole page, Content at
@@ -335,7 +336,7 @@ final class Layout
             foreach ($given as $i => $row) {
                 $first[$i] = ['_area' => self::storedArea($row), '_inherit' => false];
             }
-            foreach (self::areasOf($first, self::mainPlace($given, $sides, $known, $sections, $rules), $beside) as $i => $area) {
+            foreach (self::areasOf($first, self::mainPlace($given, $sides, $known, $sections, $rules), $beside, $stored) as $i => $area) {
                 $spanOf[$i] = $area === 'content' ? $contentSpan : 12;
             }
         }
@@ -436,7 +437,7 @@ final class Layout
 
         if ($areas) {
             $main = self::mainRow($rows, $sections, $rules);
-            foreach (self::areasOf($rows, $main ?? INF, $beside) as $index => $area) {
+            foreach (self::areasOf($rows, $main ?? INF, $beside, $stored) as $index => $area) {
                 $rows[$index]['_area'] = $area;
             }
             if ($main !== null) {
@@ -493,11 +494,17 @@ final class Layout
      * 1. A row keeps a valid stored area.
      * 2. On a page stored with sides before rows had areas ($beside), the
      *    sides ran beside every row, so a row without one is Content.
-     * 3. Otherwise a row takes its place on the page: Top above the main
+     * 3. On a page that already stores areas ($stored), a new row (a copy,
+     *    an inserted section) takes the area of the row before it, so a
+     *    copy of a Content section stays in Content and the rows after it
+     *    keep theirs. Right after the main section's row it starts Bottom,
+     *    where a section placed after the page content belongs; first on
+     *    the page it is Top.
+     * 4. Otherwise a row takes its place on the page: Top above the main
      *    section's row, Content for that row, Bottom below it. A row split
      *    off another (a section moved out of its column) takes the area of
      *    the row it left.
-     * 4. Then the main row is Content, a row above it at most Content, a row
+     * 5. Then the main row is Content, a row above it at most Content, a row
      *    below it at least Content, and down the page the area never goes
      *    back, so the areas always read Top, Content, Bottom.
      *
@@ -506,7 +513,7 @@ final class Layout
      *                           or past the end while it is still to be placed
      * @return list<string>
      */
-    private static function areasOf(array $rows, float|int $main, bool $beside): array
+    private static function areasOf(array $rows, float|int $main, bool $beside, bool $stored = false): array
     {
         $rank = array_flip(self::AREAS);
         $out = [];
@@ -514,6 +521,9 @@ final class Layout
         foreach (array_values($rows) as $index => $row) {
             $area = $row['_area'] ?? null;
             if ($area === null && ($row['_inherit'] ?? false) && $index > 0) {
+                $area = $out[$index - 1];
+            }
+            if ($area === null && $stored && $index > 0 && $index - 1 != $main) {
                 $area = $out[$index - 1];
             }
             $area ??= match (true) {

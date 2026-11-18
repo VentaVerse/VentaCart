@@ -15,8 +15,8 @@ import { $, $$, h, icon, toast, announce } from '../dom.js';
 import { S, doc, groupHandle, labelOf, locate as locateSection } from '../state.js';
 import { sectionIcon, sectionDef, isLocked } from '../catalog.js';
 import { commit, undo, layoutPayload, rulesFor } from '../operations.js';
-import { rowsOf, fits, locate, spanAt, gapTargets, rowFits, areaAt, AREAS } from './model.js';
-import { rowName, targetWords, movedBesideSideWords, leftContentWords, AREA_NAMES } from './words.js';
+import { rowsOf, fits, locate, spanAt, gapTargets, rowFits, areaAt, areaFullAt, AREAS } from './model.js';
+import { rowName, targetWords, movedBesideSideWords, leftContentWords, fullWords, AREA_NAMES } from './words.js';
 import { createPress, PRESS_DELAY } from './phone.js';
 
 const SIDES = ['left', 'right'];
@@ -340,8 +340,16 @@ export function keyMove(event, sid) {
   event.stopPropagation();
   const content = contentNow();
   if (!content) return false;
-  const target = keyTarget(content, sid, event.key, rulesFor(template()));
+  const rules = rulesFor(template());
+  const target = keyTarget(content, sid, event.key, rules);
   if (!target) {
+    // The step would be there but for the area's limit: say so, as Add does.
+    const full = fullAreaWords(content, sid, keyTarget(content, sid, event.key, { ...rules, limitOf: () => null }), rules);
+    if (full) {
+      toast(full, { tone: 'error' });
+      announce(full);
+      return false;
+    }
     announce(`${labelOf(sid)} cannot move ${{ ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[event.key]} from here.`);
     return false;
   }
@@ -548,6 +556,12 @@ const inside = (el, x, y) => {
   return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 };
 
+/** "Bottom already has an announcement bar." when the target's area is full for the section's type, else null. */
+function fullAreaWords(content, sid, target, rules) {
+  if (!target || !areaFullAt(content, sid, target, rules)) return null;
+  return fullWords(sectionDef(content.sections?.[sid]?.type), { area: areaAt(content, target, rules) });
+}
+
 /** Why a held section cannot go into a faded column or side. */
 function refusal(col) {
   const content = contentNow();
@@ -561,6 +575,8 @@ function refusal(col) {
   const t = targetOf($('[data-target]', col) || col);
   const area = t && content ? areaAt(content, t, rules) : null;
   if (area && area !== 'content' && rules.contentOnly(section)) return `${name} goes beside the page content, not in ${AREA_NAMES[area]}.`;
+  const full = fullAreaWords(content, sid, t, rules);
+  if (full) return full;
   const span = t && content ? spanAt(content, t, rules, sid) : 0;
   if (span && rules.minSpan(section) > span) return side ? `${name} is too wide for a side.` : `${name} needs a wider column than that one.`;
   return side ? 'That side is full.' : 'That column is full.';

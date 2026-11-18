@@ -22,7 +22,7 @@ import { needTag } from './needs.js';
 import { buildForm, dependsOn, refreshVisibility, refreshFieldErrors } from './forms/form.js';
 import { startListDrag } from './board/drag.js';
 import {
-  toggleVisible, startRename, rename, removeSection, removeBlock, canRemoveBlock, duplicateSection, canDuplicate, duplicateBlock, canDuplicateBlock,
+  toggleVisible, startRename, rename, removeSection, removeBlock, canRemoveBlock, duplicateSection, canDuplicate, duplicateHint, duplicateBlock, canDuplicateBlock,
   addableBlocks, addBlock, moveBlockBy, moveBlockTo,
 } from './actions.js';
 
@@ -219,7 +219,7 @@ function sectionInspector(sid, bid) {
     content.append(h('div', { class: 'insp-foot' },
       h('button', {
         type: 'button', class: 'btn btn--secondary btn--sm', disabled: !canDuplicate(sid) || null,
-        title: canDuplicate(sid) ? null : 'This page has as many as it can hold',
+        title: duplicateHint(sid),
         onclick: () => duplicateSection(sid),
       }, icon('copy', 'icon--sm'), 'Duplicate'),
       h('button', { type: 'button', class: 'btn btn--danger-text btn--sm', onclick: () => removeSection(sid) }, icon('trash', 'icon--sm'), 'Remove section')));

@@ -135,21 +135,27 @@ const storedArea = (r) => (isMap(r) && AREAS.includes(r.area) ? r.area : null);
  * 1. A row keeps a valid stored area.
  * 2. On a page stored with sides before rows had areas (`beside`), the
  *    sides ran beside every row, so a row without one is Content.
- * 3. Otherwise a row takes its place on the page: Top above the main
+ * 3. On a page that already stores areas (`stored`), a new row (a copy,
+ *    an inserted section) takes the area of the row before it, so a copy
+ *    of a Content section stays in Content and the rows after it keep
+ *    theirs. Right after the main section's row it starts Bottom; first
+ *    on the page it is Top.
+ * 4. Otherwise a row takes its place on the page: Top above the main
  *    section's row, Content for that row, Bottom below it. A row split
  *    off another takes the area of the row it left.
- * 4. Then the main row is Content, a row above it at most Content, a row
+ * 5. Then the main row is Content, a row above it at most Content, a row
  *    below it at least Content, and down the page the area never goes back.
  *
  * `main` is the index of the main row: between two rows (x.5) or past the
  * end while it is still to be placed.
  */
-function areaList(rows, main, beside) {
+function areaList(rows, main, beside, stored = false) {
   const out = [];
   let least = 0;
   rows.forEach((r, index) => {
     let area = r._area ?? null;
     if (area === null && r._inherit && index > 0) area = out[index - 1];
+    if (area === null && stored && index > 0 && index - 1 !== main) area = out[index - 1];
     if (area === null) {
       if (beside) area = 'content';
       else if (index < main) area = 'top';
@@ -305,7 +311,7 @@ export function rowsOf(content, layout, rules = null) {
   rows.forEach((r, index) => {
     if (r.columns.flat().some((sid) => sections.has(sid) && rules.isMain(sections.get(sid)))) main = Math.min(main, index);
   });
-  const areas = areaList(rows.map((r, index) => ({ _area: explicit ? storedArea(given[index]) : null })), main, inSides && !stored);
+  const areas = areaList(rows.map((r, index) => ({ _area: explicit ? storedArea(given[index]) : null })), main, inSides && !stored, stored);
   return rows.map((r, index) => withArea(r, areas[index]));
 }
 
@@ -646,7 +652,8 @@ export function normalize(content, rules) {
   }
 
   // The rows stored before areas ran beside the sides from top to bottom.
-  const beside = areas && hadSides && given.every((r) => storedArea(r) === null);
+  const stored = given.some((r) => storedArea(r) !== null);
+  const beside = areas && hadSides && !stored;
 
   // The area each given row will be in, so its columns are measured at the
   // width they draw: Top and Bottom at the whole page, Content at what the
@@ -654,7 +661,7 @@ export function normalize(content, rules) {
   const spanOf = given.map(() => span);
   if (areas) {
     const first = given.map((r) => ({ _area: storedArea(r), _inherit: false }));
-    areaList(first, mainPlace(given, sides, knownList, sections, rules, layout), beside).forEach((area, i) => {
+    areaList(first, mainPlace(given, sides, knownList, sections, rules, layout), beside, stored).forEach((area, i) => {
       spanOf[i] = area === 'content' ? span : 12;
     });
   }
@@ -739,7 +746,7 @@ export function normalize(content, rules) {
 
   if (areas) {
     const main = mainRow(rows, sections, rules);
-    areaList(rows, main ?? Infinity, beside).forEach((area, index) => { rows[index]._area = area; });
+    areaList(rows, main ?? Infinity, beside, stored).forEach((area, index) => { rows[index]._area = area; });
     if (main !== null) moved = moved.concat(fitContent(rows, main, sections, rules, span, layout));
     const into = contentOnlyIntoContent(rows, emptied, sections, rules, taken, defaults);
     rows = into.rows;
@@ -921,6 +928,21 @@ export function spanAt(content, target, rules, sid = null) {
 }
 
 /**
+ * Whether one more section of a type limited per area would be too many
+ * in the target's area: on a page with areas, for a section coming from
+ * another area, when that area holds as many as the type's limit. The
+ * editor keeps to the limit in each area; the server only caps the page.
+ */
+export function areaFullAt(content, sid, target, rules) {
+  const section = sectionMap(content).get(sid);
+  if (!section || !ask(rules, 'limitPerArea', section)) return false;
+  const limit = typeof rules.limitOf === 'function' ? rules.limitOf(section) : null;
+  const area = limit ? areaAt(content, target, rules) : null;
+  if (!area || areaAt(content, placeOf(content, sid, rules), rules) === area) return false;
+  return countInPlace(content, section.type, target, rules) >= limit;
+}
+
+/**
  * Whether the section may go there, as the server would keep it there:
  * - A locked section (the page content) fits nowhere: it never moves.
  * - A section that keeps a row of its own fits only a gap.
@@ -928,9 +950,14 @@ export function spanAt(content, target, rules, sid = null) {
  *   and section edges, and the sides.
  * - A section fits a Content gap only when its span fits the content width.
  * - A column, side or section edge must have room and be wide enough.
+ * - A type limited per area never goes into an area that has as many.
  * - Never onto its own place.
  */
 export function fits(content, sid, target, rules) {
+  return fitsPlace(content, sid, target, rules) && !areaFullAt(content, sid, target, rules);
+}
+
+function fitsPlace(content, sid, target, rules) {
   const layout = layoutOf(rules.layout);
   const sections = sectionMap(content);
   const section = sections.get(sid);
@@ -998,7 +1025,8 @@ export function fits(content, sid, target, rules) {
 
 /**
  * Whether a row of columns may move to a gap, as the server would keep it
- * there: never with a locked section in it, never out of Content with a
+ * there: never with a locked section in it, never into an area that has
+ * as many of a type limited per area as it may, never out of Content with a
  * section that belongs in Content, and into Content only when each of its
  * sections fits its column at the content width. Never onto its own place.
  */
@@ -1014,6 +1042,7 @@ export function rowFits(content, rowId, target, rules) {
   if (to < 0 || ((r.area ?? null) === area && to === index)) return false;
   const ids = r.columns.flat();
   if (ids.some((sid) => lockedBy(rules, sections.get(sid)))) return false;
+  if (ids.some((sid) => areaFullAt(content, sid, target, rules))) return false;
   if (!hasAreasIn(sections, rules)) return true;
   if (area !== 'content') return !ids.some((sid) => contentOnlyBy(rules, sections.get(sid)));
   const parts = partsOf(layout, r.split) || [12];
@@ -1328,10 +1357,11 @@ function widths(content, layout, rules) {
 /**
  * What changed between two versions of a document's layout: the board,
  * the multi-column rows whose content changed, the sections whose width
- * changed, and, given the page's rules, the sections that left Content
- * (`left`, `[{sid, area}]` with the area each went to): a side filled
- * for the first time takes the rows too wide for Content out of it, with
- * the rows between them and its edge, and the board says which.
+ * changed, and, given the page's rules, the sections a side filled for
+ * the first time took out of Content (`left`, `[{sid, area}]` with the
+ * area each went to): the rows too wide for Content beside it, with the
+ * rows between them and its edge. A move out of Content the merchant made
+ * on purpose is never in `left`.
  */
 export function effectsOf(before, after, rulesOrLayout) {
   const l = layoutOf(rulesOrLayout);
@@ -1344,8 +1374,11 @@ export function effectsOf(before, after, rulesOrLayout) {
   const wide = widths(before, l, rules);
   const sections = [...widths(after, l, rules)].filter(([sid, span]) => wide.get(sid) !== span).map(([sid]) => sid);
 
+  // Only a side filled for the first time takes rows out of Content; a
+  // section the merchant moves there on purpose is not reported.
+  const filled = (c) => SIDES.filter((which) => sidesOf(c)[which].length > 0).length;
   const left = [];
-  if (rules) {
+  if (rules && filled(after) > filled(before)) {
     const areaNow = new Map();
     now.forEach((r) => r.columns.flat().forEach((sid) => areaNow.set(sid, r.area)));
     rowsOf(before, l, rules).forEach((r) => {
@@ -1384,6 +1417,7 @@ export function catalogRules(layout, sectionDef, sidesAllowed) {
     ownRow: (section) => def(section)?.own_row === true,
     contentOnly: (section) => def(section)?.content_only === true,
     limitPerArea: (section) => def(section)?.limit_per_area === true,
+    limitOf: (section) => (Number.isInteger(def(section)?.limit) ? def(section).limit : null),
     known: (section) => Boolean(def(section)),
     sidesAllowed: Boolean(sidesAllowed),
   };

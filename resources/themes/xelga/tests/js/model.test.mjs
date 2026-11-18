@@ -18,6 +18,10 @@ import {
   contentSpan, sideTargets, catalogRules, roomOf, areasOf, countInPlace,
 } from '../../editor/js/modules/board/model.js';
 
+// The editor's messages look for their holder in the page; Node has none.
+globalThis.document ??= { querySelector: () => null, querySelectorAll: () => [], addEventListener: () => {}, removeEventListener: () => {} };
+globalThis.window ??= { setTimeout, clearTimeout, addEventListener: () => {}, removeEventListener: () => {}, requestAnimationFrame: () => 0 };
+
 const here = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(here, '../fixtures/layout');
 const LAYOUT = JSON.parse(readFileSync(join(FIXTURES, '_layout.json'), 'utf8'));
@@ -622,15 +626,11 @@ test('countInPlace counts a bar per area and per band', () => {
   assert.equal(countInPlace(header, 'bar', { drop: 'band', group: 'header', before: null }, { ...AREA_RULES, sidesAllowed: false }), 1);
 });
 
-test('a second bar in another area can be added and duplicated', async () => {
-  // The editor's messages look for their holder in the page; Node has none.
-  globalThis.document ??= { querySelector: () => null, querySelectorAll: () => [], addEventListener: () => {} };
-  globalThis.window ??= { setTimeout, clearTimeout, addEventListener: () => {}, requestAnimationFrame: () => 0 };
+/* The editor's state for one product page, with a catalog of a bar, a notice allowed twice per area, text and the page content. */
+async function openProduct(content) {
   const { S, ctx } = await import('../../editor/js/modules/state.js');
   const { setCatalog } = await import('../../editor/js/modules/catalog.js');
   const { resetHistory } = await import('../../editor/js/modules/operations.js');
-  const { addSection, canDuplicate, duplicateSection } = await import('../../editor/js/modules/actions.js');
-
   ctx.boot = { layout: LAYOUT };
   ctx.api = {};
   const bar = { label: 'Announcement bar', group: 'template', templates: ['*'], limit: 1, limit_per_area: true, own_row: true, span: { min: 6, variants: {} }, settings: [] };
@@ -638,16 +638,22 @@ test('a second bar in another area can be added and duplicated', async () => {
     bar,
     notice: { ...bar, label: 'Notice', limit: 2 },
     text: { label: 'Text', group: 'template', templates: ['*'], span: { min: 3, variants: {} }, settings: [] },
+    banner: { label: 'Banner', group: 'template', templates: ['*'], span: { min: 12, variants: {} }, settings: [] },
     'product-main': { label: 'Product', group: 'template', main: true, span: { min: 12, variants: {} }, settings: [] },
   } });
-  const start = page({ bar1: 'bar', main: 'product-main', t: 'text' }, {
-    rows: [arow('r1', 'top', [['bar1']]), arow('rm', 'content', [['main']]), arow('rt', 'bottom', [['t']])],
-  });
-  S.docs = { product: { handle: 'product', kind: 'template', content: JSON.parse(json(start)), savedSeq: 0 } };
+  S.docs = { product: { handle: 'product', kind: 'template', content: JSON.parse(json(content)), savedSeq: 0 } };
   S.page = { handle: 'product', pageType: 'product', kind: 'template' };
   S.loaded = true;
   S.fatal = null;
   resetHistory();
+  return S;
+}
+
+test('a second bar can be added in another area, and a bar is never duplicated into its full area', async () => {
+  const { addSection, canDuplicate, duplicateHint } = await import('../../editor/js/modules/actions.js');
+  const S = await openProduct(page({ bar1: 'bar', main: 'product-main', t: 'text' }, {
+    rows: [arow('r1', 'top', [['bar1']]), arow('rm', 'content', [['main']]), arow('rt', 'bottom', [['t']])],
+  }));
 
   const added = addSection('bar', { target: { drop: 'gap', area: 'bottom', before: 'end' } });
   assert.ok(added, 'Bottom takes a bar while Top has one');
@@ -656,17 +662,68 @@ test('a second bar in another area can be added and duplicated', async () => {
   // Each bar's area is full, so neither is copied into it.
   assert.equal(canDuplicate('bar1'), false);
   assert.equal(canDuplicate(added.sid), false);
+  assert.equal(duplicateHint('bar1'), 'This area already has one. Use Add section in another area.');
+  // A second bar in the same area is refused.
+  assert.equal(addSection('bar', { target: { drop: 'gap', area: 'top', before: 'end' } }), null);
+});
 
-  // A type allowed twice in an area is copied while its own area has room, whatever the page holds.
-  const n = page({ n1: 'notice', main: 'product-main', n2: 'notice', n3: 'notice' }, {
+test('a type allowed twice in an area is copied while its own area has room, whatever the page holds', async () => {
+  const { canDuplicate, duplicateSection, duplicateHint } = await import('../../editor/js/modules/actions.js');
+  const S = await openProduct(page({ n1: 'notice', main: 'product-main', n2: 'notice', n3: 'notice' }, {
     rows: [arow('r1', 'top', [['n1']]), arow('rm', 'content', [['main']]), arow('r2', 'bottom', [['n2']]), arow('r3', 'bottom', [['n3']])],
-  });
-  S.docs = { product: { handle: 'product', kind: 'template', content: JSON.parse(json(n)), savedSeq: 0 } };
-  resetHistory();
+  }));
   assert.equal(canDuplicate('n1'), true);
+  assert.equal(duplicateHint('n1'), null);
   assert.equal(canDuplicate('n2'), false);
   await duplicateSection('n1');
   const copied = rowsOf(S.docs.product.content, LAYOUT, AREA_RULES);
   assert.equal(copied.length, 5);
   assert.deepEqual(copied.slice(0, 2).map((r) => r.area), ['top', 'top'], 'the copy sits under its original, in Top');
+});
+
+test('a copy of a Content section below the page content stays in Content, and so do the rows after it', async () => {
+  const { duplicateSection } = await import('../../editor/js/modules/actions.js');
+  const S = await openProduct(page({ main: 'product-main', d1: 'text', d2: 'text', b: 'text' }, {
+    rows: [arow('rm', 'content', [['main']]), arow('r1', 'content', [['d1']]), arow('r2', 'content', [['d2']]), arow('rb', 'bottom', [['b']])],
+  }));
+  await duplicateSection('d1');
+  const rows = rowsOf(S.docs.product.content, LAYOUT, AREA_RULES);
+  assert.deepEqual(rows.map((r) => r.area), ['content', 'content', 'content', 'content', 'bottom']);
+  assert.ok(rows[2].columns[0][0].startsWith('text-'), 'the copy is just below its original');
+});
+
+test('a section moved out of Content on purpose is not reported as moved by a side', async () => {
+  const { commit } = await import('../../editor/js/modules/operations.js');
+  const S = await openProduct(page({ crumbs: 'text', x: 'text', main: 'product-main', s: 'text' }, {
+    rows: [arow('rc', 'top', [['crumbs']]), arow('rx', 'content', [['x']]), arow('rm', 'content', [['main']])], sides: { left: ['s'] },
+  }));
+  const op = { t: 'row-move', doc: 'product', rowId: 'rx', area: 'top', before: 'end' };
+  commit(op);
+  assert.equal(rowsOf(S.docs.product.content, LAYOUT, AREA_RULES).find((r) => r.id === 'rx').area, 'top');
+  assert.deepEqual(op.left, []);
+  const place_ = { t: 'place', doc: 'product', sid: 'crumbs', target: { drop: 'gap', area: 'bottom', before: 'end' } };
+  commit(place_);
+  assert.deepEqual(place_.left, []);
+});
+
+test('a first side that moves rows out of Content is reported, and undo and redo give the page back byte for byte', async () => {
+  const { commit, undo, redo } = await import('../../editor/js/modules/operations.js');
+  const S = await openProduct(page({ crumbs: 'text', wide: 'banner', above: 'text', main: 'product-main', below: 'text', banner: 'banner', last: 'text', f: 'text' }, {
+    rows: [
+      arow('rc', 'top', [['crumbs']]), arow('rw', 'content', [['wide']]), arow('ra', 'content', [['above']]), arow('rm', 'content', [['main']]),
+      arow('rb', 'content', [['below']]), arow('rn', 'content', [['banner']]), arow('rl', 'content', [['last']]), arow('rf', 'bottom', [['f']]),
+    ],
+  }));
+  const before = json(S.docs.product.content);
+  const op = { t: 'place', doc: 'product', sid: 'f', target: { drop: 'side', side: 'left', before: null } };
+  commit(op);
+  const after = json(S.docs.product.content);
+  // The wide row above the page content goes to Top with the rows between; the banner below goes to Bottom with the rows after it.
+  assert.deepEqual(op.left, [{ sid: 'wide', area: 'top' }, { sid: 'banner', area: 'bottom' }, { sid: 'last', area: 'bottom' }]);
+  assert.deepEqual(rowsOf(S.docs.product.content, LAYOUT, AREA_RULES).map((r) => [r.id, r.area]),
+    [['rc', 'top'], ['rw', 'top'], ['ra', 'content'], ['rm', 'content'], ['rb', 'content'], ['rn', 'bottom'], ['rl', 'bottom']]);
+  undo();
+  assert.equal(json(S.docs.product.content), before, 'undone');
+  redo();
+  assert.equal(json(S.docs.product.content), after, 'redone');
 });
