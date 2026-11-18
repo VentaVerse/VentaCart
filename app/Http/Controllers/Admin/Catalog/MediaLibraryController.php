@@ -8,6 +8,7 @@ use App\Rules\MediaFolderName;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Support\Media\MediaReferences;
+use App\Support\Media\MediaTree;
 use App\Support\ImageExtension;
 use App\Support\MediaLibrary;
 use Illuminate\Http\JsonResponse;
@@ -26,8 +27,20 @@ class MediaLibraryController extends Controller
 {
     use FetchesRemoteImages;
 
-    /** Files per page. One folder can hold more than a thousand images. */
-    private const PER_PAGE = 120;
+    /**
+     * Every folder in the library with its image count, in one answer.
+     * `total` is every image in the library.
+     */
+    public function tree(): JsonResponse
+    {
+        $folders = MediaTree::all();
+
+        return response()->json([
+            'ok' => true,
+            'folders' => $folders,
+            'total' => $folders[0]['count'] ?? 0,
+        ]);
+    }
 
     public function browse(Request $request): JsonResponse
     {
@@ -68,8 +81,9 @@ class MediaLibraryController extends Controller
 
         $files = MediaLibrary::sort($files, $sort);
         $total = count($files);
-        $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
-        $slice = array_slice($files, ($page - 1) * self::PER_PAGE, self::PER_PAGE);
+        $lastPage = max(1, (int) ceil($total / MediaLibrary::PER_PAGE));
+        $slice = array_slice($files, ($page - 1) * MediaLibrary::PER_PAGE, MediaLibrary::PER_PAGE);
+        $counts = MediaTree::counts();
 
         return response()->json([
             'ok' => true,
@@ -78,12 +92,44 @@ class MediaLibraryController extends Controller
             'parent' => MediaLibrary::parent($path, $root),
             'crumbs' => MediaLibrary::crumbs($path, $root),
             'searching' => $search !== '',
-            'folders' => $search === '' ? MediaLibrary::foldersIn($path) : [],
-            'files' => MediaLibrary::describe($slice, MediaReferences::inUse($slice)),
+            'folders' => $search === ''
+                ? $this->withCounts(MediaLibrary::foldersIn($path), $counts)
+                : $this->foldersNamed($root, $search),
+            'files' => MediaLibrary::describe($slice, MediaReferences::summary($slice)),
             'page' => $page,
             'lastPage' => $lastPage,
             'total' => $total,
         ]);
+    }
+
+    /**
+     * @param  array<int, array{name: string, path: string}>  $folders
+     * @param  array<string, int>  $counts
+     * @return array<int, array{name: string, path: string, count: int}>
+     */
+    private function withCounts(array $folders, array $counts): array
+    {
+        return array_map(fn (array $folder) => [...$folder, 'count' => $counts[$folder['path']] ?? 0], $folders);
+    }
+
+    /**
+     * Folders under the root whose own name contains the term, so a search
+     * offers the folder as well as the images inside it.
+     *
+     * @return array<int, array{name: string, path: string, count: int}>
+     */
+    private function foldersNamed(string $root, string $term): array
+    {
+        $term = mb_strtolower($term);
+        $out = [];
+
+        foreach (MediaTree::all() as $folder) {
+            if (str_starts_with($folder['path'], $root . '/') && str_contains(mb_strtolower($folder['name']), $term)) {
+                $out[] = ['name' => $folder['name'], 'path' => $folder['path'], 'count' => $folder['count']];
+            }
+        }
+
+        return $out;
     }
 
     public function upload(Request $request): JsonResponse

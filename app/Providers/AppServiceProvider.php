@@ -56,6 +56,20 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\RateLimiter::for('package-uploads', fn (\Illuminate\Http\Request $request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(max(1, (int) config('extensions.upload.per_minute', 5)))
             ->by('package-uploads:' . ($request->user()?->id ?: $request->ip())));
 
+        // The media library, counted per signed-in admin. Reads are generous
+        // because a picker browses as the merchant types; writes are fewer;
+        // fetching from a web address makes this server download someone
+        // else's file, so it has a tighter limit on top of the write limit.
+        $mediaLimit = fn (string $name, int $perMinute) => \Illuminate\Support\Facades\RateLimiter::for($name, fn (\Illuminate\Http\Request $request) => \Illuminate\Cache\RateLimiting\Limit::perMinute($perMinute)
+            ->by($name . ':' . ($request->user()?->id ?: $request->ip()))
+            ->response(fn (\Illuminate\Http\Request $request, array $headers) => response()->json([
+                'ok' => false,
+                'message' => 'Too many library requests in a short time. Wait a minute, then try again.',
+            ], 429, $headers)));
+        $mediaLimit('media-reads', 240);
+        $mediaLimit('media-writes', 60);
+        $mediaLimit('media-imports', 10);
+
         // Shipping quotes (the cart's estimate, checkout's delivery options)
         // ask every shipping provider, and some call a courier's API: a
         // loop of them would tie up PHP workers and spend the store's courier

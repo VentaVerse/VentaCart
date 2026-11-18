@@ -204,9 +204,9 @@
                         </span>
 
                         {{-- What it would cost, before anyone reaches for delete. --}}
-                        <span class="v-tileused mono" x-show="file.usedBy > 0" x-cloak
-                              :title="file.usedBy + ' products use this'"
-                              x-text="'in ' + file.usedBy"></span>
+                        <span class="v-tileused mono" x-show="file.usedBy?.total > 0" x-cloak
+                              :title="'Used by ' + file.usedBy?.total + ' ' + (file.usedBy?.label || 'records')"
+                              x-text="'in ' + file.usedBy?.total"></span>
                     </span>
                 </template>
             </div>

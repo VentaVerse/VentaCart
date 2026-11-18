@@ -132,20 +132,17 @@ class RecordMediaDimensions extends Command
                 continue;
             }
 
-            $meta = mb_strlen($path) > MediaLibrary::PATH_MAX
-                ? false
-                : @getimagesize(Storage::disk('public')->path($path));
+            // A file over the size limit is left alone, as it is everywhere
+            // dimensions are recorded (see MediaLibrary::measure()).
+            $size = mb_strlen($path) > MediaLibrary::PATH_MAX ? null : MediaLibrary::measure($path);
 
-            // A file over the size limit is left alone: it would be refused
-            // on upload, and it has no thumbnail to show beside its size.
-            if (! $meta || $meta[0] < 1 || $meta[1] < 1
-                || $meta[0] > MediaLibrary::MAX_SIDE || $meta[1] > MediaLibrary::MAX_SIDE) {
+            if ($size === null) {
                 $skipped++;
 
                 continue;
             }
 
-            $rows[] = ['path' => $path, 'width' => (int) $meta[0], 'height' => (int) $meta[1], 'created_at' => $now, 'updated_at' => $now];
+            $rows[] = ['path' => $path, ...$size, 'created_at' => $now, 'updated_at' => $now];
         }
 
         if ($rows !== []) {

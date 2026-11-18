@@ -145,7 +145,8 @@ class MediaLibrary
     }
 
     /**
-     * Every image under a root whose name matches.
+     * Every image under a root whose own name, or the name of a folder it
+     * sits in below the root, matches.
      *
      * Search used to filter the folder you were standing in, which meant a
      * merchant had to already know where a photo was to find it.
@@ -155,14 +156,23 @@ class MediaLibrary
     public static function search(string $root, string $term): array
     {
         $term = mb_strtolower($term);
+        $skip = strlen($root) + 1;
 
-        // Matched against the path, not just the file's own name. A merchant
-        // who files photos in a folder per brand and types the brand's name
-        // means everything in that folder; matching only file names would
-        // find none of it.
+        // A merchant who files photos in a folder per brand and types the
+        // brand's name means everything in that folder, so folder names
+        // count. The path as a whole does not: every image sits under the
+        // root, and a term that spans a slash names no folder or file.
         return collect(Storage::disk('public')->allFiles($root))
             ->filter(fn ($f) => self::isImage($f))
-            ->filter(fn ($f) => str_contains(mb_strtolower($f), $term))
+            ->filter(function ($f) use ($skip, $term) {
+                foreach (explode('/', substr($f, $skip)) as $name) {
+                    if (str_contains(mb_strtolower($name), $term)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            })
             ->values()->all();
     }
 
@@ -191,10 +201,12 @@ class MediaLibrary
      *
      * `thumb` is the small copy made on upload, so a grid of tiles does not
      * load every full-size original. `width` and `height` are null when the
-     * file cannot be read as an image. `folder` is the folder the image is in.
+     * file cannot be read as an image or is over MAX_SIDE. `folder` is the
+     * folder the image is in. `usedBy` is how many records use the image
+     * and, when they are all one kind, which kind (MediaReferences::summary()).
      *
      * @param  array<int, string>  $files
-     * @param  array<string, int>  $usage
+     * @param  array<string, array{total: int, label: ?string}>  $usage
      */
     public static function describe(array $files, array $usage): array
     {
@@ -211,7 +223,10 @@ class MediaLibrary
             'modified' => $disk->exists($path) ? $disk->lastModified($path) : 0,
             'width' => $sizes[$path]['width'] ?? null,
             'height' => $sizes[$path]['height'] ?? null,
-            'usedBy' => (int) ($usage[$path] ?? 0),
+            'usedBy' => [
+                'total' => (int) ($usage[$path]['total'] ?? 0),
+                'label' => $usage[$path]['label'] ?? null,
+            ],
         ])->values()->all();
     }
 
@@ -405,8 +420,17 @@ class MediaLibrary
         return $name;
     }
 
-    /** @return array{width: int, height: int}|null */
-    private static function measure(string $path): ?array
+    /**
+     * Width and height read from the file's header, or null when it cannot
+     * be read as an image or is larger than MAX_SIDE on either side.
+     *
+     * An oversized file would be refused on upload and gets no thumbnail,
+     * so it is left without a row wherever dimensions are recorded: on
+     * upload, while browsing, and by the media:dimensions command.
+     *
+     * @return array{width: int, height: int}|null
+     */
+    public static function measure(string $path): ?array
     {
         $disk = Storage::disk('public');
 
@@ -416,7 +440,7 @@ class MediaLibrary
 
         $meta = @getimagesize($disk->path($path));
 
-        if (! $meta || $meta[0] < 1 || $meta[1] < 1) {
+        if (! $meta || $meta[0] < 1 || $meta[1] < 1 || $meta[0] > self::MAX_SIDE || $meta[1] > self::MAX_SIDE) {
             return null;
         }
 

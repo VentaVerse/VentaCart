@@ -297,8 +297,8 @@ export function registerMediaPicker(Alpine) {
 
         get deleteWarning() {
             const files = this.confirming || [];
-            const using = files.filter((f) => f.usedBy > 0);
-            const products = files.reduce((n, f) => n + (f.usedBy || 0), 0);
+            const using = files.filter((f) => f.usedBy?.total > 0);
+            const products = files.reduce((n, f) => n + (f.usedBy?.total || 0), 0);
 
             if (!products) return 'Nothing is using them.';
 

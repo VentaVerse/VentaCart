@@ -68,6 +68,21 @@ class MediaDimensionsTest extends TestCase
     }
 
     /**
+     * The size limit applies to files that reached the disk some other way
+     * too: browse leaves an oversized one unmeasured, as the command does.
+     */
+    public function test_browse_does_not_record_an_image_over_the_size_limit(): void
+    {
+        Storage::disk('public')->put('media/products/demo-wide.png', $this->png(MediaLibrary::MAX_SIDE + 1, 1));
+
+        $files = $this->getJson(route('admin.media.browse', ['path' => 'media/products']))->assertOk()->json('files');
+
+        $this->assertNull($files[0]['width']);
+        $this->assertNull($files[0]['height']);
+        $this->assertSame(0, MediaFile::count());
+    }
+
+    /**
      * Two requests can browse the same new file at once. Both miss the row,
      * both measure it, and the second insert must not fail on the unique path.
      */
