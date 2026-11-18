@@ -201,6 +201,7 @@
       {
         "type": "brand",
         "label": "Brand",
+        "photo_setting": "image",
         "settings": [
           {
             "key": "brand",

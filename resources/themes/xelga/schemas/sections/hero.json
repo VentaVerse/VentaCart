@@ -169,6 +169,7 @@
       {
         "type": "slide",
         "label": "Slide",
+        "photo_setting": "image",
         "limit": null,
         "settings": [
           {

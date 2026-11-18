@@ -304,6 +304,12 @@ final class CatalogLinter
                 $this->problem("{$where}: block {$bt} needs a label.");
             }
             $this->settings("{$where} block {$bt}", (array) ($type['settings'] ?? []), $spec);
+            if (array_key_exists('photo_setting', $type)) {
+                $named = collect((array) ($type['settings'] ?? []))->firstWhere('key', $type['photo_setting']);
+                if (! is_string($type['photo_setting']) || ($named['type'] ?? null) !== 'image') {
+                    $this->problem("{$where} block {$bt}: photo_setting must name an image setting of the block.");
+                }
+            }
         }
 
         foreach ((array) ($spec['presets'] ?? []) as $preset) {
