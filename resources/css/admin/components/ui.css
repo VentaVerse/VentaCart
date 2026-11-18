@@ -1082,13 +1082,6 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
     color: var(--v-ink);
 }
 
-.v-modal--media {
-    width: min(960px, 100%);
-    display: flex;
-    flex-direction: column;
-    max-height: 85vh;
-}
-
 .v-mediagrid-wrap {
     margin-top: 14px;
     overflow-y: auto;
@@ -1139,38 +1132,6 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
     aspect-ratio: 1;
 }
 
-/* Modal tile states: added to the product / picked this visit */
-.v-mediatile { position: relative; }
-.v-mediatile.is-added { outline: 2px solid var(--v-act-fill); background: var(--v-act-wash); opacity: .65; cursor: default; }
-.v-mediatile.is-picked { outline: 2px solid var(--v-good); background: var(--v-good-wash); }
-.v-tilemark {
-    position: absolute;
-    top: 8px; left: 8px;
-    width: 20px; height: 20px;
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    pointer-events: none;
-    box-shadow: var(--v-lift);
-    background: var(--v-act-fill);
-    color: var(--v-act-ink);
-}
-.v-tilemark--picked { background: var(--v-good); color: var(--v-surface); }
-.v-tilemark svg { width: 12px; height: 12px; }
-
-.v-tilewrap { position: relative; }
-.v-tilewrap .v-tileacts {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    display: none;
-    gap: 4px;
-    z-index: 2;
-}
-.v-tilewrap:hover .v-tileacts,
-.v-tilewrap:focus-within .v-tileacts { display: flex; }
-.v-tileacts .v-row__x { background: var(--v-surface); border-radius: var(--v-r-sm); box-shadow: var(--v-lift); }
-
 .v-dropwrap { position: relative; }
 .v-dropzone {
     position: absolute;
@@ -1200,14 +1161,6 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
     gap: 8px;
 }
 
-.v-crumbrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    font-size: 13px;
-    overflow-x: auto;
-}
-
 .v-link {
     color: var(--v-act);
     background: none;
@@ -1223,54 +1176,6 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
 
 .v-link:hover {
     text-decoration: underline;
-}
-
-.v-mediatile {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 8px;
-    border: none;
-    background: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 11px;
-    color: var(--v-ink-3);
-    transition: background var(--v-fast);
-}
-
-.v-mediatile:hover {
-    background: var(--v-hover);
-}
-
-.v-mediatile > span:last-child {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.v-mediatile__folder {
-    width: 40px;
-    height: 40px;
-    color: var(--v-act);
-}
-
-.v-mediatile__frame {
-    width: 100%;
-    aspect-ratio: 1;
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid var(--v-line);
-    background: var(--v-canvas);
-}
-
-.v-mediatile__frame img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
 }
 
 .v-range {
@@ -1959,174 +1864,49 @@ svg.v-dlb-ic { width: 14px; height: 14px; }
 .v-pagerow .v-pager { flex: 1 1 auto; }
 .v-perpage { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; }
 
-/* --- The one image browser ------------------------------------
-   Replaces five hand-rolled copies. Everything a caller used to
-   decide for itself (crumb label, empty wording, tile class, close
-   affordance, whether a count showed) is decided once, here. */
+/* --- Image field ----------------------------------------------
+   What an image field holds: a thumbnail and the file name, with a way
+   to drop it. Choosing happens in the media library dialog. */
 
 .v-mpick { display: flex; flex-direction: column; gap: 8px; }
 .v-mpick--bare { display: contents; }
 
-.v-mpick__chosen { display: flex; flex-wrap: wrap; gap: 8px; }
-.v-mpick__one { position: relative; display: block; }
-
-.v-mpick__one img {
-    width: 78px;
-    height: 78px;
-    object-fit: cover;
-    border-radius: var(--v-r-sm);
-    border: 1px solid var(--v-line-2);
-    display: block;
+.v-mpick__chosen {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.v-mpick__drop {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    width: 22px;
-    height: 22px;
-    border: 0;
-    border-radius: 999px;
-    background: var(--v-slab);
-    color: #fff;
-    cursor: pointer;
-    line-height: 1;
-    display: grid;
-    place-items: center;
-}
-
-/* The panel. Wraps rather than clipping: the old one kept a fixed
-   586px header row inside a viewport that would not scroll, so on a
-   phone Upload and Close sat permanently off-screen. */
-.v-modal--media .v-mpick__head,
-.v-mpick__bar,
-.v-mpick__foot {
+.v-mpick__one {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
     min-width: 0;
 }
 
-.v-mpick__head { padding-bottom: 10px; border-bottom: 1px solid var(--v-line); }
-.v-mpick__head .v-row__x { margin-left: auto; }
-.v-mpick__bar { padding: 10px 0; }
-.v-mpick__bar .v-control { min-width: 0; flex: 0 1 auto; }
-.v-mpick__acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
-.v-mpick__count { font-size: 11.5px; color: var(--v-ink-3); }
-
-.v-mpick__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
-    gap: 8px;
-    overflow-y: auto;
-    min-height: 0;
-    flex: 1 1 auto;
-    padding: 2px;
-}
-
-.v-mpick__note { margin: 14px 0; color: var(--v-ink-3); font-size: 13px; text-align: center; }
-
-.v-mpick__foot {
-    padding-top: 10px;
-    border-top: 1px solid var(--v-line);
-    justify-content: space-between;
-}
-
-.v-mpick__footacts { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-
-/* The tile carries state as a shape as well as a colour. */
-.v-mediatile.is-added { border-color: var(--v-act-fill); background: var(--v-act-wash); }
-.v-mediatile.is-picked { border-color: var(--v-good, #2F7D5B); }
-
-.v-tilemark {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    background: var(--v-act-fill);
-    color: var(--v-act-ink);
-    font-size: 11px;
-    font-weight: 700;
-    display: grid;
-    place-items: center;
-    line-height: 1;
-}
-
-.v-tilemark--pick { background: #2F7D5B; color: #fff; }
-
-/* What a file would cost to delete, before anyone reaches for it.
-   Anchored over the thumbnail, not under it: at the bottom-left it sat on
-   the first characters of the caption, so every name read "in 2 -Gear-Day"
-   with the "New" hidden behind the badge. It steps aside on hover, where
-   the delete button lives and where the confirm states the count anyway. */
-.v-tileused {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    font-size: 10.5px;
-    padding: 1px 6px;
-    border-radius: 999px;
-    background: var(--v-slab);
-    color: #fff;
-    pointer-events: none;
-}
-
-.v-tilewrap:hover .v-tileused,
-.v-tilewrap:focus-within .v-tileused { display: none; }
-
-.v-mediatile--up { color: var(--v-ink-3); }
-
-@media (max-width: 700px) {
-    .v-mpick__acts { margin-left: 0; width: 100%; }
-    .v-mpick__grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
-}
-
-/* The already-added tile: the wash carries the state, the label keeps the
-   page's ink. Brass text on a brass wash measured 2.66:1 in dark. */
-.v-mediatile.is-added { color: var(--v-ink); }
-.v-mediatile.is-added > span:last-of-type { color: var(--v-ink); }
-
-/* The caption truncates by NAME, not by position.
-   `.v-mediatile > span:last-child` was the rule, and a tile that appends a
-   state mark after its name puts the mark last, so the caption never got the
-   rule and 130-character filenames wrapped to five lines over the badge. */
-.v-mediatile__name {
+.v-mpick__thumb {
+    flex: none;
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: var(--v-r-sm);
+    border: 1px solid var(--v-line-2);
+    background: var(--v-canvas);
     display: block;
-    width: 100%;
-    white-space: nowrap;
+}
+
+.v-mpick__name {
+    flex: 0 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 11px;
-    line-height: 1.4;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--v-ink-2);
 }
-
-/* --- The tile fills its cell -----------------------------------
-   Measured broken: the grid track and the wrapper were both a
-   correct 124px, and the button inside them was 427px, because a
-   <button> shrink-wraps its content and .v-mediatile__frame's
-   width:100% then had nothing real to resolve against, so it fell
-   back to the image's natural 300px. Tiles overlapped, captions
-   collided, and the badges landed anywhere.
-
-   The frame's percentage needs a parent with a width, and a grid
-   item needs min-width:0 or its content sets the floor. */
-
-.v-mpick__grid > .v-tilewrap,
-.v-mpick__grid > .v-mediatile { min-width: 0; }
-
-.v-mpick__grid .v-mediatile {
-    width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-}
-
-/* In this picker "added" means currently chosen, not unavailable, so
-   it stays selectable and keeps its brightness. The 0.65 dim reads as
-   disabled and belongs to the older tile it was written for. */
-.v-mpick__grid .v-mediatile.is-added { opacity: 1; cursor: pointer; }
 
 /* A destructive button that cannot fire should not look like it can.
    .55 opacity on a filled red still reads as armed. */

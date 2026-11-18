@@ -35,7 +35,7 @@
             </div>
             <div class="v-gap">
                 <x-admin.media-picker name="image" :value="$category?->image"
-                                      root="categories" label="Image" />
+                                      root="categories" kind="categories" label="Image" />
                 @error('image') <span class="v-field__error">{{ $message }}</span> @enderror
             </div>
             <div class="v-gap">

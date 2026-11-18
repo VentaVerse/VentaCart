@@ -10,9 +10,8 @@ use Tests\TestCase;
  * availability editor. Between them they held every raw Tailwind palette
  * utility and every non-token radius in the admin tree.
  *
- * single_image_picker is gone: five hand-rolled image browsers became one
- * x-admin.media-picker, so the rules that guarded the partial now guard the
- * component that replaced it.
+ * Every admin image field is x-admin.media-picker, which opens the shared
+ * media library, so the rules guard the field and its script.
  *
  * These are file-content assertions rather than rendered-page assertions
  * because two of the four paint themselves from JavaScript (the product
@@ -32,6 +31,7 @@ class PartialsDesignSystemTest extends TestCase
             // the same design-system rules now guard their v successors.
             'image_manager' => $base . '/catalog/products/partials/image_manager.blade.php',
             'media-picker' => resource_path('views/components/admin/media-picker.blade.php'),
+            'media-picker-script' => resource_path('js/admin/media-picker.js'),
             // The Media library page is a thin view; its tools are drawn by
             // a script, so the script is held to the same rules.
             'media-page' => $base . '/catalog/media/index.blade.php',

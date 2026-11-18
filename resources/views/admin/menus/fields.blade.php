@@ -58,7 +58,7 @@
         </x-admin.field>
     </div>
     <div class="v-gap">
-        <x-admin.media-picker name="banner" :value="old('banner', $vCfg['banner'] ?? '')" root="banners" label="Mega menu banner" trigger="Choose image" can="upload,url" />
+        <x-admin.media-picker name="banner" :value="old('banner', $vCfg['banner'] ?? '')" root="banners" kind="banners" label="Mega menu banner" />
     </div>
     <div class="v-gap">
         <x-admin.field name="banner_url" label="Banner link" hint="Where the banner leads: a path such as /sale, or a full https:// address.">

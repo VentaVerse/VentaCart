@@ -1,364 +1,113 @@
-// The one image browser.
+// An admin image field. It shows what the field holds and opens the shared
+// media library (window.VentaCart.media) to change it; browsing, uploading
+// and managing files all happen in the library.
 //
-// There were five of these, hand-rolled, all calling the product image
-// endpoints and all drifting: delete existed in two, sort in one,
-// multi-select in one, and the root crumb had three different labels. Four of
-// the five swallowed browse errors entirely, so a session expiry showed
-// "Loading..." forever. Every fix had to be made five times and was usually
-// made once.
-//
-// Registered once, on the one Alpine the admin boots. It is deliberately NOT
-// a factory-per-field like the partial it replaces: a product with two variant
-// axes would have minted thirty-six of those, each with its own modal.
+// Registered once on the admin's Alpine. A page with many fields, or a
+// variant table that aims one field at many rows, opens one library dialog
+// at a time.
+
+/** Runs `use` with the library hook, waiting for its script if it has not loaded yet. */
+function withLibrary(use) {
+    const media = globalThis.window?.VentaCart?.media;
+    if (media) {
+        use(media);
+        return;
+    }
+    document.addEventListener('ventacart:media-ready', (event) => use(event.detail || window.VentaCart.media), { once: true });
+}
+
+const nameOf = (path) => String(path || '').split('/').pop();
+
 export function registerMediaPicker(Alpine) {
-    Alpine.data('vMediaPicker', (cfg) => ({
-        // --- what the caller fixed
-        root: cfg.root || 'media/products',
-        // The top of the library, which every folder can be walked back to.
-        library: cfg.library || 'media',
-        mode: cfg.mode || 'single',
-        can: (cfg.can || 'upload').split(',').map((c) => c.trim()),
-        // 'add' hands the selection to the caller; 'manage' deletes it.
-        commitAction: cfg.commit === 'manage' ? 'manage' : 'add',
-        endpoints: cfg.endpoints,
+    Alpine.data('vMediaPicker', (cfg = {}) => createMediaPicker(cfg));
+}
 
-        // --- what the merchant chose
-        value: cfg.value || (cfg.mode === 'multi' ? [] : ''),
+/** The field's state and behavior, apart from Alpine so it can be tested alone. */
+export function createMediaPicker(cfg = {}) {
+    const mode = cfg.mode === 'multi' ? 'multi' : 'single';
 
-        // --- the browser
-        open: false,
-        path: '',
-        crumbs: [],
-        parent: null,
-        folders: [],
-        files: [],
-        page: 1,
-        lastPage: 1,
-        total: 0,
-        searching: false,
-        q: '',
-        sort: 'modified',
-        loading: false,
-        busy: '',
-        picked: [],
-        lastPath: null,
-        opener: null,
-        newFolder: '',
-        confirming: null,
-        _searchTimer: null,
-
-        init() {
-            this.$watch('q', () => {
-                clearTimeout(this._searchTimer);
-                this._searchTimer = setTimeout(() => this.browse(this.path, 1), 250);
-            });
-        },
-
-        able(what) { return this.can.includes(what); },
+    return {
+        folder: cfg.folder || 'media',
+        kind: cfg.kind || 'default',
+        mode,
+        limit: cfg.limit ?? null,
+        // Disk-relative library paths: the server accepts nothing else.
+        value: cfg.value ?? (mode === 'multi' ? [] : ''),
+        // Preview addresses by path, seeded by the server and filled in by
+        // the library as images are chosen.
+        urls: { ...(cfg.urls || {}) },
+        opening: false,
+        dialog: null,
 
         get chosen() { return this.mode === 'multi' ? this.value : (this.value ? [this.value] : []); },
 
-        /** Names both halves of what the grid is showing, and neither when empty. */
-        get tally() {
-            if (this.searching) {
-                return this.total + (this.total === 1 ? ' match' : ' matches');
-            }
-
-            const parts = [];
-            if (this.folders.length) parts.push(this.folders.length + (this.folders.length === 1 ? ' folder' : ' folders'));
-            if (this.total) parts.push(this.total + (this.total === 1 ? ' file' : ' files'));
-
-            return parts.join(', ');
-        },
-
         get payload() { return this.mode === 'multi' ? JSON.stringify(this.value) : this.value; },
 
-        /**
-         * Open where the answer probably is: the folder the current image
-         * already lives in, else where the merchant was last, else the root
-         * this caller declared. Opening at the bare disk root is how the old
-         * copies put the store's payment QR code in front of a merchant
-         * looking for a product photo.
-         */
-        async show(opener) {
-            this.opener = opener instanceof Element ? opener : (opener?.currentTarget || null);
-            this.open = true;
-            this.picked = [];
-            this.q = '';
-
-            // Where to open. Reopening where you left off, or beside the image
-            // already chosen, is only a kindness while that folder sits inside
-            // the root this picker is aimed at. A picker pointed at brands must
-            // start in brands, however deep in products it was last time:
-            // otherwise every root on the library page opens the folder the
-            // previous one was left in, and only a page reload clears it.
-            const insideRoot = (p) => typeof p === 'string' && p !== ''
-                && (p === this.root || p.startsWith(this.root + '/'));
-
-            const current = this.chosen[0];
-            const beside = current && current.includes('/')
-                ? current.slice(0, current.lastIndexOf('/'))
-                : null;
-
-            const at = [beside, this.lastPath].find(insideRoot) || this.root;
-
-            await this.browse(at, 1);
-        },
-
-        hide() {
-            this.open = false;
-            this.confirming = null;
-            // x-dialog restores focus to whatever opened it, so this only
-            // covers the case where the trigger was replaced while open.
-            if (this.opener && !document.contains(document.activeElement)) this.opener.focus();
-        },
+        nameOf,
 
         /**
-         * Every call through one place, so a failure is never silent.
-         *
-         * A session expiry returns the login page as HTML, res.json() throws,
-         * and the four copies with no catch left the spinner up forever.
+         * Opens the library. A single field opens beside the image it holds;
+         * a multi field adds to what it holds, so those images show as
+         * already added and cannot be picked twice.
          */
-        async ask(url, options = {}, topic = null) {
-            try {
-                const res = await fetch(url, options);
+        show(opener) {
+            const from = opener instanceof Element ? opener : (opener?.currentTarget || null);
+            if (this.opening || this.dialog) return;
+            this.opening = true;
 
-                if (res.status === 401 || res.status === 419) {
-                    this.toast('Your session expired. Sign in again in another tab, then retry.', 'danger', topic);
-                    return null;
-                }
+            withLibrary((media) => {
+                this.opening = false;
+                const multi = this.mode === 'multi';
+                const held = [...this.chosen];
 
-                const body = await res.json().catch(() => null);
-
-                if (!res.ok || !body || body.ok === false) {
-                    this.toast(body?.message || 'That did not work. Nothing was changed.', 'danger', topic);
-                    return null;
-                }
-
-                return body;
-            } catch (e) {
-                this.toast('Could not reach the server. Check the connection and retry.', 'danger', topic);
-                return null;
-            }
+                this.dialog = media.open({
+                    mode: this.mode,
+                    limit: multi ? (this.limit === null ? null : Math.max(this.limit - held.length, 0)) : 1,
+                    value: multi ? [] : this.value,
+                    inUse: multi ? held : [],
+                    kind: this.kind,
+                    folder: this.folder,
+                    opener: from,
+                    onChoose: (files) => this.take(files),
+                    onClose: () => { this.dialog = null; },
+                });
+            });
         },
 
-        /** A topic ties a message to its action, so the action working replaces its error. */
-        toast(message, tone = 'success', topic = null) {
-            window.Alpine?.store('toasts')?.push(message, tone, topic);
-        },
+        take(files) {
+            const list = (files || []).filter((f) => f && typeof f.path === 'string' && f.path !== '');
+            if (!list.length) return;
 
-        async browse(path, page = 1) {
-            this.loading = true;
+            list.forEach((f) => { this.urls[f.path] = f.thumb || f.url || ''; });
 
-            const params = new URLSearchParams({ root: this.root, sort: this.sort, page });
-            if (path) params.set('path', path);
-            if (this.q.trim()) params.set('q', this.q.trim());
-
-            const data = await this.ask(`${this.endpoints.browse}?${params}`);
-
-            if (data) {
-                this.path = data.path;
-                this.crumbs = data.crumbs;
-                this.parent = data.parent;
-                this.folders = data.folders;
-                this.files = data.files;
-                this.page = data.page;
-                this.lastPage = data.lastPage;
-                this.total = data.total;
-                this.searching = data.searching;
-                this.lastPath = data.path;
-            }
-
-            this.loading = false;
-        },
-
-        resort(by) { this.sort = by; this.browse(this.path, 1); },
-
-        isChosen(file) { return this.chosen.includes(file.path); },
-        isPicked(file) { return this.picked.includes(file.path); },
-
-        /**
-         * Single commits and closes. Multi stages, because the Images tab has
-         * always staged and its Save is the thing that writes.
-         */
-        choose(file) {
             if (this.mode === 'single') {
-                this.value = file.path;
-                this.emit('picked', { paths: [file.path] });
-                this.hide();
+                this.value = list[0].path;
+                this.emit([list[0].path], [list[0]]);
                 return;
             }
 
-            const at = this.picked.indexOf(file.path);
-            at === -1 ? this.picked.push(file.path) : this.picked.splice(at, 1);
-        },
-
-        take() {
-            const added = this.picked.filter((p) => !this.value.includes(p));
-            this.value = [...this.value, ...added];
-            this.emit('picked', { paths: added });
-            this.hide();
+            const added = list.filter((f) => !this.value.includes(f.path));
+            this.value = [...this.value, ...added.map((f) => f.path)];
+            this.emit(added.map((f) => f.path), added);
         },
 
         clear() {
             this.value = this.mode === 'multi' ? [] : '';
-            this.emit('picked', { paths: [] });
+            this.emit([], []);
         },
 
         drop(path) {
             this.value = this.value.filter((p) => p !== path);
-            this.emit('picked', { paths: this.value });
+            this.emit(this.value, []);
         },
 
         /**
-         * The doctrine signal, dispatched once from here.
-         *
-         * A :value binding fires no input event, so every copy had to say so
-         * by hand and three of them forgot. The component cannot forget.
+         * Tells the page what changed. A :value binding fires no input event,
+         * so the form's unsaved-changes bar would never hear of a new image.
          */
-        emit(name, detail) {
-            this.$el.dispatchEvent(new CustomEvent('media:' + name, { detail, bubbles: true }));
+        emit(paths, files) {
+            this.$el.dispatchEvent(new CustomEvent('media:picked', { detail: { paths, files }, bubbles: true }));
             this.$el.closest('form')?.dispatchEvent(new Event('input', { bubbles: true }));
         },
-
-        async upload(event) {
-            const files = [...(event.target.files || event.dataTransfer?.files || [])].filter((f) => f.type.startsWith('image/'));
-            if (event.target) event.target.value = '';
-            if (!files.length) return;
-
-            this.busy = files.length === 1 ? 'Uploading ' + files[0].name : 'Uploading ' + files.length + ' files';
-
-            const body = new FormData();
-            files.forEach((f) => body.append('files[]', f));
-            body.append('path', this.path);
-            body.append('root', this.root);
-
-            const data = await this.ask(this.endpoints.upload, {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': this.endpoints.token, Accept: 'application/json' },
-                body,
-            }, 'media-upload');
-
-            this.busy = '';
-
-            if (data) {
-                this.toast(data.files.length === 1 ? 'Uploaded ' + data.files[0].name : 'Uploaded ' + data.files.length + ' files', 'success', 'media-upload');
-                data.files.forEach((f) => this.emit('uploaded', { path: f.path, url: f.url }));
-                await this.browse(this.path, 1);
-            }
-        },
-
-        async importUrl(url) {
-            if (!url.trim()) return;
-            this.busy = 'Fetching';
-
-            const data = await this.ask(this.endpoints.importUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.endpoints.token, Accept: 'application/json' },
-                body: JSON.stringify({ url, path: this.path, root: this.root }),
-            }, 'media-upload');
-
-            this.busy = '';
-
-            if (data) {
-                this.toast('Fetched ' + data.files[0].name, 'success', 'media-upload');
-                this.emit('uploaded', { path: data.files[0].path, url: data.files[0].url });
-                await this.browse(this.path, 1);
-            }
-        },
-
-        /**
-         * The merchant is told the cost before they decide.
-         *
-         * browse returns usedBy on every file, so the confirm can name the
-         * number without another round trip. The old endpoint asked nothing
-         * and said nothing, and one image in this catalogue is on fourteen
-         * products.
-         */
-        askDelete(file) { this.confirming = [file]; },
-
-        /** The whole selection, so the cost is stated once for all of them. */
-        askDeleteMany() {
-            this.confirming = this.files.filter((f) => this.picked.includes(f.path));
-        },
-
-        get confirmTitle() {
-            const n = this.confirming?.length || 0;
-
-            return n > 1 ? 'Delete ' + n + ' files?' : 'Delete this file?';
-        },
-
-        get confirmNames() {
-            const names = (this.confirming || []).map((f) => f.name);
-            if (names.length <= 3) return names.join(', ');
-
-            return names.slice(0, 3).join(', ') + ' and ' + (names.length - 3) + ' more';
-        },
-
-        get deleteWarning() {
-            const files = this.confirming || [];
-            const using = files.filter((f) => f.usedBy?.total > 0);
-            const products = files.reduce((n, f) => n + (f.usedBy?.total || 0), 0);
-
-            if (!products) return 'Nothing is using them.';
-
-            const where = using.length === files.length || files.length === 1
-                ? ''
-                : ' across ' + using.length + ' of them';
-
-            return products === 1
-                ? '1 product uses ' + (files.length > 1 ? 'one of these' : 'it') + ' and will lose its image.'
-                : products + ' products use ' + (files.length > 1 ? 'these' : 'it') + where + ' and will lose their image.';
-        },
-
-        async confirmDelete() {
-            const files = this.confirming || [];
-            this.confirming = null;
-            if (!files.length) return;
-
-            const paths = files.map((f) => f.path);
-
-            const data = await this.ask(this.endpoints.delete, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.endpoints.token, Accept: 'application/json' },
-                body: JSON.stringify({ paths }),
-            });
-
-            if (data) {
-                const what = files.length === 1 ? files[0].name : files.length + ' files';
-                this.toast('Deleted ' + what + (data.detached ? ', removed from ' + data.detached + ' products' : ''));
-
-                paths.forEach((path) => {
-                    if (this.mode === 'multi') this.drop(path);
-                    else if (this.value === path) this.clear();
-                });
-
-                this.picked = this.picked.filter((p) => !paths.includes(p));
-                await this.browse(this.path, this.page);
-            }
-        },
-
-        async makeFolder() {
-            const name = this.newFolder.trim();
-            if (!name) return;
-
-            const data = await this.ask(this.endpoints.folder, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.endpoints.token, Accept: 'application/json' },
-                body: JSON.stringify({ path: this.path, name }),
-            });
-
-            if (data) {
-                this.newFolder = '';
-                this.toast('Created ' + name);
-                await this.browse(data.path, 1);
-            }
-        },
-
-        /** Innermost first: the confirm, then the panel. */
-        escape() {
-            if (this.confirming) { this.confirming = null; return; }
-            if (this.open) this.hide();
-        },
-    }));
+    };
 }

@@ -510,20 +510,12 @@
                         </div>
                     </x-admin.panel>
 
-                    {{-- The shared browser, aimed at a row.
-
-                         This was hand-rolled this morning and reproduced every
-                         flaw of the four copies it was modelled on, plus three
-                         of its own: no up-tile, silent catch on both network
-                         calls, and folder glyphs rendered at 125px because the
-                         tile class was wrong. The diagnosis behind it was
-                         right, that including the per-field partial once per
-                         row would stack thirty-six modals; the conclusion was
-                         wrong. One component, bare, driven by the cell. --}}
-                    <x-admin.media-picker name="__variant_image" root="products"
-                                          mode="single" can="upload,url" bare
-                                          @media:picked="assignVariantImage($event.detail.paths[0] ?? '')"
-                                          @media:uploaded="assignVariantImage($event.detail.path)" />
+                    {{-- One photo field for the whole table, aimed at a row when
+                         its photo button is pressed, so a large table opens one
+                         library dialog rather than one per row. --}}
+                    <x-admin.media-picker name="__variant_image" root="products" kind="products"
+                                          mode="single" bare
+                                          @media:picked="assignVariantImage($event.detail.paths[0] ?? '')" />
                 </div>
 
                 {{-- ===================== PRICING ===================== --}}
@@ -862,20 +854,24 @@
                 maxCombinations: 60,
                 comboRefused: 0,
 
-                /* ---- the shared browser, aimed at a row ---- */
+                /* ---- the photo field, aimed at a row ---- */
 
-                // Which row the panel is filling. The component owns the
-                // browsing; this owns only the aim.
+                // Which row the library is filling. The field owns the
+                // library; this owns only the aim.
                 pickingFor: null,
 
                 pickFor(variant, event) {
-                    this.pickingFor = variant;
-                    // By selector, not by $refs: the picker carries its own
+                    // By selector, not by $refs: the field carries its own
                     // x-data, so a ref on it does not resolve into this scope.
-                    this.$root.querySelector('[data-media-picker="__variant_image"]')
-                        ?.dispatchEvent(new CustomEvent('media:open', {
-                            detail: { from: event.currentTarget },
-                        }));
+                    const field = this.$root.querySelector('[data-media-picker="__variant_image"]');
+                    if (!field) return;
+
+                    this.pickingFor = variant;
+                    // The library opens beside the photo this row holds.
+                    window.Alpine.$data(field).value = variant.image || '';
+                    field.dispatchEvent(new CustomEvent('media:open', {
+                        detail: { from: event.currentTarget },
+                    }));
                 },
 
                 assignVariantImage(path) {
