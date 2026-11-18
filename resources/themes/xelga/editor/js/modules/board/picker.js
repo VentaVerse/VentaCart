@@ -409,7 +409,9 @@ function renderPane() {
   const type = P.type;
   const state = stateOf(type);
   const name = typeName(type);
-  const back = h('button', {
+  // A band that offers one type opens on its layouts: there are no tiles to go back to.
+  const inBand = bandOf(P.target);
+  const back = inBand && Object.keys(availableTypes(inBand)).length === 1 ? null : h('button', {
     type: 'button', class: 'btn btn--ghost btn--sm spick__back',
     onclick: () => {
       P.step = 'types';

@@ -190,7 +190,11 @@ export function pageSettings() {
   const facts = factsNow();
   const words = subjectWords(page.subjectType);
   const base = pageDef(page.type) || page;
-  const out = [h('dl', { class: 'facts' }, ...facts.rows.map(([term, value]) => h('div', { class: 'facts__row' }, h('dt', { text: term }), h('dd', { text: value }))))];
+  const list = h('dl', { class: 'facts' });
+  // Drawn again when a choice of records changes who uses the layout, so "Used by" never keeps the old count.
+  const drawFacts = () => list.replaceChildren(...factsNow().rows.map(([term, value]) => h('div', { class: 'facts__row' }, h('dt', { text: term }), h('dd', { text: value }))));
+  drawFacts();
+  const out = [list];
   const actions = h('div', { class: 'insp-actions' });
   if (facts.actions.includes('only')) {
     const name = page.subject.name;
@@ -211,7 +215,7 @@ export function pageSettings() {
     out.push(actions);
   }
   const layout = currentLayout();
-  if (layout && words) out.push(...specialLayoutSettings(layout, words, page));
+  if (layout && words) out.push(...specialLayoutSettings(layout, words, page, drawFacts));
   return out;
 }
 
@@ -248,7 +252,7 @@ export function fixedPanel() {
    ------------------------------------------------------------------------ */
 
 /* A special layout's own settings: its name, what uses it, and delete. */
-function specialLayoutSettings(layout, words, page) {
+function specialLayoutSettings(layout, words, page, onUsersChange = null) {
   const out = [];
   const form = h('div', { class: 'form' });
 
@@ -276,6 +280,8 @@ function specialLayoutSettings(layout, words, page) {
   function drawChosen() {
     const live = templateOf(layout.handle);
     if (!live) return;
+    onUsersChange?.();
+    ui.updatePageButton?.();
     const kind = words.kind;
     const ids = live.assigned;
     const rows = ids.map((id) => {

@@ -147,7 +147,8 @@ export function confirmFrom(anchor, options, popOpts = {}) {
 /**
  * A modal dialog for decisions that must be made before work continues.
  * Answers a promise with the chosen action's value, or null on Escape
- * (Escape does nothing when the choice is required).
+ * (Escape does nothing when the choice is required). The action marked
+ * `initial` has the focus when the dialog opens.
  */
 export function choose({ title, body, actions, iconName = 'alert', required = false }) {
   return new Promise((resolve) => {
@@ -164,6 +165,7 @@ export function choose({ title, body, actions, iconName = 'alert', required = fa
       h('div', { class: 'dialog__body' }, ...(Array.isArray(body) ? body : [body])),
       h('div', { class: 'dialog__actions' }, ...actions.map((a) => h('button', {
         type: 'button', class: `btn ${a.primary ? 'btn--primary' : a.danger ? 'btn--danger' : 'btn--secondary'}`,
+        autofocus: a.initial || null,
         onclick: () => finish(a.value),
       }, a.label))));
     dialog.addEventListener('cancel', (e) => {

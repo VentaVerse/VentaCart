@@ -25,6 +25,7 @@ Element.prototype.querySelector = function safeFind(selector) {
   try { return find.call(this, selector); } catch { return null; }
 };
 
+const text = (el) => el?.textContent.replace(/\s+/g, ' ').trim() ?? null;
 const walk = (el, found = []) => {
   if (el?.children) el.children.forEach((child) => { found.push(child); walk(child, found); });
   return found;
@@ -52,4 +53,23 @@ test('Choose products opens the list of products to pick from', async () => {
   assert.ok(dialog, 'the list opens');
   assert.equal(dialog.getAttribute('aria-label'), 'Choose products for Gift guide');
   layer.remove?.();
+});
+
+test('the Used by line follows a change of the records at once', () => {
+  useWindow('computer');
+  openPage('product');
+  S.templates = [{ handle: 'gift-guide', pageType: 'product', label: 'Gift guide', subjectType: 'product', assigned: [7], count: 1 }];
+  S.page = { ...PAGES.product, handle: 'gift-guide', kind: 'custom', layout: true };
+  ctx.api = {
+    pick: async () => ({ items: [] }),
+    names: async () => ({}),
+    assign: () => new Promise(() => {}),
+  };
+  const panel = pageSettings();
+  const usedBy = () => text(panel[0].querySelector('.facts__row dd'));
+  assert.equal(usedBy(), '1 product');
+  const stop = panel.flatMap((el) => [el, ...walk(el)]).find((el) => el.getAttribute?.('aria-label')?.startsWith('Stop using this layout'));
+  assert.ok(stop, 'the chosen product has a Stop button');
+  stop.dispatchEvent({ type: 'click', currentTarget: stop });
+  assert.equal(usedBy(), 'No product yet', 'The count changes before the server answers.');
 });

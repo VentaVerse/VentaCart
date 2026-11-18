@@ -259,6 +259,15 @@ export class Element extends Node {
     return !event.defaultPrevented;
   }
 
+  showModal() {
+    this.open = true;
+    this.querySelector('[autofocus]')?.focus();
+  }
+
+  close() {
+    this.open = false;
+  }
+
   focus() {
     if (globalThis.document) globalThis.document.activeElement = this;
   }
