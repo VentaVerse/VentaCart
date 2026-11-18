@@ -60,7 +60,7 @@ export function buildControl(setting, value, change, id, fctx) {
     case 'scheme-colors':
       return schemeEditor();
     case 'image':
-      return imagePicker(value, change, setting);
+      return imagePicker(value, change, setting, fctx);
     case 'url':
       return linkPicker(value, change, id, setting);
     case 'menu-picker':

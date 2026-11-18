@@ -134,8 +134,6 @@ final class BootPayload
                 'name' => (string) $user->name,
                 'can' => [
                     'publish' => $user->hasPermission('themes.edit'),
-                    'media_view' => $user->hasPermission('media.view'),
-                    'media_upload' => $user->hasPermission('media.create'),
                     'menus_edit' => $user->hasPermission('menus.edit'),
                 ],
             ],
@@ -190,13 +188,10 @@ final class BootPayload
                 'schemes_usage' => route('admin.xelga.schemes.usage'),
                 'preview_open' => route('admin.xelga.preview.open'),
                 'preview_close' => route('admin.xelga.preview.close'),
-                'media_browse' => Route::has('admin.media.browse') ? route('admin.media.browse') : null,
-                'media_upload' => Route::has('admin.media.upload') ? route('admin.media.upload') : null,
                 'menus_edit' => Route::has('admin.menus') ? route('admin.menus') : null,
                 'exit' => Route::has('admin.theme.index') ? route('admin.theme.index') : url('/'),
             ],
             'route_tokens' => ['handle' => $handleToken, 'revision' => '0', 'kind' => $kindToken, 'slug' => '__SLUG__'],
-            'media' => ['root' => 'media', 'extensions' => ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif']],
             'limits' => ['sections' => 40, 'document_bytes' => 262144, 'heartbeat_seconds' => 30, 'autosave_ms' => 1500],
         ];
     }

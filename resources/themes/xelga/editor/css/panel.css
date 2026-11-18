@@ -1480,51 +1480,6 @@ a {
   gap: 12px;
 }
 
-.library {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  max-height: 340px;
-  padding: 2px;
-  overflow-y: auto;
-}
-
-.library button {
-  position: relative;
-  padding: 0;
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
-  background: var(--surface-3);
-  border: 0;
-  border-radius: var(--radius-sm);
-}
-
-.library img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.library button:hover img {
-  opacity: .88;
-}
-
-.library button[aria-checked="true"] {
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
-}
-
-.library button[aria-checked="true"]::after {
-  content: "";
-  position: absolute;
-  inset-block-start: 4px;
-  inset-inline-end: 4px;
-  width: 16px;
-  height: 16px;
-  background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 11px no-repeat;
-  border-radius: 50%;
-}
-
 /* Product picker */
 .picked {
   display: grid;
@@ -2348,103 +2303,6 @@ button.pick-row:hover {
   margin-block-start: 2px;
 }
 
-/* Media library picker */
-.library-pop {
-  display: grid;
-  gap: 2px;
-}
-
-.library__crumbs {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  margin: 0 6px 6px;
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-}
-
-.library__crumbs .icon {
-  width: 12px;
-  height: 12px;
-}
-
-.library .library__folder {
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 4px;
-  aspect-ratio: 1;
-  padding: 6px;
-  font-size: var(--fs-xs);
-  color: var(--text-2);
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-}
-
-.library .library__folder:hover {
-  background: var(--hover);
-}
-
-.library .library__folder span {
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.library__sk {
-  aspect-ratio: 1;
-}
-
-.library__empty {
-  grid-column: 1 / -1;
-  margin: 12px 6px;
-  font-size: var(--fs-sm);
-  color: var(--text-3);
-  text-align: center;
-}
-
-.library__status:empty {
-  display: none;
-}
-
-.library__status {
-  display: grid;
-  justify-items: start;
-  gap: 6px;
-  margin: 6px;
-}
-
-.library__note {
-  margin: 0;
-  font-size: var(--fs-xs);
-  color: var(--text-2);
-}
-
-.library__note--error { color: var(--danger); }
-.library__note--ok { color: var(--success); }
-
-.library__foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 6px 6px 2px;
-  padding-block-start: 8px;
-  border-block-start: 1px solid var(--line);
-}
-
-.library__foot .pop-foot {
-  margin: 0;
-}
-
-.library-pop > .btn--block {
-  margin: 6px 2px 0;
-  width: auto;
-}
-
 /* No access, and other picker states */
 .pick-state {
   display: grid;
@@ -2512,6 +2370,11 @@ button.pick-row:hover {
 
 .media__empty--missing {
   color: var(--warn);
+}
+
+.media__note {
+  font-size: var(--fs-xs);
+  color: var(--danger);
 }
 
 .link-pop {

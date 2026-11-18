@@ -5,7 +5,7 @@
  *
  * Shape (keys marked * are optional):
  *   store      { name, url, origin }           url: the published store
- *   user       { id, name, can: { publish, media_view, media_upload, menus_edit } }
+ *   user       { id, name, can: { publish, menus_edit } }
  *   csrf       the CSRF token
  *   catalog    { sections: {type: schema}, theme_settings: [groups], font_pairs: [pairs] }
  *   options    { menus: [{value, label}], font_pairs: [...] }   lists for options_source
@@ -26,10 +26,9 @@
  *   preview    { url, param, section_param, nonce, until }   nonce is empty until the
  *              editor opens the window (POST preview_open), which fills nonce, until and url
  *   routes     { documents_show, documents_draft, documents_discard, publish, revisions_index,
- *                revisions_restore, presence, pick, preview_open, preview_close, media_browse, media_upload,
+ *                revisions_restore, presence, pick, preview_open, preview_close,
  *                menus_edit, exit }
  *   route_tokens { handle: "__HANDLE__", revision: "0", kind: "__KIND__", slug: "__SLUG__" }
- *   media      { root, extensions, storage_url* }
  *   limits     { sections, document_bytes, heartbeat_seconds, autosave_ms }
  *   icons*     the icon sprite's URL, or empty when the shell inlines it
  *   extensions* { name: { title, state } }    every installed extension, state 'on' or 'off'
@@ -97,14 +96,6 @@ export function normalizeBoot(raw) {
   if (!boot.routes || typeof boot.routes !== 'object') throw new BootError('The editor was started without its routes.');
   boot.store = { name: '', url: '/', ...(boot.store || {}) };
   boot.preview = { url: boot.store.url || '/', nonce: '', param: 'xelga_preview', ...(boot.preview || {}) };
-  const can = boot.user?.can || {};
-  boot.media = {
-    storage_url: '/storage/',
-    root: '',
-    can_browse: can.media_view !== false,
-    can_upload: can.media_upload !== false,
-    ...(boot.media || {}),
-  };
   boot.option_sources = boot.option_sources || boot.options || {};
   boot.limits = { autosave_ms: 1500, heartbeat_seconds: 30, ...(boot.limits || {}) };
   const pages = Array.isArray(boot.pages) && boot.pages.length ? boot.pages : [{ handle: 'home', label: 'Home page', type: 'home', url: boot.preview.url }];

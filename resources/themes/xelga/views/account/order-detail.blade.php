@@ -64,7 +64,10 @@
                         <ul class="lines">
                             @foreach ($order->products as $item)
                                 @php
+                                    // A line keeps the photo it was sold with; once that file
+                                    // is deleted from the library the line shows a blank tile.
                                     $itemImage = $item->image ?: $item->product?->image;
+                                    $itemImage = $itemImage && \Illuminate\Support\Facades\Storage::disk('public')->exists($itemImage) ? $itemImage : null;
                                     $itemUrl = $item->product && $item->product->is_active ? route('product.show', $item->product->slug) : null;
                                 @endphp
                                 <li class="line">
