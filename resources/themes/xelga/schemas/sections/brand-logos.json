@@ -190,6 +190,10 @@
       "control": "segmented"
     }
   ],
+  "render_keys": [
+    "source",
+    "count"
+  ],
   "blocks": {
     "min": 0,
     "max": 16,
@@ -215,7 +219,8 @@
             "key": "image",
             "type": "image",
             "label": "Custom logo",
-            "default": ""
+            "default": "",
+            "live": "render"
           },
           {
             "key": "link",

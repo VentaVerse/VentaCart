@@ -25,6 +25,8 @@ final class CatalogLinter
     /** @var list<int> the widths, in twelfths of a row, a section may ask for */
     private const SPANS = [3, 4, 6, 8, 12];
 
+    private const LIVE = ['text', 'attr', 'css', 'render'];
+
     /** `render`: the setting is read by the views, so a change shows when the page is drawn again. */
     private const TARGETS = ['token', 'attr', 'font-pair', 'scheme-colors', 'render'];
 
@@ -259,6 +261,13 @@ final class CatalogLinter
         $settings = (array) ($spec['settings'] ?? []);
         $this->settings($where, $settings, $spec);
 
+        $renderKeys = (array) ($spec['render_keys'] ?? []);
+        foreach ($renderKeys as $key) {
+            if (! in_array($key, array_column($settings, 'key'), true)) {
+                $this->problem("{$where}: render key {$key} is not a setting.");
+            }
+        }
+
         $variants = array_column((array) ($spec['variants'] ?? []), 'value');
         $variantSetting = collect($settings)->firstWhere('key', 'variant');
         if ($variants !== [] && $variantSetting !== null) {
@@ -448,6 +457,9 @@ final class CatalogLinter
             }
             if (! is_string($raw['label'] ?? null) || $raw['label'] === '') {
                 $this->problem("{$where}: setting {$key} needs a label.");
+            }
+            if (isset($raw['live']) && ! in_array($raw['live'], self::LIVE, true)) {
+                $this->problem("{$where}: setting {$key} has an unknown live mode.");
             }
 
             $setting = new SettingSchema($raw);
