@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Catalog;
 use App\Exceptions\UnsafeUrlException;
 use App\Http\Controllers\Controller;
 use App\Services\SafeUrlFetcher;
+use App\Support\ImageExtension;
 use App\Support\ImageRenditions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -67,7 +68,7 @@ class ProductImageController extends Controller
 
         [$directory, $kind] = $this->uploadDirectory($root, $folder, $pimToken);
 
-        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $filename = Str::uuid() . '.' . ImageExtension::orRefuse($file, 'file');
         $path = $file->storeAs($directory, $filename, 'public');
 
         $this->generateThumbnail($path);
@@ -254,7 +255,7 @@ class ProductImageController extends Controller
             $file = $this->convertWebpToJpg($file);
         }
 
-        $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
+        $filename = Str::uuid() . '.' . ImageExtension::orRefuse($file, 'file');
         $path = $file->storeAs($directory, $filename, 'public');
 
         $this->generateThumbnail($path);
