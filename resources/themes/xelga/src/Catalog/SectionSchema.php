@@ -172,6 +172,26 @@ final class SectionSchema
     }
 
     /**
+     * Whether the section is fixed in its band: the Header in the header
+     * band, the Footer in the footer band. A fixed section is always there
+     * and cannot be removed, moved or swapped, but may be hidden. Only the
+     * theme's own header and footer sections can be fixed.
+     */
+    public function fixed(): bool
+    {
+        return $this->group !== 'template' && $this->source() === null && ($this->raw['fixed'] ?? false) === true;
+    }
+
+    /**
+     * Whether the section is locked on its document: fixed in its band, or
+     * a page's main section (its page content), which can never be hidden.
+     */
+    public function locked(): bool
+    {
+        return $this->fixed() || ($this->raw['main'] ?? false) === true;
+    }
+
+    /**
      * The narrowest column, in twelfths, this section reads well in: the
      * variant's own `span` when it declares one (some variants cannot
      * shrink as far as the section), else the section's `span.min`. A

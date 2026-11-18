@@ -10,6 +10,8 @@ use Themes\Xelga\Documents\DocumentPresenter;
 use Themes\Xelga\Documents\DocumentWriter;
 use Themes\Xelga\Documents\Duplicator;
 use Themes\Xelga\Documents\Handles;
+use Themes\Xelga\Documents\Layout;
+use Themes\Xelga\Documents\LayoutRules;
 use Themes\Xelga\Documents\MissingDocumentException;
 use Themes\Xelga\Documents\Publisher;
 use Themes\Xelga\Documents\ReadabilityException;
@@ -55,7 +57,11 @@ class DocumentController extends Controller
         // An editor that knows no rows would send the page without them and
         // flatten it. Once the page has rows or sides, only an editor that
         // says it keeps them may save; the other is told to reload.
-        if (! $request->boolean('with_rows') && self::hasLayout(Document::where('handle', $handle)->first())) {
+        // Likewise an editor that knows rows but no areas would save every
+        // row without its Top, Content or Bottom.
+        $stored = Document::where('handle', $handle)->first();
+        if ((! $request->boolean('with_rows') && self::hasLayout($stored))
+            || (! $request->boolean('with_areas') && self::hasLayout($stored, $handle))) {
             return $this->fail('This page was changed with a newer editor. Reload the editor to keep editing.', 'editor-outdated', 409);
         }
 
@@ -162,11 +168,17 @@ class DocumentController extends Controller
         });
     }
 
-    /** Whether the stored draft or published content has rows or sides. */
-    private static function hasLayout(?Document $row): bool
+    /**
+     * Whether the stored draft or published content has rows or sides;
+     * given the handle, only content that also has areas on that page counts.
+     */
+    private static function hasLayout(?Document $row, ?string $areasOn = null): bool
     {
         foreach ([$row?->draft, $row?->published] as $content) {
-            if (is_array($content) && (isset($content['rows']) || isset($content['sides']))) {
+            if (! is_array($content) || (! isset($content['rows']) && ! isset($content['sides']))) {
+                continue;
+            }
+            if ($areasOn === null || Layout::hasAreas(array_map(fn ($section) => (array) $section, (array) ($content['sections'] ?? [])), app(LayoutRules::class, ['handle' => $areasOn]))) {
                 return true;
             }
         }

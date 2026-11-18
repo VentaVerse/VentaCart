@@ -16,17 +16,22 @@ final class DocumentPresenter
 
     public static function state(string $handle, ?Document $row): array
     {
-        $published = $row?->published;
-        $draft = $row?->draft;
+        $published = self::withLocked($row?->published, $handle);
+        $draft = self::withLocked($row?->draft, $handle);
+        // What the editor edits: with any extension placement it has not
+        // been given, so saving keeps both the section and the record.
+        $content = self::withMoves(self::withLocked(\Themes\Xelga\Extensions\Placements::overlay($handle, $draft ?? $published ?? Defaults::content($handle)), $handle), $handle);
 
         return [
             'handle' => $handle,
             'kind' => Handles::kind($handle),
             'page_type' => Handles::pageType($handle),
             'label' => $row?->label,
-            // What the editor edits: with any extension placement it has not
-            // been given, so saving keeps both the section and the record.
-            'content' => self::forClient(\Themes\Xelga\Extensions\Placements::overlay($handle, $draft ?? $published ?? Defaults::content($handle)), $handle),
+            'content' => self::objects($content['content']),
+            // What the layout normalizer moved in `content` (a section that
+            // no longer fits where it was put, sides on a page without them),
+            // so the editor can say what changed since the page was saved.
+            'adjusted' => $content['moved'],
             'draft' => $draft === null ? null : self::forClient($draft, $handle),
             'published' => $published === null ? null : self::forClient($published, $handle),
             'is_default' => $published === null,
@@ -63,15 +68,42 @@ final class DocumentPresenter
      */
     public static function forClient(array $content, ?string $handle = null): array
     {
-        if ($handle !== null && Handles::kind($handle) !== 'settings') {
-            try {
-                $content = Layout::normalize($content, app(LayoutRules::class, ['handle' => $handle]))['content'];
-            } catch (\Throwable $e) {
-                // The editor still gets the page as stored, rows included,
-                // so a save does not lose them.
-                report($e);
-            }
+        return self::objects(self::withMoves($content, $handle)['content']);
+    }
+
+    /**
+     * The content with its rows and sides read as the storefront reads
+     * them, and what that moved. Without a handle, or for the theme
+     * settings, it is returned as it is.
+     *
+     * @return array{content: array, moved: list<array{path: string, reason: string, value: string}>}
+     */
+    public static function withMoves(array $content, ?string $handle): array
+    {
+        if ($handle === null || Handles::kind($handle) === 'settings') {
+            return ['content' => $content, 'moved' => []];
         }
+
+        try {
+            return Layout::normalize($content, app(LayoutRules::class, ['handle' => $handle]));
+        } catch (\Throwable $e) {
+            // The editor still gets the page as stored, rows included,
+            // so a save does not lose them.
+            report($e);
+
+            return ['content' => $content, 'moved' => []];
+        }
+    }
+
+    /** A stored document with the sections it always holds, as the storefront draws it. */
+    private static function withLocked(?array $content, string $handle): ?array
+    {
+        return $content === null ? null : \Themes\Xelga\Rendering\Storefront::withLockedSections($content, $handle);
+    }
+
+    /** Content with its keyed maps as objects, whatever their size. */
+    private static function objects(array $content): array
+    {
         if (array_key_exists('values', $content)) {
             $content['values'] = (object) (array) $content['values'];
         }

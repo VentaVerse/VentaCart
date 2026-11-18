@@ -118,10 +118,21 @@ class XelgaRowsDocumentTest extends TestCase
         }
         $refused('product', ['sides' => ['left' => $ids]] + $manyOnProduct, 'content.sides.left');
 
-        $cart = $this->defaults('cart');
-        $refused('cart', ['sides' => ['left' => [$cart['order'][0]]]] + $cart, 'content.sides');
         $header = $this->defaults('header');
         $refused('header', ['sides' => ['left' => [$header['order'][0]]]] + $header, 'content.sides');
+    }
+
+    public function test_sides_on_the_cart_move_to_rows_and_are_reported(): void
+    {
+        $cart = $this->defaults('cart');
+        $first = $cart['order'][0];
+
+        $adjusted = $this->saveWithRows('cart', ['sides' => ['left' => [$first]]] + $cart, 0)->assertOk()->json('data.adjusted');
+
+        $this->assertSame(['content.sections.' . $first], array_column(array_filter($adjusted, fn ($a) => $a['reason'] === 'no-sides'), 'path'));
+        $draft = $this->draft('cart');
+        $this->assertArrayNotHasKey('sides', $draft);
+        $this->assertContains($first, $draft['order']);
     }
 
     public function test_row_settings_are_cleaned_and_reported(): void

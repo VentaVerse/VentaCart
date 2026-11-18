@@ -538,7 +538,7 @@ class XelgaRowsRenderTest extends TestCase
         $this->assertNotNull($seen, "{$url} draws a template.");
 
         $handle = app(\Themes\Xelga\Rendering\TemplateResolver::class)->handleFor($seen['pageType'], $seen['subject'] ?? null);
-        $content = Storefront::withMainSection(app(\Themes\Xelga\Rendering\DocumentRepository::class)->content($handle), \Themes\Xelga\Documents\Handles::baseFor($seen['pageType']));
+        $content = Storefront::withLockedSections(app(\Themes\Xelga\Rendering\DocumentRepository::class)->content($handle), $handle);
         $content = Layout::normalize($content, app(LayoutRules::class, ['handle' => $handle]))['content'];
         $context = (new RenderContext($seen['pageType'], $handle, 'template', false, $seen['subject'] ?? null, $seen['page'] ?? []))->withSpan($span);
 

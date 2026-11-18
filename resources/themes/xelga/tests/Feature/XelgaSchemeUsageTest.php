@@ -73,6 +73,7 @@ class XelgaSchemeUsageTest extends TestCase
             'content' => $this->homeWithRow('scheme-4'),
             'draft_version' => 2,
             'with_rows' => true,
+            'with_areas' => true,
         ])->assertOk();
 
         // Product: never saved, so the shipped page counts.

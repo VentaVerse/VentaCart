@@ -99,7 +99,7 @@ trait XelgaExtensionHelpers
         return $content;
     }
 
-    /** Save a draft as an editor that knows rows does. */
+    /** Save a draft as an editor that knows rows and areas does. */
     protected function saveWithRows(string $handle, array $content, int $version): TestResponse
     {
         $this->forgetXelgaState();
@@ -108,6 +108,7 @@ trait XelgaExtensionHelpers
             'content' => $content,
             'draft_version' => $version,
             'with_rows' => true,
+            'with_areas' => true,
         ]);
     }
 

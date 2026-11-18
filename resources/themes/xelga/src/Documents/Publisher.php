@@ -70,7 +70,11 @@ final class Publisher
             $out = [];
 
             foreach ($drafts as $handle => $row) {
-                $clean = (new Shape($context))->normalize($handle, $row->draft, [$row->draft])['content'];
+                // A draft saved before its Header, Footer or page content was
+                // locked gets it back as the storefront draws it, rather than
+                // being refused.
+                $draft = \Themes\Xelga\Rendering\Storefront::withLockedSections($row->draft, (string) $handle);
+                $clean = (new Shape($context))->normalize($handle, $draft, [$row->draft])['content'];
                 $json = json_encode($clean, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
                 $version = $row->published_version + 1;
 
@@ -159,7 +163,10 @@ final class Publisher
     public function restore(Revision $revision, int $baseVersion, User $user): array
     {
         $handle = (string) $revision->document->handle;
-        $result = $this->writer->saveDraft($handle, $revision->content, $baseVersion, $user, [$revision->content]);
+        // A revision from before its Header, Footer or page content was
+        // locked restores with it, as the storefront would draw it.
+        $content = \Themes\Xelga\Rendering\Storefront::withLockedSections($revision->content, $handle);
+        $result = $this->writer->saveDraft($handle, $content, $baseVersion, $user, [$revision->content]);
 
         $this->audit('restore', $user, [$handle => [
             'restored_version' => (int) $revision->version,

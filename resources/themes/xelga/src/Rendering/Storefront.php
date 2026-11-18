@@ -47,8 +47,7 @@ final class Storefront
         $this->page = $page;
         $this->handle = $this->resolver->handleFor($pageType, $subject);
 
-        $base = Handles::baseFor($pageType);
-        $content = self::withMainSection($this->documents->content($this->handle), $base);
+        $content = self::withLockedSections($this->documents->content($this->handle), $this->handle);
 
         // Rows and sides decide the reading order. A failure here must not
         // cost the shopper the page: it is reported and the page is drawn
@@ -67,40 +66,83 @@ final class Storefront
     }
 
     /**
-     * A template always draws its page's main section (the product, the
-     * listing, the cart). The editor cannot remove it, but a stored document
-     * that lost it would leave the page without its content, so the shipped
-     * one is put back in its usual place. Main sections are never hidden.
+     * The document with the sections it always holds (see
+     * Defaults::lockedState()). A template always draws its page's main
+     * section (the product, the listing, the cart), and the header and the
+     * footer always hold the Header and the Footer. The editor cannot remove
+     * them, but a stored document that lost one is given the shipped one
+     * back in its usual place. A main section is never hidden, so a hidden
+     * one is shown. A fixed section may be hidden: one put back comes back
+     * hidden, so the store keeps the look it had, and a hidden one stays
+     * hidden.
      */
-    public static function withMainSection(array $content, string $base): array
+    public static function withLockedSections(array $content, string $handle): array
     {
-        $sections = (array) ($content['sections'] ?? []);
-        $order = array_values(array_filter((array) ($content['order'] ?? []), 'is_string'));
-
-        foreach ($order as $id) {
-            $schema = Catalog::section((string) ($sections[$id]['type'] ?? ''));
-            if ($schema !== null && ($schema->raw['main'] ?? false) === true) {
-                $content['sections'][$id]['disabled'] = false;
-
-                return $content;
-            }
-        }
-
-        $defaults = Defaults::content($base);
-        foreach ((array) ($defaults['order'] ?? []) as $index => $id) {
-            $section = $defaults['sections'][$id] ?? null;
-            $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
-            if ($schema === null || ($schema->raw['main'] ?? false) !== true || isset($sections[$id])) {
-                continue;
-            }
-            array_splice($order, min($index, count($order)), 0, [$id]);
-            $content['sections'] = [...$sections, $id => $section];
-            $content['order'] = $order;
-
+        $kind = Handles::kind($handle);
+        if ($kind !== 'template' && $kind !== 'group') {
             return $content;
         }
 
+        $sections = [];
+        foreach ((array) ($content['sections'] ?? []) as $id => $section) {
+            $sections[(string) $id] = (array) $section;
+        }
+        $state = Defaults::lockedState($handle, $sections);
+        if ($state['missing'] === [] && $state['hidden_main'] === []) {
+            return $content;
+        }
+
+        foreach ($state['hidden_main'] as $id) {
+            $sections[$id]['disabled'] = false;
+        }
+
+        $order = array_values(array_filter((array) ($content['order'] ?? []), 'is_string'));
+        $defaults = Defaults::content($kind === 'group' ? $handle : Handles::baseFor((string) Handles::pageType($handle)));
+        $defaultOrder = array_values(array_filter((array) ($defaults['order'] ?? []), 'is_string'));
+        foreach ($state['missing'] as $type) {
+            foreach ($defaultOrder as $index => $id) {
+                $section = $defaults['sections'][$id] ?? null;
+                if (! is_array($section) || ($section['type'] ?? null) !== $type) {
+                    continue;
+                }
+                $schema = Catalog::section($type);
+                if ($schema !== null && $schema->fixed()) {
+                    $section['disabled'] = true;
+                }
+                $newId = $id;
+                for ($n = 2; isset($sections[$newId]); $n++) {
+                    $newId = $id . '-' . $n;
+                }
+                array_splice($order, self::placeFor($order, $defaultOrder, $index), 0, [$newId]);
+                $sections[$newId] = $section;
+                break;
+            }
+        }
+
+        $content['sections'] = $sections;
+        $content['order'] = $order;
+
         return $content;
+    }
+
+    /**
+     * Where a section the shipped document has at $index goes in $order:
+     * right after the nearest section before it in the shipped order that
+     * the document still holds, else at its shipped place.
+     *
+     * @param  list<string>  $order
+     * @param  list<string>  $defaultOrder
+     */
+    private static function placeFor(array $order, array $defaultOrder, int $index): int
+    {
+        for ($j = $index - 1; $j >= 0; $j--) {
+            $at = array_search($defaultOrder[$j], $order, true);
+            if ($at !== false) {
+                return $at + 1;
+            }
+        }
+
+        return min($index, count($order));
     }
 
     /**
@@ -154,7 +196,7 @@ final class Storefront
         }
 
         return new HtmlString($this->renderer->render(
-            $this->documents->content($handle),
+            self::withLockedSections($this->documents->content($handle), $handle),
             new RenderContext($this->pageType, $this->handle, $handle, $this->preview(), $this->subject, $this->page),
         ));
     }

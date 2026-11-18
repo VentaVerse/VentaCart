@@ -253,6 +253,16 @@ final class CatalogLinter
             }
         }
 
+        // Fixed means always there in a band (the Header, the Footer), so
+        // only the theme's own header and footer sections can be fixed.
+        if (array_key_exists('fixed', $spec)) {
+            if (! is_bool($spec['fixed'])) {
+                $this->problem("{$where}: fixed is true or false.");
+            } elseif ($spec['fixed'] && ($part !== null || ! in_array($spec['group'] ?? null, Handles::GROUPS, true))) {
+                $this->problem("{$where}: only the theme's own header and footer sections can be fixed.");
+            }
+        }
+
         $this->spans($where, $spec, $part === null);
         if ($part === null) {
             $this->pickerGroup($where, $spec);
