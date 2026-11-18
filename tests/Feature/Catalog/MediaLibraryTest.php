@@ -54,7 +54,7 @@ class MediaLibraryTest extends TestCase
 
     public function test_traversal_is_still_refused(): void
     {
-        foreach (['../secrets', 'products/../../etc', './hidden', '.env'] as $bad) {
+        foreach (['../secrets', 'products/../../etc', './hidden', '.env', 'media/.', 'media/./', 'media/a/..', './media', 'media//products', 'media/products/.', 'media/.hidden/x.jpg'] as $bad) {
             $this->assertFalse(MediaLibrary::safePath($bad), $bad . ' must be refused');
         }
     }

@@ -333,4 +333,64 @@ class MediaMoveTest extends TestCase
 
         Storage::disk('public')->assertExists('media/Summer Sale_2026/demo-001.jpg');
     }
+
+    /**
+     * Other spellings of the library itself, or of a path outside it, are
+     * refused by every write, so no request can rename, move or delete the
+     * whole library while looking like a request for one folder in it.
+     */
+    public function test_other_spellings_of_the_library_are_refused_everywhere(): void
+    {
+        $this->putImage('media/products/demo-001.jpg');
+        $disk = Storage::disk('public');
+        $before = $disk->allFiles('media');
+
+        $roots = ['media', 'media/', 'media//', '/media/'];
+        $others = ['media/.', 'media/./', 'media/./x', 'media//x', 'media/..', 'media/a/..', 'media/products/..',
+            './media', 'media//products', 'media/products/.'];
+
+        foreach ([...$roots, ...$others] as $spelling) {
+            $this->postJson(route('admin.media.delete'), ['paths' => [$spelling]])
+                ->assertOk()
+                ->assertJsonPath('deleted', []);
+            $this->postJson(route('admin.media.rename'), ['path' => $spelling, 'name' => 'Pictures'])
+                ->assertStatus(422)
+                ->assertJsonPath('ok', false);
+            $this->postJson(route('admin.media.move'), ['paths' => [$spelling], 'to' => 'media/banners'])
+                ->assertStatus(422)
+                ->assertJsonPath('ok', false);
+
+            // The library with a trailing slash is a real place to move
+            // into; every other spelling is no folder at all.
+            if (! in_array($spelling, $roots, true)) {
+                $this->postJson(route('admin.media.move'), ['paths' => ['media/products/demo-001.jpg'], 'to' => $spelling])
+                    ->assertStatus(422)
+                    ->assertJsonPath('ok', false);
+            }
+        }
+
+        $this->assertTrue($disk->directoryExists('media'));
+        $this->assertSame($before, $disk->allFiles('media'));
+        $disk->assertExists(['media/products/demo-001.jpg', 'media/banners']);
+        $disk->assertMissing('media/Pictures');
+    }
+
+    /** A folder that leads back to the library on disk is the library, whatever its name. */
+    public function test_a_link_back_to_the_library_cannot_be_renamed_or_moved(): void
+    {
+        $this->putImage('media/products/demo-001.jpg');
+        $disk = Storage::disk('public');
+        symlink($disk->path('media'), $disk->path('media/products/loop'));
+
+        $this->postJson(route('admin.media.rename'), ['path' => 'media/products/loop', 'name' => 'Pictures'])
+            ->assertStatus(422)
+            ->assertJsonPath('ok', false);
+        $this->postJson(route('admin.media.move'), ['paths' => ['media/products/loop'], 'to' => 'media/banners'])
+            ->assertStatus(422)
+            ->assertJsonPath('ok', false);
+
+        $this->assertTrue(is_link($disk->path('media/products/loop')));
+        $disk->assertExists(['media/products/demo-001.jpg', 'media/banners']);
+        $disk->assertMissing(['media/products/Pictures', 'media/banners/loop']);
+    }
 }

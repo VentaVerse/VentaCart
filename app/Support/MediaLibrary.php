@@ -114,7 +114,44 @@ class MediaLibrary
             return false;
         }
 
-        return str_starts_with($path, self::ROOT . '/') ? $path : false;
+        // Checked one name at a time: "media/." and "media//x" name the
+        // library itself or a folder by another spelling, so a request for
+        // them could act on the whole library while looking like a child of
+        // it. Every name has to be a real one, and none may start with a dot.
+        $parts = explode('/', $path);
+
+        if ($parts[0] !== self::ROOT || count($parts) < 2) {
+            return false;
+        }
+
+        foreach ($parts as $part) {
+            if ($part === '' || str_starts_with($part, '.')) {
+                return false;
+            }
+        }
+
+        return $path;
+    }
+
+    /**
+     * Whether a safe path is the library itself.
+     *
+     * safePath() turns every spelling of the library into ROOT or refuses
+     * it. This also asks the disk, so a folder that leads back to the
+     * library (a link to it, say) is never taken for one folder inside it.
+     * Deleting, renaming or moving the library would take every image with
+     * it, so each of those refuses a path for which this is true.
+     */
+    public static function isRoot(string $path): bool
+    {
+        if ($path === self::ROOT) {
+            return true;
+        }
+
+        $disk = Storage::disk('public');
+        $root = realpath($disk->path(self::ROOT));
+
+        return $root !== false && realpath($disk->path($path)) === $root;
     }
 
     public static function ensure(string $path): void
