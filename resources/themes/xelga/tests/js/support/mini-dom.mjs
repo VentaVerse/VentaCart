@@ -156,9 +156,18 @@ export class Element extends Node {
     });
   }
 
+  get id() {
+    return this.getAttribute('id') ?? '';
+  }
+
   contains(node) {
     for (let n = node; n; n = n.parentNode) if (n === this) return true;
     return false;
+  }
+
+  closest(selector) {
+    for (let n = this; n instanceof Element; n = n.parentNode) if (n.matches(selector)) return n;
+    return null;
   }
 
   querySelector(selector) {
