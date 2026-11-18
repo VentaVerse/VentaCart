@@ -31,6 +31,8 @@ export function createMediaPicker(cfg = {}) {
         kind: cfg.kind || 'default',
         mode,
         limit: cfg.limit ?? null,
+        // Extensions the library lets this field choose; null accepts any.
+        accept: cfg.accept ?? null,
         // Disk-relative library paths: the server accepts nothing else.
         value: cfg.value ?? (mode === 'multi' ? [] : ''),
         // Preview addresses by path, seeded by the server and filled in by
@@ -66,6 +68,7 @@ export function createMediaPicker(cfg = {}) {
                     value: multi ? [] : this.value,
                     inUse: multi ? held : [],
                     kind: this.kind,
+                    ...(this.accept ? { accept: this.accept } : {}),
                     folder: this.folder,
                     opener: from,
                     onChoose: (files) => this.take(files),

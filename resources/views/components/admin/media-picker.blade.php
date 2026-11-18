@@ -18,6 +18,9 @@
     // Bare renders no field of its own: the caller draws the preview and
     // carries the value, and opens the library with a media:open event.
     'bare' => false,
+    // File extensions the field accepts, such as ['png']. Other images
+    // stay visible in the library but cannot be chosen. Null accepts any.
+    'accept' => null,
 ])
 @php
     $mediaFolder = \App\Support\MediaLibrary::root($root);
@@ -44,6 +47,7 @@
         limit: @js($limit === null ? null : (int) $limit),
         value: @js($mediaValue),
         urls: @js((object) $mediaUrls),
+        accept: @js($accept === null ? null : array_values((array) $accept)),
      })"
      data-kind="{{ $mediaKind }}"
      {{-- Opened from elsewhere on the page by dispatching media:open at this

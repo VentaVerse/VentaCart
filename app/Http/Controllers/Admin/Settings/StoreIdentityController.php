@@ -10,7 +10,7 @@ use App\Services\ThemeService;
 use App\Support\StoreIdentity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Http\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -19,8 +19,9 @@ use Illuminate\Support\Str;
  * The same save carries the store's contact details (email, phone and
  * address), which live on the store record rather than in settings.
  *
- * Uploads land under one stable directory on the public disk and the
- * settings row holds the path. Replacing a mark deletes the one it
+ * Marks are uploaded or chosen from the media library. Either way the file
+ * is copied under one stable directory on the public disk and the settings
+ * row holds that path, so deleting a library image never breaks the store. Replacing a mark deletes the one it
  * replaces, and removing it deletes the file outright, so the directory
  * only ever holds what is currently in use.
  */
@@ -54,11 +55,11 @@ class StoreIdentityController extends Controller
         );
 
         foreach (self::ASSETS as $asset) {
-            $file = $request->file($asset);
+            $source = $request->sourceFor($asset);
             $extension = $request->extensionFor($asset);
 
-            if ($file instanceof UploadedFile && $extension !== null) {
-                $this->replace($asset, $file, $extension);
+            if ($source !== null && $extension !== null) {
+                $this->replace($asset, $source, $extension);
             }
         }
 
@@ -105,18 +106,22 @@ class StoreIdentityController extends Controller
         return $this->done(ucfirst($asset).' removed.');
     }
 
-    /** Store the new file, record it, then drop the one it displaced. */
-    private function replace(string $asset, UploadedFile $file, string $extension): void
+    /**
+     * Copy the checked file into the identity folder, record it, then drop
+     * the one it displaced. The source is an upload or a library image;
+     * either way the store keeps its own copy.
+     */
+    private function replace(string $asset, string $source, string $extension): void
     {
         $previous = $this->currentPath($asset);
 
         // The name is ours, not the client's: a random stem defeats both
         // guessing and the double-extension trick, and the extension comes
         // from the bytes the request already inspected.
-        $path = $file->storeAs(
+        $path = Storage::disk('public')->putFileAs(
             self::DIRECTORY,
-            $asset.'-'.Str::random(24).'.'.$extension,
-            'public'
+            new File($source),
+            $asset.'-'.Str::random(24).'.'.$extension
         );
 
         if ($path === false || $path === '') {
