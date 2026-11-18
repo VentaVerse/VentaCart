@@ -21,7 +21,7 @@ import { normalizeTemplate } from './boot.js';
 import { flush, setFatal } from './drafts.js';
 import { openPopover, closePopover, confirmBox } from './popover.js';
 import { openThemeGroup } from './selection.js';
-import { row as pickRow, describe, fetchNames, isGone } from './pickers/entity.js';
+import { openList, row as pickRow, describe, fetchNames, remember, isGone } from './pickers/entity.js';
 import { plural } from './util.js';
 
 /** "Its product goes" or "Its 3 products go". */
