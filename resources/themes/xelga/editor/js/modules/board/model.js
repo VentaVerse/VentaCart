@@ -271,8 +271,7 @@ function measuredContent(content, rules, without = null) {
  * or 6. Counts the sides the store draws: those holding a section that is
  * not hidden and whose type is known. A side whose sections draw nothing
  * (an empty list, say) still counts here, though the store leaves it out:
- * only the drawn page can tell. The board draws its rows and their
- * pictures at this width.
+ * only the drawn page can tell. The board says this width on its rows.
  */
 export function contentSpan(content, rules) {
   const layout = layoutOf(rules.layout);

@@ -440,7 +440,8 @@ body.is-dragging .piece__change {
   margin-block-end: 14px;
 }
 
-.spick__back {
+/* Only the one-pane layout (a phone) has the way back to the tiles; beside them it would do nothing. */
+.spick__pane-head .spick__back {
   display: none;
 }
 
@@ -740,7 +741,7 @@ body.is-dragging .piece__change {
     background: var(--surface);
   }
 
-  .spick__back {
+  .spick__pane-head .spick__back {
     display: inline-flex;
     justify-self: start;
     min-height: 44px;

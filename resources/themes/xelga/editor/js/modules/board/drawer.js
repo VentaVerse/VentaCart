@@ -1,11 +1,15 @@
 /*
- * The settings drawer at the right of the layout board. It shows what is
- * selected: a section or a block (their usual forms, drawn by the
- * inspector), a row of columns (its four settings, drawn here), the theme
- * (its groups, then a group's form), the layout settings of the page, or
- * earlier versions. The board narrows beside it and keeps its shape; on a
- * phone it is a sheet from the bottom. It closes with its X or Escape;
- * nothing in it opens a dialog.
+ * The settings panel at the right of the layout board. It is always open,
+ * so the board keeps one width whatever is selected, and what it shows
+ * changes in place, with no slide and no fade: a section or a block (their
+ * usual forms, drawn by the inspector), a row of columns (its four
+ * settings, drawn here), the theme (its groups, then a group's form),
+ * earlier versions, or, with nothing selected, the page's own settings
+ * (layouts.js). The page's name above a title, Escape, a click on the
+ * empty board and Theme pressed again all go back to the page. On a phone
+ * the panel is a sheet that rests as one line at the bottom, reading
+ * "Page settings"; a tap on the line or a selection brings it up. Nothing
+ * in it opens a dialog.
  *
  * A row's settings are its columns, width, background and the space
  * between its columns. A row of one column has none: the settings of the
@@ -13,7 +17,7 @@
  */
 
 import { $, h, icon, toast, announce } from '../dom.js';
-import { S, ui, doc, sec, groupHandle, labelOf, isFixed, templateOf, locate as locateSection } from '../state.js';
+import { S, ui, doc, sec, groupHandle, labelOf, isFixed, templateOf, pageTitle, locate as locateSection } from '../state.js';
 import { ownThemeGroups } from '../catalog.js';
 import { commit, undo, layoutPayload, rulesFor } from '../operations.js';
 import { select, deselect, radioItems, radioKeys } from '../selection.js';
@@ -66,33 +70,40 @@ function rowNow(rowId) {
   return row && splitOf(row.split).parts.length > 1 ? row : null;
 }
 
-/** What the drawer shows now: 'selection' (drawn by the inspector), 'row', 'theme', 'revisions', or null when closed. */
+/**
+ * What the panel shows now: 'selection' (drawn by the inspector), 'row',
+ * 'theme', 'revisions', 'page' (nothing selected), or null while the page
+ * is loading.
+ */
 function drawerView() {
   if (!drawerBody() || !S.loaded) return null;
   if (S.sel) return 'selection';
   if (S.view.type === 'row' && rowNow(S.view.rowId)) return 'row';
   if (S.view.type === 'theme') return 'theme';
   if (S.view.type === 'revisions') return 'revisions';
-  return null;
+  return 'page';
 }
 
-export const isDrawerOpen = () => Boolean(drawerView());
+/** Whether the panel shows the page's own settings, the view with nothing selected. */
+export const showingPage = () => drawerView() === 'page';
 
 let shownKey = '';
 
 /**
- * Draws what has no form in the inspector (a row, the theme list), or
- * empties the drawer. The inspector calls this when nothing is selected.
+ * Draws what has no form in the inspector: a row, the theme list, earlier
+ * versions or the page's own settings. The inspector calls this when
+ * nothing is selected.
  */
 export function renderDrawer() {
   const body = drawerBody();
   if (!body) return;
   const view = drawerView();
-  const key = view === 'row' ? `row:${S.view.rowId}` : view || '';
+  const key = view === 'row' ? `row:${S.view.rowId}` : view === 'page' ? `page:${S.page?.handle || S.page?.type || ''}` : view || '';
   const scroll = key === shownKey ? $('.insp-body', body)?.scrollTop || 0 : 0;
   if (view === 'row') body.replaceChildren(rowView(rowNow(S.view.rowId)));
   else if (view === 'theme') body.replaceChildren(themeList());
   else if (view === 'revisions' && key !== shownKey) ui.renderRevisions?.(body, drawerHead);
+  else if (view === 'page') body.replaceChildren(pageView());
   else if (!view) body.replaceChildren();
   shownKey = key;
   const inner = $('.insp-body', body);
@@ -100,16 +111,36 @@ export function renderDrawer() {
   syncDrawer();
 }
 
-/** Opens or closes the drawer to match what is selected. */
+/*
+ * The panel holds its column at all times. On a phone it is a sheet: it
+ * rests as one line while the page is shown and the line was not tapped,
+ * and comes up for anything selected.
+ */
 export function syncDrawer() {
   const a = app();
   if (!a) return;
-  const open = isDrawerOpen();
-  a.dataset.drawer = open ? 'open' : 'closed';
+  a.dataset.drawer = 'open';
   const drawer = $('#drawer');
-  if (drawer) drawer.hidden = !open;
-  if (!open) shownKey = '';
-  $('#theme-btn')?.setAttribute('aria-pressed', String(open && (S.view.type === 'theme' || S.sel?.kind === 'theme' || S.sel?.kind === 'stores')));
+  if (!drawer) return;
+  drawer.hidden = false;
+  const view = drawerView();
+  if (view !== 'page') S.sheet = false;
+  drawer.dataset.kind = view || 'loading';
+  drawer.dataset.sheet = view === 'page' && !S.sheet ? 'rest' : 'open';
+  const line = $('#sheet-line');
+  if (line) {
+    line.hidden = !S.loaded;
+    line.setAttribute('aria-expanded', String(drawer.dataset.sheet === 'open'));
+  }
+  $('#theme-btn')?.setAttribute('aria-pressed', String(S.view.type === 'theme' || S.sel?.kind === 'theme' || S.sel?.kind === 'stores'));
+}
+
+/** The page's own settings: its layout, what shares it, and the layout's settings (layouts.js). */
+function pageView() {
+  const body = h('div', { class: 'insp-body' }, ...(ui.pageSettings?.() || []));
+  return h('div', { class: 'inspector' },
+    drawerHead(pageTitle(), 'Page settings', { page: true }),
+    body);
 }
 
 function reveal(selector) {
@@ -174,22 +205,40 @@ export function openDrawer(view) {
   return true;
 }
 
-/** Closes the drawer and puts focus back on what it was opened from. */
-export function closeDrawer() {
+/**
+ * Goes back to the page's own settings, the panel with nothing selected.
+ * The focus goes back to what the panel was showing, on the board or in
+ * the top bar; with `focus: 'panel'` it goes to the panel's title instead.
+ */
+export function showPage({ focus = 'origin' } = {}) {
   const from = { sel: S.sel, view: S.view };
   S.view = { type: 'board' };
+  S.sheet = false;
   if (S.sel) deselect();
   else {
     ui.renderBoard?.();
     ui.renderInspector();
   }
+  if (focus === 'panel') {
+    $('#drawer .insp-title')?.focus({ preventScroll: true });
+    return;
+  }
   let back = null;
   if (from.sel?.kind === 'section') back = $(`#board .piece[data-sid="${CSS.escape(from.sel.sid)}"]`);
   else if (from.view.type === 'row') back = $(`#board .row[data-row-id="${CSS.escape(from.view.rowId)}"] .row__tab`);
   else if (from.sel?.kind === 'theme' || from.sel?.kind === 'stores' || from.view.type === 'theme') back = $('#theme-btn');
-  else if (from.view.type === 'revisions') back = $('#more-btn');
-  else if (from.sel?.kind === 'layout') back = $('#layout-btn');
-  back?.focus({ preventScroll: true });
+  else if (from.view.type === 'revisions') back = $('#history-btn');
+  // Hidden behind Preview, a box on the board cannot take the focus: the panel's title does.
+  if (back && !back.closest('[hidden]')) back.focus({ preventScroll: true });
+  else if (from.sel || from.view.type !== 'board') $('#drawer .insp-title')?.focus({ preventScroll: true });
+}
+
+/** On a phone, the line at the bottom brings the page's settings up, or puts them down again. */
+export function toggleSheet(open = !S.sheet) {
+  S.sheet = Boolean(open);
+  syncDrawer();
+  if (S.sheet) window.requestAnimationFrame(() => $('#drawer .insp-title')?.focus({ preventScroll: true }));
+  else $('#sheet-line')?.focus({ preventScroll: true });
 }
 
 /**
@@ -216,12 +265,33 @@ export async function goToPlace(use) {
    Drawn here: the head, a row's settings, the theme list
    ------------------------------------------------------------------------ */
 
-export function drawerHead(title, kind) {
+/**
+ * The way back to the page, above a title: "← Home page". The page's own
+ * settings have none, and neither has a view with its own back arrow.
+ */
+export function pageCrumb() {
+  return h('button', { type: 'button', class: 'panel-crumb', onclick: () => showPage() },
+    icon('arrow-left', 'icon--xs'), h('span', { text: pageTitle() }));
+}
+
+/*
+ * On a phone the panel is a sheet, so it keeps a close button: down to its
+ * resting line for the page's settings, back to the page for anything else.
+ * A computer has nothing to close to, so the button is not shown there.
+ */
+export function sheetClose({ page = false } = {}) {
+  return page
+    ? h('button', { type: 'button', class: 'icon-btn panel-close', 'aria-label': 'Put Page settings down', onclick: () => toggleSheet(false) }, icon('chevron-down'))
+    : h('button', { type: 'button', class: 'icon-btn panel-close', 'aria-label': 'Close settings', onclick: () => showPage() }, icon('close'));
+}
+
+export function drawerHead(title, kind, { page = false } = {}) {
   return h('div', { class: 'insp-head' },
+    page ? null : pageCrumb(),
     h('div', { class: 'insp-head__row' },
       h('h2', { class: 'insp-title', tabindex: -1 }, h('span', { text: title })),
-      h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Close settings', 'data-tip': 'Close (Esc)', onclick: closeDrawer }, icon('close'))),
-    kind ? h('p', { class: 'insp-kind' }, h('span', { class: 'insp-kind__dot', 'aria-hidden': 'true' }), kind) : null);
+      sheetClose({ page })),
+    kind ? h('p', { class: 'insp-kind' }, h('span', { class: `insp-kind__dot${page ? ' insp-kind__dot--page' : ''}`, 'aria-hidden': 'true' }), kind) : null);
 }
 
 function field(label, id, control) {
@@ -283,7 +353,7 @@ function changeColumns(row, split) {
   toast(text, { action: { label: 'Undo', run: undo }, timeout: moved.length ? 8000 : 4200 });
   announce(text);
   if (next.parts.length === 1) {
-    if (!(first && openDrawer({ type: 'section', sid: first }))) closeDrawer();
+    if (!(first && openDrawer({ type: 'section', sid: first }))) showPage();
   }
 }
 
@@ -312,7 +382,7 @@ function rowView(row) {
         type: 'button', class: 'btn btn--danger-text btn--sm',
         onclick: () => {
           commit({ t: 'row-remove', doc: template(), rowId: row.id });
-          closeDrawer();
+          showPage({ focus: 'panel' });
         },
       }, icon('trash', 'icon--sm'), 'Remove empty row')));
   }
@@ -343,11 +413,16 @@ export function initDrawer() {
   ui.renderDrawer = renderDrawer;
   ui.syncDrawer = syncDrawer;
   ui.openDrawer = openDrawer;
-  ui.closeDrawer = closeDrawer;
-  ui.isDrawerOpen = isDrawerOpen;
+  ui.showPage = showPage;
+  ui.showingPage = showingPage;
+  ui.toggleSheet = toggleSheet;
   ui.goToPlace = goToPlace;
+  ui.pageCrumb = pageCrumb;
+  ui.sheetClose = sheetClose;
+  // Theme pressed again goes back to the page.
   $('#theme-btn')?.addEventListener('click', () => {
-    if (S.view.type === 'theme' || S.sel?.kind === 'theme') closeDrawer();
+    if (S.view.type === 'theme' || S.sel?.kind === 'theme' || S.sel?.kind === 'stores') showPage();
     else openDrawer({ type: 'theme' });
   });
+  $('#sheet-line')?.addEventListener('click', () => toggleSheet());
 }

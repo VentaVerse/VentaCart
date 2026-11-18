@@ -1,9 +1,10 @@
 /*
  * Theme editor: the store owner's tool for editing the storefront theme.
  *
- * Layout: a top bar, the layout board (board.css) and, while something is
- * selected, the settings drawer at the right (drawer.css). Under 720px the
- * board becomes a list and the drawer a sheet from the bottom.
+ * Layout: a top bar with the Board and Preview switch in its middle, the
+ * layout board (board.css) or Preview (preview.css), and the settings
+ * panel at the right, always open (drawer.css). Under 720px the board
+ * becomes a list and the panel a sheet from the bottom.
  *
  * One accent blue marks selection and primary actions only; blocks are
  * marked in purple.
@@ -17,6 +18,8 @@
 @import "./board.css";
 @import "./drawer.css";
 @import "./picker.css";
+@import "./preview.css";
+@import "./page-picker.css";
 
 @font-face {
   font-family: "IBM Plex Sans";
@@ -229,10 +232,6 @@ a {
 
 .canvas { grid-area: canvas; }
 
-.sheet-handle {
-  display: none;
-}
-
 /* --------------------------------------------------------------------------
    Buttons and small controls
    -------------------------------------------------------------------------- */
@@ -406,7 +405,8 @@ a {
   position: relative;
   z-index: 20;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "start switch end";
   align-items: center;
   gap: 12px;
   padding: 0 10px;
@@ -422,7 +422,12 @@ a {
   min-width: 0;
 }
 
+.topbar__start {
+  grid-area: start;
+}
+
 .topbar__end {
+  grid-area: end;
   justify-content: flex-end;
   gap: 8px;
 }
@@ -1942,15 +1947,6 @@ button.pick-row:hover {
     display: none;
   }
 
-  .btn--preview span {
-    display: none;
-  }
-
-  .btn--preview {
-    width: 34px;
-    padding: 0;
-  }
-
   .picker-btn__label {
     display: none;
   }
@@ -1972,9 +1968,31 @@ button.pick-row:hover {
  * keeps the page, Theme, the store preview, More and Publish.
  */
 @media (max-width: 719px) {
+  /* The Board and Preview switch takes its own line under the top bar, full width, in easy reach. */
+  .app {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
   .topbar {
-    gap: 4px;
-    padding: 0 6px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "start end"
+      "switch switch";
+    gap: 0 4px;
+    padding: 0;
+  }
+
+  .topbar__start,
+  .topbar__end {
+    min-height: var(--topbar-h);
+  }
+
+  .topbar__start {
+    padding-inline-start: 6px;
+  }
+
+  .topbar__end {
+    padding-inline-end: 6px;
   }
 
   .topbar__rule,

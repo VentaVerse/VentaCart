@@ -1,6 +1,6 @@
 /*
- * The store preview in a tab of its own (Open store preview in the theme
- * editor). Loaded only in preview mode.
+ * The store preview: the theme editor's Preview frame, and any tab opened
+ * from it. Loaded only in preview mode.
  *
  * Browsers send no sign that a page belongs to the preview, so a page only
  * shows the draft when its address carries the preview window's nonce.

@@ -1,6 +1,6 @@
 /*
- * What is selected on the layout board, and the drawer its settings show
- * in. On a phone the drawer is a sheet from the bottom, over the board, so
+ * What is selected on the layout board, and the panel its settings show
+ * in. On a phone the panel is a sheet from the bottom, over the board, so
  * opening it puts the focus inside it.
  */
 
@@ -9,7 +9,7 @@ import { S, ui, sec, blk } from './state.js';
 
 export const isPhone = () => window.matchMedia('(max-width: 719px)').matches;
 
-/** Selects a section, or one of its blocks; its settings open in the drawer. */
+/** Selects a section, or one of its blocks; its settings show in the panel. */
 export function select(sid, bid = null) {
   if (!sec(sid) || (bid && !blk(sid, bid))) return;
   S.sel = { kind: 'section', sid, bid };
@@ -25,7 +25,7 @@ export function deselect() {
   ui.renderInspector();
 }
 
-/** Opens one theme settings group in the drawer, with the way back to Theme. */
+/** Opens one theme settings group in the panel, with the way back to Theme. */
 export function openThemeGroup(groupKey, extra = {}) {
   if (!groupKey) return;
   S.view = { type: 'theme' };
@@ -36,7 +36,7 @@ export function openThemeGroup(groupKey, extra = {}) {
 }
 
 /**
- * Opens the drawer on one view (see openDrawer). On a phone the sheet
+ * Shows one view in the panel (see openDrawer). On a phone the sheet
  * covers the board, so the focus goes to its title.
  */
 export function openSheet(view) {
@@ -45,10 +45,6 @@ export function openSheet(view) {
   return true;
 }
 
-/** Closes the drawer, or the sheet on a phone, and puts the focus back where it was opened. */
-export function closeSheet() {
-  ui.closeDrawer?.();
-}
 
 /** Keeps the tab order of a radio group on its checked item. */
 export function radioItems(group, value) {

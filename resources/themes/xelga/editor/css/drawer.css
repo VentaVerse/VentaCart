@@ -1,18 +1,25 @@
 /*
- * The settings drawer: what is selected on the layout board (a section, a
- * block, a row of columns), the theme, the page's layout settings or
- * earlier versions, at the right of the board. The board narrows beside it
- * and keeps its shape. On a phone it is a sheet from the bottom, over the
- * board.
+ * The settings panel: what is selected on the layout board (a section, a
+ * block, a row of columns), the theme, earlier versions, or with nothing
+ * selected the page's own settings, at the right of the board. It is
+ * always open and holds its column, so the board keeps one width whatever
+ * is selected, and its content changes in place, with no slide and no
+ * fade. On a phone it is a sheet that rests as one line at the bottom and
+ * comes up over the board.
  */
 
 .app {
   --drawer-w: 400px;
 }
 
+.app,
+.app[data-drawer="open"] {
+  grid-template-columns: minmax(0, 1fr) var(--drawer-w);
+}
+
 .drawer {
   grid-area: drawer;
-  display: none;
+  display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
@@ -20,12 +27,9 @@
   border-inline-start: 1px solid var(--line);
 }
 
-.app[data-drawer="open"] {
-  grid-template-columns: minmax(0, 1fr) var(--drawer-w);
-}
-
-.app[data-drawer="open"] .drawer:not([hidden]) {
-  display: flex;
+.drawer > .inspector {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .btn--theme[aria-pressed="true"] {
@@ -39,13 +43,135 @@
   }
 }
 
-/* Phone: a sheet from the bottom, over the board, which keeps its full width. */
+/* The phone's resting line and the sheet's close buttons belong to the phone only. */
+.drawer .sheetline,
+.drawer .panel-close {
+  display: none;
+}
+
+/* ---------------------------------------------------- back to the page */
+
+.panel-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: start;
+  max-width: 100%;
+  min-height: 24px;
+  margin: -2px 0 4px -6px;
+  padding: 0 6px;
+  overflow: hidden;
+  font: inherit;
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.panel-crumb:hover {
+  color: var(--accent-hover);
+  background: var(--surface-2);
+}
+
+.panel-crumb:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.insp-kind__dot--page {
+  background: var(--text-3);
+}
+
+/* ------------------------------------------------------------ the page */
+
+.facts {
+  display: grid;
+  margin: 4px 0 0;
+}
+
+.facts__row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  font-size: var(--fs-md);
+  border-block-end: 1px solid var(--line);
+}
+
+.facts__row:first-child {
+  padding-block-start: 0;
+}
+
+.facts dt {
+  color: var(--text-2);
+}
+
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+
+/* A record drawn from a shared layout: what it uses, and the one way to give it its own. */
+.pagecard {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 4px 10px;
+  margin: 16px 0 0;
+  padding: 12px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-lg);
+}
+
+.pagecard__icon {
+  width: 18px;
+  height: 18px;
+  margin-block-start: 1px;
+  color: var(--accent-hover);
+}
+
+.pagecard__title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pagecard__meta {
+  margin: 2px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+.pagecard__action {
+  grid-column: 2;
+  justify-self: start;
+  margin-block-start: 8px;
+  background: var(--surface);
+}
+
+.drawer .facts ~ .insp-actions {
+  margin-block-start: 16px;
+}
+
+.drawer .facts ~ .form {
+  margin-block-start: 20px;
+}
+
+/* ------------------------------------------------------------------ phone */
+
 @media (max-width: 719px) {
+  .app,
   .app[data-drawer="open"] {
     grid-template-columns: minmax(0, 1fr) 0;
   }
 
-  .app[data-drawer="open"] .drawer:not([hidden]) {
+  .drawer {
     position: fixed;
     inset-inline: 0;
     inset-block-end: 0;
@@ -56,14 +182,104 @@
     box-shadow: 0 -8px 30px rgb(16 20 28 / .22);
   }
 
-  .drawer .sheet-handle {
-    display: block;
-    flex: none;
-    width: 36px;
-    height: 4px;
-    margin: 8px auto 0;
-    background: #c9ced6;
-    border-radius: 4px;
+  /* Preview is the store on the phone: the panel stays out of its way until the board is back. */
+  .app[data-mode="preview"] .drawer {
+    display: none;
+  }
+
+  .drawer .panel-crumb {
+    display: none;
+  }
+
+  .drawer .panel-close {
+    display: inline-flex;
+  }
+
+  /* Resting: one line in thumb reach, naming the page and its layout. */
+  .drawer[data-sheet="rest"] {
+    height: auto;
+    box-shadow: 0 -4px 16px rgb(16 20 28 / .12);
+  }
+
+  .drawer[data-sheet="rest"] > .inspector {
+    display: none;
+  }
+
+  .drawer[data-sheet="rest"] .sheetline:not([hidden]) {
+    display: grid;
+  }
+
+  .sheetline {
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 60px;
+    padding: 8px 12px 8px 16px;
+    padding-block-end: max(8px, env(safe-area-inset-bottom));
+    font: inherit;
+    text-align: start;
+    color: var(--text);
+    background: var(--surface);
+    border: 0;
+    border-radius: 14px 14px 0 0;
+    cursor: pointer;
+  }
+
+  .sheetline:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+
+  .sheetline__icon {
+    color: var(--text-2);
+  }
+
+  .sheetline__text {
+    display: grid;
+    min-width: 0;
+  }
+
+  .sheetline__name {
+    overflow: hidden;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .sheetline__meta {
+    overflow: hidden;
+    font-size: var(--fs-sm);
+    color: var(--text-2);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .sheetline__open {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 44px;
+    padding: 0 4px 0 10px;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--accent-hover);
+  }
+
+  /* Page settings are short: the sheet fits them instead of covering the board. */
+  .drawer[data-sheet="open"][data-kind="page"] {
+    height: auto;
+    max-height: min(86dvh, 720px);
+  }
+
+  .drawer[data-kind="page"] .insp-body {
+    padding-block-end: max(24px, env(safe-area-inset-bottom));
+  }
+
+  /* The resting line takes the bottom of the screen: the board scrolls clear of it. */
+  .app[data-mode="board"] .board {
+    padding-block-end: 96px;
   }
 
   .btn--theme span {

@@ -466,6 +466,18 @@ export function createApi(boot, { fetchImpl } = {}) {
       return send('DELETE', routes.preview_close, { keepalive: true }).catch(() => {});
     },
 
+    /**
+     * The storefront page of one record (a category, a product), as the
+     * preview shows it to a guest. Answers { subject: { type, id, name, slug }, url };
+     * throws `not-found` when a guest cannot open the record.
+     */
+    async subjectPage(subjectType, id) {
+      const json = unwrap(await send('GET', route('subject'), { query: { type: subjectType, id }, retries: 1 }));
+      const subject = json?.subject;
+      if (!subject || typeof json.url !== 'string' || !isSameOrigin(json.url)) throw new ApiError({ kind: 'server', message: 'The store did not say where that page is.' });
+      return { subject: { type: String(subject.type), id: Number(subject.id), name: String(subject.name || ''), slug: String(subject.slug || '') }, url: json.url };
+    },
+
     /** Picker lookups by kind. Answers { items, more, editUrl }. */
     async pick(kind, { q = '', page = 1, ids = null } = {}) {
       const json = unwrap(await send('GET', route('pick', { kind }), {
@@ -492,7 +504,7 @@ export function createApi(boot, { fetchImpl } = {}) {
      * One section's HTML from a full preview render of the current page
      * (ARCHITECTURE 7.5). The draft must be saved first.
      *
-     * The HTML is drawn on the board as a section's picture, so it is only
+     * The HTML takes the section's place in the Preview frame, so it is only
      * taken from the store itself: the address must be on this
      * origin, a redirect (a store redirect rule, a sign-in page) is refused
      * rather than followed, and the answer must be the section-only response
@@ -509,25 +521,6 @@ export function createApi(boot, { fetchImpl } = {}) {
         verify: (response) => !response.redirected
           && isSameOrigin(response.url)
           && response.headers.get('X-Xelga-Section') === String(sectionId),
-      });
-    },
-
-    /**
-     * A whole page of the store as the preview window draws it, from the
-     * saved draft, for the layout board's pictures. Taken only from the
-     * store itself, as renderSection is: an address on this origin, never a
-     * redirect, and an answer from this origin. Anything else throws
-     * `refused`. The HTML is cleaned before any of it is shown.
-     */
-    async renderPage(pageUrl) {
-      const preview = boot.preview || {};
-      if (!isSameOrigin(pageUrl)) throw new ApiError({ kind: 'refused' });
-      return send('GET', pageUrl, {
-        query: { [preview.param || 'xelga_preview']: preview.nonce },
-        accept: 'html',
-        retries: 1,
-        redirect: 'manual',
-        verify: (response) => !response.redirected && isSameOrigin(response.url),
       });
     },
   };

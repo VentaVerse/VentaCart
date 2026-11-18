@@ -1,24 +1,22 @@
 /*
  * The top bar: undo and redo, the save status, Theme (its button is wired
- * in the drawer), Open store preview, Save draft, Publish (with its
- * confirmation and refusal), the More menu (the published store, earlier
- * versions, throw away draft), the page picker, the presence line, and the
- * editor's keyboard shortcuts.
+ * in the panel), Save draft, Publish (with its confirmation and refusal),
+ * Earlier versions, the More menu (the published store, throw away draft),
+ * the presence line, and the editor's keyboard shortcuts.
+ * The Board and Preview switch in its middle is wired in preview.js.
  */
 
 import { $, h, icon, toast, announce } from './dom.js';
 import {
-  S, ctx, ui, anyDirty, anySaving, publishable, docLabel, isDirty,
+  S, ui, anyDirty, anySaving, publishable, docLabel, isDirty,
 } from './state.js';
 import { undo, redo, canUndo, canRedo, describe } from './operations.js';
 import { flush, publish, discard, retryNow } from './drafts.js';
 import { openPopover, openMenu, confirmBox, confirmFrom, closePopover, isPopoverOpen } from './popover.js';
 import { openThemeGroup } from './selection.js';
 import { openRevisions } from './revisions.js';
-import { pageMenu } from './layouts.js';
 import { duplicateSection, duplicateBlock, canDuplicate, canDuplicateBlock } from './actions.js';
 import { schemeGroupKey } from './forms/schemes.js';
-import { isSameOrigin } from './api.js';
 import { formatTime, plural } from './util.js';
 
 /* ------------------------------------------------------------------------
@@ -58,29 +56,7 @@ function status() {
   return ['', 'No changes yet', 'What you see is what shoppers see.'];
 }
 
-/**
- * Open store preview: the page being edited, from the draft, in a tab of
- * its own. The address carries the preview window's nonce, which is what
- * shows the draft there; until the window is open the link waits.
- */
-export function updatePreviewLink() {
-  const link = $('#preview-link');
-  if (!link) return;
-  const { nonce, param } = ctx.boot?.preview || {};
-  const base = S.page?.url || ctx.boot?.preview?.url || S.store?.url || '/';
-  // The nonce only ever goes to the store's own address.
-  if (!nonce || !isSameOrigin(base)) {
-    link.setAttribute('aria-disabled', 'true');
-    return;
-  }
-  const url = new URL(base, window.location.href);
-  url.searchParams.set(param || 'xelga_preview', nonce);
-  link.href = url.href;
-  link.removeAttribute('aria-disabled');
-}
-
 export function updateToolbar() {
-  updatePreviewLink();
   $('#undo-btn').disabled = !canUndo() || Boolean(S.fatal);
   $('#redo-btn').disabled = !canRedo() || Boolean(S.fatal);
   const [tone, text, title] = status();
@@ -205,7 +181,6 @@ function moreMenu(anchor) {
   const anyDraft = Object.values(S.docs).some((d) => d.hasDraft || isDirty(d));
   openMenu(anchor, [
     { label: 'Open the published store', iconName: 'external', hint: 'Shows what shoppers see now', run: () => window.open(S.store?.url || '/', '_blank', 'noopener') },
-    { label: 'Earlier versions', iconName: 'clock', hint: 'Go back to something you published', run: () => openRevisions() },
     { sep: true },
     {
       label: 'Throw away draft', iconName: 'trash', danger: true, disabled: !anyDraft,
@@ -235,7 +210,7 @@ function doRedo() {
   if (op) announce(`Redid: ${describe(op)}`);
 }
 
-/** Undo and redo everywhere except inside text fields; Escape closes; Ctrl+S saves. */
+/** Undo and redo everywhere except inside text fields; Escape goes back to the page; Ctrl+S saves. */
 export function onKeydown(e) {
   const mod = e.ctrlKey || e.metaKey;
   const t = e.target;
@@ -268,9 +243,14 @@ export function onKeydown(e) {
     if (document.querySelector('dialog[open]')) return;
     if (isPopoverOpen()) closePopover();
     else if (ui.cancelStoreChoice?.()) e.preventDefault();
-    else if (ui.isDrawerOpen?.()) {
+    else if (typing) {
+      // Escape in a field leaves the field alone; the next one goes back to the page.
+    } else if (ui.showingPage && !ui.showingPage()) {
       e.preventDefault();
-      ui.closeDrawer();
+      ui.showPage();
+    } else if (S.sheet) {
+      e.preventDefault();
+      ui.toggleSheet?.(false);
     }
   }
 }
@@ -288,17 +268,9 @@ export function initTopbar() {
     }), { align: 'end', label: 'Publish' });
   });
   $('#more-btn').addEventListener('click', (e) => moreMenu(e.currentTarget));
-  // The preview window opens a moment after the editor: a click before then waits for it.
-  $('#preview-link').addEventListener('click', (e) => {
-    if (e.currentTarget.getAttribute('aria-disabled') === 'true') {
-      e.preventDefault();
-      toast('The store preview is still opening. Try again in a moment.');
-    }
-  });
-  $('#page-btn').addEventListener('click', (e) => pageMenu(e.currentTarget));
+  $('#history-btn').addEventListener('click', () => openRevisions());
 
   document.addEventListener('keydown', onKeydown);
 
   ui.updateToolbar = updateToolbar;
-  ui.updatePreviewLink = updatePreviewLink;
 }

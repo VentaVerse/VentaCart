@@ -10,6 +10,7 @@ import { sectionDef, blockDef, blockTypes } from './catalog.js';
 import { commit, undo, hasLayout, layoutPayload, rulesFor } from './operations.js';
 import { rowsOf, checkAddSpot, freshRowId, replaceIn } from './board/model.js';
 import { schemeSetting } from './board/choices.js';
+import { blockLabel } from './board/labels.js';
 import { clone, humanize } from './util.js';
 import { select } from './selection.js';
 import { flush, resolveConflict, setFatal } from './drafts.js';
@@ -265,10 +266,13 @@ export function buildSection(type, def, { variant = null, preset = null } = {}, 
   const settings = clone(preset?.settings || {});
   if (variant && !preset) settings.variant = variant;
   const snapshot = { type, label: def.label, disabled: false, settings, block_order: [], blocks: {} };
-  presetBlocks(def, preset).forEach((b, i) => {
+  const taken = {};
+  presetBlocks(def, preset).forEach((b) => {
     const bid = uniqueBlockId(b.type, used);
     snapshot.block_order.push(bid);
-    snapshot.blocks[bid] = { type: b.type, label: b.label || `${blockDef(type, b.type)?.label || humanize(b.type)} ${i + 1}`, disabled: false, settings: clone(b.settings || {}) };
+    const label = b.label || blockLabel(blockDef(type, b.type)?.label || humanize(b.type), blockLimits(def, b.type, taken[b.type] || 0));
+    taken[b.type] = (taken[b.type] || 0) + 1;
+    snapshot.blocks[bid] = { type: b.type, label, disabled: false, settings: clone(b.settings || {}) };
   });
   return { sid, snapshot };
 }
@@ -340,6 +344,12 @@ export function addRowAt(split, target) {
   return op.rowId;
 }
 
+/* What decides whether a new block of a type is numbered: its limit, the section's, and how many it has. */
+function blockLimits(def, blockType, taken) {
+  const spec = (def?.blocks?.types || []).find((t) => t.type === blockType);
+  return { limit: spec?.limit || 0, max: def?.blocks?.max || 0, taken };
+}
+
 /**
  * The blocks a new section starts with: the preset's, kept within the
  * schema's limits, or the fewest the schema needs.
@@ -402,7 +412,7 @@ export function addBlock(sid, type) {
   const used = usedIds();
   const bid = newId(type, used);
   const same = blockList(sid).filter((b) => b.type === type).length;
-  const snapshot = { type, label: `${def.label || humanize(type)} ${same + 1}`, disabled: false, settings: {} };
+  const snapshot = { type, label: blockLabel(def.label || humanize(type), blockLimits(sectionDef(at.data.type), type, same)), disabled: false, settings: {} };
   const index = at.data.block_order.length;
   commit({ t: 'block-add', doc: at.handle, sid, bid, index, snapshot, name: snapshot.label });
   announce(`${snapshot.label} added to ${labelOf(sid)}`);
@@ -417,9 +427,24 @@ export function removeBlock(sid, bid) {
     return;
   }
   const name = labelOf(sid, bid);
+  const order = at.data.block_order;
+  // The focus goes on to the block that takes its place, or to Add block after the last.
+  const next = order[order.indexOf(bid) + 1] || null;
   commit({ t: 'block-remove', doc: at.handle, sid, bid });
-  if (S.sel?.sid === sid && S.sel?.bid === bid) select(sid);
+  if (S.sel?.kind === 'section' && S.sel.sid === sid) select(sid);
   toast(`${name} removed.`, { action: { label: 'Undo', run: undo } });
+  window.requestAnimationFrame(() => focusInBlocks(next));
+}
+
+/** Puts the focus on a block of the open section's list, or on its Add button, and shows it. */
+function focusInBlocks(bid) {
+  const list = document.querySelector('#drawer .blist');
+  const target = (bid && list?.querySelector(`.blist__item[data-bid="${CSS.escape(bid)}"] .blist__main`))
+    || document.querySelector('#drawer .blist__add')
+    || list?.querySelector('.blist__item:last-child .blist__main');
+  if (!target) return;
+  target.focus({ preventScroll: true });
+  target.scrollIntoView({ block: 'nearest' });
 }
 
 export function moveBlockBy(sid, bid, delta) {

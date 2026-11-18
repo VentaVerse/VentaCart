@@ -20,7 +20,7 @@ import { h } from '../dom.js';
  * head, the header band, the page (its left side, rows and right side, or
  * the note of a page with a fixed layout) and the footer band. The same pieces as on the
  * board, so every control is the same one; the phone styles in board.css
- * lay them out as lines and chips, and no section pictures are loaded.
+ * lay them out as lines and chips.
  */
 export function renderPhoneBoard({ title, head, header, page, footer }) {
   return h('div', { class: 'board__inner board__inner--list' },

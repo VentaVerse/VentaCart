@@ -2,9 +2,14 @@
  * The layout board: the page drawn in the shape of the storefront, at most
  * as wide as the store. The header band on top, the page's rows with their
  * columns at their true proportions, the footer band at the bottom. Each
- * section is a name bar over a picture of how the store draws it (or the
- * drawing of its layout). Under 720px it is drawn as a list (phone.js).
+ * section is a plain box of the same height as every other: its name bar
+ * over the drawing of its layout. Under 720px it is drawn as a list
+ * (phone.js).
  */
+
+:root {
+  --box-h: 84px;
+}
 
 /* When the documents could not be loaded, or the editor cannot go on, the explanation shows instead. */
 .app[data-state="error"][data-loaded="false"] .board,
@@ -35,54 +40,9 @@
   margin: 0 0 14px;
 }
 
-.boardhead__text {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
 
-.boardhead__title {
-  margin: 0;
-  font-size: var(--fs-xl);
-  font-weight: 600;
-  line-height: 1.3;
-}
 
-.boardhead__meta {
-  margin: 0;
-  font-size: var(--fs-sm);
-  color: var(--text-3);
-}
 
-.boardhead__meta--warn {
-  color: var(--warn);
-}
-
-/* Where a layout comes from, when many records share it. */
-.source {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  padding: 8px 10px 8px 12px;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
-  border-radius: var(--radius-lg);
-}
-
-.source__icon {
-  color: var(--accent-hover);
-}
-
-.source__text {
-  margin: 0;
-  font-size: var(--fs-sm);
-  color: var(--text-2);
-}
-
-.source__text strong {
-  color: var(--text);
-}
 
 /* The page itself: white, the width of the store. */
 .sheet {
@@ -120,10 +80,21 @@
 
 /* -------------------------------------------------------------- adding */
 
-/* Between two rows: an Add line, shown on hover or focus. */
+/*
+ * Between two rows: an Add line, shown on hover or keyboard focus, and
+ * always on touch screens, tablets and phones (data-addline, board.js).
+ * Shown, it is drawn above every neighbor, so a short section next to it
+ * (Breadcrumbs, say) never covers it.
+ */
 .gap {
   position: relative;
   height: 16px;
+}
+
+.gap:hover,
+.gap:focus-within,
+.app[data-addline="always"] .gap {
+  z-index: 5;
 }
 
 .gap__add {
@@ -284,16 +255,7 @@
 }
 
 /* The page's layout settings, beside its title. */
-.boardhead__actions {
-  display: flex;
-  gap: 8px;
-}
 
-.boardhead__actions .btn[aria-pressed="true"] {
-  color: var(--accent-hover);
-  background: var(--accent-soft);
-  border-color: var(--accent);
-}
 
 /* ---------------------------------------------------------------------- rows */
 
@@ -731,12 +693,13 @@ body.is-dragging .beside.is-over span { display: inline; }
   overflow: hidden;
 }
 
-/* The drawing of the section's layout, while there is no picture or when the page draws nothing for it. */
+/* The drawing of the section's layout, in a quiet well under the bar. */
 .piece__sketch {
   display: grid;
   place-items: center;
-  height: 96px;
-  padding: 10px;
+  height: 100%;
+  min-height: 0;
+  padding: 6px;
   background: var(--surface-2);
 }
 
@@ -744,17 +707,33 @@ body.is-dragging .beside.is-over span { display: inline; }
   width: auto;
   height: 100%;
   max-width: 100%;
+  min-height: 0;
   background: transparent;
   box-shadow: none;
 }
 
-.piece__shot:has(> .pic:not([data-empty])) .piece__sketch {
-  display: none;
+/*
+ * Every box is the same height, whatever the section's real height, so a
+ * whole page fits on a screen or two. Its width stays true: as wide as its
+ * column on the store. When a narrow column wraps the bar onto two lines,
+ * the drawing shrinks and the box keeps its height.
+ */
+.piece--box {
+  height: var(--box-h);
 }
 
-.pic[data-empty] {
-  display: none;
+.piece--box .piece__shot {
+  min-height: 0;
 }
+
+.piece--box:hover .piece__sketch { background: var(--surface-3); }
+
+.piece--box.is-selected .piece__sketch { background: var(--accent-soft); }
+
+.piece--box.is-hidden .piece__sketch .schematic { opacity: .4; }
+
+/* The page's own content keeps its dashed edge; its well matches its bar. */
+.piece--main .piece__sketch { background: var(--surface); }
 
 .piece--main {
   border-style: dashed;
@@ -807,7 +786,7 @@ body.is-dragging .beside.is-over span { display: inline; }
   }
 }
 
-/* Phones: each section is one line with a small picture; columns stay side by side. */
+/* Phones: each section is one line with the small drawing of its layout; columns stay side by side. */
 @media (max-width: 719px) {
   .board {
     padding: 12px 8px 32px;
@@ -815,10 +794,6 @@ body.is-dragging .beside.is-over span { display: inline; }
 
   .boardhead {
     gap: 8px 12px;
-  }
-
-  .boardhead__title {
-    font-size: var(--fs-lg);
   }
 
   .piece {
@@ -832,14 +807,12 @@ body.is-dragging .beside.is-over span { display: inline; }
     height: 44px;
   }
 
-  /* A picture of a whole section is unreadable this small: the layout's drawing shows instead. */
-  .piece__shot .pic {
-    display: none;
+  .piece--box {
+    height: auto;
+    min-height: 48px;
   }
 
-  .piece__shot .piece__sketch,
-  .piece__shot:has(> .pic:not([data-empty])) .piece__sketch {
-    display: grid;
+  .piece__shot .piece__sketch {
     height: 44px;
     padding: 4px;
   }
@@ -944,30 +917,28 @@ body.is-dragging .beside.is-over span { display: inline; }
   }
 }
 
-/* Touch screens have no hover: the Add lines are always there. */
-@media (hover: none), (pointer: coarse) {
-  .gap {
-    height: 36px;
-  }
+/* Touch screens, tablets and phones: the Add lines are always there. */
+.app[data-addline="always"] .gap {
+  height: 36px;
+}
 
-  .gap__add {
-    inset: 0;
-    opacity: 1;
-  }
+.app[data-addline="always"] .gap__add {
+  inset: 0;
+  opacity: 1;
+}
 
-  .gap__line {
-    display: none;
-  }
+.app[data-addline="always"] .gap__line {
+  display: none;
+}
 
-  .gap__pill {
-    color: var(--accent-hover);
-    background: var(--accent-soft);
-    box-shadow: none;
-  }
+.app[data-addline="always"] .gap__pill {
+  color: var(--accent-hover);
+  background: var(--accent-soft);
+  box-shadow: none;
+}
 
-  .col__add {
-    height: 36px;
-  }
+.app[data-addline="always"] .col__add {
+  height: 36px;
 }
 
 @media (prefers-reduced-motion: reduce) {
