@@ -8,7 +8,7 @@ import { h, schematic } from '../dom.js';
 import { variantDrawing } from '../catalog.js';
 
 /** The divider's own picture: a line, its label and a line, in the box. */
-function labelledDivider(label) {
+function labeledDivider(label) {
   return h('span', { class: 'piece__divider', 'aria-hidden': 'true' },
     h('span', { class: 'piece__divider-line' }),
     h('span', { class: 'piece__divider-label', text: label }),
@@ -32,5 +32,5 @@ export function sketchOf(type, variant, label = '') {
 /** The picture itself: see sketchOf. */
 export function sketch(type, variant, label = '') {
   const what = sketchOf(type, variant, label);
-  return 'label' in what ? labelledDivider(what.label) : schematic(what.drawing);
+  return 'label' in what ? labeledDivider(what.label) : schematic(what.drawing);
 }

@@ -9,7 +9,7 @@
  * A type's layouts are its presets (named starting points), else its
  * variants, else the type itself. A type whose narrowest layout is wider
  * than the spot, at its limit where the spot counts it, or that cannot go
- * in the spot's area or column, stays offered but greyed, with the reason;
+ * in the spot's area or column, stays offered but grayed, with the reason;
  * so does each layout that is too wide.
  */
 
@@ -116,7 +116,7 @@ export function addableTypes(content, target, catalog, rules, { span = null, now
   });
 }
 
-/** The words on a greyed tile: why it cannot go here. */
+/** The words on a grayed tile: why it cannot go here. */
 export function pillWords(state) {
   if (!state?.disabled) return null;
   if (state.reason === TOO_WIDE) return needsWords(state.need, state.whole ?? null);
@@ -130,7 +130,7 @@ export function pillWords(state) {
  * theme's own types sit in the four groups by their `picker_order`, then in
  * catalog order, a type with
  * no group under text and trust; an extension's types come after, in a
- * group named after the extension. Greyed types keep their place, so a
+ * group named after the extension. Grayed types keep their place, so a
  * type is always found where it was. Empty groups are left out.
  */
 export function pickerGroups(states, catalog) {

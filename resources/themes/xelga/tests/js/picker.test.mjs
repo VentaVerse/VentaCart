@@ -2,7 +2,7 @@
 
 /*
  * The section picker: which section types and layouts it offers at a spot
- * of the board and why it greys the others, its groups and search, and
+ * of the board and why it grays the others, its groups and search, and
  * replacing a section in its place as one change that undo takes back
  * exactly.
  */
@@ -131,7 +131,7 @@ function samplePage({ side = false } = {}) {
 const offered = Object.fromEntries(Object.entries(CATALOG).filter(([, def]) => !def.main));
 const byType = (list) => Object.fromEntries(list.map((x) => [x.type, x]));
 
-test('a half column offers what fits and greys the rest in place, with the reason', () => {
+test('a half column offers what fits and grays the rest in place, with the reason', () => {
   const c = samplePage();
   const list = addableTypes(c, { drop: 'column', rowId: 'r-two', column: 0, before: null }, offered, RULES);
   const by = byType(list);
@@ -140,11 +140,11 @@ test('a half column offers what fits and greys the rest in place, with the reaso
   assert.equal(pillWords(by.look), 'Needs two thirds');
   assert.equal(pillWords(by.recent), 'Already on this page');
   ['products', 'tiles', 'text', 'plain', 'demo.card'].forEach((type) => assert.equal(by[type].disabled, false, type));
-  // The order of the catalog is kept: greyed tiles do not move.
+  // The order of the catalog is kept: grayed tiles do not move.
   assert.deepEqual(list.map((x) => x.type), Object.keys(offered));
 });
 
-test('beside a side, a half column greys a section of 6 as narrowed by the sides, not as needing half', () => {
+test('beside a side, a half column grays a section of 6 as narrowed by the sides, not as needing half', () => {
   const c = samplePage({ side: true });
   const target = { drop: 'column', rowId: 'r-two', column: 0, before: null };
   const by = byType(addableTypes(c, target, offered, RULES));
@@ -162,11 +162,11 @@ test('beside a side, a half column greys a section of 6 as narrowed by the sides
 
 test('a gap between rows offers every type but those at their limit', () => {
   const list = addableTypes(samplePage(), { drop: 'gap', before: 'r-seen' }, offered, RULES);
-  const greyed = list.filter((x) => x.disabled).map((x) => x.type);
-  assert.deepEqual(greyed, ['recent']);
+  const grayed = list.filter((x) => x.disabled).map((x) => x.type);
+  assert.deepEqual(grayed, ['recent']);
 });
 
-test('a narrow column greys wider types and, inside a type, the layouts that need more room', () => {
+test('a narrow column grays wider types and, inside a type, the layouts that need more room', () => {
   const c = samplePage();
   const by = byType(addableTypes(c, { drop: 'column', rowId: 'r-three', column: 1, before: null }, offered, RULES));
   assert.equal(pillWords(by.products), 'Needs half or more');
@@ -218,7 +218,7 @@ test('tiles follow picker_order within a group, types without one after in catal
   assert.deepEqual(groups.map((g) => g.types.map((t) => t.type)), [['look', 'banner'], ['products', 'recent'], ['tiles'], ['plain', 'text'], ['demo.card']]);
 });
 
-test('replace mode greys the type in the spot as now here', () => {
+test('replace mode grays the type in the spot as now here', () => {
   const by = byType(addableTypes(samplePage(), null, offered, RULES, { span: 12, now: 'banner' }));
   assert.equal(pillWords(by.banner), 'Now here');
   assert.equal(by.look.disabled, false);
@@ -377,7 +377,7 @@ function productPage({ top = false, bottom = false } = {}) {
 
 const stateOf = (content, target, type) => addableTypes(content, target, pageTypes(), AREA_RULES).find((x) => x.type === type);
 
-test('the bar is grey in a column with Needs a row of its own', () => {
+test('the bar is gray in a column with Needs a row of its own', () => {
   const column = stateOf(productPage(), { drop: 'column', rowId: 'r-halves', column: 0, before: null }, 'announcement-bar');
   assert.equal(column.disabled, true);
   assert.equal(pillWords(column), 'Needs a row of its own');
@@ -387,7 +387,7 @@ test('the bar is grey in a column with Needs a row of its own', () => {
   assert.equal(stateOf(productPage(), { drop: 'gap', area: 'bottom', before: 'end' }, 'announcement-bar').disabled, false);
 });
 
-test('a second bar in Bottom is grey with Already in Bottom', () => {
+test('a second bar in Bottom is gray with Already in Bottom', () => {
   const state = stateOf(productPage({ bottom: true }), { drop: 'gap', area: 'bottom', before: 'end' }, 'announcement-bar');
   assert.equal(state.disabled, true);
   assert.equal(pillWords(state), 'Already in Bottom');
@@ -398,13 +398,13 @@ test('a second bar in Bottom is grey with Already in Bottom', () => {
   assert.equal(pillWords(stateOf(home, { drop: 'gap', before: 'end' }, 'announcement-bar')), 'Already on this page');
 });
 
-test('a bar in Top does not grey a bar for Bottom', () => {
+test('a bar in Top does not gray a bar for Bottom', () => {
   const c = productPage({ top: true });
   assert.equal(stateOf(c, { drop: 'gap', area: 'bottom', before: 'end' }, 'announcement-bar').disabled, false);
   assert.equal(pillWords(stateOf(c, { drop: 'gap', area: 'top', before: 'end' }, 'announcement-bar')), 'Already in Top');
 });
 
-test('filters is grey in Top with Goes beside the page content', () => {
+test('filters is gray in Top with Goes beside the page content', () => {
   const c = board.documents().category;
   const top = stateOf(c, { drop: 'gap', area: 'top', before: 'end' }, 'filters');
   assert.equal(top.disabled, true);
@@ -414,7 +414,7 @@ test('filters is grey in Top with Goes beside the page content', () => {
   assert.equal(pillWords(stateOf(c, { drop: 'gap', area: 'content', before: 'end' }, 'filters')), 'Already on this page');
 });
 
-test('a section too wide for Content beside a side is grey with the narrow words', () => {
+test('a section too wide for Content beside a side is gray with the narrow words', () => {
   const state = stateOf(productPage(), { drop: 'gap', area: 'content', before: 'end' }, 'banner');
   assert.equal(pillWords(state), 'Too narrow beside the sides');
   assert.equal(stateOf(productPage(), { drop: 'gap', area: 'top', before: 'end' }, 'banner').disabled, false);

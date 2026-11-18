@@ -375,29 +375,29 @@ body.is-dragging .piece__tools {
 }
 
 /* Types that cannot go in this spot: listed, readable, not choosable. */
-.stile.is-grey {
+.stile.is-gray {
   cursor: default;
 }
 
-.stile.is-grey:hover {
+.stile.is-gray:hover {
   border-color: var(--line-2);
 }
 
-.stile.is-grey .stile__pic {
+.stile.is-gray .stile__pic {
   background: var(--surface);
 }
 
-.stile.is-grey .stile__pic > * {
+.stile.is-gray .stile__pic > * {
   opacity: .45;
   filter: grayscale(1);
 }
 
-.stile.is-grey .stile__name,
-.stile.is-grey[aria-pressed="true"] .stile__name {
+.stile.is-gray .stile__name,
+.stile.is-gray[aria-pressed="true"] .stile__name {
   color: var(--text-2);
 }
 
-.stile.is-grey[aria-pressed="true"] {
+.stile.is-gray[aria-pressed="true"] {
   border-color: #8f98a4;
   box-shadow: inset 0 0 0 1px #8f98a4;
 }
@@ -524,17 +524,17 @@ body.is-dragging .piece__tools {
   transition: border-color .12s var(--ease), box-shadow .12s var(--ease);
 }
 
-.lcard:hover:not(.is-grey) {
+.lcard:hover:not(.is-gray) {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
-.lcard:hover:not(.is-grey) .sk-b,
-.lcard:hover:not(.is-grey) .sk-d {
+.lcard:hover:not(.is-gray) .sk-b,
+.lcard:hover:not(.is-gray) .sk-d {
   fill: var(--accent);
 }
 
-.lcard:active:not(.is-grey) {
+.lcard:active:not(.is-gray) {
   background: #f7f9fe;
 }
 
@@ -553,16 +553,16 @@ body.is-dragging .piece__tools {
   line-height: 1.3;
 }
 
-.lcard.is-grey {
+.lcard.is-gray {
   cursor: default;
 }
 
-.lcard.is-grey .lcard__pic {
+.lcard.is-gray .lcard__pic {
   opacity: .45;
   filter: grayscale(1);
 }
 
-.lcard.is-grey .lcard__label {
+.lcard.is-gray .lcard__label {
   color: var(--text-2);
 }
 
