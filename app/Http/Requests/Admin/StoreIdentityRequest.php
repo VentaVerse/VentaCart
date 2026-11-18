@@ -167,6 +167,16 @@ class StoreIdentityRequest extends FormRequest
         }
 
         $path = Storage::disk('public')->path($chosen);
+
+        // A library image may be far larger than an identity mark may be.
+        $maxKb = $field === 'logo' ? IdentityAsset::LOGO_MAX_KB : IdentityAsset::FAVICON_MAX_KB;
+
+        if (is_file($path) && filesize($path) > $maxKb * 1024) {
+            $validator->errors()->add($field.'_media', $this->messages()[$field.'.max']);
+
+            return;
+        }
+
         $extension = is_file($path) ? $identify($path) : null;
 
         if ($extension === null) {
