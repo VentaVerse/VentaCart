@@ -28,12 +28,12 @@ export function buildControl(setting, value, change, id, fctx) {
     case 'text':
       return h('input', {
         class: 'input', id, type: 'text', value: value ?? '', placeholder: setting.placeholder || '',
-        maxlength: setting.max_length || TEXT_MAX,
+        maxlength: setting.max_length ?? setting.max ?? TEXT_MAX,
         oninput: (e) => change(e.target.value, { merge: true }),
       });
     case 'textarea': {
       const ta = h('textarea', {
-        class: 'textarea', id, rows: 3, maxlength: setting.max_length || TEXTAREA_MAX,
+        class: 'textarea', id, rows: 3, maxlength: setting.max_length ?? setting.max ?? TEXTAREA_MAX,
         oninput: (e) => change(e.target.value, { merge: true }),
       });
       ta.value = value ?? '';
@@ -135,7 +135,7 @@ function selectControl(setting, value, change, id, fctx) {
 
   if (control === 'segmented' && options.length <= 4) {
     const group = h('div', { class: 'seg seg--fill', role: 'radiogroup', 'aria-labelledby': `${id}-label` });
-    // A choice that needs a row of its own is shown, greyed, in a column or a side.
+    // A choice that needs a row of its own is shown, grayed, in a column or a side.
     const crowded = options.some((o) => o.own_row) && fctx.sid ? sharesRow(fctx.sid) : false;
     const needsRow = 'Needs a row of its own';
     options.forEach((o) => {
