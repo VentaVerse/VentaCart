@@ -404,6 +404,29 @@ const TYPES = {
     describe: (op) => `add ${op.name || 'block'}`,
   },
 
+  /* { doc, sid, index, items: [{ bid, snapshot }] } */
+  'blocks-add': {
+    apply(op, fwd) {
+      const s = sectionIn(op.doc, op.sid);
+      if (!s) return [];
+      if (fwd) {
+        const fresh = op.items.filter((item) => !s.blocks[item.bid]);
+        const at = clampIndex(op.index, s.block_order.length);
+        fresh.forEach((item) => { s.blocks[item.bid] = clone(item.snapshot); });
+        s.block_order.splice(at, 0, ...fresh.map((item) => item.bid));
+        return [];
+      }
+      op.items.forEach((item) => {
+        if (!s.blocks[item.bid]) return;
+        item.snapshot = clone(s.blocks[item.bid]);
+        delete s.blocks[item.bid];
+      });
+      s.block_order = s.block_order.filter((id) => !op.items.some((item) => item.bid === id));
+      return [];
+    },
+    describe: (op) => `add ${op.name || 'blocks'}`,
+  },
+
   /* { doc, sid, bid, index, snapshot } */
   'block-remove': {
     apply(op, fwd) {

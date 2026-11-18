@@ -29,7 +29,7 @@ import { initPreview } from './preview.js';
 import { initPagePicker } from './page-picker.js';
 import { addressQuery, recordAsked, recordTarget } from './page-address.js';
 
-const STRUCTURAL = new Set(['remove', 'insert', 'replace', 'move', 'rename', 'block-add', 'block-remove', 'block-move', 'visible', ...LAYOUT_TYPES]);
+const STRUCTURAL = new Set(['remove', 'insert', 'replace', 'move', 'rename', 'block-add', 'blocks-add', 'block-remove', 'block-move', 'visible', ...LAYOUT_TYPES]);
 
 function afterChange(op, { source }) {
   // The undo of a starting store applies to the draft as it was applied.
