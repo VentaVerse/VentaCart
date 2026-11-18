@@ -821,9 +821,9 @@ function widths(content, layout) {
 }
 
 /**
- * What a change between two versions of a document redraws: the board,
- * the multi-column rows whose content changed (drawn again by the server),
- * and the sections whose width changed, so their picture is taken again.
+ * What changed between two versions of a document's layout: the board,
+ * the multi-column rows whose content changed, and the sections whose
+ * width changed.
  */
 export function effectsOf(before, after, layout) {
   const l = layoutOf(layout);

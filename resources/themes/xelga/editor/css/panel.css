@@ -456,11 +456,6 @@ a {
   background: var(--hover);
 }
 
-.picker-btn[aria-expanded="true"] {
-  background: var(--surface-3);
-  border-color: var(--line);
-}
-
 .picker-btn__label {
   color: var(--text-3);
 }
@@ -1953,10 +1948,6 @@ button.pick-row:hover {
 }
 
 @media (max-width: 899px) {
-  .picker-btn--page {
-    min-width: 0;
-  }
-
   .topbar__start {
     min-width: 0;
   }
@@ -1997,8 +1988,7 @@ button.pick-row:hover {
 
   .topbar__rule,
   .picker-btn--static,
-  .btn-pair,
-  #save-btn {
+  .btn-pair {
     display: none;
   }
 
@@ -2008,14 +1998,6 @@ button.pick-row:hover {
 
   .topbar .btn {
     padding: 0 10px;
-  }
-
-  .picker-btn--page {
-    padding-inline: 6px;
-  }
-
-  .picker-btn--page .picker-btn__value {
-    max-width: 11ch;
   }
 
   .popover {
@@ -2843,32 +2825,6 @@ button.pick-row:hover {
 /* ------------------------------------------------------------------------
    Pages and special layouts
    ------------------------------------------------------------------------ */
-
-.layout-status {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 12px 0 0;
-  font-size: var(--fs-sm);
-  line-height: 1.45;
-  color: var(--text);
-}
-
-.layout-status .icon {
-  width: 16px;
-  height: 16px;
-  flex: none;
-  margin-block-start: 1px;
-  color: var(--success);
-}
-
-.layout-status--muted {
-  color: var(--text-2);
-}
-
-.layout-status--muted .icon {
-  color: var(--accent);
-}
 
 .insp-actions {
   margin-block-start: 16px;

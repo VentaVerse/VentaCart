@@ -4,9 +4,8 @@
  * are what gets saved, so history never has to be replayed on load.
  *
  * Applying an operation changes the document in memory and answers its
- * effects: what the layout board draws again ({board, rows, sections})
- * when rows or sides changed, else nothing; the board then redraws the
- * picture of the section the operation names.
+ * effects: what changed in the page's rows and sides ({board, rows,
+ * sections}) when they did, else nothing.
  *
  * Operations are applied defensively: a target that no longer exists (after
  * loading someone else's changes, say) makes the step a no-op, never an error.

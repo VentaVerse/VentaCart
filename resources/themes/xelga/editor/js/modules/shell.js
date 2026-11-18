@@ -44,7 +44,6 @@ export function buildShell(mount, { storeName = '', exitUrl = '/' } = {}) {
       h('button', { type: 'button', class: 'btn btn--ghost btn--theme', id: 'theme-btn', 'aria-pressed': 'false', 'aria-label': 'Theme', 'data-tip': 'Colors, fonts and buttons for the whole store' },
         icon('palette', 'icon--sm'), h('span', { text: 'Theme' })),
       h('button', { type: 'button', class: 'icon-btn', id: 'more-btn', 'aria-label': 'More actions', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'data-tip': 'More' }, dotsIcon()),
-      h('button', { type: 'button', class: 'btn btn--secondary', id: 'save-btn', disabled: true }, h('span', { class: 'btn__label', text: 'Save draft' })),
       h('button', { type: 'button', class: 'btn btn--primary', id: 'publish-btn', disabled: true }, h('span', { class: 'btn__label', text: 'Publish' }))));
 
   // After a starting store is applied: what was applied, with its one-step undo.

@@ -27,6 +27,7 @@ import { initDrawer } from './board/drawer.js';
 import { initPicker } from './board/picker.js';
 import { initPreview } from './preview.js';
 import { initPagePicker } from './page-picker.js';
+import { addressQuery, recordAsked, recordTarget } from './page-address.js';
 
 const STRUCTURAL = new Set(['remove', 'insert', 'replace', 'move', 'rename', 'block-add', 'block-remove', 'block-move', 'visible', ...LAYOUT_TYPES]);
 
@@ -125,13 +126,7 @@ async function start() {
 /** The page open in this tab, kept in the address so a reload comes back to it. */
 function rememberPage() {
   try {
-    const q = new URLSearchParams(window.location.search);
-    q.delete('page');
-    q.delete('layout');
-    q.delete('edit');
-    if (S.page?.type && S.page.type !== 'home') q.set('page', S.page.type);
-    if (S.page?.layout) q.set('layout', S.page.handle);
-    const query = q.toString();
+    const query = addressQuery(window.location.search, S.page);
     window.history.replaceState(window.history.state, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
   } catch {
     /* The address is a convenience only. */
@@ -211,6 +206,25 @@ async function openPage(target, { openLayout = false, saved = false } = {}) {
   return true;
 }
 
+/*
+ * The record the address named (a reload of a record's page) is opened on
+ * it again; one the store can no longer show leaves the page on its shared
+ * layout, and the address follows.
+ */
+async function restoreRecord(id) {
+  if (!id || !S.page?.subjectType) return;
+  try {
+    const target = await recordTarget({ page: S.page, id, lookup: (type, rid) => ctx.api.subjectPage(type, rid), templates: S.templates });
+    const next = target && resolvePage(target);
+    if (next) S.page = next;
+  } catch (error) {
+    setFatal(error);
+  }
+  $('#app').dataset.fixed = String(isFixed());
+  rememberPage();
+  ui.updatePageButton();
+}
+
 /**
  * Starts the editor.
  *   boot   the normalized boot payload (see boot.js)
@@ -233,6 +247,8 @@ export function startEditor({ boot, api, mount = null }) {
   S.draftVersions = { ...(boot.drafts || {}) };
   // The page in the address (a reload), else the one the server names.
   const query = new URLSearchParams(window.location.search);
+  // A record opened from the page menu comes back once the store says where it is.
+  const asked = recordAsked(window.location.search);
   S.page = resolvePage({ type: query.get('page') || 'home', layout: query.get('layout') })
     || resolvePage({ type: (boot.pages.find((p) => p.handle === boot.page) || boot.pages[0]).type });
   // When the address named a page the picker no longer lists (its
@@ -275,7 +291,7 @@ export function startEditor({ boot, api, mount = null }) {
   watchLeaving();
 
   openPreview();
-  start().then(() => {
+  restoreRecord(asked).then(() => start()).then(() => {
     if (S.loaded) startPresence();
   });
 

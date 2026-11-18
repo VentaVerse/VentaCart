@@ -575,7 +575,7 @@ Rendering the real page means product, category and cart sections get the exact 
 
 - **Undo and redo** stay in the browser, per editor visit: an operation list with forward and backward steps.
 - **Autosave**: every operation marks its document dirty; dirty documents are saved 1.5 seconds after the last change, and at once before a server re-render, when switching page and when the tab is hidden (`fetch` with `keepalive`). The status reads "Saving", "Draft saved 2:41 pm", or "Not saved: retrying".
-- **Save draft** flushes now. Nothing is stored in `localStorage`.
+- **The draft saves itself**; there is no Save draft button, and Ctrl+S saves at once. Nothing is stored in `localStorage`.
 - **Publish** confirms, then posts every document with a draft. The server validates strictly (contrast, structure), copies draft to published in one transaction, writes revisions, clears drafts and returns new versions. The preview reloads from published content.
 - **Discard draft** deletes every draft after confirmation, and custom templates never published.
 - **Pages**: switching page (the page picker, or Alt and click in the preview) saves first and stays put when that fails; undo history starts again per page.

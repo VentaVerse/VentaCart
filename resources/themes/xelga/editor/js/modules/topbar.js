@@ -1,6 +1,6 @@
 /*
  * The top bar: undo and redo, the save status, Theme (its button is wired
- * in the panel), Save draft, Publish (with its confirmation and refusal),
+ * in the panel), Publish (with its confirmation and refusal),
  * Earlier versions, the More menu (the published store, throw away draft),
  * the presence line, and the editor's keyboard shortcuts.
  * The Board and Preview switch in its middle is wired in preview.js.
@@ -62,10 +62,6 @@ export function updateToolbar() {
   const [tone, text, title] = status();
   setStatus(tone, text, title);
 
-  const save = $('#save-btn');
-  if (!save.classList.contains('is-done') && !save.classList.contains('is-busy')) {
-    save.disabled = !S.loaded || Boolean(S.fatal) || !(anyDirty() || Object.values(S.docs).some((d) => d.error && d.error.kind !== 'validation'));
-  }
   const pub = $('#publish-btn');
   if (!pub.classList.contains('is-done') && !pub.classList.contains('is-busy')) {
     pub.disabled = !S.loaded || Boolean(S.fatal) || !publishable().length || Object.values(S.docs).some((d) => d.conflict);
@@ -87,7 +83,7 @@ export function updateToolbar() {
 }
 
 /* ------------------------------------------------------------------------
-   Save draft and Publish
+   Saving and Publish. The draft saves itself; Ctrl+S saves it at once.
    ------------------------------------------------------------------------ */
 
 function flashButton(btn, text, ms) {
@@ -96,26 +92,17 @@ function flashButton(btn, text, ms) {
   btn.replaceChildren(icon('check', 'icon--sm'), h('span', { class: 'btn__label', text }));
   window.setTimeout(() => {
     btn.classList.remove('is-done');
-    btn.replaceChildren(h('span', { class: 'btn__label', text: btn.id === 'save-btn' ? 'Save draft' : 'Publish' }));
+    btn.replaceChildren(h('span', { class: 'btn__label', text: 'Publish' }));
     updateToolbar();
   }, ms);
 }
 
-async function onSave() {
-  const btn = $('#save-btn');
-  const label = $('.btn__label', btn);
-  btn.classList.add('is-busy');
-  label.textContent = 'Saving...';
+/* Saves what is waiting now, with no button: the save status in the top bar says how it went. */
+async function saveNow() {
+  if (!S.loaded || S.fatal) return;
   retryNow();
-  const ok = await flush();
-  btn.classList.remove('is-busy');
-  if (!ok) {
-    label.textContent = 'Save draft';
-    updateToolbar();
-    return;
-  }
-  announce('Draft saved');
-  flashButton(btn, 'Saved', 1800);
+  if (await flush()) announce('Draft saved');
+  updateToolbar();
 }
 
 function changeSummary() {
@@ -238,7 +225,7 @@ export function onKeydown(e) {
     }
   } else if (mod && key === 's') {
     e.preventDefault();
-    if (!$('#save-btn').disabled) onSave();
+    saveNow();
   } else if (e.key === 'Escape') {
     if (document.querySelector('dialog[open]')) return;
     if (isPopoverOpen()) closePopover();
@@ -258,7 +245,6 @@ export function onKeydown(e) {
 export function initTopbar() {
   $('#undo-btn').addEventListener('click', doUndo);
   $('#redo-btn').addEventListener('click', doRedo);
-  $('#save-btn').addEventListener('click', onSave);
   $('#publish-btn').addEventListener('click', (e) => {
     openPopover(e.currentTarget, confirmBox({
       title: 'Publish your changes?',

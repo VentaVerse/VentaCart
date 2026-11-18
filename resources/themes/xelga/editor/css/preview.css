@@ -62,11 +62,9 @@
 
 /*
  * Narrower windows: the switch keeps the middle of the top bar, so the
- * buttons beside it give way. The draft saves itself (and Ctrl+S saves),
- * so Save draft goes first; then the words of Theme and of the store.
+ * buttons beside it give way: the word Theme first.
  */
 @media (max-width: 1100px) {
-  #save-btn,
   .btn--theme span {
     display: none;
   }
