@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Catalog;
 
 use App\Http\Controllers\Api\FetchesRemoteImages;
 use App\Http\Controllers\Controller;
+use App\Rules\MediaFolderName;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Support\Media\MediaReferences;
@@ -230,9 +231,9 @@ class MediaLibraryController extends Controller
     {
         $validated = $request->validate([
             'path' => ['nullable', 'string'],
-            'name' => ['required', 'string', 'max:80', 'regex:/^[^\/\\\\:*?"<>|]+$/', 'not_regex:/^\./'],
+            'name' => ['required', 'string', new MediaFolderName()],
         ], [
-            'name.not_regex' => 'A folder name cannot start with a dot.',
+            'name.required' => 'Give the folder a name.',
         ]);
 
         $parent = MediaLibrary::safePath($validated['path'] ?? null);

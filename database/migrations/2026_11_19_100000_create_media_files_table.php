@@ -36,7 +36,9 @@ return new class extends Migration
                 $table->id();
                 $path = $table->string('path', 512);
                 if ($binary) {
-                    $path->collation('utf8mb4_bin');
+                    // Named together: a store whose connection uses the older
+                    // three-byte utf8 would refuse a utf8mb4 collation alone.
+                    $path->charset('utf8mb4')->collation('utf8mb4_bin');
                 }
                 $path->unique();
                 $table->unsignedInteger('width');
