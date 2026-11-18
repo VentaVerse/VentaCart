@@ -111,9 +111,22 @@ class XelgaSectionsTest extends TestCase
                 $sections[] = ['type' => $type, 'settings' => $preset['settings'] ?? [], 'blocks' => $preset['blocks'] ?? []];
             }
         }
-        // A page holds at most 40 sections, so they are drawn on as many home pages as that takes.
+        // A page holds at most 40 sections, and a type with a limit at most
+        // that many, so they are drawn on as many home pages as that takes.
+        $chunks = [];
+        foreach ($sections as $section) {
+            $limit = Catalog::section($section['type'])->limit();
+            foreach ($chunks as $i => $chunk) {
+                $same = count(array_filter($chunk, fn (array $s) => $s['type'] === $section['type']));
+                if (count($chunk) < 40 && ($limit === null || $same < $limit)) {
+                    $chunks[$i][] = $section;
+                    continue 2;
+                }
+            }
+            $chunks[] = [$section];
+        }
         $html = '';
-        foreach (array_chunk($sections, 40) as $chunk) {
+        foreach ($chunks as $chunk) {
             \Themes\Xelga\Documents\Document::where('handle', 'home')->delete();
             $this->publishHome($chunk);
             $page = $this->home()->getContent();

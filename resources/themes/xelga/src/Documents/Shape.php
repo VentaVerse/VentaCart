@@ -187,6 +187,7 @@ final class Shape
         $this->sameKeys('content', $order, $sections, 'section');
 
         $perType = [];
+        $perArea = [];
         $outSections = [];
         foreach ($order as $id) {
             if (! is_string($id) || ! isset($sections[$id]) || ! is_array($sections[$id])) {
@@ -248,8 +249,11 @@ final class Shape
             }
 
             $perType[$type] = ($perType[$type] ?? 0) + 1;
-            if ($schema->limit() !== null && $perType[$type] > $schema->limit()) {
+            if ($schema->limit() !== null && ($kind !== 'template' || ! $schema->limitPerArea()) && $perType[$type] > $schema->limit()) {
                 $this->fail("{$path}.type", "A page holds at most {$schema->limit()} {$schema->label}.");
+            }
+            if ($kind === 'template' && $schema->limitPerArea() && $schema->limit() !== null) {
+                $perArea[] = $id;
             }
 
             $outSections[$id] = [
@@ -262,6 +266,8 @@ final class Shape
                 $outSections[$id]['source'] = $schema->source();
             }
         }
+
+        $this->limitPerArea($handle, $perArea, $outSections);
 
         if ($kind === 'group' || ($kind === 'template' && $pageType !== null)) {
             $this->lockedSections($handle, $outSections);
@@ -512,6 +518,34 @@ final class Shape
         }
         foreach ($state['hidden_main'] as $id) {
             $this->fail("content.sections.{$id}.disabled", "{$label((string) $sections[$id]['type'])} is the page's main section and cannot be hidden. Hide its blocks instead.");
+        }
+    }
+
+    /**
+     * A type whose limit counts per area may appear its limit times on a
+     * page without areas, and three times its limit on a page with them:
+     * once per area each. The cap is per page, not per area, on purpose. A
+     * row carried into another area when a side is added (see
+     * Layout::normalize) may bring a second one into an area, and a page
+     * the store saved must still save; the editor keeps adding to one per
+     * area.
+     *
+     * @param  list<string>  $ids  the sections of such types, in document order
+     */
+    private function limitPerArea(string $handle, array $ids, array $sections): void
+    {
+        if ($ids === []) {
+            return;
+        }
+        $areas = Layout::hasAreas($sections, app(LayoutRules::class, ['handle' => $handle]));
+        $count = [];
+        foreach ($ids as $id) {
+            $schema = Catalog::section($sections[$id]['type']);
+            $cap = $schema->limit() * ($areas ? count(Layout::AREAS) : 1);
+            $count[$schema->type] = ($count[$schema->type] ?? 0) + 1;
+            if ($count[$schema->type] > $cap) {
+                $this->fail("content.sections.{$id}.type", "A page holds at most {$cap} {$schema->label}.");
+            }
         }
     }
 

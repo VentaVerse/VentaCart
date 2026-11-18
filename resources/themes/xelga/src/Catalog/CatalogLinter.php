@@ -5,6 +5,7 @@ namespace Themes\Xelga\Catalog;
 use Themes\Xelga\Documents\Defaults;
 use Themes\Xelga\Extensions\ExtensionParts;
 use Themes\Xelga\Documents\Handles;
+use Themes\Xelga\Documents\Layout;
 use Themes\Xelga\Documents\Shape;
 use Themes\Xelga\Documents\ShapeException;
 use Themes\Xelga\Settings\SanitizeContext;
@@ -264,6 +265,7 @@ final class CatalogLinter
         }
 
         $this->spans($where, $spec, $part === null);
+        $this->placement($where, $spec, $part === null);
         if ($part === null) {
             $this->pickerGroup($where, $spec);
         }
@@ -376,6 +378,64 @@ final class CatalogLinter
             $css = is_file($file) ? $this->stripComments((string) file_get_contents($file)) : '';
             if ($class === '' || preg_match('/(?:^|[{},])\s*\.' . preg_quote($class, '/') . '\s*\{[^{}]*container-type\s*:\s*inline-size/', $css) !== 1) {
                 $this->problem("{$where}: can sit in a narrow column, so css/sections/{$spec['type']}.css must set container-type: inline-size on .{$class} itself.");
+            }
+        }
+    }
+
+    /**
+     * Where on a page a section may sit: the shared groups it may also go
+     * in (`shared_groups`), a row of its own (`own_row`), a limit counted
+     * per area (`limit_per_area`) and Content only (`content_only`). Only
+     * the theme's own sections may set them: an extension's section never
+     * goes in the header or footer, and the rest are not part of the
+     * contract extensions build against.
+     *
+     * A section kept in Content is never measured against the content
+     * width (Layout::normalize leaves it where it is), so every span it can
+     * have must fit the content width left between two sides.
+     */
+    private function placement(string $where, array $spec, bool $own): void
+    {
+        $keys = ['shared_groups', 'own_row', 'limit_per_area', 'content_only'];
+        if (! $own) {
+            foreach ($keys as $key) {
+                if (array_key_exists($key, $spec)) {
+                    $this->problem("{$where}: {$key} is for the theme's own sections only.");
+                }
+            }
+
+            return;
+        }
+
+        foreach (['own_row', 'limit_per_area', 'content_only'] as $key) {
+            if (array_key_exists($key, $spec) && ! is_bool($spec[$key])) {
+                $this->problem("{$where}: {$key} is true or false.");
+            }
+        }
+        $template = ($spec['group'] ?? null) === 'template';
+        if (array_key_exists('shared_groups', $spec)) {
+            $groups = $spec['shared_groups'];
+            if (! is_array($groups) || ! array_is_list($groups) || $groups === [] || array_diff($groups, Handles::GROUPS) !== [] || count(array_unique($groups)) !== count($groups)) {
+                $this->problem("{$where}: shared_groups lists header, footer or both.");
+            } elseif (! $template) {
+                $this->problem("{$where}: only a page section can list shared_groups; a header or footer section stays in its own group.");
+            }
+        }
+        if (($spec['limit_per_area'] ?? false) === true && ! is_int($spec['limit'] ?? null)) {
+            $this->problem("{$where}: limit_per_area needs a limit.");
+        }
+        if (($spec['content_only'] ?? false) === true) {
+            $narrowest = Layout::contentSpan(count(Layout::SIDES));
+            $spans = [is_array($spec['span'] ?? null) ? ($spec['span']['min'] ?? 12) : 12];
+            foreach ((array) ($spec['variants'] ?? []) as $variant) {
+                if (is_array($variant) && is_int($variant['span'] ?? null)) {
+                    $spans[] = $variant['span'];
+                }
+            }
+            if (! $template) {
+                $this->problem("{$where}: only a page section can be content_only.");
+            } elseif (max($spans) > $narrowest) {
+                $this->problem("{$where}: content_only, so every span must fit the {$narrowest} twelfths Content keeps between two sides.");
             }
         }
     }

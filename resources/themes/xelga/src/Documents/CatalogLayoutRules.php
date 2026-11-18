@@ -44,12 +44,12 @@ final class CatalogLayoutRules implements LayoutRules
 
     public function ownRow(array $section): bool
     {
-        return ($this->schema($section)?->raw['own_row'] ?? false) === true;
+        return $this->schema($section)?->ownRow() ?? false;
     }
 
     public function contentOnly(array $section): bool
     {
-        return ($this->schema($section)?->raw['content_only'] ?? false) === true;
+        return $this->schema($section)?->contentOnly() ?? false;
     }
 
     public function pageTypeKnown(): bool
