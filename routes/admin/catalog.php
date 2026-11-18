@@ -43,11 +43,17 @@ Route::prefix('catalog')->group(function () {
     // Media page itself ran on the product image endpoints, and StoreMedia
     // never held a row. They went with the controller.
     Route::get('/media', [MediaController::class, 'index'])->name('media.index');
-    Route::get('/media/browse', [MediaLibraryController::class, 'browse'])->name('media.browse');
-    Route::post('/media/upload', [MediaLibraryController::class, 'upload'])->name('media.upload');
-    Route::post('/media/import-url', [MediaLibraryController::class, 'importUrl'])->name('media.import-url');
-    Route::post('/media/delete', [MediaLibraryController::class, 'destroy'])->name('media.delete');
-    Route::post('/media/folder', [MediaLibraryController::class, 'folder'])->name('media.folder');
+    Route::middleware('throttle:media-reads')->group(function () {
+        Route::get('/media/browse', [MediaLibraryController::class, 'browse'])->name('media.browse');
+        Route::get('/media/tree', [MediaLibraryController::class, 'tree'])->name('media.tree');
+    });
+    Route::middleware('throttle:media-writes')->group(function () {
+        Route::post('/media/upload', [MediaLibraryController::class, 'upload'])->name('media.upload');
+        Route::post('/media/import-url', [MediaLibraryController::class, 'importUrl'])
+            ->middleware('throttle:media-imports')->name('media.import-url');
+        Route::post('/media/delete', [MediaLibraryController::class, 'destroy'])->name('media.delete');
+        Route::post('/media/folder', [MediaLibraryController::class, 'folder'])->name('media.folder');
+    });
 
     // Tags
     Route::resource('tags', TagController::class)->except(['show']);

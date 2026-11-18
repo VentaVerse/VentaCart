@@ -116,8 +116,8 @@ class MediaLibraryTest extends TestCase
         $files = collect($this->getJson(route('admin.media.browse', ['root' => 'products']))->assertOk()->json('files'))
             ->keyBy('name');
 
-        $this->assertSame(1, $files['used.jpg']['usedBy']);
-        $this->assertSame(0, $files['spare.jpg']['usedBy']);
+        $this->assertSame(1, $files['used.jpg']['usedBy']['total']);
+        $this->assertSame(0, $files['spare.jpg']['usedBy']['total']);
     }
 
     /**
@@ -265,7 +265,7 @@ class MediaLibraryTest extends TestCase
         $body = $this->getJson(route('admin.media.browse', ['root' => 'products']))->assertOk()->json();
 
         $this->assertSame(130, $body['total']);
-        $this->assertCount(120, $body['files']);
-        $this->assertSame(2, $body['lastPage']);
+        $this->assertCount(60, $body['files']);
+        $this->assertSame(3, $body['lastPage']);
     }
 }
