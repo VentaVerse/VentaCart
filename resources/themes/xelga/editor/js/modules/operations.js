@@ -463,9 +463,12 @@ function run(op, dir) {
 
 function notify(op, dir, effects, source) {
   // A selection whose target is gone is cleared before anything redraws.
+  // A block that is gone leaves its section selected, so the panel stays on
+  // the section's settings rather than going back to the page.
   if (S.sel?.kind === 'section') {
     const s = sec(S.sel.sid);
-    if (!s || (S.sel.bid && !s.blocks[S.sel.bid])) S.sel = null;
+    if (!s) S.sel = null;
+    else if (S.sel.bid && !s.blocks[S.sel.bid]) S.sel = { ...S.sel, bid: null };
   }
   listeners.forEach((fn) => fn(op, { dir, effects, source }));
 }

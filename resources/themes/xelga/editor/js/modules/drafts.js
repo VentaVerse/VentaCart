@@ -137,8 +137,8 @@ function adopt(d, res, savedJson) {
     }
   }
   ui.renderInspector();
-  // The pictures show what the server keeps.
-  ui.redrawPictures?.();
+  // The preview shows what the server keeps.
+  ui.reloadPreview?.();
   const first = res.adjusted.find((a) => a.message)?.message;
   if (res.adjusted.length) {
     toast(first
@@ -246,7 +246,7 @@ export async function resolveConflict(d) {
   addDocument(theirs);
   ui.renderInspector();
   ui.updateToolbar();
-  ui.redrawPictures?.();
+  ui.reloadPreview?.();
   if (!unsaved.length) {
     toast(`Their changes to ${label} are loaded.`, { tone: 'success' });
     return;
@@ -337,7 +337,7 @@ export async function publish() {
     S.templates.forEach((t) => { if (versions[t.handle] !== undefined) t.isPublished = true; });
     S.publishedFlash = Date.now();
     ui.updateToolbar();
-    ui.redrawPictures?.();
+    ui.reloadPreview?.();
     return { ok: true };
   } catch (error) {
     if (error.kind === 'conflict') {
@@ -385,7 +385,7 @@ export async function discard() {
       ui.renderBoard();
       ui.renderInspector();
       ui.updateToolbar();
-      ui.redrawPictures?.();
+      ui.reloadPreview?.();
       toast('Someone else saved changes just now, so nothing was thrown away. Their changes are loaded; look, then throw away again if you still want to.', { tone: 'error', timeout: 10000 });
     } else toast(`The draft was not thrown away. ${error.message}`, { tone: 'error', timeout: 8000 });
     return false;
@@ -394,7 +394,7 @@ export async function discard() {
   S.sel = null;
   ui.renderInspector();
   ui.updateToolbar();
-  ui.redrawPictures?.();
+  ui.reloadPreview?.();
   toast(deleted.length
     ? `Draft thrown away. ${plural(deleted.length, 'special layout')} that ${deleted.length === 1 ? 'was' : 'were'} never published ${deleted.length === 1 ? 'was' : 'were'} deleted with it.`
     : 'Draft thrown away. The editor shows the published store again.', { tone: 'success', timeout: deleted.length ? 8000 : 4200 });
@@ -423,7 +423,7 @@ export async function restoreRevision(handle, revision) {
   if (S.sel?.kind === 'section') S.sel = null;
   ui.renderInspector();
   ui.updateToolbar();
-  ui.redrawPictures?.();
+  ui.reloadPreview?.();
   toast(`The version from ${formatTime(revision.createdAt)} is now the draft of ${docLabel(handle)}. Publish to make it live.`, { tone: 'success', timeout: 7000 });
   return true;
 }

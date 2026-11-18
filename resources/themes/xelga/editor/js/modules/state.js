@@ -41,12 +41,18 @@ export const S = {
   pointer: 0, // how many of history are applied
   seq: 0, // increasing number given to each operation
   // What is selected: { kind: 'section', sid, bid } | { kind: 'theme', group, scheme? }
-  // | { kind: 'layout' } | { kind: 'stores' }; its settings show in the drawer.
+  // | { kind: 'stores' }; its settings show in the panel.
   sel: null,
-  // What the board marks and the drawer shows: {type: 'board'} (nothing),
-  // {type: 'section', sid} (follows the selection), {type: 'row', rowId},
-  // {type: 'theme'} or {type: 'revisions'}.
+  // What the board marks and the panel shows: {type: 'board'} (nothing
+  // selected: the page's own settings), {type: 'section', sid} (follows the
+  // selection), {type: 'row', rowId}, {type: 'theme'} or {type: 'revisions'}.
   view: { type: 'board' },
+  // On a phone the panel rests as one line; true while the page's own settings are pulled up.
+  sheet: false,
+  // 'board' or 'preview': which of the two views of the page is shown.
+  mode: 'board',
+  // The width Preview shows the store at: 'computer', 'tablet' or 'phone'.
+  device: 'computer',
   renaming: null, // { sid, bid } while a name is being edited in the drawer
   presence: [], // other admins in the editor
   online: true,
@@ -187,11 +193,17 @@ export const layoutsOf = (type) => S.templates.filter((t) => t.pageType === type
 /** The special layout open now, or null on a page type's own template. */
 export const currentLayout = () => (S.page?.layout ? templateOf(S.page.handle) : null);
 
-/** What the page picker and the top bar call a page: "Product: Gift guide", "Product: Default", "Cart". */
+/**
+ * What the editor calls the page open now, in its heading, the panel and
+ * the window's title: a special layout by its name ("Gift guide"), a record
+ * opened from the page menu by its own name ("Laptops"), the shared layout
+ * of a type of record as "Category layout", any other page by its name.
+ */
 export function pageTitle(page = S.page) {
   if (!page) return '';
-  if (page.layout) return `${page.label}: ${templateOf(page.handle)?.label || 'Special layout'}`;
-  return page.subjectType ? `${page.label}: Default` : page.label;
+  if (page.record && page.subject?.name) return page.subject.name;
+  if (page.layout) return templateOf(page.handle)?.label || `${page.label} special layout`;
+  return page.subjectType ? `${page.label} layout` : page.label;
 }
 
 export function docLabel(handle) {

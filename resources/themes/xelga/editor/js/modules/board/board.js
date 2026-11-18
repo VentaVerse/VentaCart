@@ -6,13 +6,14 @@
  * stand beside every row: an empty one is a thin strip that adds its first
  * section, a filled one holds its sections at three twelfths, and the rows
  * between them draw at the content width the sides leave. Each section is
- * a name bar over a picture of how the store draws it from the draft (see
- * pictures.js); a section the page draws nothing for shows the drawing of
- * its layout instead.
+ * a plain box of the same height as every other: its name bar over the
+ * drawing of its layout. The board is for arranging; Preview shows the
+ * store itself.
  *
- * Clicking a section selects it, and its settings open in the drawer.
- * Every change redraws the board, then the pictures it touched. On a phone
- * the page is drawn as a list instead (see phone.js).
+ * Clicking a section selects it, and its settings show in the panel beside
+ * the board; a click on the empty board goes back to the page's own
+ * settings. Every change redraws the board. On a phone the page is drawn as
+ * a list instead (see phone.js).
  *
  * Sections are added where they will show: an Add line between rows (a
  * row of columns, or one section full width), an Add under each column
@@ -24,18 +25,16 @@
  * `data-target`.
  */
 
-import { $, h, icon, schematic, toast, announce } from '../dom.js';
+import { $, h, icon, schematic, announce } from '../dom.js';
 import {
-  S, ctx, ui, doc, groupHandle, groupList, isFixed, labelOf, pageTitle, valueOf, schemes,
+  S, ui, doc, groupHandle, groupList, isFixed, labelOf, pageTitle, valueOf, schemes,
 } from '../state.js';
 import { sectionDef, sectionIcon, variantDrawing } from '../catalog.js';
-import { onChange, layoutPayload, rulesFor, sidesFor } from '../operations.js';
-import { flush, setFatal } from '../drafts.js';
-import { openSheet, closeSheet, isPhone } from '../selection.js';
+import { layoutPayload, rulesFor, sidesFor } from '../operations.js';
+import { openSheet, isPhone } from '../selection.js';
 import { refreshNeeds, needTag } from '../needs.js';
 import { rowsOf, contentSpan } from './model.js';
-import { createPictures } from './pictures.js';
-import { boardSource, layoutButton, fixedPanel } from '../layouts.js';
+import { fixedPanel } from '../layouts.js';
 import { openPicker, pickerSpot, pickerReplacing } from './picker.js';
 import { splitOf, listWords, columnName } from './words.js';
 import { barWords } from './labels.js';
@@ -43,12 +42,8 @@ import {
   startDrag, keyMove, keyMoveRow, keyMoves, rowKeyMoves, dragJustEnded, afterRender, targetKey, initDrag, keyMoveBand, bandKeyMoves,
 } from './drag.js';
 import { renderPhoneBoard } from './phone.js';
-
-const REFRESH_WAIT_MS = 700;
-
-let pictures = null;
-let loadedKey = '';
-let pictureState = 'idle'; // idle | loading | ready | failed
+import { addLineMode } from './place.js';
+import { pageHeading } from '../page-picker.js';
 
 const app = () => $('#app');
 
@@ -82,18 +77,16 @@ function sectionShortcuts(sid) {
 const dropData = (target) => ({ target: JSON.stringify(target), drop: target.drop });
 
 /**
- * One section: its name bar over its picture. `span` is its column's part
- * (12 for a full-width row, 3 in a side) and `area` the content area that
- * column sits in, so the picture is drawn at the width the store gives it.
+ * One section: a box with its name bar over the drawing of its layout. Its
+ * width is its column's; its height is the same as every other box's.
  */
-function piece(section, span, { movable = false, changeable = false, band = null, area = 12 } = {}) {
+function piece(section, { movable = false, changeable = false, band = null } = {}) {
   const def = sectionDef(section.type);
   const selected = S.sel?.kind === 'section' && S.sel.sid === section.id;
   const name = labelOf(section.id);
   const words = barWords(name, def?.label || '', variantLabel(section.id, section.type));
   const hidden = Boolean(section.disabled);
   const main = def?.main === true;
-  const picture = pictures?.pictureFor(section.id, span, area) || null;
   const flags = [];
   const need = def && !hidden ? needTag(section.id) : null;
   if (main) flags.push(['lock', 'Page content', 'The page content: it can be moved, never removed']);
@@ -102,7 +95,7 @@ function piece(section, span, { movable = false, changeable = false, band = null
   if (!def) flags.push(['alert', 'Not shown', 'The part of the store this section belongs to is not installed']);
   const el = h('button', {
     type: 'button',
-    class: `piece${selected ? ' is-selected' : ''}${main ? ' piece--main' : ''}${hidden ? ' is-hidden' : ''}`,
+    class: `piece piece--box${selected ? ' is-selected' : ''}${main ? ' piece--main' : ''}${hidden ? ' is-hidden' : ''}`,
     dataset: { sid: section.id, type: section.type },
     'aria-pressed': String(selected),
     'aria-keyshortcuts': band ? shortcuts(bandKeyMoves(band, section.id)) : movable ? sectionShortcuts(section.id) : null,
@@ -123,8 +116,7 @@ function piece(section, span, { movable = false, changeable = false, band = null
       words.layout ? h('span', { class: 'piece__variant', text: words.layout }) : null,
       ...flags.map(([iconName, text, title]) => h('span', { class: 'piece__flag', title }, icon(iconName, 'icon--xs'), h('span', { class: 'piece__flagtext', text }))))),
   h('span', { class: 'piece__shot' },
-    h('span', { class: 'piece__sketch' }, schematic(variantDrawing(section.type, variantOf(section.id)))),
-    picture));
+    h('span', { class: 'piece__sketch' }, schematic(variantDrawing(section.type, variantOf(section.id))))));
   // The header, the footer and the page's main section keep their section: they have no Change.
   if (!changeable || main || !def) return el;
   const replacing = pickerReplacing() === section.id;
@@ -148,7 +140,7 @@ function sharedBand(group) {
   const movable = list.length > 1;
   list.forEach((s) => {
     if (movable) band.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData({ drop: 'band', group, before: s.id }) }));
-    band.append(piece(s, 12, { band: movable ? group : null }));
+    band.append(piece(s, { band: movable ? group : null }));
   });
   if (movable) band.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData({ drop: 'band', group, before: null }) }));
   return band;
@@ -171,7 +163,7 @@ function newSpot() {
   return h('div', { class: 'newspot', 'aria-hidden': 'true' }, icon('plus', 'icon--sm'), 'New section goes here');
 }
 
-/** Between two rows: an Add line, shown on hover or focus (always on touch screens). */
+/** Between two rows: an Add line, shown on hover or focus (always on touch and narrow screens). */
 function gapEl(before, above, below) {
   const target = { drop: 'gap', before };
   if (isAddTarget(target)) return h('div', { class: 'gap gap--target', dataset: dropData(target) }, newSpot());
@@ -180,10 +172,10 @@ function gapEl(before, above, below) {
     h('button', {
       type: 'button', class: 'gap__add', 'aria-label': `Add a section or a row of columns${where ? ` ${where}` : ''}`,
       onclick: () => { if (!dragJustEnded()) openPicker({ target }); },
-    }, h('span', { class: 'gap__line', 'aria-hidden': 'true' }), h('span', { class: 'gap__pill' }, icon('plus', 'icon--xs'), 'Add')));
+    }, h('span', { class: 'gap__line', 'aria-hidden': 'true' }), h('span', { class: 'gap__pill' }, icon('plus', 'icon--xs'), 'Add section')));
 }
 
-function rowEl(row, sections, area = 12) {
+function rowEl(row, sections) {
   const split = splitOf(row.split);
   const parts = split.parts;
   const single = parts.length === 1;
@@ -202,7 +194,7 @@ function rowEl(row, sections, area = 12) {
       title: 'Row settings. Drag to move the row.',
       onclick: () => {
         if (dragJustEnded()) return;
-        if (selected) closeSheet();
+        if (selected) ui.showPage?.();
         else openSheet({ type: 'row', rowId: row.id });
       },
       onpointerdown: (e) => startDrag(e, { kind: 'row', rowId: row.id }),
@@ -219,7 +211,7 @@ function rowEl(row, sections, area = 12) {
     const column = h('div', { class: 'col', dataset: { span: String(part) } });
     const list = (row.columns[index] || []).map((sid) => (sections[sid] ? { id: sid, ...sections[sid] } : null)).filter(Boolean);
     if (single) {
-      list.forEach((s) => column.append(piece(s, part, { movable: true, changeable: true, area })));
+      list.forEach((s) => column.append(piece(s, { movable: true, changeable: true })));
       // Two sections side by side: a drop on the left or right edge of a full-width one.
       if (list.length === 1 && !main) {
         ['left', 'right'].forEach((side) => column.append(h('div', {
@@ -231,7 +223,7 @@ function rowEl(row, sections, area = 12) {
       list.forEach((s) => {
         const spot = { drop: 'column', rowId: row.id, column: index, before: s.id };
         if (isAddTarget(spot)) column.append(newSpot());
-        column.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(spot) }), piece(s, part, { movable: true, changeable: true, area }));
+        column.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(spot) }), piece(s, { movable: true, changeable: true }));
       });
       const end = { drop: 'column', rowId: row.id, column: index, before: null };
       if (isAddTarget(end)) {
@@ -240,13 +232,13 @@ function rowEl(row, sections, area = 12) {
         column.append(h('button', {
           type: 'button', class: 'col__empty', dataset: dropData(end), 'aria-label': `Add a section to the ${name}`,
           onclick: () => { if (!dragJustEnded()) openPicker({ target: end }); },
-        }, icon('plus', 'icon--sm'), h('span', { text: 'Add a section' })));
+        }, icon('plus', 'icon--sm'), h('span', { text: 'Add section' })));
       } else if (list.length < max) {
         column.append(h('button', {
           type: 'button', class: 'col__add', dataset: dropData(end),
           'aria-label': `Add a section to the ${name}, under ${labelOf(list[list.length - 1].id)}`,
           onclick: () => { if (!dragJustEnded()) openPicker({ target: end }); },
-        }, icon('plus', 'icon--xs'), h('span', { text: 'Add' })));
+        }, icon('plus', 'icon--xs'), h('span', { text: 'Add section' })));
       } else {
         column.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(end) }));
       }
@@ -287,7 +279,7 @@ function sideEl(which, ids, sections) {
     const spot = { drop: 'side', side: which, before: sid };
     if (isAddTarget(spot)) el.append(newSpot());
     el.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(spot) }),
-      piece({ id: sid, ...sections[sid] }, 3, { movable: true, changeable: true }));
+      piece({ id: sid, ...sections[sid] }, { movable: true, changeable: true }));
   });
   const max = layoutPayload()?.max_per_side ?? 6;
   if (isAddTarget(end)) {
@@ -297,7 +289,7 @@ function sideEl(which, ids, sections) {
       type: 'button', class: 'col__add', dataset: dropData(end),
       'aria-label': `Add a section to the ${which} side, under ${labelOf(ids[ids.length - 1])}`,
       onclick: () => { if (!dragJustEnded()) openPicker({ target: end }); },
-    }, icon('plus', 'icon--xs'), h('span', { text: 'Add' })));
+    }, icon('plus', 'icon--xs'), h('span', { text: 'Add section' })));
   } else {
     el.append(h('div', { class: 'slot', 'aria-hidden': 'true', dataset: dropData(end) }));
   }
@@ -318,7 +310,7 @@ function pageRows() {
   const rows = h('div', { class: 'rows' });
   const list = rowsOf(content, layoutPayload());
   const nameOf = (row) => (row ? listWords(row.columns.flat().filter((sid) => sections[sid]).map((sid) => labelOf(sid))) || 'an empty row' : null);
-  list.forEach((row, i) => rows.append(gapEl(row.id, nameOf(list[i - 1]), nameOf(row)), rowEl(row, sections, area)));
+  list.forEach((row, i) => rows.append(gapEl(row.id, nameOf(list[i - 1]), nameOf(row)), rowEl(row, sections)));
   rows.append(gapEl('end', nameOf(list[list.length - 1]), null));
   if (!offered.length) return rows;
   // Sides run the full height of the page content, beside every row; on a phone they stack around it.
@@ -334,24 +326,9 @@ function splitPicture(parts) {
   return el;
 }
 
-function pictureNote() {
-  if (pictureState === 'loading') return h('p', { class: 'boardhead__meta', role: 'status', text: 'Drawing the sections...' });
-  if (pictureState !== 'failed') return null;
-  return h('p', { class: 'boardhead__meta boardhead__meta--warn', role: 'status' },
-    'The pictures of the sections could not be drawn, so their layouts are shown instead. ',
-    h('button', { type: 'button', class: 'link-btn', onclick: () => { loadedKey = ''; renderBoard(); } }, 'Try again'));
-}
-
-function head({ pictures: withPictures = true } = {}) {
-  const source = boardSource();
-  const settings = layoutButton();
-  return h('div', { class: 'boardhead' },
-    h('div', { class: 'boardhead__text' },
-      h('h1', { class: 'boardhead__title', text: pageTitle() }),
-      source?.meta ? h('p', { class: 'boardhead__meta', text: source.meta }) : null,
-      withPictures ? pictureNote() : null),
-    settings ? h('div', { class: 'boardhead__actions' }, settings) : null,
-    source?.note || null);
+/* The page's heading, which is also the page picker (page-picker.js). */
+function head() {
+  return h('div', { class: 'boardhead' }, pageHeading('board'));
 }
 
 /** Draws the board again from the documents. */
@@ -371,14 +348,12 @@ export function renderBoard() {
   refreshNeeds();
   const phone = isPhone();
   board.dataset.view = phone ? 'list' : 'board';
-  // A picture of a whole section is unreadable on a phone: the list shows the drawing of its layout.
-  if (!phone) ensurePictures();
   const keep = board.scrollTop;
   const focused = focusKey(board);
   const page = isFixed() ? fixedPanel() : pageRows();
   if (phone) {
     board.replaceChildren(renderPhoneBoard({
-      title: pageTitle(), head: head({ pictures: false }), header: sharedBand('header'), page, footer: sharedBand('footer'),
+      title: pageTitle(), head: head(), header: sharedBand('header'), page, footer: sharedBand('footer'),
     }));
   } else {
     const sheet = h('div', { class: 'sheet', role: 'group', 'aria-label': `${pageTitle()}, drawn as the page` },
@@ -387,12 +362,12 @@ export function renderBoard() {
   }
   board.scrollTop = keep;
   if (focused) refocusKey(board, focused);
+  ui.remountPageMenu?.();
   afterRender();
 }
 
 /*
- * The board is drawn anew after every change and when its pictures come
- * in. The control that had the keyboard focus gets it back, so a keyboard
+ * The board is drawn anew after every change. The control that had the keyboard focus gets it back, so a keyboard
  * user never drops to the top of the page.
  */
 function focusKey(board) {
@@ -427,102 +402,6 @@ function rowExists(rowId) {
 }
 
 /* ------------------------------------------------------------------------
-   Pictures
-   ------------------------------------------------------------------------ */
-
-const pageKey = () => `${S.page?.handle || ''}|${S.page?.url || ''}|${ctx.boot?.preview?.nonce || ''}`;
-
-/** Draws every picture again, from the saved draft: after a store is applied, a draft thrown away or a version restored. */
-export function redrawPictures() {
-  loadedKey = '';
-  pending = null;
-  window.clearTimeout(timer);
-  renderBoard();
-}
-
-/** Loads the pictures of the page open now, once per page and preview window. */
-function ensurePictures() {
-  if (!pictures || !S.page?.url || !ctx.boot?.preview?.nonce) return;
-  const key = pageKey();
-  if (key === loadedKey) return;
-  loadedKey = key;
-  pictureState = 'loading';
-  (async () => {
-    // The pictures show the saved draft: save what is waiting first.
-    await flush();
-    await pictures.load(S.page.url);
-  })().then(() => {
-    if (loadedKey !== key) return;
-    pictureState = 'ready';
-    renderBoard();
-  }).catch((error) => {
-    if (loadedKey !== key) return;
-    if (error?.kind === 'unauthenticated' || error?.kind === 'forbidden') setFatal(error);
-    pictureState = 'failed';
-    renderBoard();
-  });
-}
-
-let pending = null;
-let timer = 0;
-
-/** Notes what a change needs drawn again; the pictures follow once the draft is saved. */
-function queueRefresh(op, effects) {
-  if (!pictures || pictureState !== 'ready' || op.t === 'rename') return;
-  pending = pending || { rows: new Set(), sections: new Set(), styles: false };
-  const layout = (effects || []).filter((e) => e && e.board);
-  if (op.t === 'theme' || op.t === 'color') {
-    pending.styles = true;
-    pending.sections.add('*');
-  } else if (layout.length) {
-    layout.forEach((e) => {
-      e.rows.forEach((id) => pending.rows.add(id));
-      e.sections.forEach((id) => pending.sections.add(id));
-    });
-  } else {
-    pending.sections.add(op.sid || '*');
-  }
-  window.clearTimeout(timer);
-  timer = window.setTimeout(runRefresh, REFRESH_WAIT_MS);
-}
-
-function requeue(job) {
-  pending = pending || { rows: new Set(), sections: new Set(), styles: false };
-  job.rows.forEach((id) => pending.rows.add(id));
-  job.sections.forEach((id) => pending.sections.add(id));
-  pending.styles = pending.styles || job.styles;
-  window.clearTimeout(timer);
-  timer = window.setTimeout(runRefresh, REFRESH_WAIT_MS * 4);
-}
-
-async function runRefresh() {
-  const job = pending;
-  pending = null;
-  if (!job) return;
-  const key = loadedKey;
-  // Sections inside a row drawn again come with it.
-  const content = doc(groupHandle('template'))?.content;
-  const inRows = new Set(content ? rowsOf(content, layoutPayload()).filter((r) => job.rows.has(r.id)).flatMap((r) => r.columns.flat()) : []);
-  const sections = [...job.sections].filter((id) => !inRows.has(id));
-  try {
-    if (!await flush()) {
-      // Not saved yet, so nothing new to draw: keep the job for the next try.
-      requeue(job);
-      return;
-    }
-    if (key !== loadedKey) return;
-    await pictures.refresh({ rows: [...job.rows], sections, styles: job.styles });
-  } catch (error) {
-    if (error?.kind === 'unauthenticated' || error?.kind === 'forbidden') {
-      setFatal(error);
-      return;
-    }
-    toast('The board could not draw this change. The draft is saved; the pictures catch up on the next change.', { tone: 'error', timeout: 6000 });
-  }
-  if (key === loadedKey) renderBoard();
-}
-
-/* ------------------------------------------------------------------------
    Keys
    ------------------------------------------------------------------------ */
 
@@ -546,12 +425,35 @@ function boardKeys(event) {
   }
 }
 
+/*
+ * A click on the board outside every box, tab and button goes back to the
+ * page's own settings, the usual way to clear a selection.
+ */
+function emptyClick(event) {
+  if (dragJustEnded() || !S.loaded) return;
+  if (event.target.closest('button, a, input, select, textarea, label, [role="button"], .piece-wrap, .row__tab, .pagehead')) return;
+  if (!S.sel && S.view.type === 'board') return;
+  ui.showPage?.();
+}
+
+/* Whether the Add lines always show (touch screens, tablets, phones) or on hover and focus; CSS reads it. */
+function syncAddLine() {
+  const a = app();
+  if (!a) return;
+  a.dataset.addline = addLineMode({
+    coarse: window.matchMedia('(pointer: coarse)').matches,
+    hover: window.matchMedia('(hover: hover)').matches,
+    width: window.innerWidth,
+  });
+}
+
 export function initBoard() {
-  pictures = createPictures({ api: ctx.api, stylesheets: [] });
   ui.renderBoard = renderBoard;
-  ui.redrawPictures = redrawPictures;
-  onChange((op, { effects }) => queueRefresh(op, effects));
+  syncAddLine();
+  window.addEventListener('resize', syncAddLine);
+  ['(pointer: coarse)', '(hover: hover)'].forEach((q) => window.matchMedia(q).addEventListener('change', syncAddLine));
   $('#board')?.addEventListener('keydown', boardKeys);
+  $('#board')?.addEventListener('click', emptyClick);
   initDrag();
   // The board and the list are drawn differently: draw again when the window crosses the phone width.
   window.matchMedia('(max-width: 719px)').addEventListener('change', () => renderBoard());

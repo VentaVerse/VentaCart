@@ -1,9 +1,9 @@
 /*
- * The inspector: the settings of what is selected, drawn in the drawer
+ * The inspector: the settings of what is selected, drawn in the panel
  * beside the board. A section shows its settings and its blocks; a block
  * shows its own; a theme settings group shows the group. With nothing
- * selected the drawer shows a row's settings or the theme list (drawer.js),
- * or closes.
+ * selected the panel shows a row's settings, the theme list or the page's
+ * own settings (drawer.js).
  *
  * A section's panel may also hold theme settings that belong with it (the
  * header's cart icon, `edited_in` in the theme settings schema). Those fields
@@ -30,7 +30,6 @@ const body = () => $('#drawer-body');
 
 const selKey = (sel) => {
   if (sel.kind === 'theme') return `theme:${sel.group}:${sel.scheme || ''}`;
-  if (sel.kind === 'layout') return `layout:${S.page?.handle || ''}`;
   if (sel.kind === 'stores') return 'stores';
   return `${sel.sid}/${sel.bid || ''}`;
 };
@@ -40,7 +39,7 @@ export function renderInspector() {
   if (!S.loaded) return;
   const el = body();
   if (!el) return;
-  // Nothing selected: the drawer shows a row or the theme list, or closes.
+  // Nothing selected: the panel shows a row, the theme list or the page.
   if (!S.sel) {
     shownKey = null;
     ui.renderDrawer();
@@ -56,8 +55,6 @@ export function renderInspector() {
     view = themeInspector(S.sel.group);
   } else if (S.sel.kind === 'stores') {
     view = ui.storesInspector?.(inspectorHead) || null;
-  } else if (S.sel.kind === 'layout') {
-    view = ui.layoutInspector?.(inspectorHead) || null;
   } else if (sec(S.sel.sid) && (!S.sel.bid || blk(S.sel.sid, S.sel.bid))) {
     view = sectionInspector(S.sel.sid, S.sel.bid);
   }
@@ -82,7 +79,11 @@ export function renderInspector() {
   ui.syncDrawer?.();
 }
 
-/* The drawer's head: back (from a block to its section, from a theme group or a starting store to Theme), the title, its actions and Close. */
+/*
+ * The panel's head: back (from a block to its section, from a theme group
+ * or a starting store to Theme) or else the page's name above the title,
+ * the title, its actions, and on a phone the sheet's close button.
+ */
 export function inspectorHead({ title, help = null, kind, kindBlock = false, type = null, actions = [], renames = null }) {
   const head = h('div', { class: 'insp-head' });
   const back = S.sel?.kind === 'section' && S.sel.bid
@@ -91,6 +92,7 @@ export function inspectorHead({ title, help = null, kind, kindBlock = false, typ
       ? { label: 'Back to Theme', go: () => ui.openDrawer({ type: 'theme' }) }
       : null;
   const editing = renames && S.renaming && S.renaming.sid === renames.sid && (S.renaming.bid || null) === (renames.bid || null);
+  if (!back) head.append(ui.pageCrumb());
   const top = h('div', { class: 'insp-head__row' },
     back ? h('button', { type: 'button', class: 'icon-btn insp-back', 'aria-label': back.label, 'data-tip': back.label, onclick: back.go }, icon('arrow-left')) : null,
     editing ? renameInput(renames.sid, renames.bid, title) : h('h2', { class: 'insp-title', tabindex: -1 }, h('span', { text: title }), helpTip(help)),
@@ -99,10 +101,7 @@ export function inspectorHead({ title, help = null, kind, kindBlock = false, typ
       onclick: () => startRename(renames.sid, renames.bid),
     }, icon('type')) : null,
     ...actions,
-    h('button', {
-      type: 'button', class: 'icon-btn', 'aria-label': 'Close settings', 'data-tip': 'Close (Esc)',
-      onclick: () => ui.closeDrawer(),
-    }, icon('close')));
+    ui.sheetClose());
   head.append(top);
   if (kind) head.append(h('p', { class: 'insp-kind' }, h('span', { class: `insp-kind__dot${kindBlock ? ' insp-kind__dot--block' : ''}`, 'aria-hidden': 'true' }), kind));
   if (type) {

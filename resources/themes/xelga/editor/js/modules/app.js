@@ -1,8 +1,8 @@
 /*
  * Starts the editor: draws the shell, opens this admin's preview window
- * (for the board's pictures and Open store preview), loads the documents
- * the current page is drawn from, and wires every change to the layout
- * board, the settings drawer and autosave.
+ * (for the Preview view), loads the documents the current page is drawn
+ * from, and wires every change to the layout board, the settings panel,
+ * Preview and autosave.
  */
 
 import { $, h, setSprite, toast } from './dom.js';
@@ -25,6 +25,8 @@ import { initStores } from './stores.js';
 import { initBoard } from './board/board.js';
 import { initDrawer } from './board/drawer.js';
 import { initPicker } from './board/picker.js';
+import { initPreview } from './preview.js';
+import { initPagePicker } from './page-picker.js';
 
 const STRUCTURAL = new Set(['remove', 'insert', 'replace', 'move', 'rename', 'block-add', 'block-remove', 'block-move', 'visible', ...LAYOUT_TYPES]);
 
@@ -59,8 +61,7 @@ async function loadPageDocuments() {
 
 /*
  * The preview window is opened here, by a POST, rather than by loading the
- * editor page. Its nonce lets the board draw the sections from the draft
- * and Open store preview show the draft in a tab of its own.
+ * editor page. Its nonce is what lets Preview show the draft.
  */
 async function openPreview() {
   if (!ctx.api.openPreview) return;
@@ -68,14 +69,13 @@ async function openPreview() {
     const opened = await ctx.api.openPreview();
     Object.assign(ctx.boot.preview, { nonce: opened.nonce, until: opened.until });
     if (opened.url && isSameOrigin(opened.url)) ctx.boot.preview.url = opened.url;
-    ui.updatePreviewLink?.();
-    ui.renderBoard?.();
+    ui.previewOpened?.();
   } catch (error) {
     if (error.kind === 'unauthenticated' || error.kind === 'forbidden') {
       setFatal(error);
       return;
     }
-    // The board still works with the drawings of the layouts; only the pictures and the store preview wait.
+    // The board works without it; only Preview waits.
     toast(`The store preview could not be opened. ${error.message}`, {
       tone: 'error',
       timeout: 10000,
@@ -118,6 +118,8 @@ async function start() {
   ui.renderBoard();
   ui.renderInspector();
   ui.updateToolbar();
+  // Preview follows the page open in the editor.
+  ui.previewPage?.();
 }
 
 /** The page open in this tab, kept in the address so a reload comes back to it. */
@@ -136,18 +138,42 @@ function rememberPage() {
   }
 }
 
-/** The page to open for a target: { type, layout? } with layout a special layout's handle. */
-function resolvePage({ type, layout = null }) {
+/** The template_param a special layout's preview address carries, so it draws that layout. */
+function withLayoutParam(url, handle) {
+  const param = ctx.boot?.preview?.template_param;
+  if (!url || !param) return url;
+  try {
+    const next = new URL(url, window.location.href);
+    next.searchParams.set(param, handle);
+    return next.href;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * The page to open for a target: { type, layout?, subject?, url? } with
+ * layout a special layout's handle, and subject and url one record to
+ * draw the page on (from the page menu's search) instead of the sample.
+ */
+function resolvePage({ type, layout = null, subject = null, url = null }) {
   const base = pageDef(type);
   if (!base) return null;
   const custom = layout ? templateOf(layout) : null;
+  const record = subject && url ? { subject, url } : null;
   if (custom && custom.pageType === base.type) {
-    return { ...base, handle: custom.handle, layout: true, custom: true, url: custom.url, subject: custom.subject };
+    return {
+      ...base, handle: custom.handle, layout: true, custom: true,
+      url: record ? withLayoutParam(record.url, custom.handle) : custom.url,
+      subject: record ? record.subject : custom.subject,
+      record: Boolean(record),
+    };
   }
-  return { ...base, layout: false };
+  return { ...base, layout: false, ...(record ? { ...record, record: true } : {}) };
 }
 
-const samePage = (a, b) => Boolean(a && b) && a.type === b.type && (a.handle || null) === (b.handle || null);
+const samePage = (a, b) => Boolean(a && b) && a.type === b.type && (a.handle || null) === (b.handle || null)
+  && Number(a.subject?.id || 0) === Number(b.subject?.id || 0);
 
 /**
  * Opens another page or special layout. Changes are saved first; when that
@@ -173,6 +199,7 @@ async function openPage(target, { openLayout = false, saved = false } = {}) {
   S.page = next;
   S.sel = null;
   S.view = { type: 'board' };
+  S.sheet = false;
   resetHistory();
   $('#app').dataset.fixed = String(isFixed());
   ui.updatePageButton();
@@ -217,10 +244,10 @@ export function startEditor({ boot, api, mount = null }) {
   buildShell(target, {
     storeName: boot.store.name,
     exitUrl: boot.routes.exit || '/',
-    storeUrl: boot.store.url || '/',
   });
   $('#app').dataset.fixed = String(isFixed());
 
+  initPagePicker();
   initTopbar();
   initInspector();
   initRevisions();
@@ -229,6 +256,7 @@ export function startEditor({ boot, api, mount = null }) {
   initBoard();
   initDrawer();
   initPicker();
+  initPreview();
   ui.openPage = openPage;
   ui.rememberPage = rememberPage;
   ui.showFatal = showFatal;

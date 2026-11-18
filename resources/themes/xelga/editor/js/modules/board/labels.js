@@ -54,3 +54,17 @@ export function placeWords(content, sid, layout, group = 'template') {
   const parts = layout.splits?.[row?.split]?.parts || [12];
   return parts.length > 1 ? `In the ${columnName(parts, at.column).toLowerCase()} of a row` : null;
 }
+
+/**
+ * The name a new block starts with. Only a block type a section can hold
+ * more than one of gets a number ("Slide 2"), so the merchant can tell the
+ * blocks apart; one of a kind keeps its type's plain name ("Quantity and
+ * Add to cart"). `limit` is the type's limit in the section (0 for none),
+ * `max` the section's own limit of blocks, and `taken` how many of the
+ * type the section holds already.
+ */
+export function blockLabel(typeLabel, { limit = 0, max = 0, taken = 0 } = {}) {
+  const name = String(typeLabel || '').trim();
+  const oneOfAKind = Number(limit) === 1 || Number(max) === 1;
+  return oneOfAKind ? name : `${name} ${Number(taken) + 1}`;
+}

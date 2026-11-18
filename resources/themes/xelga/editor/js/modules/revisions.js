@@ -77,7 +77,7 @@ function confirmRestore(anchor, rev) {
     confirmLabel: 'Restore into draft',
     onConfirm: async () => {
       const ok = await restoreRevision(rev.handle, rev);
-      if (ok) ui.closeDrawer?.();
+      if (ok) ui.showPage?.();
     },
   }), { align: 'end' });
 }

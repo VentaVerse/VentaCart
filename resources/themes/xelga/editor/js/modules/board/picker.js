@@ -161,7 +161,7 @@ const drawing = (type, variant) => schematic(variantDrawing(type, variant ?? def
 
 function title() {
   if (P.mode === 'replace') return `Replace ${labelOf(P.sid)}`;
-  return P.target.drop === 'gap' ? 'Add a row or a section' : 'Add a section';
+  return 'Add a section';
 }
 
 function render() {

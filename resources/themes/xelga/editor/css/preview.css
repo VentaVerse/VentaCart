@@ -1,0 +1,209 @@
+/*
+ * Board and Preview: one switch in the middle of the top bar, two views of
+ * the same page in the canvas. Preview is the store page itself, from the
+ * draft, in a frame at the width of a computer, a tablet or a phone. The
+ * view not shown keeps its scroll and its frame, so switching is instant
+ * and never animates.
+ */
+
+/* ----------------------------------------------------------------- switch */
+
+.viewswitch {
+  grid-area: switch;
+  display: inline-flex;
+  justify-self: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-3);
+  border-radius: var(--radius-lg);
+}
+
+.viewswitch__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 96px;
+  min-height: 32px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-2);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.viewswitch__tab:hover {
+  color: var(--text);
+}
+
+.viewswitch__tab .icon {
+  color: var(--text-3);
+}
+
+.viewswitch__tab[aria-selected="true"] {
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(16 20 28 / .12), 0 0 0 1px rgb(16 20 28 / .05);
+}
+
+.viewswitch__tab[aria-selected="true"] .icon {
+  color: var(--accent);
+}
+
+.viewswitch__tab:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+/*
+ * Narrower windows: the switch keeps the middle of the top bar, so the
+ * buttons beside it give way. The draft saves itself (and Ctrl+S saves),
+ * so Save draft goes first; then the words of Theme and of the store.
+ */
+@media (max-width: 1100px) {
+  #save-btn,
+  .btn--theme span {
+    display: none;
+  }
+
+  .btn--theme {
+    width: 34px;
+    padding: 0;
+  }
+
+  .viewswitch__tab {
+    min-width: 0;
+    padding: 0 12px;
+  }
+}
+
+/* ------------------------------------------------------------- the views */
+
+/* The view not shown stays laid out, hidden, so it keeps its scroll and its frame keeps its page. */
+.canvas > .board[hidden],
+.canvas > .preview[hidden] {
+  display: block;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.preview {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--canvas);
+}
+
+.preview__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 14px;
+  padding: 12px 16px 0;
+}
+
+.preview__width {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+}
+
+.preview__devices button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: none;
+}
+
+.preview__size {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.preview__stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 16px 16px;
+  overflow: hidden;
+}
+
+.preview__wrap {
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-frame);
+}
+
+.preview__frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--surface);
+}
+
+.preview__state {
+  position: absolute;
+  inset: 40px 24px auto;
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 16px 18px;
+  font-size: var(--fs-md);
+  text-align: center;
+  color: var(--text-2);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-frame);
+}
+
+.preview__state[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ phone */
+
+@media (max-width: 719px) {
+  .viewswitch {
+    display: flex;
+    justify-self: stretch;
+    margin: 0 6px 6px;
+  }
+
+  .viewswitch__tab {
+    flex: 1 1 0;
+    min-height: 38px;
+  }
+
+  /* The editor is the phone: the store fills the view, at the phone's own width, under the page's heading. */
+  .preview__bar {
+    display: block;
+    padding: 8px;
+  }
+
+  .preview__width {
+    display: none;
+  }
+
+  .preview__stage {
+    padding: 0;
+  }
+
+  .preview__wrap {
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}

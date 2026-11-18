@@ -1,9 +1,9 @@
 /*
- * Pages and special layouts: the page picker in the top bar, the note on
- * the layout board about a layout many records share, the board's Layout
- * settings button and the settings it opens in the drawer (name, what uses
- * it, delete), making a new layout, and the pages with a fixed layout that
- * are only styled by theme settings.
+ * Pages and special layouts (the page picker is page-picker.js): the page's own
+ * settings in the panel when nothing is selected (which layout it uses,
+ * what shares it, making a layout of its own, and a special layout's name,
+ * what uses it and delete), making a new layout, and the pages with a
+ * fixed layout that are only styled by theme settings.
  *
  * A special layout is a custom template of one page type (handle
  * `product.gift-guide`). Its sections are edited like any page's; its name
@@ -14,14 +14,14 @@
 
 import { $, h, icon, toast, announce, helpTip } from './dom.js';
 import {
-  S, ctx, ui, doc, pageDef, templateOf, layoutsOf, currentLayout, pageTitle, isFixed, noteDraft, addDocument,
+  S, ctx, ui, doc, pageDef, templateOf, layoutsOf, currentLayout, isFixed, noteDraft, addDocument,
 } from './state.js';
 import { themeGroups } from './catalog.js';
 import { normalizeTemplate } from './boot.js';
 import { flush, setFatal } from './drafts.js';
-import { openMenu, openPopover, closePopover, confirmBox } from './popover.js';
+import { openPopover, closePopover, confirmBox } from './popover.js';
 import { openThemeGroup } from './selection.js';
-import { openList, row as pickRow, describe, fetchNames, remember, isGone } from './pickers/entity.js';
+import { row as pickRow, describe, fetchNames, isGone } from './pickers/entity.js';
 import { plural } from './util.js';
 
 /** "Its product goes" or "Its 3 products go". */
@@ -75,146 +75,135 @@ export function forgetLayouts(handles) {
     // The draft is being thrown away, so there is nothing to save first.
     S.page = { ...pageDef(S.page.type) };
     if (S.sel?.kind !== 'theme') S.sel = null;
-    updatePageButton();
+    ui.updatePageButton?.();
   }
 }
 
 function redraw() {
-  updatePageButton();
+  ui.updatePageButton?.();
   ui.renderBoard();
-  if (S.sel?.kind === 'layout') ui.renderInspector();
+  if (!S.sel) ui.renderInspector();
   ui.updateToolbar();
 }
 
-export function updatePageButton() {
-  const text = pageTitle();
-  const el = $('#page-name');
-  if (el) el.textContent = text;
-  document.title = `${text}: theme editor${S.store?.name ? ` | ${S.store.name}` : ''}`;
-}
-
-/* ------------------------------------------------------------------------
-   The page picker
-   ------------------------------------------------------------------------ */
-
-export function pageMenu(anchor) {
-  // The theme's own pages, then each extension's pages under its name.
-  const editable = S.pages.filter((p) => p.kind !== 'fixed' && !p.extension);
-  const extensionPages = S.pages.filter((p) => p.kind !== 'fixed' && p.extension);
-  const fixed = S.pages.filter((p) => p.kind === 'fixed');
-  const items = [{ heading: 'Pages' }];
-  editable.forEach((p) => {
-    const words = subjectWords(p.subjectType);
-    const users = words ? defaultUsers(p) : 0;
-    items.push({
-      label: p.subjectType ? `${p.label}: Default` : p.label,
-      checked: S.page?.type === p.type && !S.page?.layout,
-      disabled: p.ready === false,
-      hint: p.ready === false ? 'Coming in a later update' : words && users ? `Used by ${plural(users, words.one, words.many)}` : null,
-      run: () => ui.openPage({ type: p.type }),
-    });
-    if (!words) return;
-    layoutsOf(p.type).forEach((l) => items.push({
-      label: `${p.label}: ${l.label}`,
-      iconName: 'sparkle',
-      checked: Boolean(S.page?.layout) && S.page.handle === l.handle,
-      hint: l.count ? plural(l.count, words.one, words.many) : `Not used by any ${words.one} yet`,
-      run: () => ui.openPage({ type: p.type, layout: l.handle }),
-    }));
-    items.push({
-      label: `New ${p.label.toLowerCase()} layout`,
-      iconName: 'plus',
-      // The menu closes first; the form opens on the same button.
-      run: () => window.setTimeout(() => newLayoutForm(anchor, p), 0),
-    });
-  });
-  let group = null;
-  extensionPages.forEach((p) => {
-    if (p.group !== group) items.push({ sep: true }, { heading: p.group || 'Extensions' });
-    group = p.group;
-    items.push({
-      label: p.label,
-      checked: S.page?.type === p.type,
-      hint: p.url ? null : 'Nothing to preview yet',
-      run: () => ui.openPage({ type: p.type }),
-    });
-  });
-  if (fixed.length) {
-    items.push({ sep: true }, { heading: 'Styled by theme settings' });
-    fixed.forEach((p) => items.push({
-      label: p.label,
-      iconName: 'lock',
-      checked: S.page?.type === p.type,
-      run: () => ui.openPage({ type: p.type }),
-    }));
-  }
-  openMenu(anchor, items, { label: 'Pages' });
-}
-
 /** How many records use a page type's default layout: all of them but those on a special layout. */
-function defaultUsers(page) {
+export function defaultUsers(page) {
   const special = layoutsOf(page.type).reduce((n, l) => n + l.count, 0);
   return Math.max(0, (page.subjectCount || 0) - special);
 }
 
-/**
- * What the layout board says under its heading about where the layout of
- * the page comes from: `meta`, a line of text, and `note`, the shared
- * layout note, each or both null.
- *
- * A page about one record (a category, a product) is drawn from a layout
- * that many records share. The board names the record it shows, says how
- * many others change with it and offers a layout of its own.
- */
-export function boardSource() {
-  const page = S.page;
-  const words = subjectWords(page?.subjectType);
-  if (!words || isFixed()) return null;
-  const layout = currentLayout();
-  if (layout) {
-    return { meta: layout.count ? `Used by ${plural(layout.count, words.one, words.many)}` : `Not used by any ${words.one} yet`, note: null };
-  }
-  const base = pageDef(page.type) || page;
-  const n = defaultUsers(base);
-  const subject = base.subject;
-  // A record on a special layout is not drawn from this one.
-  const elsewhere = subject && S.templates.some((t) => t.pageType === page.type && t.assigned.includes(Number(subject.id)));
-  if (!subject?.name || elsewhere || !n) {
-    return { meta: n ? `Used by ${plural(n, words.one, words.many)}` : null, note: null };
-  }
-  const name = subject.name;
-  const button = h('button', {
-    type: 'button', class: 'btn btn--secondary btn--sm', 'aria-haspopup': 'dialog',
-    onclick: (e) => newLayoutForm(e.currentTarget, base, { name, subject }),
-  }, `Make a layout for ${name} only`);
-  const note = h('div', { class: 'source', role: 'note' },
-    icon('layers', 'source__icon'),
-    h('p', { class: 'source__text' },
-      h('strong', { text: `${name} uses the ${base.label} layout.` }),
-      ` Changes here show on ${n === 1 ? `this ${words.one} only` : `all ${plural(n, words.one, words.many)}`}.`),
-    button);
-  return { meta: null, note };
-}
-
 /* ------------------------------------------------------------------------
-   Layout settings: the board's button and the drawer it opens
+   The page's own settings: the panel with nothing selected
    ------------------------------------------------------------------------ */
 
-/** The board's Layout settings button, on pages drawn from a layout records share; null elsewhere. */
-export function layoutButton() {
-  if (!subjectWords(S.page?.subjectType) || isFixed()) return null;
-  const selected = S.sel?.kind === 'layout';
-  return h('button', {
-    type: 'button', class: 'btn btn--secondary btn--sm', id: 'layout-btn', 'aria-pressed': String(selected),
-    onclick: () => (selected ? ui.closeDrawer() : selectLayout()),
-  }, icon(currentLayout() ? 'sparkle' : 'file', 'icon--sm'), 'Layout settings');
+/**
+ * What the page's own settings say, from plain facts; no DOM, no state.
+ * Answers `{ uses, rows, actions }`: the line beside the page's name in
+ * its heading (which layout it uses), the facts the panel lists as [term,
+ * value] pairs, and the actions offered ('only' makes a layout for the
+ * record open, 'special' a special layout). Which layout a record uses is
+ * said in the heading only, so the panel does not repeat it.
+ *
+ *   fixed      the page keeps a fixed layout
+ *   label      the page type's name ("Category")
+ *   words      { one, many } for the records it shows, or null
+ *   subject    { name } of the record shown, or null
+ *   record     the page was opened on that record, not on its layout
+ *   layout     { label, count } of the special layout open, or null
+ *   users      records on the page type's shared layout
+ *   specials   names of the page type's special layouts
+ *   elsewhere  the record shown uses a special layout
+ */
+export function pageFacts({ fixed = false, label = '', words = null, subject = null, record = false, layout = null, users = 0, specials = [], elsewhere = false } = {}) {
+  const count = (n) => (n === 1 ? `1 ${words.one}` : `${n} ${words.many}`);
+  if (fixed) return { uses: 'A fixed layout', rows: [['Layout', 'Fixed. Theme settings change how it looks.']], actions: [] };
+  if (!words) return { uses: 'Its own layout', rows: [['Layout', 'Its own, on this page only']], actions: [] };
+  const shows = subject?.name && !record ? [['Shows', subject.name]] : [];
+  if (layout) {
+    const used = layout.count ? count(layout.count) : `No ${words.one} yet`;
+    return {
+      uses: record ? `Uses the ${layout.label} layout` : `Special ${label.toLowerCase()} layout, used by ${layout.count ? count(layout.count) : `no ${words.one} yet`}`,
+      rows: [['Used by', used], ...shows],
+      actions: ['special'],
+    };
+  }
+  const usedBy = users === 1 ? `1 ${words.one}` : users ? `All ${count(users)}` : `No ${words.one} yet`;
+  const actions = record && subject?.name && !elsewhere && users ? ['only', 'special'] : ['special'];
+  return {
+    uses: record ? `Uses the ${label.toLowerCase()} layout` : users ? `Shared by ${count(users)}` : `Not used by any ${words.one} yet`,
+    rows: [
+      ['Used by', usedBy],
+      ['Special layouts', specials.length ? specials.join(', ') : 'None'],
+      ...shows,
+    ],
+    actions,
+  };
 }
 
+/* The facts of the page open now. */
+function factsNow() {
+  const page = S.page;
+  const words = subjectWords(page?.subjectType);
+  const base = pageDef(page?.type) || page || {};
+  const subject = page?.subject || null;
+  return pageFacts({
+    fixed: isFixed(),
+    label: base.label || '',
+    words,
+    subject,
+    record: Boolean(page?.record),
+    layout: currentLayout(),
+    users: words ? defaultUsers(base) : 0,
+    specials: words ? layoutsOf(base.type).map((l) => l.label) : [],
+    elsewhere: Boolean(subject) && S.templates.some((t) => t.pageType === page.type && t.assigned.includes(Number(subject.id))),
+  });
+}
+
+/** The line beside the page's name in its heading: which layout it uses. */
+export const pageUses = () => (S.page ? factsNow().uses : '');
+
+/**
+ * The page's own settings, for the panel: the facts, the ways to give the
+ * page a layout of its own and, on a special layout, its name, what uses
+ * it and delete.
+ */
+export function pageSettings() {
+  const page = S.page;
+  if (!page) return [];
+  const facts = factsNow();
+  const words = subjectWords(page.subjectType);
+  const base = pageDef(page.type) || page;
+  const out = [h('dl', { class: 'facts' }, ...facts.rows.map(([term, value]) => h('div', { class: 'facts__row' }, h('dt', { text: term }), h('dd', { text: value }))))];
+  const actions = h('div', { class: 'insp-actions' });
+  if (facts.actions.includes('only')) {
+    const name = page.subject.name;
+    const n = defaultUsers(base);
+    out.push(h('div', { class: 'pagecard' },
+      icon('layers', 'pagecard__icon'),
+      h('p', { class: 'pagecard__meta', text: n === 1 ? `Changes here show on this ${words.one} only.` : `Changes here show on all ${plural(n, words.one, words.many)}.` }),
+      h('button', {
+        type: 'button', class: 'btn btn--secondary btn--sm pagecard__action', 'aria-haspopup': 'dialog',
+        onclick: (e) => newLayoutForm(e.currentTarget, base, { name, subject: page.subject }),
+      }, icon('plus', 'icon--sm'), `Make a layout for ${name} only`)));
+  }
+  if (facts.actions.includes('special') && !currentLayout()) {
+    actions.append(h('button', {
+      type: 'button', class: 'btn btn--secondary btn--sm', 'aria-haspopup': 'dialog',
+      onclick: (e) => newLayoutForm(e.currentTarget, base),
+    }, icon('plus', 'icon--sm'), 'Make a special layout'));
+    out.push(actions);
+  }
+  const layout = currentLayout();
+  if (layout && words) out.push(...specialLayoutSettings(layout, words, page));
+  return out;
+}
+
+/**
+ * Opens the page's own settings; with `choose`, also the list of records
+ * that use the special layout open now (a new layout starts there).
+ */
 export function selectLayout({ choose = false } = {}) {
-  if (!subjectWords(S.page?.subjectType)) return;
-  S.sel = { kind: 'layout' };
-  ui.renderBoard();
-  ui.renderInspector();
+  ui.showPage?.({ focus: 'panel' });
   if (choose) window.setTimeout(() => $('#layout-choose')?.click(), 80);
 }
 
@@ -241,33 +230,9 @@ export function fixedPanel() {
    Layout settings: name, what uses it, delete
    ------------------------------------------------------------------------ */
 
-export function layoutInspector(inspectorHead) {
-  const page = S.page;
-  const words = subjectWords(page?.subjectType);
-  const layout = currentLayout();
-  if (!words) return null;
-
-  if (!layout) {
-    const others = layoutsOf(page.type);
-    const head = inspectorHead({ title: `Default ${page.label.toLowerCase()} layout`, kind: 'Page layout' });
-    const body = h('div', { class: 'insp-body' },
-      h('p', { class: 'layout-status' }, icon('check'), `Used by every ${words.one} that has no special layout.`),
-      others.length ? h('p', { class: 'layout-status layout-status--muted' }, icon('sparkle'),
-        `${plural(others.length, 'special layout')}: ${others.map((l) => l.label).join(', ')}. Open them from the page menu at the top.`) : null,
-      h('div', { class: 'insp-actions' },
-        h('button', {
-          type: 'button', class: 'btn btn--secondary btn--sm', 'aria-haspopup': 'dialog',
-          onclick: (e) => newLayoutForm(e.currentTarget, page),
-        }, icon('plus', 'icon--sm'), 'Make a special layout')));
-    return h('div', { class: 'inspector' }, head, body);
-  }
-
-  const head = inspectorHead({
-    title: layout.label,
-    help: `Shoppers see this layout on the ${words.many} chosen below, once it is published. Every other ${words.one} keeps the default layout. Sections and their settings are edited on the board, as on any page.`,
-    kind: `Special ${page.label.toLowerCase()} layout`,
-  });
-  const body = h('div', { class: 'insp-body' });
+/* A special layout's own settings: its name, what uses it, and delete. */
+function specialLayoutSettings(layout, words, page) {
+  const out = [];
   const form = h('div', { class: 'form' });
 
   // Name: saved when the field is left or Enter is pressed.
@@ -317,9 +282,9 @@ export function layoutInspector(inspectorHead) {
   form.append(h('div', { class: 'field', role: 'group', 'aria-labelledby': 'layout-used-label' },
     h('div', { class: 'field__label', id: 'layout-used-label' }, h('span', { text: `Used for these ${words.many}` })),
     status, chosen));
-  body.append(form);
+  out.push(form);
 
-  body.append(h('div', { class: 'insp-foot' },
+  out.push(h('div', { class: 'insp-foot' },
     h('button', {
       type: 'button', class: 'btn btn--danger-text btn--sm', 'aria-haspopup': 'dialog',
       onclick: (e) => openPopover(e.currentTarget, confirmBox({
@@ -332,7 +297,7 @@ export function layoutInspector(inspectorHead) {
         onConfirm: () => deleteLayout(layout.handle),
       }), { align: 'start', label: `Delete ${layout.label}` }),
     }, icon('trash', 'icon--sm'), 'Delete layout')));
-  return h('div', { class: 'inspector' }, head, body);
+  return out;
 }
 
 async function renameLayout(layout, input, error) {
@@ -357,10 +322,10 @@ async function renameLayout(layout, input, error) {
   }
   try {
     applyLayouts(await ctx.api.renameTemplate(live.handle, label));
-    updatePageButton();
+    ui.updatePageButton?.();
     ui.renderBoard();
     // The heading and the delete question name it too.
-    if (S.sel?.kind === 'layout') ui.renderInspector();
+    if (!S.sel) ui.renderInspector();
     announce(`Renamed to ${label}`);
   } catch (e) {
     if (e.kind === 'unauthenticated' || e.kind === 'forbidden') setFatal(e);
@@ -606,8 +571,8 @@ export function initLayouts() {
   ui.refreshLayouts = refreshLayouts;
   ui.forgetLayouts = forgetLayouts;
   ui.selectLayout = selectLayout;
-  ui.layoutInspector = layoutInspector;
-  ui.updatePageButton = updatePageButton;
+  ui.pageSettings = pageSettings;
+  ui.pageUses = pageUses;
   ui.layoutGone = (handle) => {
     const layout = templateOf(handle);
     if (layout) layoutGone(layout);

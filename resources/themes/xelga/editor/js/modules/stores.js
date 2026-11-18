@@ -13,7 +13,7 @@ import { S, ctx, ui, doc, addDocument, settingsDoc } from './state.js';
 import { flush, setFatal } from './drafts.js';
 import { detachDocument } from './operations.js';
 
-/* The cards' pictures, built with the editor so they are served like its other files. */
+/* The cards' photos, built with the editor so they are served like its other files. */
 const THUMBS = import.meta.glob('../../../store-templates/*/thumbnail.jpg', { eager: true, query: '?url', import: 'default' });
 
 const HANDLES = { all: ['settings', 'header', 'footer', 'home'], look: ['settings'] };
@@ -198,7 +198,7 @@ async function applyStore(store) {
         // Someone else saved one of these drafts: show theirs, and let the merchant decide again.
         adopt(Object.fromEntries((await Promise.all(handles.map((handle) => ctx.api.getDocument(handle).catch(() => null)))).filter(Boolean).map((d) => [d.handle, d])));
         ui.renderInspector();
-        ui.redrawPictures?.();
+        ui.reloadPreview?.();
         toast(`${error.message} Their changes are loaded; apply again if you still want ${theStore(store.name)}.`, { tone: 'error', timeout: 10000 });
         return;
       }
@@ -218,7 +218,7 @@ async function applyStore(store) {
       await ui.openPage({ type: 'home' }, { saved: true });
     } else {
       ui.renderInspector();
-      ui.redrawPictures?.();
+      ui.reloadPreview?.();
     }
     ui.updateToolbar();
     announce(`Applied ${theStore(store.name)} to your draft.`);
@@ -257,7 +257,7 @@ async function undoApply() {
   S.sel = null;
   ui.renderInspector();
   ui.updateToolbar();
-  ui.redrawPictures?.();
+  ui.reloadPreview?.();
   $('#theme-btn').focus({ preventScroll: true });
   toast(res.message || `The ${name} store is taken off your draft. Your draft is back as it was.`, { tone: 'success' });
 }
