@@ -74,7 +74,7 @@ class AdminPermissions
         'brands' => self::CRUD,
         'tags' => self::CRUD,
         'attributes' => self::CRUD,
-        'media' => ['view', 'create', 'delete'],
+        'media' => self::CRUD,
         'customers' => ['view', 'create', 'edit', 'delete', 'impersonate'],
         'customer-groups' => self::CRUD,
         'marketing' => self::CRUD,

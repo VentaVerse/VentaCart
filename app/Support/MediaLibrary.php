@@ -2,10 +2,9 @@
 
 namespace App\Support;
 
-use App\Models\Product;
-use App\Models\ProductImage;
+use App\Models\MediaFile;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -42,6 +41,31 @@ class MediaLibrary
     public const DEFAULTS = ['products', 'brands', 'categories', 'blog', 'banners'];
 
     public const EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+    /** Largest upload, in kilobytes. */
+    public const MAX_KB = 5120;
+
+    /** Most images one upload request may carry. */
+    public const MAX_FILES = 20;
+
+    /**
+     * Longest side an image may have, in pixels.
+     *
+     * Making a thumbnail decodes the whole image at about 4 bytes per pixel.
+     * 6000 x 6000 is about 144 MB, which fits a 256 MB PHP memory limit with
+     * room for the thumbnail; 8000 x 8000 needs about 256 MB on its own and
+     * ends the request with a fatal error that no catch block can handle.
+     */
+    public const MAX_SIDE = 6000;
+
+    /** Images per page when browsing. */
+    public const PER_PAGE = 60;
+
+    /** Seconds the folder tree stays cached. */
+    public const TREE_TTL = 600;
+
+    /** Cache key of the folder tree, cleared whenever files or folders change. */
+    public const TREE_CACHE_KEY = 'media.tree';
 
     /**
      * Where a picker starts. A caller still says "products" and means the
@@ -130,9 +154,9 @@ class MediaLibrary
         $term = mb_strtolower($term);
 
         // Matched against the path, not just the file's own name. A merchant
-        // typing "wampler" means everything Wampler, and the brand is the
-        // FOLDER; matching only basenames returned nothing for the commonest
-        // search anyone would run.
+        // who files photos in a folder per brand and types the brand's name
+        // means everything in that folder; matching only file names would
+        // find none of it.
         return collect(Storage::disk('public')->allFiles($root))
             ->filter(fn ($f) => self::isImage($f))
             ->filter(fn ($f) => str_contains(mb_strtolower($f), $term))
@@ -162,9 +186,9 @@ class MediaLibrary
     /**
      * The shape every picker renders.
      *
-     * `thumb` is the point: 4,959 small versions were being generated and then
-     * excluded from browse, so every modal painted a 1440px original into a
-     * 100px frame.
+     * `thumb` is the small copy made on upload, so a grid of tiles does not
+     * load every full-size original. `width` and `height` are null when the
+     * file cannot be read as an image. `folder` is the folder the image is in.
      *
      * @param  array<int, string>  $files
      * @param  array<string, int>  $usage
@@ -172,16 +196,90 @@ class MediaLibrary
     public static function describe(array $files, array $usage): array
     {
         $disk = Storage::disk('public');
+        $sizes = self::dimensions($files);
 
         return collect($files)->map(fn ($path) => [
             'name' => basename($path),
             'path' => $path,
+            'folder' => self::parent($path, self::ROOT) ?? '',
             'url' => storage_url($path),
             'thumb' => thumb_url($path),
             'size' => $disk->exists($path) ? $disk->size($path) : 0,
             'modified' => $disk->exists($path) ? $disk->lastModified($path) : 0,
+            'width' => $sizes[$path]['width'] ?? null,
+            'height' => $sizes[$path]['height'] ?? null,
             'usedBy' => (int) ($usage[$path] ?? 0),
         ])->values()->all();
+    }
+
+    /**
+     * Width and height for each path, null when the file cannot be read as
+     * an image.
+     *
+     * Stored rows are used as they are. A path with no row (a file copied
+     * onto the disk rather than uploaded) is measured from its header and
+     * stored, so it is measured once. Two requests can measure the same new
+     * file at the same time, so the row is written with insertOrIgnore: the
+     * second insert is dropped instead of failing on the unique path.
+     *
+     * @param  array<int, string>  $paths
+     * @return array<string, array{width: int, height: int}|null>
+     */
+    public static function dimensions(array $paths): array
+    {
+        $paths = array_values(array_unique(array_map('strval', $paths)));
+        $wanted = array_flip($paths);
+        $out = array_fill_keys($paths, null);
+
+        foreach (array_chunk($paths, 500) as $chunk) {
+            foreach (MediaFile::query()->whereIn('path', $chunk)->get(['path', 'width', 'height']) as $row) {
+                // The database narrows; the exact match is decided here, so a
+                // case-insensitive collation cannot hand one path another's row.
+                if (isset($wanted[$row->path]) && $out[$row->path] === null) {
+                    $out[$row->path] = ['width' => (int) $row->width, 'height' => (int) $row->height];
+                }
+            }
+        }
+
+        $now = now();
+        $rows = [];
+
+        foreach ($out as $path => $size) {
+            if ($size !== null || ($measured = self::measure($path)) === null) {
+                continue;
+            }
+            $out[$path] = $measured;
+            $rows[] = ['path' => $path, ...$measured, 'created_at' => $now, 'updated_at' => $now];
+        }
+
+        foreach (array_chunk($rows, 200) as $chunk) {
+            MediaFile::query()->insertOrIgnore($chunk);
+        }
+
+        return $out;
+    }
+
+    /** Stores the width and height of a file just written, replacing any old row. */
+    public static function record(string $path): void
+    {
+        $size = self::measure($path);
+
+        if ($size === null) {
+            return;
+        }
+
+        $now = now();
+        MediaFile::query()->upsert(
+            [['path' => $path, ...$size, 'created_at' => $now, 'updated_at' => $now]],
+            ['path'],
+            ['width', 'height', 'updated_at'],
+        );
+    }
+
+    /** The folder tree is cached; anything that adds or removes files or folders clears it. */
+    public static function touched(): void
+    {
+        Cache::forget(self::TREE_CACHE_KEY);
     }
 
     /** @return array<int, array{name: string, path: string}> */
@@ -222,6 +320,8 @@ class MediaLibrary
         $path = $file->storeAs($directory, self::filename($file->getClientOriginalName(), $directory, $extension), 'public');
 
         self::thumbnail($path);
+        self::record($path);
+        self::touched();
 
         return $path;
     }
@@ -234,11 +334,13 @@ class MediaLibrary
 
         Storage::disk('public')->put($path, $bytes);
         self::thumbnail($path);
+        self::record($path);
+        self::touched();
 
         return $path;
     }
 
-    /** The file and its thumbnail leave together. */
+    /** The file, its thumbnail and its stored dimensions leave together. */
     public static function forget(string $path): void
     {
         $disk = Storage::disk('public');
@@ -247,21 +349,24 @@ class MediaLibrary
         $info = pathinfo($path);
         $disk->delete($info['dirname'] . '/' . $info['filename'] . '_thumb.' . ($info['extension'] ?? 'jpg'));
         ImageRenditions::forget($path);
+
+        // Deleted by primary key after an exact match, so a collation that
+        // ignores case cannot take a case twin's row with it.
+        $ids = MediaFile::query()->where('path', $path)->get(['id', 'path'])
+            ->filter(fn (MediaFile $row) => $row->path === $path)
+            ->pluck('id')->all();
+
+        if ($ids !== []) {
+            MediaFile::query()->whereKey($ids)->delete();
+        }
+
+        self::touched();
     }
 
     /**
-     * Moving image FILES is deliberately not a capability here.
-     *
-     * A tidy-up that merged the six case-duplicate folders (Wampler and
-     * wampler, TC Electronic and tc_electronic, and four more) was built and
-     * then removed, because repointing the catalogue is not enough:
-     * order_products.image holds a denormalised path on 31,278 rows, and
-     * order history is the one thing that must not break. Renaming a folder
-     * has exactly the same hazard.
-     *
-     * The library can create folders, and every picker can browse, upload,
-     * import and delete. Reorganising what already exists is a migration, not
-     * an admin action, and it needs to account for order history.
+     * Renaming or moving a file or folder is more than a change on disk:
+     * every stored copy of the path has to change with it, including the
+     * snapshot on past order lines, or those records show a broken image.
      */
 
     private static function isImage(string $path): bool
@@ -288,6 +393,24 @@ class MediaLibrary
         return $name;
     }
 
+    /** @return array{width: int, height: int}|null */
+    private static function measure(string $path): ?array
+    {
+        $disk = Storage::disk('public');
+
+        if (! self::isImage($path) || ! $disk->exists($path)) {
+            return null;
+        }
+
+        $meta = @getimagesize($disk->path($path));
+
+        if (! $meta || $meta[0] < 1 || $meta[1] < 1) {
+            return null;
+        }
+
+        return ['width' => (int) $meta[0], 'height' => (int) $meta[1]];
+    }
+
     private static function thumbnail(string $path): void
     {
         ImageRenditions::queue($path);
@@ -300,7 +423,11 @@ class MediaLibrary
             $full = Storage::disk('public')->path($path);
             $meta = @getimagesize($full);
 
-            if (! $meta) {
+            // Decoding needs about 4 bytes per pixel. A file larger than any
+            // upload may be (copied onto the disk, or fetched from a web
+            // address) is left without a thumbnail rather than exhausting
+            // memory, which no catch block can recover from.
+            if (! $meta || $meta[0] > self::MAX_SIDE || $meta[1] > self::MAX_SIDE) {
                 return;
             }
 
