@@ -18,14 +18,17 @@ const WIDE = '(min-width: 990px)';
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), summary';
 
 /**
- * The drawer below 990px: opens from `button`, closes again, and keeps
- * focus inside while open. From 990px it does nothing.
+ * The drawer below 990px: opens from the listing's Filter button, closes
+ * again, and keeps focus inside while open. From 990px it does nothing.
+ * The button is looked up each time, because the listing (and its button)
+ * can be drawn again while the page stays.
  *
  * @param {HTMLElement} section the Filters section
- * @param {HTMLElement | null} button the listing's Filter button
  * @returns {() => void} undoes everything this added
  */
-export function initFiltersDrawer(section, button) {
+export function initFiltersDrawer(section) {
+  const buttonSelector = `[data-filter-open][aria-controls="${section.id}"]`;
+  const findButton = () => $(buttonSelector);
   const wide = window.matchMedia(WIDE);
   const heading = $('[data-filters-title]', section);
   const closeButton = $('[data-filters-close]', section);
@@ -43,7 +46,7 @@ export function initFiltersDrawer(section, button) {
     section.dataset.open = 'true';
     section.setAttribute('role', 'dialog');
     section.setAttribute('aria-modal', 'true');
-    button?.setAttribute('aria-expanded', 'true');
+    findButton()?.setAttribute('aria-expanded', 'true');
     document.documentElement.dataset.filtersOpen = 'true';
     heading?.focus();
   };
@@ -54,12 +57,14 @@ export function initFiltersDrawer(section, button) {
     delete section.dataset.open;
     section.removeAttribute('role');
     section.removeAttribute('aria-modal');
-    button?.setAttribute('aria-expanded', 'false');
+    findButton()?.setAttribute('aria-expanded', 'false');
     delete document.documentElement.dataset.filtersOpen;
-    if (restoreFocus) button?.focus();
+    if (restoreFocus) findButton()?.focus();
   };
 
-  on(button, 'click', () => (isOpen ? close() : open()));
+  on(document, 'click', (event) => {
+    if (event.target.closest?.(buttonSelector)) (isOpen ? close() : open());
+  });
   on(closeButton, 'click', () => close());
 
   on(document, 'keydown', (event) => {
@@ -84,13 +89,17 @@ export function initFiltersDrawer(section, button) {
     }
   });
 
-  // A tap on the page behind the drawer closes it.
-  on(document, 'click', (event) => {
+  // A tap on the page behind the drawer closes it and does nothing else.
+  const onOutside = (event) => {
     if (!isOpen) return;
     const target = event.target;
-    if (section.contains(target) || button?.contains(target)) return;
+    if (section.contains(target) || target.closest?.(buttonSelector)) return;
+    event.preventDefault();
+    event.stopPropagation();
     close({ restoreFocus: false });
-  });
+  };
+  document.addEventListener('click', onOutside, true);
+  cleanups.push(() => document.removeEventListener('click', onOutside, true));
 
   // A window growing past the line: the drawer is no longer a drawer.
   const onWide = () => { if (wide.matches) close({ restoreFocus: false }); };
@@ -115,8 +124,7 @@ export function initFilters(section) {
   cleanups.push(() => { delete section.dataset.drawer; delete section.dataset.liveFilters; });
   cleanups.push(initFilterForm(form, { instant: () => wide.matches }));
 
-  const button = $(`[data-filter-open][aria-controls="${section.id}"]`);
-  cleanups.push(initFiltersDrawer(section, button));
+  cleanups.push(initFiltersDrawer(section));
 
   return () => cleanups.forEach((fn) => fn());
 }

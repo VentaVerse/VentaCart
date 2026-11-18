@@ -5,8 +5,10 @@ namespace Themes\Xelga\Tests\Feature;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\ProductSpecial;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\ThemeService;
 use Tests\Support\UsesSampleExtension;
 use Tests\TestCase;
 use Themes\Xelga\Catalog\Catalog;
@@ -124,6 +126,34 @@ class XelgaFiltersSectionTest extends TestCase
         $this->assertStringContainsString('id="filters-1-title" tabindex="-1" data-filters-title', $side);
         $this->assertStringContainsString('data-filters-close', $side);
         $this->assertStringNotContainsString('<details class="filters-box"', $side);
+    }
+
+    public function test_the_filter_button_shows_only_where_the_filters_section_draws_a_form(): void
+    {
+        $this->publishedDocument('category', $this->withLeft(['filters-1' => $this->filters()]));
+
+        foreach (['/category/laptops', '/category/empty-shelf'] as $url) {
+            Category::firstOrCreate(['store_id' => $this->store->id, 'slug' => 'empty-shelf'], ['name' => 'Empty shelf', 'is_active' => true]);
+            $html = $this->page($url)->getContent();
+
+            $this->assertSame(
+                substr_count($html, '<form class="filters"'),
+                substr_count($html, 'data-filter-open'),
+                "{$url}: a Filter button for each filter form, none without one.",
+            );
+        }
+
+        // Every filter switched off in core: no form, no button, only the section's note.
+        foreach (['price', 'availability', 'on_sale', 'brand', 'tags'] as $key) {
+            Setting::updateOrCreate(['group' => 'filters', 'key' => "{$key}_enabled"], ['value' => '0']);
+        }
+        app(ThemeService::class)->clearCache();
+        $this->app->forgetInstance(ThemeService::class);
+
+        $html = $this->page('/category/laptops')->getContent();
+
+        $this->assertStringNotContainsString('data-filter-open', $html);
+        $this->assertStringNotContainsString('<form class="filters"', $html);
     }
 
     public function test_one_filter_form_on_the_page(): void

@@ -46,7 +46,7 @@ const key = (name, extra = {}) => document.listeners.filter((l) => l.type === 'k
 test('opening moves focus into the drawer', () => {
   wideNow = false;
   const { section, button, heading } = page();
-  const undo = initFiltersDrawer(section, button);
+  const undo = initFiltersDrawer(section);
 
   button.dispatchEvent({ type: 'click' });
 
@@ -60,7 +60,7 @@ test('opening moves focus into the drawer', () => {
 test('Tab stays inside the open drawer', () => {
   wideNow = false;
   const { section, button, close, submit } = page();
-  const undo = initFiltersDrawer(section, button);
+  const undo = initFiltersDrawer(section);
   button.dispatchEvent({ type: 'click' });
 
   submit.focus();
@@ -75,7 +75,7 @@ test('Tab stays inside the open drawer', () => {
 test('Esc closes and returns focus to the button', () => {
   wideNow = false;
   const { section, button } = page();
-  const undo = initFiltersDrawer(section, button);
+  const undo = initFiltersDrawer(section);
   button.dispatchEvent({ type: 'click' });
 
   key('Escape');
@@ -90,7 +90,7 @@ test('Esc closes and returns focus to the button', () => {
 test('the close button closes and returns focus to the button', () => {
   wideNow = false;
   const { section, button, close } = page();
-  const undo = initFiltersDrawer(section, button);
+  const undo = initFiltersDrawer(section);
   button.dispatchEvent({ type: 'click' });
 
   close.dispatchEvent({ type: 'click' });
@@ -103,7 +103,7 @@ test('the close button closes and returns focus to the button', () => {
 test('nothing happens from 990px', () => {
   wideNow = true;
   const { section, button } = page();
-  const undo = initFiltersDrawer(section, button);
+  const undo = initFiltersDrawer(section);
 
   button.dispatchEvent({ type: 'click' });
 
@@ -111,4 +111,56 @@ test('nothing happens from 990px', () => {
   assert.equal(section.getAttribute('data-open'), null);
   assert.notEqual(document.activeElement, section.querySelector('[data-filters-title]'));
   undo();
+});
+
+test('the button still works after the listing is drawn again', () => {
+  wideNow = false;
+  const { section, button, heading } = page();
+  const undo = initFiltersDrawer(section);
+
+  const fresh = document.createElement('button');
+  fresh.setAttribute('data-filter-open', '');
+  fresh.setAttribute('aria-controls', 'filters-1');
+  fresh.setAttribute('aria-expanded', 'false');
+  button.parentNode.append(fresh);
+  button.remove();
+
+  fresh.dispatchEvent({ type: 'click' });
+  assert.equal(fresh.getAttribute('aria-expanded'), 'true');
+  assert.equal(document.activeElement, heading);
+
+  key('Escape');
+  assert.equal(fresh.getAttribute('aria-expanded'), 'false');
+  assert.equal(document.activeElement, fresh);
+  undo();
+});
+
+test('a tap outside closes the drawer and is not passed on', () => {
+  wideNow = false;
+  const { section, button } = page();
+  const undo = initFiltersDrawer(section);
+  button.dispatchEvent({ type: 'click' });
+  const other = document.createElement('a');
+  document.body.append(other);
+
+  const event = { type: 'click', stopped: false, stopPropagation() { this.stopped = true; } };
+  other.dispatchEvent(event);
+
+  assert.equal(section.getAttribute('data-open'), null);
+  assert.equal(event.defaultPrevented, true);
+  undo();
+});
+
+test('undoing removes the listeners and closes the drawer', () => {
+  wideNow = false;
+  const { section, button } = page();
+  const undo = initFiltersDrawer(section);
+  button.dispatchEvent({ type: 'click' });
+
+  undo();
+
+  assert.equal(section.getAttribute('data-open'), null);
+  assert.equal(document.documentElement.getAttribute('data-filters-open'), null);
+  button.dispatchEvent({ type: 'click' });
+  assert.equal(section.getAttribute('data-open'), null);
 });
