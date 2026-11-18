@@ -47,9 +47,9 @@ final class SectionRenderer
     public function render(array $content, RenderContext $context): string
     {
         $sections = (array) ($content['sections'] ?? []);
-        $rows = self::rowsOf($content, $context);
-        $this->placeableIds = $this->placeableIds($content, $context);
-        $firstIds = $this->drawnIds($content, $context);
+        $rows = $this->rowsOf($content, $context);
+        $this->placeableIds = $this->placeableIds($rows, $content, $context);
+        $firstIds = $this->drawnIds($rows, $content, $context);
         $context = $context->withTypes(array_keys($firstIds), $firstIds);
 
         if ($context->group !== 'template') {
@@ -101,6 +101,8 @@ final class SectionRenderer
             }
         }
 
+        // Joined in area order, which is the stored row order: the page was
+        // normalized (Storefront::template()), and normalize keeps rows in area order.
         if ($drawnSides === []) {
             return implode('', $html);
         }
@@ -155,21 +157,25 @@ final class SectionRenderer
     }
 
     /**
-     * The document's rows, each with its area on a page template that has
-     * areas (see Layout::rows()). When the page's layout rules fail, the
-     * rows are drawn without areas, so the shopper still gets the page;
-     * Storefront::template() reports that failure.
+     * The document's rows, worked out once per draw. On a page template
+     * with sides each row has its area (see Layout::rows()). A page without
+     * sides needs no areas: its rows draw one after another in their
+     * stored order whatever their area, so its layout rules are not read.
+     * When the rules fail, the failure is reported and the rows are drawn
+     * without areas, all in Content, so the shopper still gets the page.
      *
      * @return list<array>
      */
-    private static function rowsOf(array $content, RenderContext $context): array
+    private function rowsOf(array $content, RenderContext $context): array
     {
-        if ($context->group !== 'template') {
+        if ($context->group !== 'template' || ! is_array($content['sides'] ?? null) || $content['sides'] === []) {
             return Layout::rows($content);
         }
         try {
             return Layout::rows($content, app(LayoutRules::class, ['handle' => $context->handle]));
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            report($e);
+
             return Layout::rows($content);
         }
     }
@@ -191,7 +197,7 @@ final class SectionRenderer
      */
     public function drawnTypes(array $content, RenderContext $context): array
     {
-        return array_keys($this->drawnIds($content, $context));
+        return array_keys($this->drawnIds($this->rowsOf($content, $context), $content, $context));
     }
 
     /**
@@ -200,12 +206,12 @@ final class SectionRenderer
      *
      * @return array<string, string> type => section id
      */
-    private function drawnIds(array $content, RenderContext $context): array
+    private function drawnIds(array $rows, array $content, RenderContext $context): array
     {
         $sections = (array) ($content['sections'] ?? []);
-        $placeable = $this->placeableIds($content, $context);
+        $placeable = $this->placeableIds($rows, $content, $context);
         $ids = [];
-        foreach (self::drawOrder($content, $context) as $id) {
+        foreach (self::drawOrder($rows, $content) as $id) {
             $section = $sections[$id] ?? null;
             $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
             if ($schema === null || ($schema->source() !== null && ! isset($placeable[$id])) || (bool) ($section['disabled'] ?? false)) {
@@ -224,12 +230,12 @@ final class SectionRenderer
      *
      * @return array<string, true>
      */
-    private function placeableIds(array $content, RenderContext $context): array
+    private function placeableIds(array $rows, array $content, RenderContext $context): array
     {
         $sections = (array) ($content['sections'] ?? []);
         $counts = [];
         $ids = [];
-        foreach (self::drawOrder($content, $context) as $id) {
+        foreach (self::drawOrder($rows, $content) as $id) {
             $section = $sections[$id] ?? null;
             $schema = is_array($section) ? Catalog::section((string) ($section['type'] ?? '')) : null;
             if ($schema !== null && $schema->source() !== null && $this->placeable($schema, $context, $counts)) {
@@ -301,12 +307,12 @@ final class SectionRenderer
      * columns left to right. A page without areas reads the left side, its
      * rows, the right side.
      *
+     * @param  list<array>  $rows  the document's rows (see rowsOf())
      * @return list<string>
      */
-    private static function drawOrder(array $content, RenderContext $context): array
+    private static function drawOrder(array $rows, array $content): array
     {
         $sides = self::sides($content);
-        $rows = self::rowsOf($content, $context);
         $ids = [];
         foreach (Layout::AREAS as $area) {
             if ($area === 'content') {

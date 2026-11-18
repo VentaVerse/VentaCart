@@ -248,7 +248,6 @@ class XelgaSidesTest extends TestCase
         $this->assertStringContainsString('<main id="main-content">', $html);
         $this->assertSame(['(min-width: 750px) 50vw, 100vw'], $this->sizesIn($this->cut($html, 'promos-1')));
         $this->assertSame(12, app(SectionRenderer::class)->contentSpan());
-        $this->assertSame(12, app(SectionRenderer::class)->contentSpan());
     }
 
     public function test_a_side_whose_sections_show_nothing_is_not_drawn(): void
