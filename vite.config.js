@@ -78,6 +78,9 @@ export default defineConfig({
                 // page that offers it, the admin's and a theme editor's alike.
                 'resources/css/media-library/media-library.css',
                 'resources/js/media-library/index.js',
+                // The Media library page's own tools (rename, move, delete).
+                'resources/css/media-library/manage.css',
+                'resources/js/media-library/manage.js',
                 // Contractual manifest keys: the shells preload these via
                 // Vite::asset(), which throws on a manifest miss.
                 'resources/fonts/Archivo-latin.woff2',

@@ -1,0 +1,148 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { installDom } from '../support/mini-dom.mjs';
+
+installDom();
+
+const { moveTargets, deleteSummary, renameError, createManageHooks } = await import('../../../resources/js/media-library/manage.js');
+const { buildTree } = await import('../../../resources/js/media-library/tree.js');
+const { createView, extend } = await import('../../../resources/js/media-library/view.js');
+
+const tree = buildTree([
+    { path: 'media', name: 'Media', parent: null, count: 6 },
+    { path: 'media/products', name: 'products', parent: 'media', count: 4 },
+    { path: 'media/products/Demo', name: 'Demo', parent: 'media/products', count: 2 },
+    { path: 'media/products/Demo/old', name: 'old', parent: 'media/products/Demo', count: 1 },
+    { path: 'media/products/demo', name: 'demo', parent: 'media/products', count: 1 },
+    { path: 'media/products/Demo-2', name: 'Demo-2', parent: 'media/products', count: 0 },
+    { path: 'media/banners', name: 'banners', parent: 'media', count: 1 },
+]);
+
+test('a folder cannot be moved into itself or its children', () => {
+    assert.deepEqual(moveTargets(tree, ['media/products/Demo']), [
+        'media',
+        'media/products/demo',
+        'media/products/Demo-2',
+        'media/banners',
+    ]);
+
+    // "Demo-2" starts with "Demo" but is not inside it; "demo" differs by case.
+    assert.ok(moveTargets(tree, ['media/products/Demo']).includes('media/products/Demo-2'));
+    assert.ok(moveTargets(tree, ['media/products/Demo']).includes('media/products/demo'));
+
+    // Moving two folders refuses both and everything inside either.
+    assert.deepEqual(moveTargets(tree, ['media/products/Demo', 'media/banners']), [
+        'media',
+        'media/products',
+        'media/products/demo',
+        'media/products/Demo-2',
+    ]);
+});
+
+test('images can go to any folder but the one they all sit in', () => {
+    assert.deepEqual(moveTargets(tree, ['media/products/demo/demo-001.jpg', 'media/products/demo/demo-002.jpg']), [
+        'media',
+        'media/products',
+        'media/products/Demo',
+        'media/products/Demo/old',
+        'media/products/Demo-2',
+        'media/banners',
+    ]);
+
+    // From two folders, either one is still somewhere to send the other.
+    assert.equal(moveTargets(tree, ['media/products/demo/demo-001.jpg', 'media/banners/demo-002.jpg']).length, 7);
+});
+
+test('images in use are blocked from deletion and listed', () => {
+    const summary = deleteSummary(
+        ['media/products/demo-001.jpg', 'media/products/demo-002.jpg', 'media/products/demo-003.jpg', 'media/products/demo-001.jpg'],
+        {
+            'media/products/demo-001.jpg': [{ label: 'products', count: 2 }, { label: 'menus', count: 1 }],
+            'media/products/demo-003.jpg': [],
+        },
+    );
+
+    assert.deepEqual(summary.deletable, ['media/products/demo-002.jpg', 'media/products/demo-003.jpg']);
+    assert.deepEqual(summary.blocked, [
+        { path: 'media/products/demo-001.jpg', uses: [{ label: 'products', count: 2 }, { label: 'menus', count: 1 }] },
+    ]);
+
+    // The in-use list from a refused delete (409) reads the same way.
+    const fromServer = deleteSummary(['media/a.jpg'], new Map([['media/a.jpg', [{ label: 'settings', count: 1 }]]]));
+    assert.deepEqual(fromServer, { deletable: [], blocked: [{ path: 'media/a.jpg', uses: [{ label: 'settings', count: 1 }] }] });
+});
+
+test('a rename is refused with the server\'s own words', () => {
+    assert.equal(renameError('   ', [], { folder: true }), 'Give it a name.');
+    assert.equal(renameError('', [], { folder: false }), 'Give it a name.');
+    assert.equal(renameError('a/b', [], { folder: true }), 'A folder name cannot contain / \\ : * ? " < > or |.');
+    assert.equal(renameError('.hidden', [], { folder: true }), 'A folder name cannot start with a dot.');
+    assert.equal(renameError('end.', [], { folder: true }), 'A folder name cannot end with a dot.');
+    assert.equal(renameError('a..b', [], { folder: true }), 'A folder name cannot contain two dots in a row.');
+    assert.equal(renameError('tab\there', [], { folder: true }), 'A folder name cannot contain line breaks, tabs or other hidden characters.');
+    assert.equal(renameError('x'.repeat(81), [], { folder: true }), 'A folder name can be at most 80 characters.');
+    assert.equal(renameError('é'.repeat(80), [], { folder: true }), null);
+});
+
+test('a taken folder name is compared exactly, as the server compares it', () => {
+    assert.equal(renameError(' Demo ', ['Demo', 'banners'], { folder: true }), 'A folder called Demo is already here.');
+    assert.equal(renameError('demo', ['Demo'], { folder: true }), null);
+    assert.equal(renameError('Dem_', ['Demo'], { folder: true }), null);
+    // An image's name is made web-safe by the server, which also says when it is taken.
+    assert.equal(renameError('Demo', ['Demo'], { folder: false }), null);
+});
+
+/* ------------------------------------------------------- the page's tools */
+
+const files = [
+    { path: 'media/products/demo-001.jpg', name: 'demo-001.jpg', folder: 'media/products', url: '/s/1.jpg', thumb: '/s/1_thumb.jpg', size: 2048, width: 800, height: 600, usedBy: { total: 2, label: 'products' } },
+    { path: 'media/products/demo-002.jpg', name: 'demo-002.jpg', folder: 'media/products', url: '/s/2.jpg', thumb: '/s/2_thumb.jpg', size: 1024, width: 400, height: 400, usedBy: { total: 0, label: null } },
+];
+
+function fakeApi() {
+    return {
+        tree: async () => ({ folders: [...tree.values()].map(({ path, name, parent, count }) => ({ path, name, parent, count })) }),
+        browse: async () => ({ files, folders: [], page: 1, lastPage: 1, total: files.length }),
+        usage: async () => ({ uses: [{ label: 'products', count: 2 }], total: 2 }),
+    };
+}
+
+async function pageWith(can) {
+    const view = createView({
+        api: fakeApi(),
+        config: { can: { view: true, ...can }, uploadAccept: ['jpg'] },
+        options: { mode: 'multi', limit: null },
+        modal: false,
+    });
+    document.body.append(view.root);
+    extend(view, createManageHooks(view));
+    await view.start();
+    view.selection().add([files[0].path]);
+    view.redraw();
+    return view;
+}
+
+const labels = (root, selector) => root.querySelectorAll(selector).map((b) => b.textContent.trim());
+
+test('the tools the user lacks are not drawn', async () => {
+    const looker = await pageWith({ upload: false, edit: false, delete: false });
+    assert.deepEqual(labels(looker.els.picked, '.ml-mng-acts button'), []);
+    assert.equal(looker.els.upload, null, 'no Upload without media.create');
+    assert.equal(looker.root.querySelector('.ml-mng-folder'), null, 'no folder menu with nothing in it');
+    assert.ok(looker.root.querySelector('.ml-panel'), 'the Used by panel is still there to look at');
+    looker.destroy();
+
+    const editor = await pageWith({ upload: false, edit: true, delete: false });
+    assert.deepEqual(labels(editor.els.picked, '.ml-mng-acts button'), ['Rename', 'Move to...']);
+    editor.destroy();
+
+    const all = await pageWith({ upload: true, edit: true, delete: true });
+    assert.deepEqual(labels(all.els.picked, '.ml-mng-acts button'), ['Rename', 'Move to...', 'Delete']);
+    assert.equal(all.els.upload.getAttribute('aria-haspopup'), 'menu');
+
+    // Rename is for one image at a time.
+    all.selection().add([files[1].path]);
+    all.redraw();
+    assert.deepEqual(labels(all.els.picked, '.ml-mng-acts button'), ['Move to...', 'Delete']);
+    all.destroy();
+});

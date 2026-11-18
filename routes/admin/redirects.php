@@ -72,7 +72,6 @@ adminLegacyRedirect('address/zones', 'admin.address.zones');
 adminLegacyRedirect('products', 'admin.products.index');
 adminLegacyRedirect('products/create', 'admin.products.create');
 adminLegacyRedirect('products/{product}/edit', 'admin.products.edit');
-adminLegacyRedirect('products/images/browse', 'admin.products.images.browse');
 
 // Catalog — Categories
 adminLegacyRedirect('categories', 'admin.categories.index');

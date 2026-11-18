@@ -47,3 +47,14 @@ export function usedByText({ total, label } = {}) {
     if (!label) return total === 1 ? 'Used in 1 place' : `Used in ${total} places`;
     return `Used by ${total} ${total === 1 ? SINGULAR[label] || label : label}`;
 }
+
+/** "2 products", "1 menu": one kind of user and how many. */
+export function kindCount({ label, count } = {}) {
+    const n = Number(count) || 0;
+    return `${n} ${n === 1 ? SINGULAR[label] || label : label}`;
+}
+
+/** "2 products, 1 menu": every kind of user of one image. */
+export function usesText(uses = []) {
+    return uses.filter((u) => u && u.count > 0).map(kindCount).join(', ');
+}

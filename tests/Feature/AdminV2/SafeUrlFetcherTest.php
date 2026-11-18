@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\SafeUrlFetcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -164,13 +165,14 @@ class SafeUrlFetcherTest extends TestCase
     public function test_import_endpoint_rejects_loopback_url_with_422_and_never_calls_http(): void
     {
         Http::fake();
+        // The endpoint makes the folder it would write to before it fetches.
+        Storage::fake('public');
 
         Store::create(['id' => 1, 'name' => 'Test Store', 'code' => 'test']);
         $this->actingAs(User::factory()->create());
 
-        $response = $this->postJson(route('admin.products.images.import-url'), [
+        $response = $this->postJson(route('admin.media.import-url'), [
             'url' => 'http://127.0.0.1/x',
-            'store_id' => 1,
         ]);
 
         $response->assertStatus(422);
@@ -181,13 +183,14 @@ class SafeUrlFetcherTest extends TestCase
     public function test_import_endpoint_rejects_metadata_url_with_422_and_never_calls_http(): void
     {
         Http::fake();
+        // The endpoint makes the folder it would write to before it fetches.
+        Storage::fake('public');
 
         Store::create(['id' => 1, 'name' => 'Test Store', 'code' => 'test']);
         $this->actingAs(User::factory()->create());
 
-        $response = $this->postJson(route('admin.products.images.import-url'), [
+        $response = $this->postJson(route('admin.media.import-url'), [
             'url' => 'http://169.254.169.254/latest/meta-data/',
-            'store_id' => 1,
         ]);
 
         $response->assertStatus(422);

@@ -1275,3 +1275,67 @@
   .ml-sk { animation: none; }
   .ml-tile__progress::-webkit-progress-value { transition: none; }
 }
+
+/* ----------------------------------------------------------------- menus */
+
+/* A menu a page opens from a button: Upload's, or a folder's actions. */
+.ml-menu {
+  position: absolute;
+  z-index: 20;
+  display: grid;
+  min-width: 220px;
+  max-width: min(320px, calc(100% - 16px));
+  padding: 4px;
+  background: var(--ml-surface);
+  border: 1px solid var(--ml-line);
+  border-radius: var(--ml-radius-lg);
+  box-shadow: var(--ml-shadow-modal);
+  animation: ml-menu-in .12s var(--ml-ease);
+}
+
+@keyframes ml-menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+.ml-menu__item {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: var(--ml-fs-md);
+  text-align: start;
+  color: var(--ml-text);
+  background: none;
+  border: 0;
+  border-radius: var(--ml-radius);
+}
+
+.ml-menu__item:hover:not([aria-disabled="true"]),
+.ml-menu__item:focus-visible { background: var(--ml-hover); }
+.ml-menu__item .ml-icon { color: var(--ml-text-2); }
+.ml-menu__item[aria-disabled="true"] { color: var(--ml-text-3); cursor: default; }
+.ml-menu__item[aria-disabled="true"] .ml-icon { color: var(--ml-text-off); }
+.ml-menu__text { display: grid; gap: 1px; }
+.ml-menu__hint { font-size: var(--ml-fs-xs); color: var(--ml-text-3); }
+
+.ml-upload-caret { display: none; margin-inline-start: -2px; }
+.ml-upload.has-menu .ml-upload-caret { display: block; }
+
+/* A folder's actions button, when the page offers folder actions. */
+.ml-tree.has-menu .ml-tree__row { grid-template-columns: 20px 18px minmax(0, 1fr) auto 26px; padding-inline-end: 2px; }
+.ml-tree__more { opacity: 0; }
+
+.ml-tree__row:hover .ml-tree__more,
+.ml-tree__item[aria-selected="true"] > .ml-tree__row .ml-tree__more,
+.ml-tree__more[aria-expanded="true"],
+.ml-tree__more:focus-visible { opacity: 1; }
+
+@media (pointer: coarse) {
+  .ml-tree__more { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ml-menu { animation: none; }
+}

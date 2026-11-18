@@ -32,7 +32,10 @@ class PartialsDesignSystemTest extends TestCase
             // the same design-system rules now guard their v successors.
             'image_manager' => $base . '/catalog/products/partials/image_manager.blade.php',
             'media-picker' => resource_path('views/components/admin/media-picker.blade.php'),
+            // The Media library page is a thin view; its tools are drawn by
+            // a script, so the script is held to the same rules.
             'media-page' => $base . '/catalog/media/index.blade.php',
+            'media-page-tools' => resource_path('js/media-library/manage.js'),
             'dual-listbox' => $base . '/partials/dual-listbox.blade.php',
             'availability' => $base . '/settings/payments/partials/availability.blade.php',
         ];

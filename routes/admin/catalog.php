@@ -5,7 +5,6 @@ use App\Http\Controllers\Admin\Catalog\CategoryController;
 use App\Http\Controllers\Admin\Catalog\MediaController;
 use App\Http\Controllers\Admin\Catalog\MediaLibraryController;
 use App\Http\Controllers\Admin\Catalog\ProductController;
-use App\Http\Controllers\Admin\Catalog\ProductImageController;
 use App\Http\Controllers\Admin\Catalog\TagController;
 use App\Http\Controllers\Admin\Catalog\AttributeController;
 use Illuminate\Support\Facades\Route;
@@ -16,13 +15,6 @@ Route::prefix('catalog')->group(function () {
     Route::post('products/bulk-status', [ProductController::class, 'bulkStatus'])->name('products.bulk-status');
     Route::post('products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('products.bulk-delete');
     Route::resource('products', ProductController::class)->except(['show']);
-
-    // Product Image Manager
-    Route::post('/products/images/upload', [ProductImageController::class, 'upload'])->name('products.images.upload');
-    Route::post('/products/images/import-url', [ProductImageController::class, 'importUrl'])->name('products.images.import-url');
-    Route::get('/products/images/browse', [ProductImageController::class, 'browse'])->name('products.images.browse');
-    Route::post('/products/images/upload-to-catalog', [ProductImageController::class, 'uploadToCatalog'])->name('products.images.upload-to-catalog');
-    Route::post('/products/images/delete', [ProductImageController::class, 'delete'])->name('products.images.delete');
 
     // Categories
     Route::resource('categories', CategoryController::class)->except(['show']);
@@ -37,11 +29,8 @@ Route::prefix('catalog')->group(function () {
     Route::post('/brands/bulk-delete', [BrandController::class, 'bulkDelete'])->name('brands.bulk-delete');
     Route::resource('brands', BrandController::class)->except(['show']);
 
-    // Media Manager
-    // One library, one namespace. The eight routes that used to sit here were
-    // reachable, authenticated, state-changing, and called by nothing: the
-    // Media page itself ran on the product image endpoints, and StoreMedia
-    // never held a row. They went with the controller.
+    // Media library: the page, and the endpoints every image field and the
+    // page share, so a fix to browsing, uploading or moving is made once.
     Route::get('/media', [MediaController::class, 'index'])->name('media.index');
     Route::middleware('throttle:media-reads')->group(function () {
         Route::get('/media/browse', [MediaLibraryController::class, 'browse'])->name('media.browse');
