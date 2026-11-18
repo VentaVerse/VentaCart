@@ -129,12 +129,9 @@ class MediaDimensionsTest extends TestCase
 
     public function test_one_refused_file_stores_none_of_the_request(): void
     {
-        $text = tempnam(sys_get_temp_dir(), 'upload');
-        file_put_contents($text, 'plain text, not a photo');
-
-        // A real file whose bytes are not an image, but whose name and the
-        // type the browser claims say JPEG: only the content check refuses it.
-        $disguised = new UploadedFile($text, 'demo-002.jpg', 'image/jpeg', null, true);
+        // Its name says JPEG and a fake reports its type from the name, so
+        // only the content check, which reads the bytes, refuses it.
+        $disguised = UploadedFile::fake()->createWithContent('demo-002.jpg', 'plain text, not a photo');
 
         $this->postJson(route('admin.media.upload'), [
             'files' => [UploadedFile::fake()->image('demo-001.jpg', 40, 40), $disguised],
@@ -153,10 +150,41 @@ class MediaDimensionsTest extends TestCase
         Storage::disk('public')->assertMissing('media/products/.hidden');
     }
 
+    /**
+     * The library refuses paths with "..", "./" or a leading dot, so a
+     * folder named like that could be made but never opened or removed.
+     */
+    public function test_a_folder_name_the_library_could_not_open_is_refused(): void
+    {
+        $refused = [
+            'a..b' => 'two dots in a row',
+            'Sale...' => 'end with a dot',
+            'Vol.' => 'end with a dot',
+            "Demo\nSale" => 'hidden characters',
+            "De\x00mo" => 'hidden characters',
+            "Demo\tSale" => 'hidden characters',
+            'Demo/Sale' => 'cannot contain',
+        ];
+
+        foreach ($refused as $name => $says) {
+            $res = $this->postJson(route('admin.media.folder'), ['path' => 'media', 'name' => $name])
+                ->assertStatus(422);
+            $this->assertStringContainsString($says, $res->json('errors.name.0'), json_encode($name));
+        }
+
+        $this->assertSame([], Storage::disk('public')->directories('media'));
+    }
+
     public function test_a_folder_name_is_kept_as_typed(): void
     {
         $this->postJson(route('admin.media.folder'), ['path' => 'media', 'name' => 'Summer Sale'])
             ->assertOk()->assertJsonPath('path', 'media/Summer Sale');
+
+        $this->postJson(route('admin.media.folder'), ['path' => 'media', 'name' => 'Payday sale 2026'])
+            ->assertOk()->assertJsonPath('path', 'media/Payday sale 2026');
+
+        $this->postJson(route('admin.media.folder'), ['path' => 'media', 'name' => 'Vol. 2'])
+            ->assertOk()->assertJsonPath('path', 'media/Vol. 2');
 
         $this->postJson(route('admin.media.folder'), ['path' => 'media', 'name' => str_repeat('a', 81)])
             ->assertStatus(422);

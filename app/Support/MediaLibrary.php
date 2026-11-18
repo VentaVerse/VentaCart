@@ -64,6 +64,9 @@ class MediaLibrary
     /** Seconds the folder tree stays cached. */
     public const TREE_TTL = 600;
 
+    /** Longest path media_files can hold; a longer one is measured but never stored. */
+    public const PATH_MAX = 512;
+
     /** Cache key of the folder tree, cleared whenever files or folders change. */
     public const TREE_CACHE_KEY = 'media.tree';
 
@@ -249,6 +252,13 @@ class MediaLibrary
                 continue;
             }
             $out[$path] = $measured;
+
+            // MySQL's INSERT IGNORE would store a longer path cut short
+            // instead of refusing it, and the row would never match again.
+            if (mb_strlen($path) > self::PATH_MAX) {
+                continue;
+            }
+
             $rows[] = ['path' => $path, ...$measured, 'created_at' => $now, 'updated_at' => $now];
         }
 
@@ -264,7 +274,9 @@ class MediaLibrary
     {
         $size = self::measure($path);
 
-        if ($size === null) {
+        // A path too long for the table is still a stored file; it simply
+        // goes without a row and is measured when it is shown.
+        if ($size === null || mb_strlen($path) > self::PATH_MAX) {
             return;
         }
 
