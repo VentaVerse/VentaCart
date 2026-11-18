@@ -7,6 +7,7 @@ use App\Models\OrderStatus;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 /**
@@ -97,6 +98,9 @@ class OrderVariantPhotoTest extends TestCase
 
     public function test_the_order_view_shows_the_variants_own_photo(): void
     {
+        // The view shows a line's photo only while the file is there.
+        Storage::fake('public');
+        Storage::disk('public')->put('catalog/variants/15ft.jpg', 'bytes');
         $order = $this->orderLine('catalog/variants/15ft.jpg', 'Cable Length: 15 Ft');
 
         $this->actingAs(User::factory()->create())
