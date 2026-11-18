@@ -2372,6 +2372,12 @@ button.pick-row:hover {
   color: var(--warn);
 }
 
+/* Change while the media library's script is still loading. */
+.media__actions .is-busy {
+  cursor: progress;
+  opacity: .6;
+}
+
 .media__note {
   font-size: var(--fs-xs);
   color: var(--danger);

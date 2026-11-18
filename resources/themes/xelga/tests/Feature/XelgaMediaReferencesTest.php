@@ -131,6 +131,55 @@ class XelgaMediaReferencesTest extends TestCase
         $this->assertSame(['theme pages' => 1, 'theme drafts' => 1], MediaReferences::usage([$moved])[$moved]);
     }
 
+    public function test_a_move_raises_the_draft_version_of_changed_theme_pages_only(): void
+    {
+        $this->publishHome($this->homeWithPhoto(self::PHOTO));
+        $this->homeDraft($this->homeWithPhoto(self::PHOTO, 'Draft heading'));
+        $this->saveDraft($this->admin(), 'footer', $this->defaults('footer'), (int) Document::where('handle', 'footer')->value('draft_version'))->assertOk();
+        $before = Document::query()->pluck('draft_version', 'handle')->all();
+        $this->assertArrayHasKey('footer', $before);
+        $revisions = Revision::query()->orderBy('id')->get(['id', 'version'])->toArray();
+
+        MediaMover::move([self::PHOTO], 'media/banners/sale');
+
+        $after = Document::query()->pluck('draft_version', 'handle')->all();
+        $this->assertGreaterThan($before['home'], $after['home']);
+        foreach (array_diff_key($before, ['home' => true]) as $handle => $version) {
+            $this->assertSame($version, $after[$handle], "{$handle} did not change, so its version stays.");
+        }
+        $this->assertSame($revisions, Revision::query()->orderBy('id')->get(['id', 'version'])->toArray());
+    }
+
+    public function test_a_move_raises_the_draft_version_when_only_the_published_page_changed(): void
+    {
+        $this->publishHome($this->homeWithPhoto(self::PHOTO));
+        $home = Document::where('handle', 'home')->firstOrFail();
+        $this->assertNull($home->draft);
+
+        MediaMover::move([self::PHOTO], 'media/banners/sale');
+
+        $this->assertGreaterThan($home->draft_version, Document::where('handle', 'home')->value('draft_version'));
+    }
+
+    public function test_an_editor_save_from_before_a_move_is_refused_as_a_conflict(): void
+    {
+        $this->publishHome($this->homeWithPhoto(self::PHOTO));
+        $this->homeDraft($this->homeWithPhoto(self::PHOTO, 'Draft heading'));
+        $open = (int) Document::where('handle', 'home')->value('draft_version');
+
+        MediaMover::move([self::PHOTO], 'media/banners/sale');
+
+        // The open editor still holds the old path and the version it loaded.
+        $this->saveDraft($this->admin(), 'home', $this->homeWithPhoto(self::PHOTO, 'Edited heading'), $open)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'conflict');
+        $this->publish($this->admin(), ['home' => $open])->assertStatus(409)->assertJsonPath('code', 'conflict');
+
+        $home = Document::where('handle', 'home')->firstOrFail();
+        $this->assertSame('media/banners/sale/demo-001.jpg', $home->draft['sections']['hero-1']['blocks']['hero-1-b1']['settings']['image']);
+        $this->assertSame('media/banners/sale/demo-001.jpg', $home->published['sections']['hero-1']['blocks']['hero-1-b1']['settings']['image']);
+    }
+
     public function test_a_moved_image_shows_its_new_path_on_the_next_render(): void
     {
         $moved = 'media/banners/summer-sale.jpg';

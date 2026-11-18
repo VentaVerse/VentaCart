@@ -15,7 +15,12 @@ import { fileName, humanize } from '../util.js';
 const FOLDER = 'media/banners';
 
 /** How long to wait for the library's script before saying it is missing. */
-const WAIT_MS = 8000;
+let waitMs = 8000;
+
+/** Sets that wait; tests shorten it. */
+export function setLibraryWait(ms) {
+  waitMs = ms;
+}
 
 const UNAVAILABLE = 'The media library is not available on this page.';
 
@@ -26,6 +31,7 @@ const UNAVAILABLE = 'The media library is not available on this page.';
 export function imagePicker(value, change, setting = {}, fctx = null) {
   const wrap = h('div', { class: 'media' });
   let open = false;
+  let waiting = false;
 
   const draw = (v, note = '') => {
     const thumb = v ? h('img', { class: 'media__thumb', src: mediaUrl(v), alt: '' }) : h('span', { class: 'media__empty' }, icon('image'));
@@ -55,9 +61,17 @@ export function imagePicker(value, change, setting = {}, fctx = null) {
     wrap.querySelector('button')?.focus?.();
   };
 
+  // One open at a time: a click while the library's script is still
+  // loading marks Change busy, and further clicks wait with it.
   const show = (opener, current) => {
-    if (open) return;
+    if (open || waiting) return;
+    waiting = true;
+    opener.setAttribute('aria-busy', 'true');
+    opener.classList.add('is-busy');
     withLibrary((media) => {
+      waiting = false;
+      opener.removeAttribute('aria-busy');
+      opener.classList.remove('is-busy');
       if (!media) {
         unavailable(current);
         return;
@@ -111,12 +125,10 @@ function withLibrary(use) {
     if (done) return;
     done = true;
     window.clearTimeout(timer);
+    document.removeEventListener('ventacart:media-ready', ready);
     use(event?.detail || window.VentaCart?.media || null);
   };
-  const timer = window.setTimeout(() => {
-    document.removeEventListener('ventacart:media-ready', ready);
-    ready(null);
-  }, WAIT_MS);
+  const timer = window.setTimeout(() => ready(null), waitMs);
   document.addEventListener('ventacart:media-ready', ready, { once: true });
 }
 
