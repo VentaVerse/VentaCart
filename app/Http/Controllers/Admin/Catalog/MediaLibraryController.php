@@ -54,7 +54,14 @@ class MediaLibraryController extends Controller
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        // Browsing never writes: a GET can be sent by any page an admin has
+        // open, and anyone who may only view could otherwise make folders. A
+        // picker aimed at a folder that is not there starts at the library.
         $root = MediaLibrary::root($validated['root'] ?? null);
+
+        if (! Storage::disk('public')->directoryExists($root)) {
+            $root = MediaLibrary::ROOT;
+        }
 
         // No path at all means the folder this picker is aimed at. A path that
         // is given is honoured exactly, including the library root itself, so
@@ -67,8 +74,6 @@ class MediaLibraryController extends Controller
         if ($path === false) {
             return response()->json(['ok' => false, 'message' => 'That path cannot be read.'], 422);
         }
-
-        MediaLibrary::ensure($root);
 
         $search = trim((string) ($validated['q'] ?? ''));
         $sort = $validated['sort'] ?? 'modified';
@@ -183,7 +188,9 @@ class MediaLibraryController extends Controller
             }
         }
 
-        MediaLibrary::ensure($path);
+        if (($problem = $this->makeFolder($path)) !== null) {
+            return response()->json(['ok' => false, 'message' => $problem], 422);
+        }
 
         $written = [];
 
@@ -214,7 +221,10 @@ class MediaLibraryController extends Controller
             return response()->json(['ok' => false, 'message' => 'That folder cannot be written to.'], 422);
         }
 
-        MediaLibrary::ensure($path);
+        // Checked before the fetch, so a refused folder costs no download.
+        if (($problem = $this->newFolderProblem($path)) !== null) {
+            return response()->json(['ok' => false, 'message' => $problem], 422);
+        }
 
         $result = $this->fetchRemoteImage($validated['url'], ['image/jpeg', 'image/png', 'image/webp']);
 
@@ -226,6 +236,10 @@ class MediaLibraryController extends Controller
 
         if (MediaLibrary::tooLong(MediaLibrary::pathFor(MediaLibrary::importName($validated['url']), $path, $ext))) {
             return response()->json(['ok' => false, 'message' => $this->nameTooLong('That image')], 422);
+        }
+
+        if (($problem = $this->makeFolder($path)) !== null) {
+            return response()->json(['ok' => false, 'message' => $problem], 422);
         }
 
         $written = MediaLibrary::putBytes($result['body'], $result['mime'], $path, $validated['url']);
@@ -382,6 +396,63 @@ class MediaLibraryController extends Controller
 
             return response()->json(['ok' => false, 'message' => 'Nothing was moved. Try again.'], 500);
         }
+    }
+
+    /**
+     * Make the folder an upload or import goes into, when it is not there
+     * yet. See newFolderProblem().
+     *
+     * @return ?string the refusal, or null when the folder is ready
+     */
+    private function makeFolder(string $path): ?string
+    {
+        if (($problem = $this->newFolderProblem($path)) !== null) {
+            return $problem;
+        }
+
+        $disk = Storage::disk('public');
+
+        if (! $disk->directoryExists($path)) {
+            $disk->makeDirectory($path);
+            MediaLibrary::touched();
+        }
+
+        return null;
+    }
+
+    /**
+     * Why the folders missing from $path cannot be made, or null. Each name
+     * passes the same rule as a folder made by hand, so a request cannot
+     * leave a folder the library could not open or remove again.
+     */
+    private function newFolderProblem(string $path): ?string
+    {
+        $disk = Storage::disk('public');
+        $parts = explode('/', $path);
+        $so_far = array_shift($parts);
+        $problem = null;
+
+        foreach ($parts as $name) {
+            $so_far .= '/' . $name;
+
+            if ($disk->directoryExists($so_far)) {
+                continue;
+            }
+
+            if ($name !== trim($name)) {
+                return 'A folder name cannot start or end with a space.';
+            }
+
+            (new MediaFolderName())->validate('name', $name, function (string $message) use (&$problem) {
+                $problem ??= $message;
+            });
+
+            if ($problem !== null) {
+                return $problem;
+            }
+        }
+
+        return null;
     }
 
     private function nameTooLong(string $what): string
