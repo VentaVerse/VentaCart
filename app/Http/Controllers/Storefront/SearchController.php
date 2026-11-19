@@ -25,6 +25,7 @@ class SearchController extends Controller
             });
         }
 
+        ProductListing::applyOnSale($products, $request->query(ProductListing::ON_SALE));
         ProductListing::applySort($products, $sort);
 
         $products = $products->with(['images', 'specials', 'brand', \App\Support\ProductAttributes::CARD_RELATION])

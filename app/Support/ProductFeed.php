@@ -30,7 +30,8 @@ use Illuminate\Support\Facades\DB;
  *   filter         'new' (default): newest first, by date available
  *                  'best_sellers':  most revenue from order lines first (the ranking
  *                                   is cached for an hour, see bestSellerIds())
- *                  'on_sale':       only products on sale for the shopper looking (their customer group, one unit)
+ *                  'on_sale':       only products on sale for the shopper looking (their customer group, one unit;
+                                   see Product::scopeOnSaleFor())
  *                  'most_viewed':   most viewed first
  *                  'random':        a random pick
  *                  An unknown value is read as 'new', so a stored block with a
@@ -91,58 +92,23 @@ final class ProductFeed
                 ->withCount(['reviews as reviews_count' => fn ($q) => $q->where('status', 'approved')]);
         }
 
-        $onSale = $filter === 'on_sale';
-        $groupId = $onSale ? CartService::customerGroupId() : null;
-
-        if ($onSale) {
-            // A special belongs to one customer group, or to every group when
-            // it names none. "On sale" means on sale for the shopper looking:
-            // a sale kept for another group must not put a product in this
-            // shopper's list at their regular price.
-            $query->whereHas('specials', fn ($q) => $q
-                ->where('display_mode', 'sale')
-                ->where('quantity', '<=', 1)
-                ->where(fn ($g) => $g->whereNull('customer_group_id')->orWhere('customer_group_id', $groupId))
-                ->activeAt());
+        if ($filter === 'on_sale') {
+            // On sale for the shopper looking: their customer group, one unit.
+            $query->onSaleFor(CartService::customerGroupId());
         }
 
         if ($ids !== null) {
             $position = array_flip($ids);
 
-            $products = $query->whereIn('id', $ids)->get()
-                ->sortBy(fn (Product $product) => $position[$product->id]);
-
-            return self::keepOnSale($products, $onSale, $groupId)->take($limit)->values();
+            return $query->whereIn('id', $ids)->get()
+                ->sortBy(fn (Product $product) => $position[$product->id])
+                ->take($limit)
+                ->values();
         }
 
         self::order($query, $filter);
 
-        if (! $onSale) {
-            return $query->limit($limit)->get();
-        }
-
-        // The card shows whichever special wins for this shopper, so a
-        // product stays only when that winner is a sale. Read a few extra in
-        // case one drops out.
-        return self::keepOnSale($query->limit(min(self::LIMIT_MAX * 2, $limit * 2))->get(), true, $groupId)
-            ->take($limit)
-            ->values();
-    }
-
-    /**
-     * Keep the products whose winning special for one unit, for this shopper's
-     * group, is shown as a sale: the same special the price on the card uses.
-     *
-     * @param  Collection<int, Product>  $products
-     * @return Collection<int, Product>
-     */
-    private static function keepOnSale(Collection $products, bool $onSale, ?int $groupId): Collection
-    {
-        if (! $onSale) {
-            return $products;
-        }
-
-        return $products->filter(fn (Product $product) => CartService::winningSpecial($product, 1, $groupId)?->display_mode === 'sale');
+        return $query->limit($limit)->get();
     }
 
     /** Parse a typed list such as "12, 7 31" into ids, keeping order and dropping repeats. @return list<int> */
@@ -271,31 +237,49 @@ final class ProductFeed
         }));
     }
 
+    /**
+     * Order a product query by best sellers: the ranked products first, in
+     * the order of bestSellerIds(), then the rest by views, then the newest
+     * id, so the order is the same on every page of a listing.
+     *
+     * The ranking comes from a cached list, so a page never sums the
+     * store's order lines; the query's own filters (visibility, category,
+     * brand) still apply.
+     */
+    public static function orderByBestSellers(Builder $query): Builder
+    {
+        $ranked = self::bestSellerIds();
+        if ($ranked !== []) {
+            $column = $query->getQuery()->getGrammar()->wrap($query->getModel()->getQualifiedKeyName());
+            $bindings = [];
+            foreach ($ranked as $position => $id) {
+                array_push($bindings, $id, $position);
+            }
+            $bindings[] = count($ranked);
+            $query->orderByRaw("CASE {$column} " . str_repeat('WHEN ? THEN ? ', count($ranked)) . 'ELSE ? END', $bindings);
+        }
+
+        // Everything that has sold nothing has sold the same amount, so a
+        // store with no orders yet would return whatever the database felt
+        // like. Views break the tie, which is the closest thing to a seller
+        // a new shop has.
+        return $query->orderByDesc($query->qualifyColumn('views'))->orderByDesc($query->qualifyColumn('id'));
+    }
+
+    /** Order a product query by views, most first, then the newest id. */
+    public static function orderByMostViewed(Builder $query): Builder
+    {
+        return $query->orderByDesc($query->qualifyColumn('views'))->orderByDesc($query->qualifyColumn('id'));
+    }
+
     private static function order(Builder $query, string $filter): void
     {
         switch ($filter) {
             case 'best_sellers':
-                // The ranking comes from a cached list (bestSellerIds), so a
-                // page never sums the store's order lines; the shopper's own
-                // filters (visibility, category, brand) still apply here.
-                $ranked = self::bestSellerIds();
-                if ($ranked !== []) {
-                    $column = $query->getQuery()->getGrammar()->wrap($query->getModel()->getQualifiedKeyName());
-                    $bindings = [];
-                    foreach ($ranked as $position => $id) {
-                        array_push($bindings, $id, $position);
-                    }
-                    $bindings[] = count($ranked);
-                    $query->orderByRaw("CASE {$column} " . str_repeat('WHEN ? THEN ? ', count($ranked)) . 'ELSE ? END', $bindings);
-                }
-                // Everything that has sold nothing has sold the same amount,
-                // so a store with no orders yet would return whatever the
-                // database felt like. Views break the tie, which is the
-                // closest thing to a seller a new shop has.
-                $query->orderByDesc('views')->orderByDesc('id');
+                self::orderByBestSellers($query);
                 break;
             case 'most_viewed':
-                $query->orderByDesc('views')->orderByDesc('id');
+                self::orderByMostViewed($query);
                 break;
             case 'random':
                 $query->inRandomOrder();

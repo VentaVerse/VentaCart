@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Services\CartService;
 use App\Services\ThemeService;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -12,6 +13,10 @@ use Illuminate\Database\Eloquent\Builder;
  * SORTS is the only list of sort keys. The admin's "Default sort" select,
  * the storefront sort dropdowns and the controllers all read it, so a key the
  * admin can save is always one the storefront knows how to apply.
+ *
+ * The "On sale" filter (on_sale=1 in the address) is the same on every
+ * listing and in ProductFeed: on sale for the shopper's customer group, as
+ * Product::scopeOnSaleFor() decides.
  *
  * Settings > Catalog stores the store-wide choices in the category_page
  * group. A sort asked for in the request still wins over the stored default;
@@ -28,7 +33,12 @@ final class ProductListing
         'name_desc' => 'Name Z-A',
         'price_asc' => 'Price: Low to High',
         'price_desc' => 'Price: High to Low',
+        'best_sellers' => 'Best sellers',
+        'most_viewed' => 'Most viewed',
     ];
+
+    /** The query parameter of the "On sale" filter. */
+    public const ON_SALE = 'on_sale';
 
     public const DEFAULT_SORT = 'date_added';
 
@@ -118,8 +128,28 @@ final class ProductListing
             'name_asc' => $query->orderBy('name', 'asc'),
             'name_desc' => $query->orderBy('name', 'desc'),
             'newest' => $query->latest(),
+            // The store's ranking from ProductFeed, then views, then id, so
+            // each product appears on exactly one page.
+            'best_sellers' => ProductFeed::orderByBestSellers($query),
+            'most_viewed' => ProductFeed::orderByMostViewed($query),
             default => $query->latest(),
         };
+    }
+
+    /** Whether the request asks for products on sale only: on_sale set to anything but empty or 0. */
+    public static function onSale(mixed $requested): bool
+    {
+        return is_scalar($requested) && ! in_array((string) $requested, ['', '0'], true);
+    }
+
+    /**
+     * Narrow $query to products on sale for the shopper looking when the
+     * request asks for it. The customer-group visibility scope and every
+     * other filter on the query still apply.
+     */
+    public static function applyOnSale(Builder $query, mixed $requested): Builder
+    {
+        return self::onSale($requested) ? $query->onSaleFor(CartService::customerGroupId()) : $query;
     }
 
     /** @return array<string, mixed> */

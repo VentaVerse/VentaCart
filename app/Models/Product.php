@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Models\Concerns\HasRichText;
 use Illuminate\Database\Eloquent\Model;
@@ -197,6 +198,55 @@ class Product extends Model
     public function reviewCount(): int
     {
         return \App\Support\Reviews::enabled() ? $this->approvedReviews()->count() : 0;
+    }
+
+    /**
+     * Products on sale for one customer group: the special the cart charges
+     * for one unit (see CartService::winningSpecial) is shown as a sale.
+     *
+     * A special belongs to one group, or to every group when it names none,
+     * so a sale kept for another group never lists a product at this
+     * shopper's regular price. Only specials for one unit count: a volume
+     * tier does not change the price on the card. And a product is on sale
+     * only when its sale is the special that wins: a quiet price that
+     * outranks it is what the card shows, with no sale on it.
+     *
+     * The rule is written in SQL so a paginated listing can filter by it.
+     * It mirrors winningSpecial(): the deepest tier at or below one unit,
+     * then the lower priority, then the lower price, then the earlier row.
+     */
+    public function scopeOnSaleFor(Builder $query, ?int $customerGroupId): Builder
+    {
+        $applies = fn (Builder $special) => $special
+            ->where($special->qualifyColumn('quantity'), '<=', 1)
+            ->where(fn (Builder $g) => $g->whereNull($g->qualifyColumn('customer_group_id'))
+                ->orWhere($g->qualifyColumn('customer_group_id'), $customerGroupId))
+            ->activeAt();
+
+        return $query->whereHas('specials', function (Builder $sale) use ($applies) {
+            $applies($sale)->where($sale->qualifyColumn('display_mode'), 'sale');
+
+            // No other special that applies outranks this sale.
+            $rivalModel = (new ProductSpecial())->setTable('rival');
+            $rival = $rivalModel->newQuery()->from($sale->getModel()->getTable(), 'rival');
+            $applies($rival)
+                ->whereColumn('rival.product_id', $sale->qualifyColumn('product_id'))
+                ->where(fn (Builder $better) => $better
+                    ->whereColumn('rival.quantity', '>', $sale->qualifyColumn('quantity'))
+                    ->orWhere(fn (Builder $tie) => $tie
+                        ->whereColumn('rival.quantity', $sale->qualifyColumn('quantity'))
+                        ->where(fn (Builder $rank) => $rank
+                            ->whereColumn('rival.priority', '<', $sale->qualifyColumn('priority'))
+                            ->orWhere(fn (Builder $samePriority) => $samePriority
+                                ->whereColumn('rival.priority', $sale->qualifyColumn('priority'))
+                                ->where(fn (Builder $price) => $price
+                                    ->whereColumn('rival.price', '<', $sale->qualifyColumn('price'))
+                                    ->orWhere(fn (Builder $samePrice) => $samePrice
+                                        ->whereColumn('rival.price', $sale->qualifyColumn('price'))
+                                        ->whereColumn('rival.id', '<', $sale->qualifyColumn('id'))))))));
+
+            $sale->whereNotExists($rival->toBase());
+        });
     }
 
     /** Fields themes print as HTML (see App\Support\RichText). */
