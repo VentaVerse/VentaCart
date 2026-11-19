@@ -5,8 +5,8 @@
  * usual forms, drawn by the inspector), a row of columns (its four
  * settings, drawn here), the theme (its groups, then a group's form),
  * earlier versions, or, with nothing selected, the page's own settings
- * (layouts.js). The page's name above a title, Escape, a click on the
- * empty board and Theme pressed again all go back to the page. On a phone
+ * (layouts.js). The page's name above a title, Escape and Theme pressed
+ * again go back to the page. On a phone
  * the panel is a sheet that rests as one line at the bottom, reading
  * "Page settings"; a tap on the line or a selection brings it up. Nothing
  * in it opens a dialog.
