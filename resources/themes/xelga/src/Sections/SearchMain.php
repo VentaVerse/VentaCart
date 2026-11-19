@@ -8,8 +8,8 @@ use Themes\Xelga\Settings\LinkValue;
 
 /**
  * The search page: the words searched, the page of products core's
- * SearchController found (it takes a query and a sort only, so there are
- * no filters here), and what to offer when nothing matches.
+ * SearchController found (it takes words, a sort and the "On sale" switch;
+ * there is no filter column here), and what to offer when nothing matches.
  */
 final class SearchMain implements SectionData
 {
@@ -47,6 +47,7 @@ final class SearchMain implements SectionData
             'list' => $list,
             'sorts' => Listing::sorts(Listing::SEARCH_SORTS, (string) $context->get('sort', 'relevance')),
             'carried' => Listing::carried(['q']),
+            'on_sale' => Listing::onSaleSwitch(),
             'suggestions' => $suggestions,
             'links' => $links,
         ];
