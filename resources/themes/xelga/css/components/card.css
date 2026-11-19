@@ -39,6 +39,12 @@ html:not([data-card-hover="none"], [data-card-hover="zoom"]) .card:hover .card__
   opacity: 1;
 }
 
+/* The first photo fades out as the second fades in, so a photo with a
+   transparent background never shows both at once. */
+html:not([data-card-hover="none"], [data-card-hover="zoom"]) .card:hover .card__img:first-child:has(~ .card__img--alt) {
+  opacity: 0;
+}
+
 html[data-card-hover="zoom"] .card:hover .card__img:first-child,
 html:not([data-card-hover]) .card:not(:has(.card__img--alt)):hover .card__img {
   transform: scale(1.045);
