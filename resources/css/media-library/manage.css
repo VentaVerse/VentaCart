@@ -260,7 +260,6 @@
   .ml-host .ml-page { border-inline: 1px solid var(--ml-line); border-radius: var(--ml-radius-lg); }
 
   .ml-btn.ml-mng-details { display: inline-flex; }
-  .ml-mng-wide-only { display: none; }
   .ml-mng-dialog--details .ml-mng-panel__img { aspect-ratio: auto; height: min(180px, 24dvh); }
 
   .ml-mng-folder__label { display: none; }
