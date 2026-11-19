@@ -40,8 +40,9 @@
 
 /* ------------------------------------------------------- selection bar */
 
-/* Details opens the side panel's content in a dialog, for phones only. */
-.ml-mng-details { display: none; }
+/* Details opens the side panel's content in a dialog, for phones only.
+   Two classes, so it outranks .ml-btn whichever sheet loads last. */
+.ml-btn.ml-mng-details { display: none; }
 
 .ml-mng-acts {
   display: flex;
@@ -258,7 +259,7 @@
      frame inside it. */
   .ml-host .ml-page { border-inline: 1px solid var(--ml-line); border-radius: var(--ml-radius-lg); }
 
-  .ml-mng-details { display: inline-flex; }
+  .ml-btn.ml-mng-details { display: inline-flex; }
   .ml-mng-wide-only { display: none; }
   .ml-mng-dialog--details .ml-mng-panel__img { aspect-ratio: auto; height: min(180px, 24dvh); }
 
