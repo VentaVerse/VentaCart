@@ -297,6 +297,7 @@ export function createManageHooks(view) {
 
     function moveDialog(paths, { folder = false } = {}) {
         const targets = moveTargets(tree(), paths);
+        const offered = new Set(targets);
         const what = folder ? `folder ${tree().get(paths[0])?.name ?? basename(paths[0])}` : plural(paths.length, 'image');
         const d = dialog({ title: `Move ${what} to...` });
         let chosen = null;
@@ -320,8 +321,10 @@ export function createManageHooks(view) {
                 return h('label', { class: `ml-mng-target${term ? '' : ` ml-tree__row--l${Math.min(depth, 5)}`}`, title: folderLabel(p) },
                     radio, icon(p === ROOT ? 'image' : 'folder', 'ml-icon--sm'),
                     h('span', { class: 'ml-mng-target__name' }, h('span', { text: node?.name ?? basename(p) }),
-                        // A filtered list loses the indenting that says where a folder is.
-                        term && p !== ROOT ? h('span', { class: 'ml-mng-target__where', text: folderLabel(dirname(p)) }) : null),
+                        // The indenting says where a folder is only while its parent is
+                        // listed above it: not in a filtered list, and not under a
+                        // folder that cannot be chosen.
+                        p !== ROOT && (term || !offered.has(dirname(p))) ? h('span', { class: 'ml-mng-target__where', text: folderLabel(dirname(p)) }) : null),
                     h('span', { class: 'ml-tree__count', text: fmt(node?.count ?? 0) }));
             }));
             if (!rows.length) list.append(h('p', { class: 'ml-pick-none', text: targets.length ? 'No folder matches.' : 'There is no other folder to move to.' }));

@@ -166,3 +166,24 @@ test('Details shows the image and what uses it in a dialog that gives focus back
     assert.equal(document.activeElement, opener, 'focus is back on Details');
     looker.destroy();
 });
+
+test('a folder listed under one that cannot be chosen says where it is', async () => {
+    const page = await pageWith({ upload: false, edit: true, delete: false });
+    [...page.els.picked.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Move to...').click();
+
+    const dialog = document.querySelector('dialog.ml-mng-dialog');
+    const row = (path) => dialog.querySelectorAll('.ml-mng-target').find((l) => l.querySelector('input').getAttribute('value') === path);
+    const where = (path) => row(path).querySelector('.ml-mng-target__where')?.textContent ?? null;
+
+    // The image sits in products, so products is not offered, and its
+    // folders would otherwise read as folders of the one listed above them.
+    assert.equal(row('media/products'), undefined);
+    assert.equal(where('media/products/Demo'), 'Media / products');
+    assert.equal(where('media/products/demo'), 'Media / products');
+    // A folder whose parent is in the list keeps the indenting alone.
+    assert.equal(where('media/products/Demo/old'), null);
+    assert.equal(where('media/banners'), null);
+
+    [...dialog.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Cancel').click();
+    page.destroy();
+});
