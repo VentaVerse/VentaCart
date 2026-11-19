@@ -11,7 +11,7 @@
                           @media:picked="addPaths($event.detail.paths, $event.detail.files)" />
 
     <div class="v-filterbar v-gap-sm">
-        <button type="button" class="v-btn v-btn--secondary" @click="openPicker($event)">Image manager</button>
+        <button type="button" class="v-btn v-btn--secondary" @click="openPicker($event)">Add images</button>
         <span class="v-filterbar__grow"></span>
         <span class="v-cell-quiet v-mono" x-show="items.length > 0" x-text="items.length + ' image' + (items.length !== 1 ? 's' : '')"></span>
     </div>
