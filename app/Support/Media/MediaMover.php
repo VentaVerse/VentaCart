@@ -260,6 +260,10 @@ final class MediaMover
      */
     private static function dropRowsAt(string $to): void
     {
+        if (! MediaLibrary::hasFileTable()) {
+            return;
+        }
+
         $like = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $to) . '/%';
 
         $ids = MediaFile::query()
