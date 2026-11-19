@@ -60,7 +60,7 @@
                         @endif
                     </h2>
                     @if ($saleOnly)
-                        <p class="muted"><a class="link-arrow" href="{{ $data['on_sale']['off_url'] }}">Show products at their regular price too<svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a></p>
+                        <p class="muted"><a class="link-arrow" href="{{ $data['on_sale']['off_url'] }}">{{ $query === '' ? 'Show every product' : 'Show products at their regular price too' }}<svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a></p>
                     @else
                         <p class="muted">Check the spelling, try a shorter word, or start from one of these.</p>
                     @endif

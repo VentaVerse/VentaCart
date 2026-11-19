@@ -81,7 +81,8 @@ export function followTarget(read) {
     return { meta: `${word}: ${name}`, shown: true };
   }
   if (source === 'hand-picked') return { meta: 'Picked by hand', shown: false, note: HAND_PICKED_NOTE };
-  return { meta: 'All products', shown: true };
+  // The section reads an unknown choice as Newest, and so does the link.
+  return { meta: SOURCE_WORDS.newest, shown: true };
 }
 
 /** Ask the store for the names of records, then run `done` if any came back. */
