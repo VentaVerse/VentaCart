@@ -24,7 +24,7 @@ A permission slug is `{group}.{action}`. Group names match the admin screens.
 | Catalog | `brands` | view, create, edit, delete |
 | Catalog | `tags` | view, create, edit, delete |
 | Catalog | `attributes` | view, create, edit, delete |
-| Catalog | `media` | view, create, delete |
+| Catalog | `media` | view, create (upload, import, new folder), edit (rename, move), delete (images not in use, empty folders); see `docs/media-library.md` |
 | Customers | `customers` | view, create, edit, delete, impersonate |
 | Customers | `customer-groups` | view, create, edit, delete |
 | Marketing | `marketing` | view, create, edit, delete (coupons, email campaigns, abandoned carts, stock alerts, SEO work) |
