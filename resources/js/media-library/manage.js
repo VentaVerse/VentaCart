@@ -189,14 +189,20 @@ export function createManageHooks(view) {
             : null;
 
         // Someone who may only look has nothing else to do with a selection.
+        // With one image selected there is nothing to ask for: the side panel
+        // (or Details, on a phone) already shows it.
+        if (n === 1 && !(can.edit || can.delete)) {
+            return [
+                h('div', { class: 'ml-pick-sum' }, h('span', { class: 'ml-pick-sum__count', text: '1 selected' })),
+                h('div', { class: 'ml-mng-acts' }, details),
+            ];
+        }
+
         if (!n || !(can.edit || can.delete)) {
             const hint = can.edit || can.delete
                 ? 'Select images to rename, move or delete them.'
                 : n > 1 ? 'Select one image to see where it is used.' : 'Select an image to see where it is used.';
-            return [
-                h('p', { class: `ml-pick-none${details ? ' ml-mng-wide-only' : ''}`, text: hint }),
-                details ? h('div', { class: 'ml-mng-acts' }, details) : null,
-            ];
+            return [h('p', { class: 'ml-pick-none', text: hint })];
         }
 
         const tools = [
@@ -446,8 +452,18 @@ export function createManageHooks(view) {
 
     /* ------------------------------------------------------- side panel */
 
+    /**
+     * The image the side panel describes: the one selected image when there
+     * is exactly one, so the panel never asks for a selection that has been
+     * made, otherwise the focused image.
+     */
+    function panelFile() {
+        const picked = view.selection().paths();
+        return (picked.length === 1 ? view.file(picked[0]) : null) || view.focused();
+    }
+
     function drawPanel() {
-        const file = view.focused();
+        const file = panelFile();
         const key = file ? `${file.path}:${file.usedBy?.total ?? 0}` : null;
         if (key === M.shown) return;
         M.shown = key;

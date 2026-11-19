@@ -148,6 +148,23 @@ test('the tools the user lacks are not drawn', async () => {
     all.destroy();
 });
 
+test('with one image selected, a user who may only look sees it, not a request to select one', async () => {
+    const looker = await pageWith({ upload: false, edit: false, delete: false });
+    assert.doesNotMatch(looker.els.picked.textContent, /Select an image/);
+    assert.match(looker.els.picked.textContent, /1 selected/);
+
+    // The side panel describes the selected image even when none has focus.
+    const panel = looker.root.querySelector('.ml-mng-panel');
+    assert.match(panel.textContent, /demo-001\.jpg/);
+    assert.doesNotMatch(panel.textContent, /Select an image/);
+
+    // Two selected: there is no one image to describe, so the hint returns.
+    looker.selection().add([files[1].path]);
+    looker.redraw();
+    assert.match(looker.els.picked.textContent, /Select one image to see where it is used\./);
+    looker.destroy();
+});
+
 test('Details shows the image and what uses it in a dialog that gives focus back', async () => {
     const looker = await pageWith({ upload: false, edit: false, delete: false });
     const opener = looker.els.picked.querySelector('.ml-mng-details');
