@@ -252,11 +252,30 @@ Importing makes the server download someone else's file, so it has the
 tightest limit. A refused request answers 429 with a JSON `message` the
 library shows as it is.
 
+## Upgrading
+
+After updating the code, run the migrations:
+
+```bash
+php artisan migrate
+```
+
+This creates `media_files` and adds the `media.edit` permission (rename and
+move), granting it to every role that already has `media.create`. A custom
+role without `media.create` that should rename or move images has to be given
+`media.edit` by hand under Settings > User Groups.
+
+Until the migration has run, the library still browses, uploads, deletes,
+renames and moves, but shows no image sizes, and only super admins can rename
+or move, since no role has `media.edit` yet.
+
+`php artisan media:dimensions` is optional (see below).
+
 ## Image sizes: media:dimensions
 
 The library shows each image's width and height, kept in `media_files` (one
 row per path). Uploads record them, and browsing fills them in the first time
-an older image is shown, so nothing has to run on upgrade.
+an older image is shown, so this command never has to run.
 
 ```bash
 php artisan media:dimensions

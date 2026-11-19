@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\MediaFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -72,6 +73,9 @@ class MediaLibrary
      * library never makes one: uploads, imports, renames and moves refuse it.
      */
     public const PATH_MAX = 255;
+
+    /** Container key of the answer to hasFileTable(), so it is asked once per request. */
+    private const FILE_TABLE_KEY = 'media.files-table';
 
     /** Cache key of the folder tree, cleared whenever files or folders change. */
     public const TREE_CACHE_KEY = 'media.tree';
@@ -292,6 +296,10 @@ class MediaLibrary
         $wanted = array_flip($paths);
         $out = array_fill_keys($paths, null);
 
+        if (! self::hasFileTable()) {
+            return $out;
+        }
+
         foreach (array_chunk($paths, 500) as $chunk) {
             foreach (MediaFile::query()->whereIn('path', $chunk)->get(['path', 'width', 'height']) as $row) {
                 // The database narrows; the exact match is decided here, so a
@@ -335,7 +343,7 @@ class MediaLibrary
 
         // A path too long to store is still a file; it simply goes without
         // a row and is measured when it is shown.
-        if ($size === null || self::tooLong($path)) {
+        if ($size === null || self::tooLong($path) || ! self::hasFileTable()) {
             return;
         }
 
@@ -345,6 +353,23 @@ class MediaLibrary
             ['path'],
             ['width', 'height', 'updated_at'],
         );
+    }
+
+    /**
+     * Whether media_files exists. Code can be deployed before `php artisan
+     * migrate` runs; until then the library still browses, uploads, deletes,
+     * renames and moves, and simply goes without stored dimensions. Asked
+     * once per request, since every image described would otherwise ask.
+     */
+    public static function hasFileTable(): bool
+    {
+        $app = app();
+
+        if (! $app->bound(self::FILE_TABLE_KEY)) {
+            $app->instance(self::FILE_TABLE_KEY, Schema::hasTable('media_files'));
+        }
+
+        return (bool) $app->make(self::FILE_TABLE_KEY);
     }
 
     /** The folder tree is cached; anything that adds or removes files or folders clears it. */
@@ -440,6 +465,12 @@ class MediaLibrary
         $info = pathinfo($path);
         $disk->delete($info['dirname'] . '/' . $info['filename'] . '_thumb.' . ($info['extension'] ?? 'jpg'));
         ImageRenditions::forget($path);
+
+        if (! self::hasFileTable()) {
+            self::touched();
+
+            return;
+        }
 
         // Deleted by primary key after an exact match, so a collation that
         // ignores case cannot take a case twin's row with it.
