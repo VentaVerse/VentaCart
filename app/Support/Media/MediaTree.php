@@ -46,8 +46,7 @@ final class MediaTree
         $disk = Storage::disk('public');
         $root = MediaLibrary::ROOT;
 
-        MediaLibrary::ensure($root);
-
+        // Read only: a library that is not there yet is one empty folder.
         $counts = [$root => 0];
 
         foreach ($disk->allDirectories($root) as $dir) {
