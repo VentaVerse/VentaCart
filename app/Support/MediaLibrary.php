@@ -443,10 +443,39 @@ class MediaLibrary
         return $path;
     }
 
-    public static function putBytes(string $bytes, string $mime, string $directory, string $sourceUrl): string
+    /**
+     * The extension for bytes that are a JPEG, PNG or WebP image no larger
+     * than MAX_SIDE, or null.
+     *
+     * Decided by the bytes, as an upload's type is, never by what a remote
+     * server says it sent: a server can label anything image/png.
+     */
+    public static function imageExtension(string $bytes): ?string
     {
-        $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'][$mime] ?? 'jpg';
-        $path = self::pathFor(self::importName($sourceUrl), $directory, $ext);
+        $meta = @getimagesizefromstring($bytes);
+
+        if (! $meta || $meta[0] < 1 || $meta[1] < 1) {
+            return null;
+        }
+
+        return [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'][$meta[2]] ?? null;
+    }
+
+    /** Whether bytes already known to be an image fit within MAX_SIDE on both sides. */
+    public static function withinMaxSide(string $bytes): bool
+    {
+        $meta = @getimagesizefromstring($bytes);
+
+        return $meta !== false && $meta[0] <= self::MAX_SIDE && $meta[1] <= self::MAX_SIDE;
+    }
+
+    /**
+     * Store fetched bytes, already checked with imageExtension() and
+     * withinMaxSide(), under $extension.
+     */
+    public static function putBytes(string $bytes, string $extension, string $directory, string $sourceUrl): string
+    {
+        $path = self::pathFor(self::importName($sourceUrl), $directory, $extension);
 
         Storage::disk('public')->put($path, $bytes);
         self::thumbnail($path);

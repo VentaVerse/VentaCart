@@ -221,7 +221,7 @@ routes itself, so their addresses and answers can change without breaking it.
 
 | Limit | Value |
 |---|---|
-| Upload types | JPG, PNG and WebP, decided by the file's content, not its name |
+| Upload and import types | JPG, PNG and WebP, decided by the file's content, not its name or the type a remote server claims |
 | Largest upload | 5 MB (`MediaLibrary::MAX_KB`, 5120) |
 | Largest image | 6000 pixels on either side (`MediaLibrary::MAX_SIDE`) |
 | Images per upload request | 20 (`MediaLibrary::MAX_FILES`) |

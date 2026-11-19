@@ -226,13 +226,27 @@ class MediaLibraryController extends Controller
             return response()->json(['ok' => false, 'message' => $problem], 422);
         }
 
-        $result = $this->fetchRemoteImage($validated['url'], ['image/jpeg', 'image/png', 'image/webp']);
+        // Any type the server claims is accepted here: the bytes decide, as
+        // they do for an upload, so a server that labels a page or a script
+        // image/png stores nothing, and a real image sent without the right
+        // label still imports.
+        $result = $this->fetchRemoteImage($validated['url']);
 
         if (! $result['ok']) {
             return response()->json(['ok' => false, 'message' => $result['reason']], 422);
         }
 
-        $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'][$result['mime']] ?? 'jpg';
+        $ext = MediaLibrary::imageExtension($result['body']);
+
+        if ($ext === null) {
+            return response()->json(['ok' => false, 'message' => 'That address did not return a JPG, PNG or WebP image.'], 422);
+        }
+
+        if (! MediaLibrary::withinMaxSide($result['body'])) {
+            $side = MediaLibrary::MAX_SIDE;
+
+            return response()->json(['ok' => false, 'message' => 'That image is larger than ' . $side . ' x ' . $side . ' pixels. Make it smaller and import it again.'], 422);
+        }
 
         if (MediaLibrary::tooLong(MediaLibrary::pathFor(MediaLibrary::importName($validated['url']), $path, $ext))) {
             return response()->json(['ok' => false, 'message' => $this->nameTooLong('That image')], 422);
@@ -242,7 +256,7 @@ class MediaLibraryController extends Controller
             return response()->json(['ok' => false, 'message' => $problem], 422);
         }
 
-        $written = MediaLibrary::putBytes($result['body'], $result['mime'], $path, $validated['url']);
+        $written = MediaLibrary::putBytes($result['body'], $ext, $path, $validated['url']);
 
         return response()->json([
             'ok' => true,
