@@ -14,6 +14,7 @@ use App\Models\ProductSpecial;
 use App\Services\CartService;
 use App\Services\ThemeService;
 use App\Support\ProductFeed;
+use App\Support\Pricing;
 use App\Support\ProductListing;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -161,9 +162,11 @@ class ListingSortsAndOnSaleTest extends TestCase
     public function test_on_sale_narrows_every_listing_and_keeps_the_sort(): void
     {
         $this->product('Full Price Demo', ['views' => 99]);
-        $this->sale($this->product('Cheap Sale Demo', ['price' => 50, 'views' => 1]));
+        $this->sale($this->product('Cheap Sale Demo', ['price' => 90, 'views' => 1]));
         $this->sale($this->product('Dear Sale Demo', ['price' => 500, 'views' => 5]));
         $this->sale($this->product('Ended Sale Demo'), ['date_start' => now()->subDays(5), 'date_end' => now()->subDays(2)]);
+        // A sale above the product's own price saves nothing, so it is not on sale.
+        $this->sale($this->product('No Saving Demo', ['price' => 60]));
 
         foreach ($this->listingPages(['on_sale' => '1', 'sort' => 'most_viewed']) as $page => $url) {
             $this->assertSame(['Dear Sale Demo', 'Cheap Sale Demo'], $this->names($url), $page);
@@ -175,7 +178,7 @@ class ListingSortsAndOnSaleTest extends TestCase
 
         // Off, or switched off with 0, the full list comes back.
         foreach ($this->listingPages(['on_sale' => '0']) as $page => $url) {
-            $this->assertCount(4, $this->names($url), $page);
+            $this->assertCount(5, $this->names($url), $page);
         }
     }
 
@@ -225,6 +228,11 @@ class ListingSortsAndOnSaleTest extends TestCase
             'other group sale ignored' => [['display_mode' => 'sale', 'customer_group_id' => $other->id]],
             'other group quiet ignored' => [['display_mode' => 'sale', 'priority' => 5], ['display_mode' => 'override', 'priority' => 1, 'customer_group_id' => $other->id]],
             'ended quiet ignored' => [['display_mode' => 'sale', 'priority' => 5], ['display_mode' => 'override', 'priority' => 1, 'date_end' => now()->subHour()]],
+            'sale not started' => [['display_mode' => 'sale', 'date_start' => now()->addDay(), 'date_end' => now()->addDays(3)]],
+            'sale above the regular price' => [['display_mode' => 'sale', 'price' => 120]],
+            'sale at the regular price' => [['display_mode' => 'sale', 'price' => 100]],
+            'earlier sale wins a full tie' => [['display_mode' => 'sale', 'price' => 70], ['display_mode' => 'override', 'price' => 70]],
+            'earlier quiet wins a full tie' => [['display_mode' => 'override', 'price' => 70], ['display_mode' => 'sale', 'price' => 70]],
         ];
 
         foreach ($cases as $name => $specials) {
@@ -234,12 +242,15 @@ class ListingSortsAndOnSaleTest extends TestCase
             }
         }
 
-        $groupId = CartService::customerGroupId();
-        $listed = Product::query()->onSaleFor($groupId)->pluck('id')->all();
+        // Listed exactly when the card shows the product as a sale.
+        $listed = Product::query()->onSaleFor(CartService::customerGroupId())->pluck('id')->all();
+        $shownAsSale = 0;
         foreach (Product::with('specials')->get() as $product) {
-            $wins = CartService::winningSpecial($product, 1, $groupId)?->display_mode === 'sale';
-            $this->assertSame($wins, in_array($product->id, $listed, true), $product->name);
+            $sale = Pricing::display($product)->isSale();
+            $shownAsSale += (int) $sale;
+            $this->assertSame($sale, in_array($product->id, $listed, true), $product->name);
         }
+        $this->assertSame(7, $shownAsSale, 'the cases cover both outcomes');
     }
 
     public function test_hidden_products_stay_hidden_under_the_new_sorts_and_on_sale(): void
