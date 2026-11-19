@@ -40,6 +40,19 @@ export function h(tag, attrs = {}, ...kids) {
     return el;
 }
 
+/**
+ * Whether the row of folder buttons above the images shows. In search
+ * results it holds the matching folders. On a phone the tree is hidden, so
+ * the row is the only way into a folder's own folders. On a wider screen the
+ * tree already lists them, so the row shows only in place of an empty grid,
+ * for a folder that holds folders and no images of its own. The "N folders"
+ * count follows the row.
+ */
+export function folderRowShows({ searching = false, folders = 0, images = 0, phone = false } = {}) {
+    if (!folders) return false;
+    return searching || phone || !images;
+}
+
 export function formatSize(bytes) {
     const n = Number(bytes) || 0;
     if (n < 1024) return `${n} B`;
@@ -702,7 +715,7 @@ export function createView({ api, config, options, modal, onDone }) {
         const bits = [plural(S.total, 'image')];
         if (S.q && S.folders.length) bits.unshift(plural(S.folders.length, 'folder'));
         if (!S.q && kids && !S.total) bits.splice(0, 1);
-        if (!S.q && kids && (!isPhone() || !S.total)) bits.push(plural(kids, 'folder'));
+        if (!S.q && kids && rowShows()) bits.push(plural(kids, 'folder'));
         els.count.textContent = bits.join(', ');
     }
 
@@ -730,13 +743,17 @@ export function createView({ api, config, options, modal, onDone }) {
             els.folders.replaceChildren();
             return;
         }
-        if (S.q) {
-            els.folders.className = S.folders.length ? 'ml-folders is-results' : 'ml-folders';
-            els.folders.replaceChildren(...rowsFor(S.folders, true));
+        if (!rowShows()) {
+            els.folders.className = 'ml-folders';
+            els.folders.replaceChildren();
             return;
         }
-        els.folders.className = S.folders.length ? 'ml-folders is-rows' : 'ml-folders';
-        els.folders.replaceChildren(...rowsFor(S.folders, false));
+        els.folders.className = S.q ? 'ml-folders is-results' : 'ml-folders is-rows';
+        els.folders.replaceChildren(...rowsFor(S.folders, Boolean(S.q)));
+    }
+
+    function rowShows() {
+        return folderRowShows({ searching: Boolean(S.q), folders: S.folders.length, images: S.total, phone: isPhone() });
     }
 
     function drawGrid() {
@@ -1348,6 +1365,7 @@ export function createView({ api, config, options, modal, onDone }) {
 
     const media = globalThis.matchMedia?.(PHONE);
     const onMedia = () => {
+        drawFolders();
         drawCount();
         drawFoot();
         drawState();

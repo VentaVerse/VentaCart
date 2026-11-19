@@ -4,7 +4,7 @@ import { installDom } from '../support/mini-dom.mjs';
 
 installDom();
 
-const { createView } = await import('../../../resources/js/media-library/view.js');
+const { createView, folderRowShows } = await import('../../../resources/js/media-library/view.js');
 
 const folders = [
     { path: 'media', name: 'Media', parent: null, count: 2 },
@@ -50,13 +50,42 @@ test('a folder holding only folders shows them and is not called empty', async (
     view.destroy();
 });
 
-test('a folder with folders and images shows both', async () => {
+test('on a wide screen a folder with images leaves its folders to the tree', async () => {
     const view = await libraryAt('media/products', [image]);
 
-    assert.deepEqual(chips(view), ['Demo1', 'demo1']);
+    assert.deepEqual(chips(view), [], 'no folder row: the tree lists them');
+    assert.doesNotMatch(view.els.folders.className, /\bis-rows\b/);
+    assert.equal(view.els.count.textContent, '1 image', 'and the count leaves out the folders too');
     assert.equal(view.els.grid.querySelectorAll('.ml-tile').length, 1);
     assert.equal(view.els.state.hidden, true);
     view.destroy();
+});
+
+test('on a phone a folder with images shows its folders above them', async () => {
+    const wide = globalThis.matchMedia;
+    globalThis.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+    try {
+        const view = await libraryAt('media/products', [image]);
+
+        assert.deepEqual(chips(view), ['Demo1', 'demo1']);
+        assert.equal(view.els.count.textContent, '1 image, 2 folders');
+        assert.equal(view.els.grid.querySelectorAll('.ml-tile').length, 1);
+        view.destroy();
+    } finally {
+        globalThis.matchMedia = wide;
+    }
+});
+
+test('the folder row shows in search results, on a phone, or in place of an empty grid', () => {
+    // Nothing to show without folders.
+    assert.equal(folderRowShows({ folders: 0 }), false);
+    assert.equal(folderRowShows({ searching: true, folders: 0, phone: true }), false);
+    // Wide screen: only in place of an empty grid, or for search results.
+    assert.equal(folderRowShows({ folders: 2, images: 0 }), true);
+    assert.equal(folderRowShows({ folders: 2, images: 5 }), false);
+    assert.equal(folderRowShows({ searching: true, folders: 1, images: 5 }), true);
+    // Phone: whenever there are folders, since the tree is hidden.
+    assert.equal(folderRowShows({ folders: 2, images: 5, phone: true }), true);
 });
 
 test('a folder with no folders and no images says it has no images', async () => {
