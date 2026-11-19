@@ -184,7 +184,9 @@ final class Listing
                 $chips[] = ['label' => 'In stock only', 'url' => self::without(['in_stock' => null])];
             }
         }
-        if ($enabled['on_sale']) {
+        // Shown while it is on even where the store hides the filter (a link
+        // can still ask for it), so the shopper can see it and take it off.
+        if ($enabled['on_sale'] || self::onSale()) {
             $on = self::onSale();
             $avail[] = ['name' => 'on_sale', 'value' => '1', 'label' => 'On sale', 'checked' => $on, 'swatch' => null, 'count' => null];
             if ($on) {
@@ -366,13 +368,15 @@ final class Listing
     /**
      * The search page's "On sale" switch: on or off, and the address that
      * turns it off again (the words and the sort stay, the page goes back
-     * to the first). Null when the store has switched the filter off.
+     * to the first). Null when the store has switched the filter off,
+     * unless the address has it on: a link can still ask for it, and the
+     * shopper must be able to see that and take it off.
      *
      * @return array{on: bool, off_url: string}|null
      */
     public static function onSaleSwitch(): ?array
     {
-        if (! self::enabledFilters()['on_sale']) {
+        if (! self::enabledFilters()['on_sale'] && ! self::onSale()) {
             return null;
         }
 

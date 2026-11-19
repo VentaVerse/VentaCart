@@ -51,6 +51,7 @@ test('these products leads where the section\'s products come from', () => {
   assert.equal(picked.note, HAND_PICKED_NOTE);
 
   assert.equal(followTarget(read({ source: 'category', category: null })).shown, false, 'no category chosen, no link');
+  assert.equal(followTarget(read({ source: 'no-such-choice' })).meta, 'Newest', 'read as the section reads it');
 });
 
 test('a following link offers these products first, a plain link does not', () => {

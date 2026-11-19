@@ -8,6 +8,7 @@ use App\Models\Page;
 use App\Models\Product;
 use App\Support\ProductListing;
 use App\Support\SafeInput;
+use Themes\Xelga\Sections\ProductSource;
 use Illuminate\Support\Facades\Route;
 
 /**
@@ -34,6 +35,12 @@ final class LinkValue
 
     /** The link to the listing of the products a section shows. */
     public const THESE_PRODUCTS = 'these-products';
+
+    /**
+     * The listing sort that matches the section's "Newest": core's product
+     * feed lists newest by date available, which is the listings' date_added.
+     */
+    private const NEWEST_SORT = 'date_added';
 
     /** Link types that point at one core record by id. */
     public const RECORD = ['category', 'product', 'brand', 'page'];
@@ -120,8 +127,10 @@ final class LinkValue
             return self::resolve($value);
         }
 
+        // Read as the section reads it: an unknown source lists the newest.
         $source = (string) ($settings['source'] ?? '');
-        $id = fn (string $key): ?int => is_numeric($settings[$key] ?? null) && (int) $settings[$key] > 0 ? (int) $settings[$key] : null;
+        $source = array_key_exists($source, ProductSource::SOURCES) ? $source : 'newest';
+        $id = fn (string $key): ?int => ProductSource::id($settings[$key] ?? null);
         $search = fn (array $query) => Route::has('search.results') ? route('search.results', $query, false) : null;
 
         return match ($source) {
@@ -135,12 +144,6 @@ final class LinkValue
             default => null,
         };
     }
-
-    /**
-     * The listing sort that matches the section's "Newest": core's product
-     * feed lists newest by date available, which is the listings' date_added.
-     */
-    private const NEWEST_SORT = 'date_added';
 
     public static function flush(): void
     {

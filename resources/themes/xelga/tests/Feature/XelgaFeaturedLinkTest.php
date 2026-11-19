@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductSpecial;
+use App\Models\Setting;
 use App\Models\Store;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -117,6 +118,7 @@ class XelgaFeaturedLinkTest extends TestCase
         $category = Category::create(['store_id' => $this->store->id, 'name' => 'Laptops', 'slug' => 'laptops', 'is_active' => true]);
         $off = Category::create(['store_id' => $this->store->id, 'name' => 'Archive', 'slug' => 'archive', 'is_active' => false]);
         $brand = Brand::create(['store_id' => $this->store->id, 'name' => 'Northwind', 'slug' => 'northwind', 'is_active' => true]);
+        $offBrand = Brand::create(['store_id' => $this->store->id, 'name' => 'Old Brand', 'slug' => 'old-brand', 'is_active' => false]);
         $link = ['type' => 'these-products'];
 
         $cases = [
@@ -131,6 +133,9 @@ class XelgaFeaturedLinkTest extends TestCase
             [['source' => 'category', 'category' => 999999], null],
             [['source' => 'category', 'category' => null], null],
             [['source' => 'brand', 'brand' => 999999], null],
+            [['source' => 'brand', 'brand' => $offBrand->id], null],
+            [['source' => 'category', 'category' => $category->id . '.5'], null],
+            [['source' => 'no-such-choice'], '/search?sort=date_added'],
         ];
         foreach ($cases as [$settings, $expected]) {
             LinkValue::flush();
@@ -218,5 +223,35 @@ class XelgaFeaturedLinkTest extends TestCase
             ->assertSee('Nothing on sale for')
             ->assertSee('Show products at their regular price too')
             ->assertSee('href="' . e(url('/search') . '?q=full&sort=price_asc') . '"', false);
+    }
+
+    public function test_on_sale_stays_visible_and_removable_where_the_store_hides_the_filter(): void
+    {
+        Setting::updateOrCreate(['group' => 'filters', 'key' => 'on_sale_enabled'], ['value' => '0']);
+        app(\App\Services\ThemeService::class)->clearCache();
+        $this->app->forgetInstance(\App\Services\ThemeService::class);
+        $sale = $this->product('Sale Laptop Demo');
+        ProductSpecial::create(['product_id' => $sale->id, 'price' => 1000, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1]);
+        $this->product('Full Price Laptop Demo');
+        $category = Category::create(['store_id' => $this->store->id, 'name' => 'Laptops', 'slug' => 'laptops', 'is_active' => true]);
+        Product::query()->get()->each(fn (Product $p) => $p->categories()->attach($category->id));
+
+        // Off and not asked for: no switch, as the store chose.
+        $this->page('/search')->assertDontSee('name="on_sale"', false);
+        $this->page('/category/laptops')->assertDontSee('name="on_sale"', false);
+
+        // Asked for by a link: shown on, and can be taken off.
+        $this->page('/search?on_sale=1')->assertSee('name="on_sale" value="1" data-sort checked', false);
+        $this->page('/category/laptops?on_sale=1')
+            ->assertSee('name="on_sale" value="1" checked', false)
+            ->assertSee('Remove filter On sale', false);
+
+        // Nothing on sale on All products: said plainly, with a way back.
+        ProductSpecial::query()->delete();
+        $this->page('/search?on_sale=1')
+            ->assertSee('Nothing is on sale right now')
+            ->assertDontSee('Type a word to search the store')
+            ->assertSee('Show every product')
+            ->assertSee('href="' . url('/search') . '"', false);
     }
 }
