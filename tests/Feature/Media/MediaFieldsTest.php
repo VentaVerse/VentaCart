@@ -50,7 +50,11 @@ class MediaFieldsTest extends TestCase
             'sku' => 'DEMO-001', 'price' => 100, 'is_active' => true, 'image' => self::IMAGE,
         ]);
         // The gallery and the variant photo are both product images.
-        $this->assertSharedPicker($this->get(route('admin.products.edit', $product))->assertOk()->getContent(), 'products', 2);
+        $html = $this->get(route('admin.products.edit', $product))->assertOk()->getContent();
+        $this->assertSharedPicker($html, 'products', 2);
+        // The gallery's button says what the window it opens is called.
+        $this->assertStringContainsString('@click="openPicker($event)">Add images</button>', $html);
+        $this->assertStringNotContainsString('Image manager', $html);
 
         $category = Category::create(['store_id' => 1, 'name' => 'Phones', 'slug' => 'phones', 'is_active' => true, 'image' => self::IMAGE]);
         $html = $this->get(route('admin.categories.edit', $category))->assertOk()->getContent();
