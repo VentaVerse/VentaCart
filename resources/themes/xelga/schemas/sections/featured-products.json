@@ -72,8 +72,9 @@
       "type": "url",
       "label": "Link goes to",
       "default": {
-        "type": "search"
-      }
+        "type": "these-products"
+      },
+      "follows_products": true
     },
     {
       "key": "source",

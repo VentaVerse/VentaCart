@@ -21,13 +21,18 @@ export function visibleIf(setting, read) {
 
 export const dependsOn = (settings, key) => settings.some((d) => d.visible_if && key in d.visible_if);
 
-/** Shows and hides fields whose visible_if depends on a changed value. */
+/**
+ * Shows and hides fields whose visible_if depends on a changed value, and
+ * lets controls that describe another setting (a link that follows the
+ * section's products) draw themselves again.
+ */
 export function refreshVisibility() {
   if (!current?.form?.isConnected) return;
   current.settings.forEach((setting) => {
     const row = current.form.querySelector(`[data-field="${CSS.escape(setting.key)}"]`);
     if (row) row.hidden = !visibleIf(setting, current.read);
   });
+  current.refreshers.forEach((fn) => fn());
 }
 
 /** Marks fields the server refused, with its message under each. */
@@ -58,6 +63,8 @@ export function refreshFieldErrors() {
 /**
  * Builds the form for a list of settings.
  *   fctx: { kind: 'section' | 'block' | 'theme', sid, bid, group }
+ *         Controls also get fctx.read (the form's read) and
+ *         fctx.onRefresh(fn), which runs fn whenever a value of the form changes.
  *   read(key): the current value
  *   onChange(setting, value, { merge }): records the change
  *   errors(): { key: [messages] } from the last refused save
@@ -65,6 +72,8 @@ export function refreshFieldErrors() {
 export function buildForm(settings, fctx, read, onChange, errors = null) {
   const list = settings.filter(isFormSetting);
   const form = h('div', { class: 'form' });
+  const refreshers = [];
+  fctx = { ...fctx, read, onRefresh: (fn) => refreshers.push(fn) };
   const basic = list.filter((d) => !d.advanced);
   const advanced = list.filter((d) => d.advanced);
   basic.forEach((d) => form.append(fieldRow(d, fctx, read, onChange)));
@@ -74,7 +83,7 @@ export function buildForm(settings, fctx, read, onChange, errors = null) {
     advanced.forEach((d) => details.append(fieldRow(d, fctx, read, onChange)));
     form.append(details);
   }
-  current = { form, settings: list, read, errors };
+  current = { form, settings: list, read, errors, refreshers };
   window.setTimeout(refreshFieldErrors, 0);
   return form;
 }

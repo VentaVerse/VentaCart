@@ -62,7 +62,7 @@ export function buildControl(setting, value, change, id, fctx) {
     case 'image':
       return imagePicker(value, change, setting, fctx);
     case 'url':
-      return linkPicker(value, change, id, setting);
+      return linkPicker(value, change, id, setting, fctx);
     case 'menu-picker':
       return menuPicker(value, change, id);
     case 'product-picker':

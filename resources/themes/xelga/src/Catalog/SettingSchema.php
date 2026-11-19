@@ -63,6 +63,15 @@ final class SettingSchema
         return $asked > 0 ? min($asked, $limit) : $limit;
     }
 
+    /**
+     * A url setting beside a list of products that may link to "These
+     * products": the listing page of whatever the section shows.
+     */
+    public function followsProducts(): bool
+    {
+        return $this->type === 'url' && ($this->raw['follows_products'] ?? false) === true;
+    }
+
     /** A product picker that holds a hand-picked list rather than one product. */
     public function multiple(): bool
     {
