@@ -113,6 +113,10 @@ Settings are for a theme with an editor of its own (`editor` in theme.json): eac
 
 Every setting may also carry `section`, `tab` and `heading` to say where the theme's editor shows it.
 
+**Images.** A `media` or `images` setting holds storage paths from core's media library (`docs/media-library.md`). Theme settings are stored in core's `settings` table, which the library already watches, so an image a setting holds counts as used, cannot be deleted from the library while the setting shows it, and is rewritten when the merchant renames or moves it. The theme registers nothing for these.
+
+A theme's editor opens the library through `window.VentaCart.media.open()` on a page that includes `<x-media-library />`, and stores the `path` it is given. It never calls core's `admin.media.*` routes itself and never keeps a media table of its own. A theme that stores paths in its own tables (section 2.4: page designs, drafts, saved versions) registers those columns with `MediaReferences::register()` in its provider, so the library counts and moves them too; a saved earlier version is registered with `countsAsUse: false`, since it should follow a move but never keep an image from being deleted.
+
 Read a setting from any view with `\App\Support\ThemeOptions::get('key', $default)`. It is memoised per request and safe in views that render before the layout.
 
 ### 2.3 Demo products and posts

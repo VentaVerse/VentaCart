@@ -203,6 +203,7 @@ Keys a section schema may carry:
 | `picker_group` | the group of tiles the section picker shows the type in: `banners` (Banners and photos), `products`, `categories` (Categories and brands) or `text` (Text and trust). Every theme section that can be added names one; the linter refuses any other value. An extension's sections are grouped under the extension's title instead. |
 | `picker_order` | where the type sits within its picker group: a whole number above 0, lower first (the most used types lead). Types without one follow in catalog order. |
 | `blocks.types[].limit` | most blocks of that type in one section. |
+| `blocks.types[].photo_setting` | the key of the block's `image` setting that one photo fills. When it is set and the type is the only one the section can add, the Blocks list offers **Add photos** beside the add button: the merchant picks several images in the media library (no more than the section has room for, the photos its blocks already show marked as already added) and one block of the type is added per photo, with every other setting at its default, as one undo step. Hero slides, brand logos and promo banners carry it; a block whose image is one part among several (a testimonial, a category tile) does not. The linter refuses a value that does not name an `image` setting of the block. |
 | `span` | `{"min": N}`: the narrowest place the section fits, in twelfths of the page: 3, 4, 6, 8 or 12. Absent means 12, full width only. A variant may carry its own `"span": N`, which wins while that variant is chosen (a wide layout of a section that otherwise fits a narrow column). Main sections never go below 12. The linter refuses other values. See section 5.2 for how it is measured. |
 | setting `live` | how the preview applies a change: `text`, `attr`, `css`, or `render` (server re-render, section 7.5). Inferred when absent: picker types, `url` on a data-driven section, and any setting named in the section's `render_keys` are `render`; text types are `text`; everything else `attr`. |
 | setting `visible_if` | unchanged from the draft: shown only when every listed key matches. |
@@ -436,7 +437,11 @@ A page type's main section (`"main": true`, found in the page type's shipped def
 
 ### 5.5 Media
 
-Images are files in core's media library (`MediaLibrary`, admin routes `admin.media.browse` and `admin.media.upload`, permissions `media.view` and `media.create`). Documents store the storage path. Xelga keeps no media table. Store templates copy their photos into the library under `xelga/{store-slug}/`.
+Images are files in core's media library (core's `docs/media-library.md`). The editor opens it through `window.VentaCart.media`, which `<x-media-library />` in the editor shell provides, and never calls core's media routes. Documents store the storage path. Xelga keeps no media table.
+
+The theme registers its documents with core's `MediaReferences` (`Documents\ImageReferences`): published content as "theme pages", drafts as "theme drafts", both counting as uses, and the saved versions as "theme history", which follows a move but never keeps an image from being deleted. So an image a page or a draft shows cannot be deleted from the library, and a rename or move rewrites every document. A move that rewrites a draft or published document raises its `draft_version`, so an editor left open with the old path gets a conflict on its next save and reloads instead of writing the old path back.
+
+Store templates copy their photos into the library under `xelga/{store-slug}/`.
 
 ### 5.6 Concurrency
 
@@ -534,7 +539,7 @@ The provider registers:
 AdminPermissions::map(['admin.xelga.*' => 'themes.edit']);
 ```
 
-Every Xelga admin route sits in a group with `web`, `auth`, core's admin middleware and `throttle`. `themes.edit` lets a user edit, save and publish. Image upload and browsing use core's media routes and therefore core's media permissions; a user without them sees "Ask an admin for media access" in the image picker.
+Every Xelga admin route sits in a group with `web`, `auth`, core's admin middleware and `throttle`. `themes.edit` lets a user edit, save and publish. Choosing and uploading images go through core's media library and therefore core's media permissions (`media.view` to choose, `media.create` to upload); a user without `media.view` sees "Ask an admin for the Media view permission." where the library would be.
 
 The editor is reachable from Themes ("Customize" on Xelga), since `theme.json` names it as the theme's editor.
 
@@ -598,7 +603,7 @@ Rendering the real page means product, category and cart sections get the exact 
 
 | setting type | picker | backed by |
 |---|---|---|
-| `image` | media library browser and upload | core `admin.media.browse`, `admin.media.upload` |
+| `image` | core's media library in a dialog (Choose image, Change, Remove) | `window.VentaCart.media.open()` |
 | `product-picker` | search with thumbnails, multi-select with drag order | `admin.xelga.pick` kind `products` |
 | `category-picker` | tree with search | kind `categories` |
 | `brand-picker` | search | kind `brands` |
