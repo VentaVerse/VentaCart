@@ -162,13 +162,6 @@ class MediaLibraryController extends Controller
             'files.*.uploaded' => ':attribute did not finish uploading. It may be larger than the server allows.',
         ], $names);
 
-        // The content check runs on every file before any is saved, so a
-        // refused file leaves nothing of its request behind. No extensions
-        // rule: the bytes decide the ending, not the name the browser sent.
-        foreach ($request->file('files') as $file) {
-            ImageExtension::orRefuse($file, 'files');
-        }
-
         // Same rule as browse: nothing given means the folder this picker is
         // aimed at, anything given is honoured as written.
         $asked = trim((string) ($validated['path'] ?? ''), '/');
@@ -176,6 +169,18 @@ class MediaLibraryController extends Controller
 
         if ($path === false) {
             return response()->json(['ok' => false, 'message' => 'That folder cannot be written to.'], 422);
+        }
+
+        // The content and length checks run on every file before any is
+        // saved, so a refused file leaves nothing of its request behind. No
+        // extensions rule: the bytes decide the ending, not the name the
+        // browser sent.
+        foreach ($request->file('files') as $file) {
+            $extension = ImageExtension::orRefuse($file, 'files');
+
+            if (MediaLibrary::tooLong(MediaLibrary::pathFor($file->getClientOriginalName(), $path, $extension))) {
+                return response()->json(['ok' => false, 'message' => $this->nameTooLong($file->getClientOriginalName())], 422);
+            }
         }
 
         MediaLibrary::ensure($path);
@@ -215,6 +220,12 @@ class MediaLibraryController extends Controller
 
         if (! $result['ok']) {
             return response()->json(['ok' => false, 'message' => $result['reason']], 422);
+        }
+
+        $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'][$result['mime']] ?? 'jpg';
+
+        if (MediaLibrary::tooLong(MediaLibrary::pathFor(MediaLibrary::importName($validated['url']), $path, $ext))) {
+            return response()->json(['ok' => false, 'message' => $this->nameTooLong('That image')], 422);
         }
 
         $written = MediaLibrary::putBytes($result['body'], $result['mime'], $path, $validated['url']);
@@ -373,6 +384,11 @@ class MediaLibraryController extends Controller
         }
     }
 
+    private function nameTooLong(string $what): string
+    {
+        return $what . ' has a name too long for this folder. Give it a shorter name or choose a folder nearer the top.';
+    }
+
     /**
      * @param  array<string, int>  $kinds  label => users
      * @return list<array{label: string, count: int}>
@@ -412,6 +428,10 @@ class MediaLibraryController extends Controller
 
         if (Storage::disk('public')->exists($target)) {
             return response()->json(['ok' => false, 'message' => 'A folder called ' . $name . ' is already here.'], 422);
+        }
+
+        if (MediaLibrary::tooLong($target)) {
+            return response()->json(['ok' => false, 'message' => 'That name is too long.'], 422);
         }
 
         MediaLibrary::ensure($target);

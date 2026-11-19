@@ -64,8 +64,14 @@ class MediaLibrary
     /** Seconds the folder tree stays cached. */
     public const TREE_TTL = 600;
 
-    /** Longest path media_files can hold; a longer one is measured but never stored. */
-    public const PATH_MAX = 512;
+    /**
+     * Longest path, in characters, an image may have. Every column that
+     * stores one (a product's image, a gallery row, a category's or brand's
+     * image, an order line) holds 255. A longer path would be refused by a
+     * strict database, or cut short and broken by one that is not, so the
+     * library never makes one: uploads, imports, renames and moves refuse it.
+     */
+    public const PATH_MAX = 255;
 
     /** Cache key of the folder tree, cleared whenever files or folders change. */
     public const TREE_CACHE_KEY = 'media.tree';
@@ -307,7 +313,8 @@ class MediaLibrary
 
             // MySQL's INSERT IGNORE would store a longer path cut short
             // instead of refusing it, and the row would never match again.
-            if (mb_strlen($path) > self::PATH_MAX) {
+            // Such a path can only come from a file copied onto the disk.
+            if (self::tooLong($path)) {
                 continue;
             }
 
@@ -326,9 +333,9 @@ class MediaLibrary
     {
         $size = self::measure($path);
 
-        // A path too long for the table is still a stored file; it simply
-        // goes without a row and is measured when it is shown.
-        if ($size === null || mb_strlen($path) > self::PATH_MAX) {
+        // A path too long to store is still a file; it simply goes without
+        // a row and is measured when it is shown.
+        if ($size === null || self::tooLong($path)) {
             return;
         }
 
@@ -378,6 +385,27 @@ class MediaLibrary
         return substr($path, 0, strrpos($path, '/'));
     }
 
+    /** Whether a path is longer than any column that stores one can hold. */
+    public static function tooLong(string $path): bool
+    {
+        return mb_strlen($path) > self::PATH_MAX;
+    }
+
+    /**
+     * Where an upload or import named $original would be written in
+     * $directory: the merchant's own name made safe, and made unique.
+     */
+    public static function pathFor(string $original, string $directory, string $extension): string
+    {
+        return ltrim($directory . '/' . self::filename($original, $directory, $extension), '/');
+    }
+
+    /** The name an import from $sourceUrl is given: the last part of its address. */
+    public static function importName(string $sourceUrl): string
+    {
+        return basename(parse_url($sourceUrl, PHP_URL_PATH) ?: 'image');
+    }
+
     public static function store(UploadedFile $file, string $directory): string
     {
         $extension = ImageExtension::orRefuse($file, 'files');
@@ -393,8 +421,7 @@ class MediaLibrary
     public static function putBytes(string $bytes, string $mime, string $directory, string $sourceUrl): string
     {
         $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'][$mime] ?? 'jpg';
-        $name = self::filename(basename(parse_url($sourceUrl, PHP_URL_PATH) ?: 'image'), $directory, $ext);
-        $path = ltrim($directory . '/' . $name, '/');
+        $path = self::pathFor(self::importName($sourceUrl), $directory, $ext);
 
         Storage::disk('public')->put($path, $bytes);
         self::thumbnail($path);
