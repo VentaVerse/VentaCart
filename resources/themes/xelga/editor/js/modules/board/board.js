@@ -18,8 +18,9 @@
  * shows the store itself.
  *
  * Clicking a section selects it, and its settings show in the panel beside
- * the board; a click on the empty board goes back to the page's own
- * settings. Every change redraws the board. On a phone the page is drawn as
+ * the board. A click on the board's background changes nothing, so the
+ * panel keeps what it shows; Esc and the page link above the panel go back
+ * to the page's own settings. Every change redraws the board. On a phone the page is drawn as
  * a list instead (see phone.js).
  *
  * Sections are added where they will show: an Add line at the start and
@@ -632,17 +633,6 @@ function boardKeys(event) {
   }
 }
 
-/*
- * A click on the board outside every box, tab and button goes back to the
- * page's own settings, the usual way to clear a selection.
- */
-function emptyClick(event) {
-  if (dragJustEnded() || !S.loaded) return;
-  if (event.target.closest('button, a, input, select, textarea, label, [role="button"], .piece-wrap, .row__tab, .pagehead')) return;
-  if (!S.sel && S.view.type === 'board') return;
-  ui.showPage?.();
-}
-
 /* Whether the Add lines always show (touch screens, tablets, phones) or on hover and focus; CSS reads it. */
 function syncAddLine() {
   const a = app();
@@ -664,7 +654,6 @@ export function initBoard() {
   window.addEventListener('resize', syncAddLine);
   ['(pointer: coarse)', '(hover: hover)'].forEach((q) => window.matchMedia(q).addEventListener('change', syncAddLine));
   $('#board')?.addEventListener('keydown', boardKeys);
-  $('#board')?.addEventListener('click', emptyClick);
   initDrag();
   // The board and the list are drawn differently: draw again when the window crosses the phone width.
   window.matchMedia('(max-width: 719px)').addEventListener('change', () => renderBoard());
