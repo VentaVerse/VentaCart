@@ -706,7 +706,7 @@ export function createView({ api, config, options, modal, onDone }) {
         els.count.textContent = bits.join(', ');
     }
 
-    /* Matching folders in a search; on phones also the folder's own folders. */
+    /* The folder's own folders, or the folders that match a search. */
     function drawFolders() {
         const rowsFor = (list, showWhere) => list.map((f) => {
             const parent = f.parent ?? dirname(f.path);
@@ -776,10 +776,9 @@ export function createView({ api, config, options, modal, onDone }) {
         }
         const shownUploads = S.uploads.some((u) => u.to === S.path && !S.q);
         const empty = !S.files.length && !shownUploads;
-        // On a phone a folder's own folders are rows above the grid, so a
-        // folder with folders and no loose images is not empty there.
-        const hasRows = !S.q && S.folders.length && isPhone();
-        if (!empty || hasRows || (S.q && S.folders.length)) {
+        // A folder's own folders show above the grid, so a folder with
+        // folders and no loose images is not empty.
+        if (!empty || S.folders.length) {
             els.state.hidden = true;
             return;
         }

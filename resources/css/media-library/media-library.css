@@ -669,9 +669,11 @@
   overscroll-behavior: contain;
 }
 
-/* Folders that match a search (and, on phones, the folders of the folder). */
+/* The folders of the folder in view, or the folders that match a search,
+   above the images. A folder holding only folders is not empty. */
 .ml-folders { display: none; }
 
+.ml-folders.is-rows,
 .ml-folders.is-results {
   display: flex;
   flex-wrap: wrap;
