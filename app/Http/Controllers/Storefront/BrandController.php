@@ -58,11 +58,7 @@ class BrandController extends Controller
                 $q->where('quantity', '>', 0)->orWhere('track_stock', false);
             });
         }
-        if ($request->filled('on_sale')) {
-            $query->whereHas('specials', function ($q) {
-                $q->where('display_mode', 'sale')->activeAt();
-            });
-        }
+        \App\Support\ProductListing::applyOnSale($query, $request->query(\App\Support\ProductListing::ON_SALE));
         if ($request->filled('tag')) {
             $tags = (array) $request->input('tag');
             $query->whereHas('tags', fn ($q) => $q->whereIn('tags.id', $tags));
