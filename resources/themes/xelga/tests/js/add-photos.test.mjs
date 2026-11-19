@@ -3,8 +3,8 @@
 /*
  * Adding several blocks from photos chosen in the media library: one block
  * per photo in the order picked, as one undo step, never past the section's
- * limit, and the button only for a section whose only addable block holds
- * exactly one image setting.
+ * limit, and the button only for a section whose only addable block names
+ * the image setting a photo fills (`photo_setting`).
  */
 
 import { test } from 'node:test';

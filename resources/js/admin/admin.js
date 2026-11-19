@@ -1,4 +1,4 @@
-// Admin v2 behavior. Registered on alpine:init so this file can load
+// Admin behavior. Registered on alpine:init so this file can load
 // before app.js (which calls Alpine.start()).
 
 // The day sheet's plot reads its own figures out under the pointer. It is a
@@ -7,12 +7,10 @@
 // and not for reactivity.
 import './day-sheet-plot.js';
 
-// Shared with the storefront helper of the same name (resources/themes/*/layouts/store.blade.php)
-// and the legacy layouts/admin.blade.php: turns a stored relative path into a
-// public /storage/... URL. Needed by any v-admin page that embeds the image
-// picker/manager partials (single_image_picker.blade.php, media/index.blade.php),
-// which call storageUrl() directly — those partials assumed the old admin
-// layout's inline <script> defined it, which the v-admin shell never did.
+// Turns a stored relative path into its public /storage/... address, one
+// name at a time, as the storefront's helper of the same name does. Admin
+// templates that show a stored image path call it directly, such as the
+// Variant images on the product form.
 window.storageUrl = function (path) {
     if (!path) return '';
     return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
