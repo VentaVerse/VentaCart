@@ -538,6 +538,16 @@ final class CatalogLinter
                 $this->problem("{$where}: setting {$key} has an unknown live mode.");
             }
 
+            if (array_key_exists('follows_products', $raw)) {
+                if (! is_bool($raw['follows_products'])) {
+                    $this->problem("{$where}: follows_products on {$key} is true or false.");
+                } elseif ($raw['follows_products'] && $type !== 'url') {
+                    $this->problem("{$where}: only a url setting can follow the section's products ({$key}).");
+                } elseif ($raw['follows_products'] && ! in_array('source', array_column($settings, 'key'), true)) {
+                    $this->problem("{$where}: {$key} follows the section's products, so the section needs a source setting.");
+                }
+            }
+
             $setting = new SettingSchema($raw);
             if ($type === 'select') {
                 $values = $setting->optionValues();

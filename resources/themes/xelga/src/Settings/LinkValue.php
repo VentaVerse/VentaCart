@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Page;
 use App\Models\Product;
+use App\Support\ProductListing;
 use App\Support\SafeInput;
 use Illuminate\Support\Facades\Route;
 
@@ -17,11 +18,22 @@ use Illuminate\Support\Facades\Route;
  *   {"type": "category", "id": 12}
  *   {"type": "url", "href": "https://example.com/size-guide"}
  *   {"type": "home"}     also search, cart, account, wishlist, blog, brands, contact
+ *   {"type": "these-products"}
+ *
+ * "These products" is the listing page of the products a section shows:
+ * a product section's "Products to show" (newest, best sellers, a
+ * category and so on) decides where it goes, so the link always agrees
+ * with the section. Only a url setting that opts in with
+ * "follows_products": true takes it, and the section resolves it with
+ * forProducts(), since the link alone does not know the section.
  */
 final class LinkValue
 {
     /** Link types that need nothing but their name. */
     public const PLAIN = ['home', 'search', 'cart', 'account', 'wishlist', 'blog', 'brands', 'contact'];
+
+    /** The link to the listing of the products a section shows. */
+    public const THESE_PRODUCTS = 'these-products';
 
     /** Link types that point at one core record by id. */
     public const RECORD = ['category', 'product', 'brand', 'page'];
@@ -31,11 +43,13 @@ final class LinkValue
 
     /**
      * The clean value, or null when nothing usable was given. A plain
-     * string that is a safe link is kept as a web address.
+     * string that is a safe link is kept as a web address. "These
+     * products" is kept only where the setting follows a section's
+     * products ($followsProducts).
      *
      * @return array{type: string, id?: int, href?: string}|null
      */
-    public static function clean(mixed $value): ?array
+    public static function clean(mixed $value, bool $followsProducts = false): ?array
     {
         if ($value === null || $value === '' || $value === []) {
             return null;
@@ -53,7 +67,7 @@ final class LinkValue
 
         $type = $value['type'];
 
-        if (in_array($type, self::PLAIN, true)) {
+        if (in_array($type, self::PLAIN, true) || ($followsProducts && $type === self::THESE_PRODUCTS)) {
             return ['type' => $type];
         }
 
@@ -94,6 +108,39 @@ final class LinkValue
 
         return self::$memo[$key] = self::lookup($link);
     }
+
+    /**
+     * resolve() for a link beside a list of products: "These products"
+     * becomes the listing page of what the section shows ($settings holds
+     * its source, category and brand); any other link resolves as usual.
+     */
+    public static function forProducts(mixed $value, array $settings): ?string
+    {
+        if (self::clean($value, true) !== ['type' => self::THESE_PRODUCTS]) {
+            return self::resolve($value);
+        }
+
+        $source = (string) ($settings['source'] ?? '');
+        $id = fn (string $key): ?int => is_numeric($settings[$key] ?? null) && (int) $settings[$key] > 0 ? (int) $settings[$key] : null;
+        $search = fn (array $query) => Route::has('search.results') ? route('search.results', $query, false) : null;
+
+        return match ($source) {
+            'newest' => $search(['sort' => self::NEWEST_SORT]),
+            'best-sellers' => $search(['sort' => 'best_sellers']),
+            'most-viewed' => $search(['sort' => 'most_viewed']),
+            'on-sale' => $search([ProductListing::ON_SALE => 1]),
+            'category' => ($c = $id('category')) ? self::resolve(['type' => 'category', 'id' => $c]) : null,
+            'brand' => ($b = $id('brand')) ? self::resolve(['type' => 'brand', 'id' => $b]) : null,
+            // Products picked by hand have no page that lists just them.
+            default => null,
+        };
+    }
+
+    /**
+     * The listing sort that matches the section's "Newest": core's product
+     * feed lists newest by date available, which is the listings' date_added.
+     */
+    private const NEWEST_SORT = 'date_added';
 
     public static function flush(): void
     {

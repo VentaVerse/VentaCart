@@ -117,7 +117,7 @@ final class Sanitizer
                 return [$path, $path === $value ? null : 'The photo path was tidied.'];
 
             case 'url':
-                $clean = LinkValue::clean($value);
+                $clean = LinkValue::clean($value, $setting->followsProducts());
                 $given = $value === '' || $value === [] ? null : $value;
                 if ($given === null) {
                     return [null, null];

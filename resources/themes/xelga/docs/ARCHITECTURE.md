@@ -310,6 +310,8 @@ Stored settings hold only what the merchant set. At render time each section's s
 
 `LinkValue::resolve()` turns a value into a URL with core's route names at render time. A target that no longer exists or is hidden from the shopper resolves to null and the link or button is not drawn. `href` must pass `SafeInput::link` (a path, an anchor, http, https, mailto or tel).
 
+`{ "type": "these-products" }` is the listing page of the products a section shows. Only a `url` setting with `"follows_products": true` takes it (the linter also asks for a `source` setting beside it), and the section resolves it with `LinkValue::forProducts()` from its own `source`: newest, best sellers and most viewed open All products with that sort, on sale opens All products with `on_sale=1`, a category or brand opens its page. Products picked by hand, or a category or brand that is missing or switched off, have no such page, so the link is not drawn and the editor says why.
+
 ### 4.3 Color schemes
 
 The theme settings document holds 3 to 8 schemes, each with an id and nine roles (`bg`, `text`, `muted`, `accent`, `accent-text`, `button`, `button-text`, `border`, `card`). `ContrastCheck` computes contrast for text on bg, muted on bg, button-text on button and accent-text on accent. Below 4.5:1 for text and button pairs (3:1 for muted) the draft saves with a warning shown beside the color; Publish refuses until fixed, naming the scheme and the pair. Warning while editing and refusal at publish keeps the guardrail without fighting a merchant halfway through choosing a color.

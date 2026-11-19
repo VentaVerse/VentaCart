@@ -6,9 +6,15 @@
  *   { "type": "category", "id": 12 }      products, categories, brands, pages, posts
  *   { "type": "url", "href": "https://..." }  a web address
  *   { "type": "home" }                    also search, cart, account, wishlist, blog, brands, contact
+ *   { "type": "these-products" }          the listing of what the section shows
  *
  * One field searches the store (`pick` kind links) and also takes a pasted
  * web address.
+ *
+ * A setting with `follows_products` sits beside a list of products. It
+ * offers "These products" first: the store page that lists what the
+ * section's "Products to show" picks, so the link follows that choice. Its
+ * line says where it goes now, and changes as soon as the choice does.
  */
 
 import { h, icon } from '../dom.js';
@@ -28,11 +34,71 @@ const PLACES = [
   { type: 'contact', label: 'Contact page', iconName: 'mail' },
 ];
 
+export const THESE_PRODUCTS = 'these-products';
+
+/** Where "These products" goes for each "Products to show" choice that has a page. */
+const SOURCE_WORDS = {
+  newest: 'Newest',
+  'best-sellers': 'Best sellers',
+  'most-viewed': 'Most viewed',
+  'on-sale': 'On sale',
+};
+
+export const HAND_PICKED_NOTE = 'Picked products have no page of their own, so the link is hidden. Choose another page to show it.';
+
 const KIND_WORDS = { product: 'Product', category: 'Category', brand: 'Brand', page: 'Page', blog_post: 'Blog post', post: 'Blog post' };
 const KIND_ICONS = { product: 'tag', category: 'package', brand: 'plus-square', page: 'align-left', blog_post: 'align-left', post: 'align-left' };
 
 const labels = new Map();
+/** Records named by the store as switched off: a link to one is not shown. */
+const inactive = new Set();
+/** Records the store no longer has. */
+const missing = new Set();
 const keyOf = (v) => `${v.type}:${v.id}`;
+
+const recordId = (value) => {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : null;
+};
+
+/**
+ * Where "These products" leads for the section's current settings
+ * (`read(key)`): a meta line, whether the link is shown, and the record
+ * whose name is still to be asked for.
+ */
+export function followTarget(read) {
+  const source = read?.('source');
+  if (SOURCE_WORDS[source]) return { meta: SOURCE_WORDS[source], shown: true };
+  if (source === 'category' || source === 'brand') {
+    const word = source === 'category' ? 'Category' : 'Brand';
+    const id = recordId(read(source));
+    if (id === null) return { meta: `${word}: none chosen yet, so the link is hidden`, shown: false };
+    const record = { type: source, id };
+    if (missing.has(keyOf(record))) return { meta: `${word}: no longer in the store, so the link is hidden`, shown: false };
+    const name = labels.get(keyOf(record));
+    if (!name) return { meta: `${word} ${id}`, shown: true, ask: record };
+    if (inactive.has(keyOf(record))) return { meta: `${word}: ${name}, switched off, so the link is hidden`, shown: false };
+    return { meta: `${word}: ${name}`, shown: true };
+  }
+  if (source === 'hand-picked') return { meta: 'Picked by hand', shown: false, note: HAND_PICKED_NOTE };
+  return { meta: 'All products', shown: true };
+}
+
+/** Ask the store for the names of records, then run `done` if any came back. */
+function learn(records, done) {
+  if (!records.length || !ctx.api?.pick) return;
+  ctx.api.pick('links', { ids: records.map(keyOf) })
+    .then((res) => {
+      res.items.forEach((item) => {
+        labels.set(keyOf(item), item.name || item.label);
+        if (item.active === false) inactive.add(keyOf(item));
+        else inactive.delete(keyOf(item));
+      });
+      records.filter((r) => !labels.has(keyOf(r))).forEach((r) => missing.add(keyOf(r)));
+      done();
+    })
+    .catch(() => { /* the plain description stays */ });
+}
 
 /** Older and default values may still be plain strings; read them as web addresses. */
 export function toLink(value) {
@@ -42,9 +108,13 @@ export function toLink(value) {
   return null;
 }
 
-function describe(value) {
+export function describe(value, read = null) {
   const v = toLink(value);
   if (!v) return { label: 'No link', meta: 'Pick a page or paste a web address', iconName: 'external', empty: true };
+  if (v.type === THESE_PRODUCTS) {
+    const target = followTarget(read);
+    return { label: 'These products', meta: target.meta, iconName: 'tag', note: target.note || null, ask: target.ask || null };
+  }
   if (v.type === 'url') return { label: v.href, meta: 'Web address', iconName: 'external' };
   const place = PLACES.find((p) => p.type === v.type);
   if (place) return { label: place.label, meta: 'Store page', iconName: place.iconName };
@@ -53,7 +123,7 @@ function describe(value) {
     label: known || `${KIND_WORDS[v.type] || humanize(v.type)} ${v.id}`,
     meta: KIND_WORDS[v.type] || humanize(v.type),
     iconName: KIND_ICONS[v.type] || 'external',
-    unknown: !known,
+    unknown: !known && !missing.has(keyOf(v)),
   };
 }
 
@@ -65,34 +135,53 @@ function addressFrom(text) {
   return isSafeLink(t) ? { type: 'url', href: t } : null;
 }
 
-export function linkPicker(value, change, id) {
+export function linkPicker(value, change, id, setting = null, fctx = null) {
   const wrap = h('div', { class: 'picked' });
+  const follows = setting?.follows_products === true;
+  const read = follows ? fctx?.read || null : null;
+  let shown = value;
   const draw = (v) => {
-    const d = describe(v);
+    shown = v;
+    const d = describe(v, read);
+    const noteId = `${id}-note`;
     wrap.replaceChildren(h('button', {
       type: 'button', class: 'pick-row', id, 'aria-haspopup': 'dialog',
-      'aria-label': `Link: ${d.label}. Change`,
+      'aria-label': `Link: ${d.label}, ${d.meta}. Change`,
+      'aria-describedby': d.note ? noteId : null,
       onclick: (e) => openLinks(e.currentTarget, v, (next) => {
         draw(next);
         change(next);
-      }),
+      }, follows ? read : null),
     }, h('span', { class: 'pick-row__ph' }, icon(d.iconName)),
     h('span', { class: 'pick-row__text' }, h('span', { class: 'pick-row__name', text: d.label }), h('span', { class: 'pick-row__meta', text: d.meta })),
     icon('chevron-down')));
-    if (d.unknown && v?.id !== undefined) {
-      ctx.api.pick('links', { ids: [`${v.type}:${v.id}`] })
-        .then((res) => {
-          res.items.forEach((item) => labels.set(keyOf(item), item.name || item.label));
-          if (labels.has(keyOf(v)) && wrap.isConnected) draw(v);
-        })
-        .catch(() => { /* the plain description stays */ });
-    }
+    if (d.note) wrap.append(h('p', { class: 'field__help field__help--after', id: noteId, text: d.note }));
+    const ask = d.ask || (d.unknown && v?.id !== undefined ? v : null);
+    if (ask) learn([ask], () => { if (wrap.isConnected && shown === v) draw(v); });
   };
   draw(value);
+  // "These products" describes the section's other settings: draw it again when they change.
+  if (follows) fctx?.onRefresh?.(() => { if (toLink(shown)?.type === THESE_PRODUCTS) draw(shown); });
   return wrap;
 }
 
-function openLinks(anchor, current, pick) {
+/**
+ * The store pages offered for a search (all of them when it is empty):
+ * "These products" first where the field follows the section's products
+ * (`followRead` reads the section's settings), then the fixed pages.
+ */
+export function placeRows(q = '', followRead = null) {
+  const words = q.trim().toLowerCase();
+  const rows = [];
+  if (followRead && (!words || 'these products'.includes(words))) {
+    rows.push({ label: 'These products', meta: followTarget(followRead).meta, iconName: 'tag', value: { type: THESE_PRODUCTS } });
+  }
+  PLACES.filter((p) => !words || p.label.toLowerCase().includes(words))
+    .forEach((p) => rows.push({ label: p.label, meta: 'Store page', iconName: p.iconName, value: { type: p.type } }));
+  return rows;
+}
+
+function openLinks(anchor, current, pick, followRead = null) {
   const input = h('input', {
     class: 'input pop-search', type: 'text', inputmode: 'url', autocomplete: 'off',
     placeholder: 'Search the store or paste a web address', 'aria-label': 'Search the store or paste a web address',
@@ -129,8 +218,7 @@ function openLinks(anchor, current, pick) {
       error.textContent = 'That kind of address is not allowed. Use a page address starting with /, or https://.';
       error.hidden = false;
     }
-    if (!q) PLACES.forEach((p) => rows.push(item(p.label, 'Store page', p.iconName, { type: p.type })));
-    else PLACES.filter((p) => p.label.toLowerCase().includes(q.toLowerCase())).forEach((p) => rows.push(item(p.label, 'Store page', p.iconName, { type: p.type })));
+    placeRows(q, followRead).forEach((p) => rows.push(item(p.label, p.meta, p.iconName, p.value)));
     list.replaceChildren(...rows);
     if (current) {
       list.append(h('div', { class: 'menu__sep', role: 'separator' }),
