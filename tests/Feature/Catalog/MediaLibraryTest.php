@@ -125,20 +125,17 @@ class MediaLibraryTest extends TestCase
      * picker, whose folder did not exist, had both its exits lead back into
      * the same empty folder. Three clicks, three dead ends, no way out.
      */
-    public function test_a_folder_that_does_not_exist_yet_is_created_rather_than_trapping(): void
+    public function test_a_folder_that_does_not_exist_yet_opens_the_library_without_creating_it(): void
     {
         Storage::disk('public')->assertMissing('media/categories');
 
         $body = $this->getJson(route('admin.media.browse', ['root' => 'categories']))->assertOk()->json();
 
-        $this->assertSame('media/categories', $body['path']);
-        $this->assertSame([], $body['files']);
-        Storage::disk('public')->assertExists('media/categories');
-
-        // And it is no longer a dead end: a folder inside the library always
-        // has the library to go up to, which is what lets a category picker
-        // reach a photograph filed under products.
-        $this->assertSame(MediaLibrary::ROOT, $body['parent']);
+        // Looking never writes: a missing folder is not made by a read, and
+        // the picker opens the library itself instead, so it is never a dead
+        // end and a category picker can still reach a photo under products.
+        $this->assertSame(MediaLibrary::ROOT, $body['path']);
+        Storage::disk('public')->assertMissing('media/categories');
     }
 
     /** Only the library itself has nowhere above it. */
