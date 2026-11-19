@@ -33,6 +33,7 @@ class MediaMoveTest extends TestCase
         parent::setUp();
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Demo Store']);
         Storage::fake('public');
+        Storage::fake('local');
         Storage::disk('public')->makeDirectory('media/banners');
         Cache::flush();
         $this->actingAs(User::factory()->create());
@@ -157,9 +158,9 @@ class MediaMoveTest extends TestCase
         $second = $this->product('demo-002', 'media/products/demo-002.jpg');
         $line = $this->orderLine('media/products/demo-001.jpg');
 
-        // A source that fails on everything but the first image, so a move
-        // of two fails after the first has already moved on disk and been
-        // repointed in the database.
+        // A source that fails once the second image is in the plan, so a
+        // move of two fails after both have moved on disk and the first has
+        // been repointed in the database.
         MediaReferences::register(new class implements MediaReferenceSource {
             public function label(): string
             {
@@ -176,9 +177,9 @@ class MediaMoveTest extends TestCase
                 return [];
             }
 
-            public function repoint(string $from, string $to): int
+            public function repointMany(array $moves): int
             {
-                if ($from !== 'media/products/demo-001.jpg') {
+                if (array_keys($moves) !== ['media/products/demo-001.jpg']) {
                     throw new \RuntimeException('The database went away.');
                 }
 
@@ -197,6 +198,8 @@ class MediaMoveTest extends TestCase
             'media/products/demo-002.jpg', 'media/products/demo-002_thumb.jpg',
         ]);
         $disk->assertMissing(['media/banners/demo-001.jpg', 'media/banners/demo-001_thumb.jpg', 'media/banners/demo-002.jpg']);
+        // Everything went back, so no record of the move is left.
+        $this->assertSame([], Storage::disk('local')->files('media-moves'));
 
         $this->assertSame('media/products/demo-001.jpg', $this->productImage($first));
         $this->assertSame('media/products/demo-002.jpg', $this->productImage($second));
@@ -208,6 +211,103 @@ class MediaMoveTest extends TestCase
         $disk->assertExists('media/products/demo-002.jpg');
         $disk->assertMissing('media/Catalog');
         $this->assertSame('media/products/demo-002.jpg', $this->productImage($second));
+    }
+
+    public function test_a_move_of_many_images_reads_each_source_once(): void
+    {
+        $paths = [];
+
+        for ($i = 1; $i <= 5; $i++) {
+            $paths[] = $path = sprintf('media/products/demo-%03d.jpg', $i);
+            $this->putImage($path);
+            $this->product('demo-' . $i, $path);
+        }
+
+        $spy = new class implements MediaReferenceSource {
+            /** @var array<int, array<string, string>> */
+            public array $calls = [];
+
+            /** @var array<int, string> */
+            public array $journals = [];
+
+            public function label(): string
+            {
+                return 'counted';
+            }
+
+            public function countsAsUse(): bool
+            {
+                return false;
+            }
+
+            public function owners(array $paths): array
+            {
+                return [];
+            }
+
+            public function repointMany(array $moves): int
+            {
+                $this->calls[] = $moves;
+                $this->journals = Storage::disk('local')->files('media-moves');
+
+                return 0;
+            }
+        };
+        MediaReferences::register($spy);
+
+        $this->postJson(route('admin.media.move'), ['paths' => $paths, 'to' => 'media/banners'])
+            ->assertOk()
+            ->assertJsonPath('updated', ['products' => 5]);
+
+        $this->assertCount(1, $spy->calls);
+        $this->assertSame(array_combine($paths, array_map(fn ($p) => 'media/banners/' . basename($p), $paths)), $spy->calls[0]);
+        $this->assertSame('media/banners/demo-003.jpg', DB::table('products')->where('slug', 'demo-3')->value('image'));
+
+        // The record of the move was on disk while it ran, and is gone now.
+        $this->assertCount(1, $spy->journals);
+        $this->assertSame([], Storage::disk('local')->files('media-moves'));
+    }
+
+    public function test_a_move_that_cannot_put_a_file_back_leaves_its_record(): void
+    {
+        $this->putImage('media/products/demo-001.jpg', false);
+        $this->product('demo-001', 'media/products/demo-001.jpg');
+
+        // The source fails, and before the mover can undo the rename the
+        // moved file vanishes, so it cannot be put back.
+        MediaReferences::register(new class implements MediaReferenceSource {
+            public function label(): string
+            {
+                return 'failing';
+            }
+
+            public function countsAsUse(): bool
+            {
+                return false;
+            }
+
+            public function owners(array $paths): array
+            {
+                return [];
+            }
+
+            public function repointMany(array $moves): int
+            {
+                Storage::disk('public')->delete('media/banners/demo-001.jpg');
+
+                throw new \RuntimeException('The database went away.');
+            }
+        });
+
+        $this->postJson(route('admin.media.move'), ['paths' => ['media/products/demo-001.jpg'], 'to' => 'media/banners'])
+            ->assertStatus(500);
+
+        $records = Storage::disk('local')->files('media-moves');
+        $this->assertCount(1, $records);
+        $this->assertSame(
+            ['media/products/demo-001.jpg' => 'media/banners/demo-001.jpg'],
+            json_decode(Storage::disk('local')->get($records[0]), true)['moves'],
+        );
     }
 
     public function test_moving_a_folder_leaves_its_case_twin_alone(): void

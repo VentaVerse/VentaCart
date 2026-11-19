@@ -182,6 +182,40 @@ class MediaReferencesTest extends TestCase
         $this->assertSame('{"banner":"media/products/sorted/a.jpg","label":"Demo","columns":{}}', DB::table('nav_menu_items')->value('config'));
     }
 
+    public function test_repoint_many_moves_several_paths_in_one_pass(): void
+    {
+        $this->product('file', 'media/products/demo-001.jpg');
+        $this->product('inside', 'media/products/demo/a.jpg');
+        $this->product('twin', 'media/products/Demo/a.jpg');
+        $this->product('kept', 'media/products/demo-002.jpg');
+        $this->menuItem('{"banner":"media/products/demo-001.jpg","more":["media/products/demo/b.jpg"]}');
+
+        $this->assertSame(['products' => 2, 'menus' => 1], MediaReferences::repointMany([
+            'media/products/demo-001.jpg' => 'media/banners/demo-001.jpg',
+            'media/products/demo' => 'media/banners/demo',
+        ]));
+
+        $this->assertSame('media/banners/demo-001.jpg', DB::table('products')->where('slug', 'file')->value('image'));
+        $this->assertSame('media/banners/demo/a.jpg', DB::table('products')->where('slug', 'inside')->value('image'));
+        $this->assertSame('media/products/Demo/a.jpg', DB::table('products')->where('slug', 'twin')->value('image'));
+        $this->assertSame('media/products/demo-002.jpg', DB::table('products')->where('slug', 'kept')->value('image'));
+        $this->assertSame('{"banner":"media/banners/demo-001.jpg","more":["media/banners/demo/b.jpg"]}', DB::table('nav_menu_items')->value('config'));
+    }
+
+    public function test_repoint_many_handles_more_paths_than_one_query_holds(): void
+    {
+        $moves = [];
+
+        for ($i = 1; $i <= 250; $i++) {
+            $from = sprintf('media/products/demo-%03d.jpg', $i);
+            $moves[$from] = sprintf('media/banners/demo-%03d.jpg', $i);
+            $this->product('demo-' . $i, $from);
+        }
+
+        $this->assertSame(['products' => 250], MediaReferences::repointMany($moves));
+        $this->assertSame(0, DB::table('products')->where('image', 'like', 'media/products/%')->count());
+    }
+
     public function test_a_disabled_blogs_rows_still_count(): void
     {
         DB::table('extensions')->updateOrInsert(['name' => 'blog'], ['version' => '1.0.0', 'enabled' => false]);

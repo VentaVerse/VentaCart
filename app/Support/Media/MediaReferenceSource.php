@@ -35,13 +35,16 @@ interface MediaReferenceSource
     public function owners(array $paths): array;
 
     /**
-     * Point every stored copy of $from at $to.
+     * Point every stored copy of each planned path at its new path, in one
+     * pass over this source.
      *
-     * Both are file paths or both are folder paths. A folder matches itself
-     * and every value that starts with the folder followed by "/". The caller
-     * owns the transaction.
+     * Keys and values are both file paths or both folder paths. A folder
+     * matches itself and every value that starts with the folder followed by
+     * "/". No planned path is inside another, so a stored value matches at
+     * most one of them. The caller owns the transaction.
      *
+     * @param  array<string, string>  $moves  from => to
      * @return int rows changed
      */
-    public function repoint(string $from, string $to): int;
+    public function repointMany(array $moves): int;
 }

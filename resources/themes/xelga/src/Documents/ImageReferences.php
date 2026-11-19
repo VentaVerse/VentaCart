@@ -69,10 +69,10 @@ final class ImageReferences implements MediaReferenceSource
         return $this->column->owners($paths);
     }
 
-    public function repoint(string $from, string $to): int
+    public function repointMany(array $moves): int
     {
         $before = $this->stored();
-        $changed = $this->column->repoint($from, $to);
+        $changed = $this->column->repointMany($moves);
 
         if ($changed > 0) {
             $this->raiseDraftVersions($before);

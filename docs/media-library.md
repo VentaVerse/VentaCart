@@ -151,9 +151,10 @@ public function boot(): void
   table that a disabled package removed is harmless.
 - Anything else implements `App\Support\Media\MediaReferenceSource`: `label()`,
   `countsAsUse()`, `owners(array $paths)` (who points at each path) and
-  `repoint(string $from, string $to)` (point every stored copy at the new
-  path and return how many rows changed). The library calls `repoint()` inside
-  its own transaction.
+  `repointMany(array $moves)` (given `from => to` paths, point every stored
+  copy at its new path in one pass and return how many rows changed). A move
+  of many images calls it once, inside the library's own transaction, so read
+  each table once for the whole map rather than once per path.
 
 Core registers products, product images, Variant images, categories, brands,
 menu items, settings, blog posts' featured images, order lines and the
@@ -173,6 +174,12 @@ earlier versions are another.
 
 A folder is moved by moving every path inside it: a stored value matches a
 folder when it equals the folder or starts with the folder followed by `/`.
+
+While a rename or move runs, its planned moves are written to
+`storage/app/private/media-moves/` and removed when it finishes or is fully
+undone. A file left there means a request was killed part way (a server
+time limit, a stopped worker): it lists each `from` and `to` path, so the
+files can be moved back by hand.
 
 ### Paths are matched exactly
 

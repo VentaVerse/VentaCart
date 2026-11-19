@@ -29,6 +29,9 @@ use Illuminate\Support\Str;
  */
 final class MediaMover
 {
+    /** Folder on the local disk that holds the record of each move in progress. */
+    public const JOURNAL_DIR = 'media-moves';
+
     /**
      * Give an image or a folder a new name in the folder it is in.
      *
@@ -123,12 +126,27 @@ final class MediaMover
     /**
      * Make every planned move, or none of them.
      *
+     * The files move first, then every reference is repointed in one pass
+     * per source for the whole plan, so a move of many images costs one
+     * read of each table rather than one per image.
+     *
+     * A request that is killed (a time limit, a stopped worker) ends without
+     * running any catch block: the database rolls back but the files stay
+     * moved. So the request is told to finish even if the browser leaves and
+     * not to time out, and the planned moves are written to the local disk
+     * before the first rename and removed once the move is complete or fully
+     * undone. A record left behind lists what was moved and where to.
+     *
      * @param  array<string, string>  $plan  from => to, every one already checked
      * @return array<string, int> label => rows changed
      */
     private static function apply(array $plan): array
     {
+        ignore_user_abort(true);
+        @set_time_limit(0);
+
         $disk = Storage::disk('public');
+        $journal = self::startJournal($plan);
         $done = [];
         $images = [];
         $updated = [];
@@ -147,23 +165,33 @@ final class MediaMover
                             self::renameOnDisk($disk, self::thumb($from), self::thumb($to), $done);
                         }
                     }
-
-                    self::dropRowsAt($to);
-
-                    foreach (MediaReferences::repoint($from, $to) as $label => $count) {
-                        $updated[$label] = ($updated[$label] ?? 0) + $count;
-                    }
                 }
+
+                foreach ($plan as $to) {
+                    self::dropRowsAt($to);
+                }
+
+                $updated = MediaReferences::repointMany($plan);
             });
         } catch (\Throwable $e) {
+            $restored = true;
+
             foreach (array_reverse($done) as [$from, $to]) {
                 if (! @rename($disk->path($to), $disk->path($from))) {
+                    $restored = false;
                     report(new \RuntimeException('A library move failed and ' . $to . ' could not be moved back to ' . $from . '.'));
                 }
             }
 
+            // A file that could not be put back is still where the record says.
+            if ($restored) {
+                self::endJournal($journal);
+            }
+
             throw $e;
         }
+
+        self::endJournal($journal);
 
         // Sized copies are kept by path; the moved images make theirs again
         // the next time they are shown.
@@ -179,6 +207,34 @@ final class MediaMover
         }
 
         return $updated;
+    }
+
+    /**
+     * Write the planned moves where a person can find them if the request
+     * dies part way. Returns the record's path on the local disk.
+     *
+     * @param  array<string, string>  $plan
+     */
+    private static function startJournal(array $plan): string
+    {
+        $path = self::JOURNAL_DIR . '/' . now()->format('Ymd-His') . '-' . Str::random(8) . '.json';
+
+        $written = Storage::disk('local')->put($path, (string) json_encode([
+            'started_at' => now()->toIso8601String(),
+            'moves' => $plan,
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
+        // Nothing has moved yet, so refusing here leaves everything as it was.
+        if (! $written) {
+            throw new \RuntimeException('Could not record the planned move in ' . self::JOURNAL_DIR . '.');
+        }
+
+        return $path;
+    }
+
+    private static function endJournal(string $path): void
+    {
+        Storage::disk('local')->delete($path);
     }
 
     /**
