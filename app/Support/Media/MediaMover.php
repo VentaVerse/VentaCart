@@ -61,7 +61,7 @@ final class MediaMover
                 : 'A file called ' . $target . ' is already in ' . self::folderLabel($parent) . '.');
         }
 
-        self::refuseTarget($to);
+        self::refuseTarget($from, $to, 'That name is too long.');
 
         return ['path' => $to, 'updated' => self::apply([$from => $to])];
     }
@@ -108,7 +108,7 @@ final class MediaMover
 
             $names[$name] = true;
             $plan[$from] = $into . '/' . $name;
-            self::refuseTarget($plan[$from]);
+            self::refuseTarget($from, $plan[$from], $name . ' would sit too deep in ' . self::folderLabel($into) . ' to be stored. Choose a folder nearer the top.');
         }
 
         // An image inside a folder that is also moving would be moved twice.
@@ -373,16 +373,28 @@ final class MediaMover
 
     /**
      * Where a rename or move would put something: a path safePath() accepts
-     * as it is, never the library itself, and short enough to store.
+     * as it is, never the library itself, and short enough to store. A
+     * folder's own path is not enough: every image inside it gets longer by
+     * the same amount, and each has to fit the columns that store it.
+     *
+     * @param  string  $tooLong  the refusal when a path would be too long
      */
-    private static function refuseTarget(string $path): void
+    private static function refuseTarget(string $from, string $to, string $tooLong): void
     {
-        if (MediaLibrary::safePath($path) !== $path || MediaLibrary::isRoot($path)) {
+        if (MediaLibrary::safePath($to) !== $to || MediaLibrary::isRoot($to)) {
             throw new MediaMoveRefused('That name cannot be used here.');
         }
 
-        if (mb_strlen($path) > MediaLibrary::PATH_MAX) {
-            throw new MediaMoveRefused('That name is too long.');
+        $deepest = 0;
+
+        if (self::isFolder($from)) {
+            foreach (Storage::disk('public')->allFiles($from) as $file) {
+                $deepest = max($deepest, mb_strlen($file) - mb_strlen($from));
+            }
+        }
+
+        if (MediaLibrary::tooLong($to) || mb_strlen($to) + $deepest > MediaLibrary::PATH_MAX) {
+            throw new MediaMoveRefused($tooLong);
         }
     }
 

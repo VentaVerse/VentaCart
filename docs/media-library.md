@@ -226,6 +226,7 @@ routes itself, so their addresses and answers can change without breaking it.
 | Largest image | 6000 pixels on either side (`MediaLibrary::MAX_SIDE`) |
 | Images per upload request | 20 (`MediaLibrary::MAX_FILES`) |
 | Images per page when browsing | 60 (`MediaLibrary::PER_PAGE`) |
+| Longest image path | 255 characters (`MediaLibrary::PATH_MAX`), the size of every column that stores one; uploads, imports, new folders, renames and moves that would make a longer path are refused |
 | Listed types | `jpg`, `jpeg`, `png`, `gif` and `webp`; `*_thumb.*` files are thumbnails and never listed |
 
 The largest image is 6000 pixels because making a thumbnail decodes the whole
