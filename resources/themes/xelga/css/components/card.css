@@ -300,8 +300,10 @@ html[data-card-align="center"] .price {
   justify-content: center;
 }
 
+/* Faded with a filter, not opacity: opacity here would override the
+   hidden second photo's opacity and show both photos at once. */
 .card.is-soldout .card__img {
-  opacity: .55;
+  filter: opacity(.55);
 }
 
 /* Product lists */
@@ -381,6 +383,11 @@ html[data-card-align="center"] .price {
 .s[data-variant="list"] .card__wish,
 .s[data-variant="list"] .card__img--alt {
   display: none;
+}
+
+/* A list row has no second photo to show, so its first one stays on hover. */
+html .s[data-variant="list"] .card:hover .card__img:first-child:has(~ .card__img--alt) {
+  opacity: 1;
 }
 
 .s[data-variant="list"] .card__body {
