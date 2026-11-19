@@ -23,6 +23,9 @@ final class ColumnReference implements MediaReferenceSource
     /** Paths per IN (...) list, well under every driver's bound-parameter limit. */
     private const IN_CHUNK = 500;
 
+    /** Planned moves per narrowing query; each one binds two parameters. */
+    private const MOVE_CHUNK = 100;
+
     private const JSON_FLAGS = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION;
 
     private function __construct(
@@ -77,13 +80,15 @@ final class ColumnReference implements MediaReferenceSource
         return $this->isJson ? $this->jsonOwners($paths) : $this->pathOwners($paths);
     }
 
-    public function repoint(string $from, string $to): int
+    public function repointMany(array $moves): int
     {
-        if ($from === '' || $from === $to || ! Schema::hasTable($this->table)) {
+        $moves = array_filter($moves, fn ($to, $from) => $from !== '' && $from !== $to, ARRAY_FILTER_USE_BOTH);
+
+        if ($moves === [] || ! Schema::hasTable($this->table)) {
             return 0;
         }
 
-        return $this->isJson ? $this->jsonRepoint($from, $to) : $this->pathRepoint($from, $to);
+        return $this->isJson ? $this->jsonRepoint($moves) : $this->pathRepoint($moves);
     }
 
     /**
@@ -117,26 +122,44 @@ final class ColumnReference implements MediaReferenceSource
         return array_map(fn (array $keys) => array_keys($keys), $out);
     }
 
-    private function pathRepoint(string $from, string $to): int
+    /**
+     * Every row is found first and written after, so a value already
+     * repointed is never read again by a later narrowing query.
+     *
+     * @param  array<string, string>  $moves
+     */
+    private function pathRepoint(array $moves): int
     {
+        $updates = [];
+
+        foreach (array_chunk($moves, self::MOVE_CHUNK, true) as $chunk) {
+            $this->table()
+                ->where(function (Builder $q) use ($chunk) {
+                    $like = DB::getQueryGrammar()->wrap($this->column) . ' LIKE ? ESCAPE ?';
+
+                    foreach (array_keys($chunk) as $from) {
+                        $q->orWhere($this->column, $from)
+                            ->orWhereRaw($like, [self::escapeLike((string) $from) . '/%', '\\']);
+                    }
+                })
+                ->select(['id', $this->column])
+                ->chunkById(self::CHUNK, function ($rows) use ($moves, &$updates) {
+                    foreach ($rows as $row) {
+                        $value = $row->{$this->column};
+                        $moved = is_string($value) ? self::moved($value, $moves) : null;
+
+                        if ($moved !== null) {
+                            $updates[$row->id] = $moved;
+                        }
+                    }
+                });
+        }
+
         $changed = 0;
 
-        $this->table()
-            ->where(function (Builder $q) use ($from) {
-                $q->where($this->column, $from)
-                    ->orWhereRaw(DB::getQueryGrammar()->wrap($this->column) . ' LIKE ? ESCAPE ?', [self::escapeLike($from) . '/%', '\\']);
-            })
-            ->select(['id', $this->column])
-            ->chunkById(self::CHUNK, function ($rows) use ($from, $to, &$changed) {
-                foreach ($rows as $row) {
-                    $value = $row->{$this->column};
-                    $moved = is_string($value) ? self::moved($value, $from, $to) : null;
-
-                    if ($moved !== null) {
-                        $changed += DB::table($this->table)->where('id', $row->id)->update([$this->column => $moved]);
-                    }
-                }
-            });
+        foreach ($updates as $id => $moved) {
+            $changed += DB::table($this->table)->where('id', $id)->update([$this->column => $moved]);
+        }
 
         return $changed;
     }
@@ -163,16 +186,17 @@ final class ColumnReference implements MediaReferenceSource
         return array_map(fn (array $keys) => array_keys($keys), $out);
     }
 
-    private function jsonRepoint(string $from, string $to): int
+    /** @param  array<string, string>  $moves */
+    private function jsonRepoint(array $moves): int
     {
         $changed = 0;
 
-        $this->table()->select(['id', $this->column])->chunkById(self::CHUNK, function ($rows) use ($from, $to, &$changed) {
+        $this->table()->select(['id', $this->column])->chunkById(self::CHUNK, function ($rows) use ($moves, &$changed) {
             foreach ($rows as $row) {
                 $raw = $row->{$this->column};
                 [$isJson, $decoded] = self::decodeWithKind($raw);
                 $hit = false;
-                $rewritten = self::rewrite($decoded, $from, $to, $hit);
+                $rewritten = self::rewrite($decoded, $moves, $hit);
 
                 if (! $hit) {
                     continue;
@@ -200,15 +224,25 @@ final class ColumnReference implements MediaReferenceSource
         return $this->isJson ? $query : $query->where($this->column, '!=', '');
     }
 
-    /** The new value for one stored path, or null when it is not $from or inside it. */
-    private static function moved(string $value, string $from, string $to): ?string
+    /**
+     * The new value for one stored path, or null when it is no planned path
+     * and inside none. Each folder the value sits in is looked up, nearest
+     * first, so the cost does not grow with the size of the plan.
+     *
+     * @param  array<string, string>  $moves
+     */
+    private static function moved(string $value, array $moves): ?string
     {
-        if ($value === $from) {
-            return $to;
+        if (isset($moves[$value])) {
+            return $moves[$value];
         }
 
-        if (str_starts_with($value, $from . '/')) {
-            return $to . substr($value, strlen($from));
+        for ($cut = strrpos($value, '/'); $cut !== false && $cut > 0; $cut = strrpos(substr($value, 0, $cut), '/')) {
+            $folder = substr($value, 0, $cut);
+
+            if (isset($moves[$folder])) {
+                return $moves[$folder] . substr($value, $cut);
+            }
         }
 
         return null;
@@ -255,10 +289,11 @@ final class ColumnReference implements MediaReferenceSource
         }
     }
 
-    private static function rewrite(mixed $value, string $from, string $to, bool &$hit): mixed
+    /** @param  array<string, string>  $moves */
+    private static function rewrite(mixed $value, array $moves, bool &$hit): mixed
     {
         if (is_string($value)) {
-            $moved = self::moved($value, $from, $to);
+            $moved = self::moved($value, $moves);
 
             if ($moved === null) {
                 return $value;
@@ -271,11 +306,11 @@ final class ColumnReference implements MediaReferenceSource
 
         if (is_array($value)) {
             foreach ($value as $k => $item) {
-                $value[$k] = self::rewrite($item, $from, $to, $hit);
+                $value[$k] = self::rewrite($item, $moves, $hit);
             }
         } elseif ($value instanceof \stdClass) {
             foreach (get_object_vars($value) as $k => $item) {
-                $value->{$k} = self::rewrite($item, $from, $to, $hit);
+                $value->{$k} = self::rewrite($item, $moves, $hit);
             }
         }
 

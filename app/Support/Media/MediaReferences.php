@@ -88,18 +88,37 @@ final class MediaReferences
     }
 
     /**
-     * Point every stored copy of $from at $to, in every source, including
-     * those that do not count as a use (an order line still shows its photo).
-     * The caller owns the transaction.
+     * Point every stored copy of $from at $to. See repointMany().
      *
      * @return array<string, int> label => rows changed, kinds with none left out
      */
     public static function repoint(string $from, string $to): array
     {
+        return self::repointMany([$from => $to]);
+    }
+
+    /**
+     * Point every stored copy of each planned path at its new path, in every
+     * source, including those that do not count as a use (an order line
+     * still shows its photo). Each source is read once for the whole plan,
+     * so a move of many images costs one pass per table, not one per image.
+     * The caller owns the transaction.
+     *
+     * @param  array<string, string>  $moves  from => to
+     * @return array<string, int> label => rows changed, kinds with none left out
+     */
+    public static function repointMany(array $moves): array
+    {
+        $moves = array_filter($moves, fn ($to, $from) => $from !== '' && $from !== $to, ARRAY_FILTER_USE_BOTH);
+
+        if ($moves === []) {
+            return [];
+        }
+
         $out = [];
 
         foreach (self::instance()->sources as $source) {
-            $changed = $source->repoint($from, $to);
+            $changed = $source->repointMany($moves);
 
             if ($changed > 0) {
                 $out[$source->label()] = ($out[$source->label()] ?? 0) + $changed;
