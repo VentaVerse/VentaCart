@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\DB;
  *                  'best_sellers':  most revenue from order lines first (the ranking
  *                                   is cached for an hour, see bestSellerIds())
  *                  'on_sale':       only products on sale for the shopper looking (their customer group, one unit;
-                                   see Product::scopeOnSaleFor())
+ *                                 see Product::scopeOnSaleFor())
  *                  'most_viewed':   most viewed first
  *                  'random':        a random pick
  *                  An unknown value is read as 'new', so a stored block with a

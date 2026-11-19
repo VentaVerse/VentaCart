@@ -162,7 +162,10 @@ class Product extends Model
 
     public function specials(): HasMany
     {
-        return $this->hasMany(ProductSpecial::class)->orderBy('priority');
+        // By id within a priority, so of two specials that tie on priority
+        // and price the earlier row wins everywhere (winningSpecial() and
+        // scopeOnSaleFor() alike).
+        return $this->hasMany(ProductSpecial::class)->orderBy('priority')->orderBy('id');
     }
 
     public function tags(): BelongsToMany
@@ -208,8 +211,9 @@ class Product extends Model
      * so a sale kept for another group never lists a product at this
      * shopper's regular price. Only specials for one unit count: a volume
      * tier does not change the price on the card. And a product is on sale
-     * only when its sale is the special that wins: a quiet price that
-     * outranks it is what the card shows, with no sale on it.
+     * only when its sale is the special that wins (a quiet price that
+     * outranks it is what the card shows, with no sale on it) and is below
+     * the regular price.
      *
      * The rule is written in SQL so a paginated listing can filter by it.
      * It mirrors winningSpecial(): the deepest tier at or below one unit,
@@ -223,8 +227,13 @@ class Product extends Model
                 ->orWhere($g->qualifyColumn('customer_group_id'), $customerGroupId))
             ->activeAt();
 
-        return $query->whereHas('specials', function (Builder $sale) use ($applies) {
-            $applies($sale)->where($sale->qualifyColumn('display_mode'), 'sale');
+        $regularPrice = $query->qualifyColumn('price');
+
+        return $query->whereHas('specials', function (Builder $sale) use ($applies, $regularPrice) {
+            // A sale at or above the regular price saves nothing, so the card
+            // shows no sale (DisplayPrice::isSale()).
+            $applies($sale)->where($sale->qualifyColumn('display_mode'), 'sale')
+                ->whereColumn($sale->qualifyColumn('price'), '<', $regularPrice);
 
             // No other special that applies outranks this sale.
             $rivalModel = (new ProductSpecial())->setTable('rival');
