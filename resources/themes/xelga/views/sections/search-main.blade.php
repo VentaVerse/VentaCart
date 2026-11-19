@@ -1,12 +1,14 @@
 {{--
     Search results: the words searched, the products core's search found,
     and, when nothing matches, suggested searches and links. Core's search
-    takes words and a sort only, so there are no filters here.
+    takes words, a sort and the "On sale" switch, so there is no filter
+    column here.
 --}}
 @php
     $list = $data['list'];
     $query = $data['query'];
     $found = $list['total'] > 0;
+    $saleOnly = ($data['on_sale']['on'] ?? false) === true;
     // Cards a line from 990px: the setting, or fewer where sides narrow the content area (the styles cap it too).
     $fitCols = $context->fitColumns($settings['cols'], 3);
 @endphp
@@ -47,13 +49,21 @@
             <div class="no-results" @if ($found) hidden @endif>
                 <div class="no-results__text">
                     <h2 class="no-results__title">
-                        @if ($query === '')
+                        @if ($saleOnly && $query === '')
+                            Nothing is on sale right now
+                        @elseif ($saleOnly)
+                            Nothing on sale for <q>{{ $query }}</q>
+                        @elseif ($query === '')
                             Type a word to search the store
                         @else
                             Nothing found for <q>{{ $query }}</q>
                         @endif
                     </h2>
-                    <p class="muted">Check the spelling, try a shorter word, or start from one of these.</p>
+                    @if ($saleOnly)
+                        <p class="muted"><a class="link-arrow" href="{{ $data['on_sale']['off_url'] }}">Show products at their regular price too<svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a></p>
+                    @else
+                        <p class="muted">Check the spelling, try a shorter word, or start from one of these.</p>
+                    @endif
                 </div>
                 @if ($data['suggestions'] !== [])
                     <ul class="chips" aria-label="Suggested searches">

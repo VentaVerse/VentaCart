@@ -65,13 +65,15 @@
                         <label><span class="visually-hidden">Sort by</span>
                 <select class="select select--sm" name="sort" data-sort>
                                             <option value="date_added" selected>Newest first</option>
+                                            <option value="best_sellers" >Best sellers</option>
+                                            <option value="most_viewed" >Most viewed</option>
                                             <option value="price_asc" >Price, low to high</option>
                                             <option value="price_desc" >Price, high to low</option>
                                             <option value="name_asc" >Name, A to Z</option>
                                             <option value="name_desc" >Name, Z to A</option>
                                     </select>
             </label>
-            <button type="submit" class="btn btn--secondary btn--sm toolbar__sort-go" data-sort-go>Sort</button>
+                        <button type="submit" class="btn btn--secondary btn--sm toolbar__sort-go" data-sort-go>Sort</button>
         </form>
                 <div class="view-toggle" role="group" aria-label="Show products as" data-view-toggle>
             <button type="button" class="icon-btn" data-view="grid" aria-pressed="true" aria-label="Grid"><svg class="icon" aria-hidden="true"><use href="#i-grid"></use></svg></button>

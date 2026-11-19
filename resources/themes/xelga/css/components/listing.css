@@ -133,3 +133,6 @@
 .filter-drawer .filters__head:not(:has(.filters__clear)) { display: none; }
 .filter-drawer .filters { display: flex; flex-direction: column; min-height: 100%; }
 .filter-drawer .filters__foot { margin-block-start: auto; }
+/* The "On sale" switch beside the sort, on a listing with no filter column (search). */
+.toolbar__sort .toolbar__on-sale { display: flex; flex: none; min-height: 44px; white-space: nowrap; }
+.toolbar__on-sale input { accent-color: var(--c-text); }

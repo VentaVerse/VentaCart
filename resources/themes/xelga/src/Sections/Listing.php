@@ -3,6 +3,7 @@
 namespace Themes\Xelga\Sections;
 
 use App\Services\ThemeService;
+use App\Support\ProductListing;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Route;
 use Themes\Xelga\Rendering\RenderContext;
@@ -22,6 +23,8 @@ final class Listing
     /** The sort keys core's category and brand controllers accept, with their labels. */
     public const SORTS = [
         'date_added' => 'Newest first',
+        'best_sellers' => 'Best sellers',
+        'most_viewed' => 'Most viewed',
         'price_asc' => 'Price, low to high',
         'price_desc' => 'Price, high to low',
         'name_asc' => 'Name, A to Z',
@@ -182,7 +185,7 @@ final class Listing
             }
         }
         if ($enabled['on_sale']) {
-            $on = $request->filled('on_sale');
+            $on = self::onSale();
             $avail[] = ['name' => 'on_sale', 'value' => '1', 'label' => 'On sale', 'checked' => $on, 'swatch' => null, 'count' => null];
             if ($on) {
                 $chips[] = ['label' => 'On sale', 'url' => self::without(['on_sale' => null])];
@@ -352,6 +355,28 @@ final class Listing
         }
 
         return $out;
+    }
+
+    /** Whether the shopper has "On sale" on, read as core's listings read it. */
+    public static function onSale(): bool
+    {
+        return ProductListing::onSale(request()->query(ProductListing::ON_SALE));
+    }
+
+    /**
+     * The search page's "On sale" switch: on or off, and the address that
+     * turns it off again (the words and the sort stay, the page goes back
+     * to the first). Null when the store has switched the filter off.
+     *
+     * @return array{on: bool, off_url: string}|null
+     */
+    public static function onSaleSwitch(): ?array
+    {
+        if (! self::enabledFilters()['on_sale']) {
+            return null;
+        }
+
+        return ['on' => self::onSale(), 'off_url' => self::without([ProductListing::ON_SALE => null])];
     }
 
     /** Where the merchant sets products per page, default sort and which filters show, for the editor's note. */
