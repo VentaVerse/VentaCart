@@ -36,6 +36,7 @@ function rules(css) {
 }
 
 const display = (rule) => /display:\s*([a-z-]+)/.exec(rule.body)?.[1] ?? null;
+const classes = (selector) => (selector.match(/\.[\w-]+/g) || []).length;
 
 test('a folder\'s own folders show above its images on a wide screen', () => {
     const wide = rules(read('media-library.css')).filter((r) => r.media === '' && r.selectors.includes('.ml-folders.is-rows'));
@@ -43,4 +44,20 @@ test('a folder\'s own folders show above its images on a wide screen', () => {
     assert.ok(wide.length, 'the folders in view have a wide-screen rule');
     assert.ok(wide.every((r) => display(r) !== 'none'), 'and it does not hide them');
     assert.ok(wide.some((r) => display(r)), 'and it shows them');
+});
+
+test('the phone Details button is hidden on a wide screen, whatever sheet loads last', () => {
+    const btn = rules(read('media-library.css')).find((r) => r.media === '' && r.selectors.includes('.ml-btn'));
+    assert.equal(display(btn), 'inline-flex', 'a library button shows itself');
+
+    const manage = rules(read('manage.css'));
+    const hide = manage.filter((r) => r.media === '' && display(r) === 'none' && r.selectors.some((s) => s.endsWith('.ml-mng-details')));
+    assert.ok(hide.length, 'Details has a wide-screen rule that hides it');
+    // The two sheets load in either order, so the hiding rule must outrank
+    // the button's own rule rather than come after it.
+    assert.ok(hide.every((r) => r.selectors.filter((s) => s.endsWith('.ml-mng-details')).every((s) => classes(s) > 1)));
+
+    const show = manage.filter((r) => /max-width:\s*719px/.test(r.media) && display(r) && r.selectors.some((s) => s.endsWith('.ml-mng-details')));
+    assert.ok(show.length, 'Details shows under 720 px');
+    assert.ok(show.every((r) => r.selectors.filter((s) => s.endsWith('.ml-mng-details')).every((s) => classes(s) > 1)));
 });
