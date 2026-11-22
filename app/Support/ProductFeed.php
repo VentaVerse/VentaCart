@@ -31,8 +31,9 @@ use Illuminate\Support\Facades\DB;
  *   filter         'new' (default): newest first, by date available
  *                  'best_sellers':  most revenue from order lines first (the ranking
  *                                   is cached for an hour, see bestSellerIds())
- *                  'on_sale':       only products on sale for the shopper looking (their customer group, one unit;
- *                                 see Product::scopeOnSaleFor())
+ *                  'on_sale':       only products with an active special price below the regular
+ *                                 price, the same for every shopper (a discount alone is not a
+ *                                 sale; see Product::scopeOnSaleFor())
  *                  'most_viewed':   most viewed first
  *                  'random':        a random pick
  *                  An unknown value is read as 'new', so a stored block with a
@@ -94,7 +95,7 @@ final class ProductFeed
         }
 
         if ($filter === 'on_sale') {
-            // On sale for the shopper looking: their customer group, one unit.
+            // On sale: an active special price below the regular price.
             $query->onSaleFor(CartService::customerGroupId());
         }
 

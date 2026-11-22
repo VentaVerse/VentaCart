@@ -20,7 +20,7 @@ use Themes\Xelga\Rendering\SectionData;
  * No price is worked out here. The page shows Pricing::display() for one
  * unit; for larger quantities and for each variant it shows what
  * CartService::resolvePrice() answers for this shopper's customer group at
- * each quantity where a special starts, which is the amount the cart will
+ * each discount quantity step, which is the amount the cart will
  * charge. The browser only picks the row for the quantity typed.
  */
 final class ProductMain implements SectionData
@@ -174,7 +174,7 @@ final class ProductMain implements SectionData
     /**
      * Every switched-on variant the shopper can choose, keyed the way core's
      * page keys them (value ids in numeric order joined by "_"), with its
-     * stock, its photo and its price at each quantity where a special starts.
+     * stock, its photo and its price at each discount quantity step.
      *
      * @param  list<array{path: string}>  $images
      * @param  list<int>  $thresholds
@@ -215,7 +215,8 @@ final class ProductMain implements SectionData
 
     /**
      * The quantities at which this shopper's price can change: one, and
-     * every quantity at which one of the group's active specials starts.
+     * every minimum quantity of the group's discounts (and of the all-groups
+     * discounts), where the price can step down.
      *
      * @param  iterable<array{qty: int}>  $tiers
      * @return list<int>

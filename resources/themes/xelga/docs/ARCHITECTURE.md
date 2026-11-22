@@ -481,7 +481,7 @@ There is one shared draft per document, not one per admin: the store has one dra
 | wishlist state, cart count | the bundle `x-store-layout` shares |
 | blog posts and categories | the blog extension's models, only when the extension is enabled |
 | phone numbers | `Phone::display()` |
-| product page prices per quantity and variant | `CartService::resolvePrice()` at one and at each quantity where one of the group's specials starts (core's `$priceTiers`), per variant from its regular price; the browser only picks the row for the quantity typed |
+| product page prices per quantity and variant | `CartService::resolvePrice()` at one and at each discount quantity step of the group (core's `$priceTiers`), per variant from its regular price; the browser only picks the row for the quantity typed |
 | volume tiers | core's `$priceTiers` for the shopper's group (guests: the default group); nothing shows to a group without tiers |
 | low stock level | `LowStock::threshold()` |
 | back in stock | the stock alerts extension's `notify-stock.store` (name, email, captcha), only while its route exists |
