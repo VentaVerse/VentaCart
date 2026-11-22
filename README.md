@@ -10,6 +10,10 @@
 
 VentaCart gives a store its catalog, cart, checkout, orders and customers in one Laravel application, with a fast storefront theme and an admin built to work on a phone. Philippine couriers, payment gateways and address lists (province, city, barangay) are built in, and everything else plugs in as an extension.
 
+<p align="center">
+  <img src="docs/readme/admin-dashboard.png" alt="The VentaCart admin dashboard: today's revenue and orders, the latest orders, inventory and automations" width="900">
+</p>
+
 ## Features
 
 **Catalog**
@@ -33,6 +37,10 @@ VentaCart gives a store its catalog, cart, checkout, orders and customers in one
 - **Xelga**, the bundled theme: a visual editor with a layout board, sections, skins, colors and fonts, previewed live before publishing
 - Responsive photos (WebP copies at several widths) and SEO tools: meta suggestions, redirects, a 404 log, sitemap and Search Console
 - A blog, menus and content pages
+
+<p align="center">
+  <img src="docs/readme/theme-editor.png" alt="The Xelga theme editor: a live preview of the home page beside the main banner's settings" width="900">
+</p>
 
 **Running the store**
 - Staff accounts with user groups and permissions
