@@ -212,16 +212,16 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                         } catch (e) {}
                     })();
                 </script>
-                <p class="v-slab__version">VentaCart v{{ config('app.version') }}</p>
+                <a href="{{ route('home') }}" target="_blank" rel="noopener" class="v-slab__foot">
+                    <span class="v-slab__who">
+                        <b>{{ $vStoreName }}</b>
+                        <span>View store</span>
+                    </span>
+                    <x-admin.icon name="external" class="v-slab__act w-3.5 h-3.5" />
+                </a>
             </div>
 
-            <a href="{{ route('home') }}" target="_blank" rel="noopener" class="v-slab__foot">
-                <span class="v-slab__who">
-                    <b>{{ $vStoreName }}</b>
-                    <span>View store</span>
-                </span>
-                <x-admin.icon name="external" class="v-slab__act w-3.5 h-3.5" />
-            </a>
+            <p class="v-slab__version">VentaCart v{{ config('app.version') }}</p>
         </aside>
         @endunless
 

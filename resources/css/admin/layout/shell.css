@@ -118,6 +118,7 @@
 .v-slab__version {
     margin: 0;
     padding: 12px 14px 14px;
+    border-top: 1px solid var(--bl-slab-rule);
     font-size: 11px;
     color: var(--bl-slab-ink);
     font-variant-numeric: tabular-nums;
