@@ -64,7 +64,8 @@ final class ProductMain implements SectionData
             'price' => [
                 'now' => money($displayPrice->price),
                 'was' => money($displayPrice->regularPrice),
-                'sale' => $displayPrice->isSale(),
+                'below_regular' => $displayPrice->isSale(),
+                'on_sale' => $displayPrice->isSpecial(),
                 'saving' => $displayPrice->savingPercent(),
                 'ends_at' => self::countdownEnd($displayPrice),
             ],
@@ -96,7 +97,8 @@ final class ProductMain implements SectionData
                 'stock' => $quantity,
                 'low_stock' => LowStock::threshold(),
                 'has_variants' => (bool) $product->has_variants,
-                'sale' => $displayPrice->isSale(),
+                'below_regular' => $displayPrice->isSale(),
+                'on_sale' => $displayPrice->isSpecial(),
                 'saving' => $displayPrice->savingPercent(),
                 'price' => money($displayPrice->price),
                 'was' => money($displayPrice->regularPrice),
@@ -289,7 +291,7 @@ final class ProductMain implements SectionData
 
     private static function countdownEnd(DisplayPrice $price): ?string
     {
-        if (! $price->isSale() || $price->endsAt === null) {
+        if (! $price->isSpecial() || $price->endsAt === null) {
             return null;
         }
         if ($price->endsAt->isPast() || $price->endsAt->diffInDays(now()) > self::COUNTDOWN_MAX_DAYS) {

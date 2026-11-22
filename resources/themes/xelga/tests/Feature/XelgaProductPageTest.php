@@ -189,6 +189,49 @@ class XelgaProductPageTest extends TestCase
             ->assertSee('data-sale-end="', false);
     }
 
+    public function test_a_group_discount_shows_the_struck_regular_price_without_a_sale_badge(): void
+    {
+        $shirt = $this->product('Linen Shirt');
+        ProductDiscount::create(['product_id' => $shirt->id, 'customer_group_id' => $this->resellers->id, 'quantity' => 1, 'price_type' => 'fixed', 'value' => 700]);
+
+        $response = $this->actingAs($this->reseller(), 'customer')->page('/product/linen-shirt');
+        $response->assertSee(money(700))
+            ->assertSee('<s class="price__was" data-price-was >' . money(1000) . '</s>', false)
+            ->assertSee('data-price-label-now>Your price<', false)
+            ->assertDontSee('Sale price')
+            ->assertDontSee('data-sale-end', false)
+            ->assertSeeInOrder(['data-price-badge', 'hidden', '-30%</span>'], false);
+        $data = $this->productData($response);
+        $this->assertTrue($data['below_regular']);
+        $this->assertFalse($data['on_sale']);
+    }
+
+    public function test_a_running_special_keeps_the_badge_the_sale_label_and_the_countdown(): void
+    {
+        $shirt = $this->product('Linen Shirt');
+        ProductSpecial::create(['product_id' => $shirt->id, 'price_type' => 'fixed', 'value' => 750, 'date_end' => now()->addDays(2)->startOfMinute()]);
+
+        $response = $this->page('/product/linen-shirt');
+        $response->assertSee('data-price-label-now>Sale price<', false)
+            ->assertSee('-25%')
+            ->assertDontSeeText('Your price')
+            ->assertSee('data-sale-end="', false);
+        $data = $this->productData($response);
+        $this->assertTrue($data['below_regular']);
+        $this->assertTrue($data['on_sale']);
+    }
+
+    public function test_a_special_that_beats_a_group_discount_shows_as_a_sale(): void
+    {
+        $shirt = $this->product('Linen Shirt');
+        ProductDiscount::create(['product_id' => $shirt->id, 'customer_group_id' => $this->resellers->id, 'quantity' => 1, 'price_type' => 'fixed', 'value' => 800]);
+        ProductSpecial::create(['product_id' => $shirt->id, 'price_type' => 'fixed', 'value' => 600, 'date_end' => now()->addDays(2)->startOfMinute()]);
+
+        $response = $this->actingAs($this->reseller(), 'customer')->page('/product/linen-shirt');
+        $response->assertSee(money(600))->assertSee('data-price-label-now>Sale price<', false)->assertSee('-40%')->assertSee('data-sale-end="', false);
+        $this->assertTrue($this->productData($response)['on_sale']);
+    }
+
     public function test_a_sale_kept_for_another_group_does_not_reach_a_guest(): void
     {
         $shirt = $this->product('Linen Shirt');

@@ -505,14 +505,16 @@ function initBuying(section, data, gallery, signal) {
     const atQty = pointFor(points, qty);
     if (priceNow && one) priceNow.textContent = one.price;
     const was = unit ? unit.was : data.was;
-    const sale = Boolean(data.sale) && one && was !== one.price;
+    // Any price below regular is struck through; only a running special is a sale.
+    const below = Boolean(data.below_regular) && one && was !== one.price;
+    const sale = below && Boolean(data.on_sale);
     if (priceWas) {
       priceWas.textContent = was;
-      priceWas.hidden = !sale;
+      priceWas.hidden = !below;
     }
-    if (wasLabel) wasLabel.hidden = !sale;
-    if (nowLabel) nowLabel.textContent = sale ? 'Sale price' : 'Price';
-    priceNow?.closest('[data-price]')?.classList.toggle('price--sale', sale);
+    if (wasLabel) wasLabel.hidden = !below;
+    if (nowLabel) nowLabel.textContent = sale ? 'Sale price' : (below ? 'Your price' : 'Price');
+    priceNow?.closest('[data-price]')?.classList.toggle('price--sale', below);
     if (badge) {
       // The percentage is core's, for the product; a variant priced on its own shows the word instead.
       badge.textContent = unit ? 'Sale' : `-${data.saving}%`;
