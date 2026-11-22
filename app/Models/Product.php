@@ -162,10 +162,12 @@ class Product extends Model
 
     public function specials(): HasMany
     {
-        // By id within a priority, so of two specials that tie on priority
-        // and price the earlier row wins everywhere (winningSpecial() and
-        // scopeOnSaleFor() alike).
-        return $this->hasMany(ProductSpecial::class)->orderBy('priority')->orderBy('id');
+        return $this->hasMany(ProductSpecial::class)->orderBy('id');
+    }
+
+    public function discounts(): HasMany
+    {
+        return $this->hasMany(ProductDiscount::class)->orderBy('quantity')->orderBy('id');
     }
 
     public function tags(): BelongsToMany

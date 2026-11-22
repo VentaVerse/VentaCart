@@ -48,6 +48,11 @@ class CustomerGroup extends Model
         return $this->belongsTo(Store::class);
     }
 
+    public function discounts(): HasMany
+    {
+        return $this->hasMany(ProductDiscount::class);
+    }
+
     public function customers(): HasMany
     {
         return $this->hasMany(Customer::class);

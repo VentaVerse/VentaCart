@@ -1,0 +1,196 @@
+<?php
+
+namespace Tests\Feature\Catalog;
+
+use App\Models\CustomerGroup;
+use App\Models\Product;
+use App\Models\Store;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Tests\Support\LegacySpecialsTable;
+use Tests\TestCase;
+
+/**
+ * The split of product_specials into timed special prices and always-on
+ * discounts. Each test rebuilds the old table, writes legacy rows and runs
+ * the split migration over them.
+ */
+class SpecialsDiscountsMigrationTest extends TestCase
+{
+    use LegacySpecialsTable;
+    use RefreshDatabase;
+
+    private Product $product;
+
+    private CustomerGroup $group;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $store = Store::firstOrCreate(['code' => 'test'], ['name' => 'Demo Store']);
+        $this->product = Product::create(['store_id' => $store->id, 'name' => 'Demo Kettle', 'slug' => 'demo-kettle', 'sku' => 'DEMO-001', 'price' => 1000, 'is_active' => true]);
+        $this->group = CustomerGroup::create(['store_id' => $store->id, 'name' => 'Wholesale']);
+
+        $this->legacySpecialsTable();
+    }
+
+    private function legacy(array $attributes = []): int
+    {
+        return DB::table('product_specials')->insertGetId($attributes + [
+            'product_id' => $this->product->id, 'customer_group_id' => $this->group->id, 'price' => 800,
+            'quantity' => 1, 'display_mode' => 'sale', 'priority' => 0,
+            'date_start' => null, 'date_end' => null,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
+    private function migrate(): void
+    {
+        (require database_path('migrations/' . self::SPLIT_MIGRATION . '.php'))->up();
+    }
+
+    private function discounts(): array
+    {
+        return DB::table('product_discounts')->orderBy('id')->get()->map(fn ($r) => (array) $r)->all();
+    }
+
+    public function test_running_override_becomes_a_discount_for_its_group(): void
+    {
+        $this->legacy(['display_mode' => 'override', 'price' => 750, 'quantity' => 1, 'date_start' => now()->subDay(), 'date_end' => now()->addDay()]);
+
+        $this->migrate();
+
+        $rows = $this->discounts();
+        $this->assertCount(1, $rows);
+        $this->assertSame($this->group->id, (int) $rows[0]['customer_group_id']);
+        $this->assertSame($this->product->id, (int) $rows[0]['product_id']);
+        $this->assertSame(1, (int) $rows[0]['quantity']);
+        $this->assertSame('fixed', $rows[0]['price_type']);
+        $this->assertEquals(750, $rows[0]['value']);
+        $this->assertSame(0, DB::table('product_specials')->count());
+    }
+
+    public function test_override_with_no_group_becomes_an_all_groups_discount(): void
+    {
+        $this->legacy(['display_mode' => 'override', 'customer_group_id' => null]);
+
+        $this->migrate();
+
+        $this->assertNull($this->discounts()[0]['customer_group_id']);
+    }
+
+    public function test_override_that_has_not_started_still_becomes_a_discount(): void
+    {
+        $this->legacy(['display_mode' => 'override', 'date_start' => now()->addWeek()]);
+
+        $this->migrate();
+
+        $this->assertCount(1, $this->discounts());
+    }
+
+    public function test_sale_with_end_date_stays_a_special_without_group(): void
+    {
+        $start = now()->subDay()->startOfSecond();
+        $end = now()->addDays(3)->startOfSecond();
+        $this->legacy(['price' => 600, 'date_start' => $start, 'date_end' => $end]);
+
+        $this->migrate();
+
+        $this->assertSame(0, DB::table('product_discounts')->count());
+        $this->assertFalse(Schema::hasColumn('product_specials', 'customer_group_id'));
+        $row = DB::table('product_specials')->first();
+        $this->assertSame('fixed', $row->price_type);
+        $this->assertEquals(600, $row->value);
+        $this->assertSame($start->format('Y-m-d H:i:s'), substr((string) $row->date_start, 0, 19));
+        $this->assertSame($end->format('Y-m-d H:i:s'), substr((string) $row->date_end, 0, 19));
+    }
+
+    public function test_sale_that_has_not_started_keeps_its_dates_as_a_special(): void
+    {
+        $this->legacy(['date_start' => now()->addDay(), 'date_end' => now()->addDays(3)]);
+
+        $this->migrate();
+
+        $this->assertSame(1, DB::table('product_specials')->count());
+        $this->assertSame(0, DB::table('product_discounts')->count());
+    }
+
+    public function test_undated_sale_becomes_a_discount(): void
+    {
+        $this->legacy(['display_mode' => 'sale', 'price' => 700]);
+
+        $this->migrate();
+
+        $this->assertCount(1, $this->discounts());
+        $this->assertSame(0, DB::table('product_specials')->count());
+    }
+
+    public function test_sale_with_quantity_above_one_becomes_a_discount(): void
+    {
+        $this->legacy(['quantity' => 5, 'price' => 650, 'date_start' => now()->subDay(), 'date_end' => now()->addDay()]);
+
+        $this->migrate();
+
+        $rows = $this->discounts();
+        $this->assertCount(1, $rows);
+        $this->assertSame(5, (int) $rows[0]['quantity']);
+        $this->assertSame(0, DB::table('product_specials')->count());
+    }
+
+    public function test_expired_rows_are_dropped(): void
+    {
+        $this->legacy(['display_mode' => 'override', 'date_end' => now()->subHour()]);
+        $this->legacy(['date_end' => now()->subDay()]);
+        $this->legacy(['quantity' => 3, 'date_end' => now()->subDay()]);
+
+        $this->migrate();
+
+        $this->assertSame(0, DB::table('product_discounts')->count());
+        $this->assertSame(0, DB::table('product_specials')->count());
+    }
+
+    public function test_rows_for_one_group_and_quantity_keep_lowest_priority_then_price(): void
+    {
+        $this->legacy(['display_mode' => 'override', 'priority' => 2, 'price' => 500]);
+        $this->legacy(['display_mode' => 'override', 'priority' => 1, 'price' => 900]);
+        $this->legacy(['display_mode' => 'override', 'priority' => 1, 'price' => 850]);
+        $this->legacy(['display_mode' => 'override', 'priority' => 1, 'price' => 850]);
+        $this->legacy(['display_mode' => 'override', 'priority' => 1, 'price' => 700, 'quantity' => 10]);
+
+        $this->migrate();
+
+        $rows = $this->discounts();
+        $this->assertCount(2, $rows);
+        $byQuantity = collect($rows)->keyBy('quantity');
+        $this->assertEquals(850, $byQuantity[1]['value']);
+        $this->assertEquals(700, $byQuantity[10]['value']);
+    }
+
+    public function test_running_twice_changes_nothing(): void
+    {
+        $this->legacy(['display_mode' => 'override', 'price' => 750]);
+        $this->legacy(['price' => 600, 'date_end' => now()->addDays(3)]);
+
+        $this->migrate();
+        $discounts = $this->discounts();
+        $specials = DB::table('product_specials')->get()->all();
+
+        $this->migrate();
+
+        $this->assertSame($discounts, $this->discounts());
+        $this->assertEquals($specials, DB::table('product_specials')->get()->all());
+    }
+
+    public function test_fresh_install_has_new_columns(): void
+    {
+        $this->migrate();
+
+        $this->assertTrue(Schema::hasColumns('product_specials', ['product_id', 'price_type', 'value', 'date_start', 'date_end']));
+        foreach (['display_mode', 'priority', 'quantity', 'customer_group_id', 'price'] as $gone) {
+            $this->assertFalse(Schema::hasColumn('product_specials', $gone), $gone);
+        }
+        $this->assertTrue(Schema::hasColumns('product_discounts', ['product_id', 'customer_group_id', 'quantity', 'price_type', 'value']));
+    }
+}
