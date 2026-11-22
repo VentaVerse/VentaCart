@@ -1,59 +1,91 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="docs/branding/ventacart-lockup-color.png" width="360" alt="VentaCart">
 </p>
 
-## About Laravel
+<p align="center">
+  An open source e-commerce platform built on Laravel, made for stores in the Philippines and ready for the rest of the world.
+</p>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+VentaCart gives a store its catalog, cart, checkout, orders and customers in one Laravel application, with a fast storefront theme and an admin built to work on a phone. Philippine couriers, payment gateways and address lists (province, city, barangay) are built in, and everything else plugs in as an extension.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Features
 
-## Learning Laravel
+**Catalog**
+- Products with variants, attributes, brands, categories and tags
+- Customer groups with their own prices, specials and volume pricing
+- A shared media library for every photo in the store, with folders, search and safe moves
+- Stock tracking, low-stock warnings and back-in-stock emails
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+**Selling**
+- Cart and checkout with delivery quotes from each courier, down to the barangay
+- Orders, order statuses and email templates you can edit
+- Coupons, store credit, abandoned-cart reminders and email campaigns
+- Product reviews with moderation and review-request emails
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Shipping and payment**
+- Couriers: QuadX, SPX, LBC and DHL Express, plus flat rate, weight-based and free-shipping rules
+- Payments: HitPay (cards and e-wallets), bank transfer with QR codes, and cash on delivery
+- Rules that limit payment methods by group, total or address
 
-## Laravel Sponsors
+**Storefront**
+- **Xelga**, the bundled theme: a visual editor with a layout board, sections, skins, colors and fonts, previewed live before publishing
+- Responsive photos (WebP copies at several widths) and SEO tools: meta suggestions, redirects, a 404 log, sitemap and Search Console
+- A blog, menus and content pages
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+**Running the store**
+- Staff accounts with user groups and permissions
+- Scheduled automations (currency rates, stock alerts, sitemap and more), managed from the admin
+- An ERP push API for products, variants, orders and stock
+- Currencies, languages and SMS through UniSMS
 
-### Premium Partners
+## Extensions
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Most features beyond the core ship as extensions in [`extensions/`](extensions). Each one is a folder with its own `extension.json`, routes, migrations and views, and can be turned on or off from **Extensions** in the admin. New extensions and themes can be uploaded as a package from the admin.
+
+## Requirements
+
+- PHP 8.2 or newer
+- MySQL 8.0+ or MariaDB
+- Composer 2
+- Node.js 18+ and npm
+
+## Quick start
+
+```bash
+git clone https://github.com/VentaVerse/VentaCart.git
+cd VentaCart
+composer install
+npm ci && npm run build
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan storage:link
+php artisan serve
+```
+
+Open `http://localhost:8000/admin/setup` to create the first admin account. No login is seeded, so a store never ships with a known password. A fresh install opens with a small demo catalog, which is never added to a store that already has products.
+
+`.env.example` uses SQLite so you can try VentaCart with nothing else installed. A live store should use MySQL or MariaDB. See [INSTALL.md](INSTALL.md) for a production setup: web server rules, permissions, the scheduler, the cache store and photo copies.
+
+## Tests
+
+```bash
+php artisan test --testsuite=Unit,Feature   # core
+php artisan test --testsuite=Xelga          # the bundled theme
+```
+
+Core is tested with no theme present, so it never depends on Xelga.
+
+## Themes
+
+A theme lives in `resources/themes/<name>` and reads the store through core: it never queries prices, stock or carts on its own, so customer-group pricing, specials and checkout rules always hold. Each theme keeps its own settings in its own tables, removed when the theme is uninstalled. See [docs/theme-contract.md](docs/theme-contract.md).
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Issues and pull requests are welcome. Please run both test suites before opening a pull request, and keep comments, test data and commit messages free of store or customer details.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+VentaCart is open source under the [MIT license](LICENSE).
