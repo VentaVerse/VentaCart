@@ -8,7 +8,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Tests\Support\LegacySpecialsTable;
 use Tests\TestCase;
 
 /**
@@ -21,7 +20,6 @@ use Tests\TestCase;
  */
 class SpecialDatesMigrationTest extends TestCase
 {
-    use LegacySpecialsTable;
     use RefreshDatabase;
 
     private const MIGRATION = '2026_10_25_235900_add_times_to_product_special_dates';
@@ -30,10 +28,6 @@ class SpecialDatesMigrationTest extends TestCase
     {
         $id = DB::table('migrations')->where('migration', $migration)->value('id');
         $this->assertNotNull($id, "Migration {$migration} has not run.");
-
-        // The split of specials into discounts cannot be rolled back, so the
-        // table goes back to its earlier shape directly.
-        $this->legacySpecialsTable();
 
         Artisan::call('migrate:rollback', ['--step' => DB::table('migrations')->where('id', '>=', $id)->count()]);
     }
@@ -82,7 +76,9 @@ class SpecialDatesMigrationTest extends TestCase
 
     public function test_it_rolls_back_to_dates(): void
     {
-        $this->legacySpecialsTable();
+        // Later migrations changed the table; undo the split so rows can be written the old way.
+        (require database_path('migrations/2026_11_23_100000_split_product_specials_into_specials_and_discounts.php'))->down();
+
         Store::firstOrCreate(['code' => 'test'], ['name' => 'Demo Store']);
         $product = Product::create(['store_id' => 1, 'name' => 'Demo Kettle', 'slug' => 'demo-kettle', 'sku' => 'DEMO-001', 'price' => 1000, 'is_active' => true]);
         $id = $this->row($product->id, '2026-10-25 18:00:00', '2026-10-31 21:30:00');

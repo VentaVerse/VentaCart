@@ -8,18 +8,19 @@ use App\Models\Store;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Tests\Support\LegacySpecialsTable;
 use Tests\TestCase;
 
 /**
  * The split of product_specials into timed special prices and always-on
- * discounts. Each test rebuilds the old table, writes legacy rows and runs
- * the split migration over them.
+ * discounts. Each test restores the old table, writes legacy rows and runs
+ * the split migration over them. The old shape comes from the migration's own
+ down().
  */
 class SpecialsDiscountsMigrationTest extends TestCase
 {
-    use LegacySpecialsTable;
     use RefreshDatabase;
+
+    private const SPLIT_MIGRATION = '2026_11_23_100000_split_product_specials_into_specials_and_discounts';
 
     private Product $product;
 
@@ -33,7 +34,12 @@ class SpecialsDiscountsMigrationTest extends TestCase
         $this->product = Product::create(['store_id' => $store->id, 'name' => 'Demo Kettle', 'slug' => 'demo-kettle', 'sku' => 'DEMO-001', 'price' => 1000, 'is_active' => true]);
         $this->group = CustomerGroup::create(['store_id' => $store->id, 'name' => 'Wholesale']);
 
-        $this->legacySpecialsTable();
+        $this->migration()->down();
+    }
+
+    private function migration(): object
+    {
+        return require database_path('migrations/' . self::SPLIT_MIGRATION . '.php');
     }
 
     private function legacy(array $attributes = []): int
@@ -48,7 +54,7 @@ class SpecialsDiscountsMigrationTest extends TestCase
 
     private function migrate(): void
     {
-        (require database_path('migrations/' . self::SPLIT_MIGRATION . '.php'))->up();
+        $this->migration()->up();
     }
 
     private function discounts(): array
@@ -81,20 +87,11 @@ class SpecialsDiscountsMigrationTest extends TestCase
         $this->assertNull($this->discounts()[0]['customer_group_id']);
     }
 
-    public function test_override_that_has_not_started_still_becomes_a_discount(): void
-    {
-        $this->legacy(['display_mode' => 'override', 'date_start' => now()->addWeek()]);
-
-        $this->migrate();
-
-        $this->assertCount(1, $this->discounts());
-    }
-
-    public function test_sale_with_end_date_stays_a_special_without_group(): void
+    public function test_dated_sale_for_all_groups_stays_a_special(): void
     {
         $start = now()->subDay()->startOfSecond();
         $end = now()->addDays(3)->startOfSecond();
-        $this->legacy(['price' => 600, 'date_start' => $start, 'date_end' => $end]);
+        $this->legacy(['customer_group_id' => null, 'price' => 600, 'date_start' => $start, 'date_end' => $end]);
 
         $this->migrate();
 
@@ -107,14 +104,69 @@ class SpecialsDiscountsMigrationTest extends TestCase
         $this->assertSame($end->format('Y-m-d H:i:s'), substr((string) $row->date_end, 0, 19));
     }
 
-    public function test_sale_that_has_not_started_keeps_its_dates_as_a_special(): void
+    public function test_sale_for_one_group_becomes_a_discount_for_that_group(): void
     {
-        $this->legacy(['date_start' => now()->addDay(), 'date_end' => now()->addDays(3)]);
+        $this->legacy(['price' => 600, 'date_start' => now()->subDay(), 'date_end' => now()->addDays(3)]);
+
+        $this->migrate();
+
+        $this->assertSame(0, DB::table('product_specials')->count());
+        $rows = $this->discounts();
+        $this->assertCount(1, $rows);
+        $this->assertSame($this->group->id, (int) $rows[0]['customer_group_id']);
+        $this->assertEquals(600, $rows[0]['value']);
+    }
+
+    public function test_sale_for_all_groups_that_has_not_started_keeps_its_dates_as_a_special(): void
+    {
+        $this->legacy(['customer_group_id' => null, 'date_start' => now()->addDay(), 'date_end' => now()->addDays(3)]);
 
         $this->migrate();
 
         $this->assertSame(1, DB::table('product_specials')->count());
         $this->assertSame(0, DB::table('product_discounts')->count());
+    }
+
+    public function test_not_started_override_is_not_moved(): void
+    {
+        $this->legacy(['display_mode' => 'override', 'date_start' => now()->addWeek()]);
+
+        $this->migrate();
+
+        $this->assertSame(0, DB::table('product_discounts')->count());
+        $this->assertSame(0, DB::table('product_specials')->count());
+    }
+
+    public function test_down_restores_legacy_rows(): void
+    {
+        $this->product->update(['price' => 1000]);
+        $this->legacy(['display_mode' => 'override', 'price' => 750, 'quantity' => 5]);
+        $this->legacy(['customer_group_id' => null, 'price' => 600, 'date_start' => now()->subDay(), 'date_end' => now()->addDay()]);
+        $this->migrate();
+        DB::table('product_specials')->insert(['product_id' => $this->product->id, 'price_type' => 'percent', 'value' => 10, 'date_start' => null, 'date_end' => now()->addDay(), 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('product_discounts')->insert(['product_id' => $this->product->id, 'customer_group_id' => $this->group->id, 'quantity' => 1, 'price_type' => 'percent', 'value' => 20, 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->migration()->down();
+
+        $this->assertFalse(Schema::hasTable('product_discounts'));
+        $this->assertTrue(Schema::hasColumns('product_specials', ['price', 'quantity', 'display_mode', 'priority', 'customer_group_id']));
+        $this->assertFalse(Schema::hasColumn('product_specials', 'price_type'));
+        $rows = DB::table('product_specials')->orderBy('id')->get();
+        $this->assertCount(4, $rows);
+
+        $sales = $rows->where('display_mode', 'sale');
+        $this->assertCount(2, $sales);
+        $this->assertTrue($sales->every(fn ($r) => $r->customer_group_id === null && (int) $r->quantity === 1 && (int) $r->priority === 0 && $r->date_end !== null));
+        $this->assertEqualsCanonicalizing([600.0, 900.0], $sales->map(fn ($r) => (float) $r->price)->all());
+
+        $overrides = $rows->where('display_mode', 'override');
+        $this->assertCount(2, $overrides);
+        $this->assertTrue($overrides->every(fn ($r) => $r->date_start === null && $r->date_end === null && (int) $r->customer_group_id === $this->group->id));
+        $this->assertEqualsCanonicalizing([[750.0, 5], [800.0, 1]], $overrides->map(fn ($r) => [(float) $r->price, (int) $r->quantity])->values()->all());
+
+        // And forward again.
+        $this->migrate();
+        $this->assertTrue(Schema::hasColumn('product_specials', 'price_type'));
     }
 
     public function test_undated_sale_becomes_a_discount(): void
