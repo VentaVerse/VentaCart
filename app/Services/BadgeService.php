@@ -86,11 +86,12 @@ class BadgeService
 
     private function getSaleInfo(Product $product): ?array
     {
-        // The same special the cart charges, the default group's for guests.
-        // Quantity tiers start above one unit, so they never show as a sale.
+        // The price the cart charges for one unit, the default group's for
+        // guests. Only a running special is a sale: a group's discount is
+        // that buyer's normal price, so it shows slashed but earns no badge.
         $price = \App\Support\Pricing::display($product);
 
-        if (! $price->isSale()) {
+        if (! $price->isSpecial()) {
             return null;
         }
 

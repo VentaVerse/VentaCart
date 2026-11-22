@@ -183,4 +183,46 @@ class DisplayPriceTest extends TestCase
             ->assertJsonPath('0.formatted_sale_price', money(750))
             ->assertJsonPath('0.override_price', null);
     }
+
+    public function test_a_group_discount_shows_slashed_but_earns_no_sale_badge(): void
+    {
+        $product = $this->product();
+        $resellers = CustomerGroup::create(['store_id' => 1, 'name' => 'Resellers']);
+        $this->discount($product, ['value' => 800, 'customer_group_id' => $resellers->id]);
+
+        $customer = Customer::create([
+            'store_id' => 1, 'first_name' => 'Juan', 'last_name' => 'Dela Cruz', 'email' => 'juan@example.com',
+            'password' => bcrypt('secret-password'), 'customer_group_id' => $resellers->id,
+        ]);
+        $this->actingAs($customer, 'customer');
+
+        $price = Pricing::display($product->fresh());
+        $this->assertSame(800.0, $price->price);
+        $this->assertTrue($price->isSale());
+        $this->assertFalse($price->isSpecial());
+
+        $badges = collect(app(BadgeService::class)->getBadgesForProduct($product->fresh()));
+        $this->assertNull($badges->firstWhere('type', 'sale'));
+    }
+
+    public function test_a_running_special_earns_the_sale_badge(): void
+    {
+        $product = $this->product();
+        $this->special($product, ['value' => 900]);
+
+        $price = Pricing::display($product->fresh());
+        $this->assertTrue($price->isSale());
+        $this->assertTrue($price->isSpecial());
+
+        $badges = collect(app(BadgeService::class)->getBadgesForProduct($product->fresh()));
+        $this->assertSame('-10%', $badges->firstWhere('type', 'sale')['label'] ?? null);
+
+        // A special that is not below the regular price is no sale.
+        $other = Product::create([
+            'store_id' => 1, 'name' => 'Demo Mug', 'slug' => 'demo-mug', 'sku' => 'DEMO-002',
+            'price' => 500, 'quantity' => 10, 'is_active' => true,
+        ]);
+        $this->special($other, ['value' => 600]);
+        $this->assertFalse(Pricing::display($other->fresh())->isSpecial());
+    }
 }

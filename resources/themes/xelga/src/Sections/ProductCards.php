@@ -94,7 +94,10 @@ final class ProductCards
             'price' => money($price->price),
             'regular_price' => money($price->regularPrice),
             'price_value' => $price->price,
-            'on_sale' => $price->isSale(),
+            // The regular price shows struck through whenever the buyer pays
+            // less; the Sale badge only for a running special price.
+            'below_regular' => $price->isSale(),
+            'on_sale' => $price->isSpecial(),
             'saving' => $price->savingPercent(),
             'ends_at' => $price->endsAt,
             'is_new' => $isNew,

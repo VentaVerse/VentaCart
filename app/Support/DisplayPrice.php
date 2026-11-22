@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\ProductSpecial;
+use App\Services\PriceResolver;
 use Carbon\CarbonInterface;
 
 /**
@@ -46,6 +47,16 @@ final class DisplayPrice
     public function isSale(): bool
     {
         return $this->price < $this->regularPrice;
+    }
+
+    /**
+     * True when a running special price sets the price below the regular
+     * price. The Sale badge follows this, not isSale(): a customer group's
+     * always-on discount is that buyer's normal price, not a sale.
+     */
+    public function isSpecial(): bool
+    {
+        return $this->source === PriceResolver::SOURCE_SPECIAL && $this->price < $this->regularPrice;
     }
 
     /** The saving against the regular price, as a whole percentage; 0 when there is none. */

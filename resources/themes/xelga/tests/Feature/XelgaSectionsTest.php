@@ -168,6 +168,24 @@ class XelgaSectionsTest extends TestCase
             ->assertSee('-25%');
     }
 
+    public function test_a_discount_shows_the_regular_price_struck_but_only_a_special_earns_the_sale_badge(): void
+    {
+        $discounted = $this->product('Reseller Rate Tee', ['price' => 2000]);
+        ProductDiscount::create(['product_id' => $discounted->id, 'customer_group_id' => null, 'quantity' => 1, 'price_type' => 'fixed', 'value' => 1600]);
+        $this->publishHome([['type' => 'featured-products', 'settings' => ['heading' => 'Everything', 'source' => 'newest', 'count' => 8]]]);
+
+        $this->home()->assertSee('Reseller Rate Tee')
+            ->assertSee('<s class="price__was">' . e(money(2000)) . '</s>', false)
+            ->assertDontSee('badge--sale', false);
+
+        $special = $this->product('Weekend Sale Tote', ['price' => 1000]);
+        ProductSpecial::create(['product_id' => $special->id, 'price_type' => 'fixed', 'value' => 800, 'date_end' => now()->addWeek()]);
+
+        $this->home()->assertSee('Weekend Sale Tote')
+            ->assertSee('<s class="price__was">' . e(money(1000)) . '</s>', false)
+            ->assertSee('badge--sale', false)->assertSee('-20%');
+    }
+
     public function test_on_sale_lists_only_products_with_a_running_sale(): void
     {
         $this->product('Regular Price Tee');
