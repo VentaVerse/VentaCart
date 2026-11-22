@@ -27,7 +27,7 @@ class CategoryController extends Controller
 
         $query = Product::where('is_active', true)
             ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds))
-            ->with(['images', 'specials', 'brand', \App\Support\ProductAttributes::CARD_RELATION])
+            ->with(['images', 'specials', 'discounts', 'brand', \App\Support\ProductAttributes::CARD_RELATION])
             ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
 
                 ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')

@@ -6,7 +6,6 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Customer;
 use App\Models\Product;
-use App\Models\ProductSpecial;
 use App\Models\ProductVariant;
 use App\Services\ActivityLogger;
 use Illuminate\Support\Collection;
@@ -190,7 +189,7 @@ class CartService
             return null;
         }
 
-        $item = $cart->items()->with('product.specials')->findOrFail($cartItemId);
+        $item = $cart->items()->with(['product.specials', 'product.discounts'])->findOrFail($cartItemId);
 
         if ($quantity <= 0) {
             $this->remove($cartItemId);
@@ -230,7 +229,7 @@ class CartService
         }
 
         $items = $cart->items()
-            ->with(['product.images', 'product.specials', 'productVariant'])
+            ->with(['product.images', 'product.specials', 'product.discounts', 'productVariant'])
             ->get();
 
         $this->refreshPrices($items);
@@ -261,8 +260,8 @@ class CartService
 
     /**
      * What a cart line costs right now: the variant's price (which carries
-     * its modifier) or the product's, run through the specials and volume
-     * tiers for the customer group and the line's quantity. Rounded to the
+     * its modifier) or the product's, run through the specials and
+     * discounts for the customer group and the line's quantity. Rounded to the
      * cents a price column stores. Null when the product is gone.
      *
      * The cart page, the checkout page and order placement all price a
@@ -381,71 +380,28 @@ class CartService
     }
 
     /**
-     * Resolve the best price for a product/variant considering specials.
-     *
-     * Specials are stored against product.price (the base). When the cart item
-     * is a variant, $basePrice is variant.price (= product.price + modifier).
-     * The special's price is treated as a *new base*, and the variant's modifier
-     * carries over on top — so a sale of 720→500 on product P with variants at
-     * +0/+280/+560 yields 500/780/1060, not a flat 500 across all variants.
-     *
-     * Math:
-     *   modifier = basePrice − product.price   (0 for non-variant items)
-     *   effective_variant_price = special.price + modifier
-     *   final = max(0, effective_variant_price) when a special applies, else basePrice
+     * What one unit costs on a line of $qty for the customer group, from
+     * PriceResolver: the lowest of the regular price, every active special
+     * and the group's qualifying discounts. $basePrice is the variant's own
+     * price (or the product's); a fixed special or discount keeps the
+     * variant's difference from the product price on top. A null group
+     * means the shopper's own group (see customerGroupId()).
      */
     public static function resolvePrice(Product $product, float $basePrice, int $qty = 1, ?int $customerGroupId = null): float
     {
-        $special = self::winningSpecial($product, $qty, $customerGroupId);
+        $customerGroupId ??= self::customerGroupId();
 
-        if ($special === null) {
-            return max(0.0, $basePrice);
-        }
-
-        $modifier = $basePrice - (float) $product->price;
-
-        return max(0.0, (float) $special->price + $modifier);
+        return PriceResolver::resolve($product, $basePrice, $qty, $customerGroupId)->price;
     }
 
     /**
      * The customer group prices are worked out for: the signed-in
      * customer's, else the store's default group, so guests get the
-     * default group's specials and tiers just as the cart charges them.
+     * default group's discounts just as the cart charges them.
      */
     public static function customerGroupId(): ?int
     {
         return Auth::guard('customer')->user()?->customer_group_id
             ?? once(fn () => \App\Models\CustomerGroup::defaultId());
-    }
-
-    /**
-     * The special the cart applies to $qty units, or null when none does.
-     *
-     * Quantity-tier semantics: the DEEPEST tier whose threshold is at or
-     * below the quantity wins (the most specific tier for this quantity),
-     * whether its price is above or below the base. Within a tier, the lower
-     * priority value wins, then the lower price.
-     */
-    public static function winningSpecial(Product $product, int $qty = 1, ?int $customerGroupId = null): ?ProductSpecial
-    {
-        $customerGroupId ??= self::customerGroupId();
-        $now = now();
-
-        $applicable = $product->specials
-            ->filter(function ($s) use ($now, $customerGroupId, $qty) {
-                if (! $s->isActiveAt($now)) return false;
-                if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                if ($s->quantity > $qty) return false;
-                return true;
-            });
-
-        if ($applicable->isEmpty()) {
-            return null;
-        }
-
-        return $applicable
-            ->where('quantity', $applicable->max('quantity'))
-            ->sortBy([['priority', 'asc'], ['price', 'asc']])
-            ->first();
     }
 }

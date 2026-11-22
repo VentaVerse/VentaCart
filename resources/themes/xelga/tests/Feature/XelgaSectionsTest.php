@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\Product;
+use App\Models\ProductDiscount;
 use App\Models\ProductSpecial;
 use App\Models\Store;
 use App\Models\VariantType;
@@ -155,7 +156,7 @@ class XelgaSectionsTest extends TestCase
     {
         $plain = $this->product('Merino Cardigan', ['price' => 3250]);
         $sale = $this->product('Wool Jacket', ['price' => 6000]);
-        ProductSpecial::create(['product_id' => $sale->id, 'price' => 4500, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1]);
+        ProductSpecial::create(['product_id' => $sale->id, 'price_type' => 'fixed', 'value' => 4500, 'date_end' => now()->addWeek()]);
         $this->publishHome([['type' => 'featured-products', 'settings' => ['heading' => 'New this season', 'source' => 'newest', 'count' => 8]]]);
 
         $response = $this->home();
@@ -171,7 +172,7 @@ class XelgaSectionsTest extends TestCase
     {
         $this->product('Regular Price Tee');
         $sale = $this->product('Discounted Tote');
-        ProductSpecial::create(['product_id' => $sale->id, 'price' => 900, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1]);
+        ProductSpecial::create(['product_id' => $sale->id, 'price_type' => 'fixed', 'value' => 900, 'date_end' => now()->addWeek()]);
         $this->publishHome([['type' => 'featured-products', 'settings' => ['heading' => 'On sale now', 'source' => 'on-sale']]]);
 
         $this->home()->assertSee('Discounted Tote')->assertDontSee('Regular Price Tee');
@@ -195,7 +196,7 @@ class XelgaSectionsTest extends TestCase
         $kept = $this->product('Reseller Bundle', ['price' => 9000]);
         $kept->customerGroups()->attach($wholesale->id);
         $shared = $this->product('Shared Trouser', ['price' => 3000]);
-        ProductSpecial::create(['product_id' => $shared->id, 'customer_group_id' => $wholesale->id, 'price' => 2400, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1]);
+        ProductDiscount::create(['product_id' => $shared->id, 'customer_group_id' => $wholesale->id, 'quantity' => 1, 'price_type' => 'fixed', 'value' => 2400]);
         $this->publishHome([
             ['type' => 'featured-products', 'settings' => ['heading' => 'Everything', 'source' => 'newest', 'count' => 12]],
             ['type' => 'product-spotlight', 'settings' => ['heading' => 'For resellers', 'product' => $kept->id]],
@@ -229,19 +230,20 @@ class XelgaSectionsTest extends TestCase
     {
         $product = $this->product('Pedal of the Week', ['price' => 7600]);
         $end = now()->addDays(3)->startOfMinute();
-        ProductSpecial::create(['product_id' => $product->id, 'price' => 6450, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1, 'date_end' => $end]);
+        ProductSpecial::create(['product_id' => $product->id, 'price_type' => 'fixed', 'value' => 6450, 'date_end' => $end]);
         $this->publishHome([['type' => 'product-spotlight', 'settings' => ['heading' => 'Deal of the week', 'product' => $product->id, 'show_countdown' => true]]]);
 
         $this->home()->assertSee('Pedal of the Week')->assertSee(money(6450))
             ->assertSee('data-countdown-end="' . Pricing::display($product->fresh())->endsAtIso() . '"', false);
     }
 
-    public function test_spotlight_has_no_countdown_for_a_special_without_an_end_or_far_away(): void
+    public function test_spotlight_has_no_countdown_for_a_discount_or_a_special_far_away(): void
     {
+        // A discount never ends, so there is nothing to count down to.
         $open = $this->product('Open Ended Deal');
-        ProductSpecial::create(['product_id' => $open->id, 'price' => 1000, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1]);
+        ProductDiscount::create(['product_id' => $open->id, 'customer_group_id' => null, 'quantity' => 1, 'price_type' => 'fixed', 'value' => 1000]);
         $far = $this->product('Far Away Deal');
-        ProductSpecial::create(['product_id' => $far->id, 'price' => 1000, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1, 'date_end' => now()->addYears(2)]);
+        ProductSpecial::create(['product_id' => $far->id, 'price_type' => 'fixed', 'value' => 1000, 'date_end' => now()->addYears(2)]);
         $this->publishHome([
             ['type' => 'product-spotlight', 'settings' => ['product' => $open->id]],
             ['type' => 'product-spotlight', 'settings' => ['product' => $far->id]],

@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
 use App\Models\Product;
+use App\Models\ProductDiscount;
 use App\Models\ProductSpecial;
 use App\Services\CartService;
 use App\Services\ThemeService;
@@ -69,7 +70,7 @@ class ListingSortsAndOnSaleTest extends TestCase
     private function sale(Product $product, array $attrs = []): ProductSpecial
     {
         return ProductSpecial::create($attrs + [
-            'product_id' => $product->id, 'price' => 80, 'display_mode' => 'sale',
+            'product_id' => $product->id, 'price_type' => 'fixed', 'value' => 80,
             'date_start' => now()->subDay(), 'date_end' => now()->addDay(),
         ]);
     }
@@ -182,63 +183,64 @@ class ListingSortsAndOnSaleTest extends TestCase
         }
     }
 
-    public function test_on_sale_follows_the_shoppers_customer_group(): void
+    public function test_discount_alone_is_not_on_sale(): void
     {
         $reseller = CustomerGroup::create(['store_id' => 1, 'name' => 'Reseller']);
         $this->sale($this->product('Everyone Sale Demo', ['price' => 300]));
-        $this->sale($this->product('Retail Sale Demo', ['price' => 200]), ['customer_group_id' => $this->retail->id]);
-        $this->sale($this->product('Reseller Sale Demo', ['price' => 100]), ['customer_group_id' => $reseller->id]);
+        $retail = $this->product('Retail Discount Demo', ['price' => 200]);
+        ProductDiscount::create(['product_id' => $retail->id, 'customer_group_id' => $this->retail->id, 'quantity' => 1, 'price_type' => 'fixed', 'value' => 150]);
+        $resold = $this->product('Reseller Discount Demo', ['price' => 100]);
+        ProductDiscount::create(['product_id' => $resold->id, 'customer_group_id' => $reseller->id, 'quantity' => 1, 'price_type' => 'percent', 'value' => 10]);
+        $everyone = $this->product('All Groups Discount Demo', ['price' => 100]);
+        ProductDiscount::create(['product_id' => $everyone->id, 'customer_group_id' => null, 'quantity' => 1, 'price_type' => 'fixed', 'value' => 50]);
 
-        foreach ($this->listingPages(['on_sale' => '1', 'sort' => 'price_asc']) as $page => $url) {
-            $this->assertSame(['Retail Sale Demo', 'Everyone Sale Demo'], $this->names($url), "guest on {$page}");
+        // The card still shows the discount slashed; it just is not a sale.
+        $this->assertTrue(Pricing::display($retail)->isSale());
+
+        foreach ($this->listingPages(['on_sale' => '1']) as $page => $url) {
+            $this->assertSame(['Everyone Sale Demo'], $this->names($url), "guest on {$page}");
         }
 
         $this->actingAs(Customer::create(['store_id' => 1, 'customer_group_id' => $reseller->id, 'first_name' => 'Maria',
             'last_name' => 'Santos', 'email' => 'maria@example.com', 'password' => bcrypt('secret'), 'is_active' => true]), 'customer');
 
-        foreach ($this->listingPages(['on_sale' => '1', 'sort' => 'price_asc']) as $page => $url) {
-            $this->assertSame(['Reseller Sale Demo', 'Everyone Sale Demo'], $this->names($url), "reseller on {$page}");
-        }
-    }
-
-    public function test_on_sale_skips_volume_tiers_and_sales_outranked_by_a_quiet_price(): void
-    {
-        $this->sale($this->product('Ten Or More Demo'), ['quantity' => 10, 'price' => 50]);
-        $quiet = $this->product('Quiet Price Wins Demo');
-        $this->sale($quiet, ['display_mode' => 'override', 'priority' => 1, 'price' => 90]);
-        $this->sale($quiet, ['priority' => 5, 'price' => 70]);
-        $this->sale($this->product('Plain Sale Demo'));
-
         foreach ($this->listingPages(['on_sale' => '1']) as $page => $url) {
-            $this->assertSame(['Plain Sale Demo'], $this->names($url), $page);
+            $this->assertSame(['Everyone Sale Demo'], $this->names($url), "reseller on {$page}");
         }
     }
 
-    public function test_the_on_sale_rule_agrees_with_the_special_the_cart_charges(): void
+    public function test_a_special_is_on_sale_for_every_customer_group(): void
     {
-        $other = CustomerGroup::create(['store_id' => 1, 'name' => 'Other']);
+        $reseller = CustomerGroup::create(['store_id' => 1, 'name' => 'Reseller']);
+        $this->sale($this->product('Percent Sale Demo'), ['price_type' => 'percent', 'value' => 15]);
+
+        $this->assertSame(['Percent Sale Demo'], $this->names(route('search.results', ['on_sale' => '1'])));
+
+        $this->actingAs(Customer::create(['store_id' => 1, 'customer_group_id' => $reseller->id, 'first_name' => 'Maria',
+            'last_name' => 'Santos', 'email' => 'maria@example.com', 'password' => bcrypt('secret'), 'is_active' => true]), 'customer');
+
+        $this->assertSame(['Percent Sale Demo'], $this->names(route('search.results', ['on_sale' => '1'])));
+    }
+
+    public function test_the_on_sale_rule_agrees_with_the_special_the_card_shows(): void
+    {
         $window = ['date_start' => now()->subDay(), 'date_end' => now()->addDay()];
         $cases = [
-            'sale only' => [['display_mode' => 'sale']],
-            'quiet price only' => [['display_mode' => 'override']],
-            'sale outranks quiet' => [['display_mode' => 'sale', 'priority' => 1], ['display_mode' => 'override', 'priority' => 2]],
-            'cheaper sale at the same rank' => [['display_mode' => 'sale', 'price' => 60], ['display_mode' => 'override', 'price' => 70]],
-            'cheaper quiet at the same rank' => [['display_mode' => 'sale', 'price' => 70], ['display_mode' => 'override', 'price' => 60]],
-            'one-unit tier beats no tier' => [['display_mode' => 'override', 'quantity' => 0], ['display_mode' => 'sale', 'quantity' => 1, 'priority' => 9]],
-            'other group sale ignored' => [['display_mode' => 'sale', 'customer_group_id' => $other->id]],
-            'other group quiet ignored' => [['display_mode' => 'sale', 'priority' => 5], ['display_mode' => 'override', 'priority' => 1, 'customer_group_id' => $other->id]],
-            'ended quiet ignored' => [['display_mode' => 'sale', 'priority' => 5], ['display_mode' => 'override', 'priority' => 1, 'date_end' => now()->subHour()]],
-            'sale not started' => [['display_mode' => 'sale', 'date_start' => now()->addDay(), 'date_end' => now()->addDays(3)]],
-            'sale above the regular price' => [['display_mode' => 'sale', 'price' => 120]],
-            'sale at the regular price' => [['display_mode' => 'sale', 'price' => 100]],
-            'earlier sale wins a full tie' => [['display_mode' => 'sale', 'price' => 70], ['display_mode' => 'override', 'price' => 70]],
-            'earlier quiet wins a full tie' => [['display_mode' => 'override', 'price' => 70], ['display_mode' => 'sale', 'price' => 70]],
+            'fixed below the regular price' => [['value' => 80]],
+            'fixed above the regular price' => [['value' => 120]],
+            'fixed at the regular price' => [['value' => 100]],
+            'percent off' => [['price_type' => 'percent', 'value' => 20]],
+            'nothing off' => [['price_type' => 'percent', 'value' => 0]],
+            'not started' => [['value' => 80, 'date_start' => now()->addDay(), 'date_end' => now()->addDays(3)]],
+            'ended' => [['value' => 80, 'date_start' => now()->subDays(3), 'date_end' => now()->subHour()]],
+            'one running below and one above' => [['value' => 120], ['value' => 70]],
+            'ended below and running above' => [['value' => 120], ['value' => 70, 'date_end' => now()->subHour()]],
         ];
 
         foreach ($cases as $name => $specials) {
             $product = $this->product(Str::title($name) . ' Demo');
             foreach ($specials as $special) {
-                ProductSpecial::create($special + $window + ['product_id' => $product->id, 'price' => 80, 'quantity' => 1, 'priority' => 1]);
+                ProductSpecial::create($special + $window + ['product_id' => $product->id, 'price_type' => 'fixed']);
             }
         }
 
@@ -250,7 +252,7 @@ class ListingSortsAndOnSaleTest extends TestCase
             $shownAsSale += (int) $sale;
             $this->assertSame($sale, in_array($product->id, $listed, true), $product->name);
         }
-        $this->assertSame(7, $shownAsSale, 'the cases cover both outcomes');
+        $this->assertSame(3, $shownAsSale, 'the cases cover both outcomes');
     }
 
     public function test_hidden_products_stay_hidden_under_the_new_sorts_and_on_sale(): void

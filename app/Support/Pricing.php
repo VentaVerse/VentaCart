@@ -4,15 +4,17 @@ namespace App\Support;
 
 use App\Models\Product;
 use App\Services\CartService;
+use App\Services\PriceResolver;
 
 /**
  * The one place a storefront view gets a product's price from.
  *
  * Cards, widgets and product pages must show what the cart will charge. A
- * view that picks a special on its own drifts from the cart: it misses the
- * default customer group's specials for guests, or breaks a tie another
- * way, and the shopper sees one price on the card and another at checkout.
- * This asks CartService for both the amount and the special behind it.
+ * view that picks a price on its own drifts from the cart: it misses the
+ * default customer group's discounts for guests, or weighs a special
+ * against a discount another way, and the shopper sees one price on the
+ * card and another at checkout. This asks PriceResolver, as the cart does,
+ * for both the amount and the rule behind it.
  */
 final class Pricing
 {
@@ -22,7 +24,7 @@ final class Pricing
      */
     public static function display(Product $product, ?int $variantId = null, int $quantity = 1): DisplayPrice
     {
-        $product->loadMissing('specials');
+        $product->loadMissing(['specials', 'discounts']);
 
         $regular = (float) $product->price;
 
@@ -39,14 +41,15 @@ final class Pricing
         }
 
         $quantity = max(1, $quantity);
-        $groupId = CartService::customerGroupId();
-        $special = CartService::winningSpecial($product, $quantity, $groupId);
+        $resolved = PriceResolver::resolve($product, $regular, $quantity, CartService::customerGroupId());
+        // A countdown runs to the special's end; a discount never ends.
+        $special = $resolved->source === PriceResolver::SOURCE_SPECIAL ? $resolved->special : null;
 
         return new DisplayPrice(
-            price: CartService::resolvePrice($product, $regular, $quantity, $groupId),
-            regularPrice: $regular,
+            price: $resolved->price,
+            regularPrice: $resolved->regularPrice,
+            source: $resolved->source,
             special: $special,
-            displayMode: $special?->display_mode,
             endsAt: $special?->date_end,
         );
     }

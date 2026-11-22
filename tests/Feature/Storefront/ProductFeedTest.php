@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
 use App\Models\Product;
+use App\Models\ProductDiscount;
 use App\Models\ProductSpecial;
 use App\Services\ExtensionManager;
 use App\Support\ProductFeed;
@@ -103,60 +104,57 @@ class ProductFeedTest extends TestCase
         $this->assertSame(1, $sums, 'the order lines are summed once, then the cached ranking is used');
     }
 
-    public function test_on_sale_lists_only_products_with_an_active_sale_special(): void
+    public function test_on_sale_lists_only_products_with_an_active_special(): void
     {
         $sale = $this->product('On Sale');
         $expired = $this->product('Sale Ended');
         $future = $this->product('Sale Not Started');
         $this->product('Full Price');
 
-        ProductSpecial::create(['product_id' => $sale->id, 'price' => 80, 'display_mode' => 'sale', 'date_start' => now()->subDay(), 'date_end' => now()->addDay()]);
-        ProductSpecial::create(['product_id' => $expired->id, 'price' => 80, 'display_mode' => 'sale', 'date_start' => now()->subDays(5), 'date_end' => now()->subDays(2)]);
-        ProductSpecial::create(['product_id' => $future->id, 'price' => 80, 'display_mode' => 'sale', 'date_start' => now()->addDays(2), 'date_end' => now()->addDays(5)]);
+        ProductSpecial::create(['product_id' => $sale->id, 'price_type' => 'fixed', 'value' => 80, 'date_start' => now()->subDay(), 'date_end' => now()->addDay()]);
+        ProductSpecial::create(['product_id' => $expired->id, 'price_type' => 'fixed', 'value' => 80, 'date_start' => now()->subDays(5), 'date_end' => now()->subDays(2)]);
+        ProductSpecial::create(['product_id' => $future->id, 'price_type' => 'fixed', 'value' => 80, 'date_start' => now()->addDays(2), 'date_end' => now()->addDays(5)]);
 
         $this->assertSame(['On Sale'], $this->names(['filter' => 'on_sale']));
     }
 
-    public function test_on_sale_follows_the_shoppers_customer_group(): void
+    public function test_on_sale_is_the_same_for_every_customer_group_and_ignores_discounts(): void
     {
         $retail = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
         $reseller = CustomerGroup::create(['store_id' => 1, 'name' => 'Reseller']);
-        $window = ['display_mode' => 'sale', 'date_start' => now()->subDay(), 'date_end' => now()->addDay()];
+        $window = ['price_type' => 'fixed', 'date_start' => now()->subDay(), 'date_end' => now()->addDay()];
 
         $everyone = $this->product('Sale For Everyone', ['date_available' => now()->subDays(3)]);
-        $retailOnly = $this->product('Retail Sale', ['date_available' => now()->subDays(2)]);
-        $resellerOnly = $this->product('Reseller Sale', ['date_available' => now()->subDay()]);
+        $percent = $this->product('Percent Sale', ['date_available' => now()->subDays(2)]);
+        $retailOnly = $this->product('Retail Discount', ['date_available' => now()->subDay()]);
+        $tier = $this->product('Ten Or More');
 
-        ProductSpecial::create(['product_id' => $everyone->id, 'price' => 80] + $window);
-        ProductSpecial::create(['product_id' => $retailOnly->id, 'customer_group_id' => $retail->id, 'price' => 80] + $window);
-        ProductSpecial::create(['product_id' => $resellerOnly->id, 'customer_group_id' => $reseller->id, 'price' => 70] + $window);
+        ProductSpecial::create(['product_id' => $everyone->id, 'value' => 80] + $window);
+        ProductSpecial::create(['product_id' => $percent->id, 'price_type' => 'percent', 'value' => 10] + $window);
+        // A discount is a standing group price, not a sale, at any quantity.
+        ProductDiscount::create(['product_id' => $retailOnly->id, 'customer_group_id' => $retail->id, 'quantity' => 1, 'price_type' => 'fixed', 'value' => 70]);
+        ProductDiscount::create(['product_id' => $tier->id, 'customer_group_id' => null, 'quantity' => 10, 'price_type' => 'fixed', 'value' => 50]);
 
-        // A guest shops as the default group: a reseller's sale is not theirs.
-        $this->assertSame(['Retail Sale', 'Sale For Everyone'], $this->names(['filter' => 'on_sale']));
+        $this->assertSame(['Percent Sale', 'Sale For Everyone'], $this->names(['filter' => 'on_sale']));
 
         $customer = Customer::create(['store_id' => 1, 'customer_group_id' => $reseller->id, 'first_name' => 'Juan',
             'last_name' => 'Dela Cruz', 'email' => 'reseller@example.com', 'password' => bcrypt('secret'), 'is_active' => true]);
         $this->actingAs($customer, 'customer');
 
-        $this->assertSame(['Reseller Sale', 'Sale For Everyone'], $this->names(['filter' => 'on_sale']));
-        $this->assertSame(['Reseller Sale'], $this->names(['filter' => 'on_sale', 'ids' => [$resellerOnly->id, $retailOnly->id]]));
+        $this->assertSame(['Percent Sale', 'Sale For Everyone'], $this->names(['filter' => 'on_sale']));
+        $this->assertSame(['Percent Sale'], $this->names(['filter' => 'on_sale', 'ids' => [$percent->id, $retailOnly->id]]));
     }
 
-    public function test_on_sale_skips_volume_tiers_and_specials_that_win_without_a_sale_label(): void
+    public function test_on_sale_skips_a_special_that_saves_nothing(): void
     {
         CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
         $window = ['date_start' => now()->subDay(), 'date_end' => now()->addDay()];
 
-        $tier = $this->product('Ten Or More');
-        $quiet = $this->product('Quiet Price Wins');
+        $above = $this->product('Above Regular');
         $plain = $this->product('Plain Sale');
 
-        // Only from ten units: one unit is at the regular price.
-        ProductSpecial::create(['product_id' => $tier->id, 'price' => 50, 'quantity' => 10, 'display_mode' => 'sale'] + $window);
-        // A quiet price with the higher rank wins on the card, so no sale shows.
-        ProductSpecial::create(['product_id' => $quiet->id, 'price' => 90, 'priority' => 1, 'display_mode' => 'override'] + $window);
-        ProductSpecial::create(['product_id' => $quiet->id, 'price' => 70, 'priority' => 5, 'display_mode' => 'sale'] + $window);
-        ProductSpecial::create(['product_id' => $plain->id, 'price' => 70, 'display_mode' => 'sale'] + $window);
+        ProductSpecial::create(['product_id' => $above->id, 'price_type' => 'fixed', 'value' => 150] + $window);
+        ProductSpecial::create(['product_id' => $plain->id, 'price_type' => 'fixed', 'value' => 70] + $window);
 
         $this->assertSame(['Plain Sale'], $this->names(['filter' => 'on_sale']));
     }
@@ -277,7 +275,7 @@ class ProductFeedTest extends TestCase
 
         $product = ProductFeed::get()->first();
 
-        foreach (['images', 'specials', 'brand', 'cardAttributes'] as $relation) {
+        foreach (['images', 'specials', 'discounts', 'brand', 'cardAttributes'] as $relation) {
             $this->assertTrue($product->relationLoaded($relation), $relation);
         }
         $this->assertFalse($product->relationLoaded('variants'));

@@ -22,8 +22,9 @@ use Illuminate\Support\Facades\DB;
  *  - only products the viewer may see: the query goes through Product, so the
  *    customer-group visibility scope applies exactly as it does on category
  *    pages (a product kept for one group never reaches a guest);
- *  - prices are not computed here: the products carry their specials, and a
- *    view asks Pricing::display() for the amount the cart will charge.
+ *  - prices are not computed here: the products carry their specials and
+ *    discounts, and a view asks Pricing::display() for the amount the cart
+ *    will charge.
  *
  * Criteria (all optional; they narrow one another):
  *
@@ -48,8 +49,8 @@ use Illuminate\Support\Facades\DB;
  *   limit          int, 1 to 48, default 12. Out-of-range values are clamped.
  *   variants       bool, default false: also eager-load the active variants.
  *
- * Returned: an Eloquent Collection of Product, with images, specials, brand
- * and the card attributes loaded, and reviews_avg_rating / reviews_count set
+ * Returned: an Eloquent Collection of Product, with images, specials,
+ * discounts, brand and the card attributes loaded, and reviews_avg_rating / reviews_count set
  * while the reviews extension is enabled.
  */
 final class ProductFeed
@@ -153,7 +154,7 @@ final class ProductFeed
     /** @return array<int|string, mixed> */
     private static function relations(bool $variants): array
     {
-        $with = ['images', 'specials', 'brand', ProductAttributes::CARD_RELATION];
+        $with = ['images', 'specials', 'discounts', 'brand', ProductAttributes::CARD_RELATION];
 
         if ($variants) {
             $with['variants'] = fn ($q) => $q->where('is_active', true);

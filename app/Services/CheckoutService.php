@@ -299,7 +299,7 @@ class CheckoutService
             throw new \InvalidArgumentException('Invalid payment method.');
         }
 
-        $items = $cart->items()->with(['product.specials', 'productVariant'])->get();
+        $items = $cart->items()->with(['product.specials', 'product.discounts', 'productVariant'])->get();
         if ($items->isEmpty()) {
             throw new \InvalidArgumentException('Cart is empty.');
         }
@@ -670,7 +670,7 @@ class CheckoutService
      */
     private function lateCartChanges(Cart $cart, Collection $items, ?int $customerGroupId): array
     {
-        $fresh = $cart->items()->with(['product.specials', 'productVariant'])->get()->keyBy('id');
+        $fresh = $cart->items()->with(['product.specials', 'product.discounts', 'productVariant'])->get()->keyBy('id');
 
         $sameLines = $fresh->count() === $items->count()
             && $items->every(fn ($item) => $fresh->has($item->id)

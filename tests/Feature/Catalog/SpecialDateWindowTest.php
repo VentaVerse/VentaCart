@@ -68,8 +68,8 @@ class SpecialDateWindowTest extends TestCase
     private function special(Product $product, mixed $start, mixed $end, float $price = 800): ProductSpecial
     {
         return ProductSpecial::create([
-            'product_id' => $product->id, 'customer_group_id' => null, 'price' => $price, 'quantity' => 1,
-            'display_mode' => 'sale', 'priority' => 1, 'date_start' => $start, 'date_end' => $end,
+            'product_id' => $product->id, 'price_type' => 'fixed', 'value' => $price,
+            'date_start' => $start, 'date_end' => $end,
         ]);
     }
 
@@ -87,9 +87,7 @@ class SpecialDateWindowTest extends TestCase
 
         $display = Pricing::display($fresh)->price;
         $cart = CartService::resolvePrice($fresh, (float) $fresh->price);
-        $listed = Product::whereKey($product->id)
-            ->whereHas('specials', fn ($q) => $q->where('display_mode', 'sale')->activeAt())
-            ->exists();
+        $listed = Product::whereKey($product->id)->onSaleFor(CartService::customerGroupId())->exists();
 
         $this->assertSame($display, $cart, "Display and cart prices disagree at {$storeTime}.");
         $this->assertSame($display < 1000.0, $listed, "The listing filter disagrees with the price at {$storeTime}.");
@@ -125,7 +123,7 @@ class SpecialDateWindowTest extends TestCase
     public function test_a_date_only_start_opens_at_midnight_of_that_day(): void
     {
         $product = $this->product();
-        $this->special($product, '2026-10-25', null);
+        $this->special($product, '2026-10-25', '2026-11-30');
 
         $this->assertSame(1000.0, $this->pricesAt($product, '2026-10-24 23:59:59')['display']);
         $this->assertSame(800.0, $this->pricesAt($product, '2026-10-25 00:00:00')['display']);
@@ -174,9 +172,9 @@ class SpecialDateWindowTest extends TestCase
         $special->update(['date_end' => Carbon::parse('2026-10-31 13:30:00', 'UTC')]);
         $this->assertSame('2026-10-31 21:30:00', DB::table('product_specials')->where('id', $special->id)->value('date_end'));
 
-        $special->update(['date_start' => null, 'date_end' => '']);
+        // An empty start means the special runs from now; the end is required.
+        $special->update(['date_start' => '']);
         $this->assertNull(DB::table('product_specials')->where('id', $special->id)->value('date_start'));
-        $this->assertNull(DB::table('product_specials')->where('id', $special->id)->value('date_end'));
     }
 
     public function test_an_impossible_date_is_refused_not_stored(): void

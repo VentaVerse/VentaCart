@@ -206,58 +206,31 @@ class Product extends Model
     }
 
     /**
-     * Products on sale for one customer group: the special the cart charges
-     * for one unit (see CartService::winningSpecial) is shown as a sale.
+     * Products on sale: those with an active special that charges less than
+     * the regular price for one unit. A discount alone is a standing group
+     * price, not a sale, so it never lists a product here (the card still
+     * shows it slashed, see DisplayPrice::isSale()).
      *
-     * A special belongs to one group, or to every group when it names none,
-     * so a sale kept for another group never lists a product at this
-     * shopper's regular price. Only specials for one unit count: a volume
-     * tier does not change the price on the card. And a product is on sale
-     * only when its sale is the special that wins (a quiet price that
-     * outranks it is what the card shows, with no sale on it) and is below
-     * the regular price.
+     * Specials apply to every customer group, so $customerGroupId does not
+     * change the result; it stays so callers need not know that.
      *
-     * The rule is written in SQL so a paginated listing can filter by it.
-     * It mirrors winningSpecial(): the deepest tier at or below one unit,
-     * then the lower priority, then the lower price, then the earlier row.
+     * The rule is written in SQL so a paginated listing can filter by it. A
+     * fixed special is compared with the product's own price; a percentage
+     * off is below it whenever it takes anything off.
      */
     public function scopeOnSaleFor(Builder $query, ?int $customerGroupId): Builder
     {
-        $applies = fn (Builder $special) => $special
-            ->where($special->qualifyColumn('quantity'), '<=', 1)
-            ->where(fn (Builder $g) => $g->whereNull($g->qualifyColumn('customer_group_id'))
-                ->orWhere($g->qualifyColumn('customer_group_id'), $customerGroupId))
-            ->activeAt();
-
         $regularPrice = $query->qualifyColumn('price');
 
-        return $query->whereHas('specials', function (Builder $sale) use ($applies, $regularPrice) {
-            // A sale at or above the regular price saves nothing, so the card
-            // shows no sale (DisplayPrice::isSale()).
-            $applies($sale)->where($sale->qualifyColumn('display_mode'), 'sale')
-                ->whereColumn($sale->qualifyColumn('price'), '<', $regularPrice);
-
-            // No other special that applies outranks this sale.
-            $rivalModel = (new ProductSpecial())->setTable('rival');
-            $rival = $rivalModel->newQuery()->from($sale->getModel()->getTable(), 'rival');
-            $applies($rival)
-                ->whereColumn('rival.product_id', $sale->qualifyColumn('product_id'))
-                ->where(fn (Builder $better) => $better
-                    ->whereColumn('rival.quantity', '>', $sale->qualifyColumn('quantity'))
-                    ->orWhere(fn (Builder $tie) => $tie
-                        ->whereColumn('rival.quantity', $sale->qualifyColumn('quantity'))
-                        ->where(fn (Builder $rank) => $rank
-                            ->whereColumn('rival.priority', '<', $sale->qualifyColumn('priority'))
-                            ->orWhere(fn (Builder $samePriority) => $samePriority
-                                ->whereColumn('rival.priority', $sale->qualifyColumn('priority'))
-                                ->where(fn (Builder $price) => $price
-                                    ->whereColumn('rival.price', '<', $sale->qualifyColumn('price'))
-                                    ->orWhere(fn (Builder $samePrice) => $samePrice
-                                        ->whereColumn('rival.price', $sale->qualifyColumn('price'))
-                                        ->whereColumn('rival.id', '<', $sale->qualifyColumn('id'))))))));
-
-            $sale->whereNotExists($rival->toBase());
-        });
+        return $query->whereHas('specials', fn (Builder $special) => $special
+            ->activeAt()
+            ->where(fn (Builder $saves) => $saves
+                ->where(fn (Builder $fixed) => $fixed
+                    ->where($special->qualifyColumn('price_type'), 'fixed')
+                    ->whereColumn($special->qualifyColumn('value'), '<', $regularPrice))
+                ->orWhere(fn (Builder $percent) => $percent
+                    ->where($special->qualifyColumn('price_type'), 'percent')
+                    ->where($special->qualifyColumn('value'), '>', 0))));
     }
 
     /** Fields themes print as HTML (see App\Support\RichText). */

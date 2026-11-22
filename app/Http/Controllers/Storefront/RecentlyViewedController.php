@@ -24,7 +24,7 @@ class RecentlyViewedController extends Controller
 
         $products = Product::where('is_active', true)
             ->whereIn('id', $ids)
-            ->with(['images', 'specials'])
+            ->with(['images', 'specials', 'discounts'])
             // Ratings belong to the reviews extension; without it there are none.
             ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
                 ->withAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'approved')], 'rating')
@@ -33,10 +33,9 @@ class RecentlyViewedController extends Controller
             ->map(function ($product) use ($badgeService) {
                 $galleryImage = $product->images->sortBy('sort_order')->first();
                 $image = $product->image ? (object)['path' => $product->image] : $galleryImage;
-                // What the cart will charge, and the special behind it.
+                // What the cart will charge, and whether it is below the regular price.
                 $pricing = Pricing::display($product);
                 $salePrice = $pricing->isSale() ? $pricing->price : null;
-                $overridePrice = ! $pricing->isSale() && $pricing->special !== null ? $pricing->price : null;
                 $displayPrice = $pricing->isSale() ? $pricing->regularPrice : $pricing->price;
 
                 return [
@@ -45,7 +44,8 @@ class RecentlyViewedController extends Controller
                     'slug' => $product->slug,
                     'price' => $displayPrice,
                     'sale_price' => $salePrice,
-                    'override_price' => $overridePrice,
+                    // Kept for scripts that read it; any price below the regular one is a sale, so there is no plain override.
+                    'override_price' => null,
                     'formatted_price' => money($displayPrice),
                     'formatted_sale_price' => $salePrice !== null ? money($salePrice) : null,
                     'pricing' => $pricing->toArray(),

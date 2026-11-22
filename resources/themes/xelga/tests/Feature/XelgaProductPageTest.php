@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\Product;
+use App\Models\ProductDiscount;
 use App\Models\ProductSpecial;
 use App\Models\ProductVariant;
 use App\Models\Store;
@@ -121,8 +122,8 @@ class XelgaProductPageTest extends TestCase
     public function test_volume_tiers_show_only_to_the_group_core_gives_them_to(): void
     {
         $shirt = $this->product('Linen Shirt');
-        ProductSpecial::create(['product_id' => $shirt->id, 'customer_group_id' => $this->resellers->id, 'price' => 900, 'quantity' => 6, 'priority' => 1]);
-        ProductSpecial::create(['product_id' => $shirt->id, 'customer_group_id' => $this->resellers->id, 'price' => 800, 'quantity' => 12, 'priority' => 1]);
+        ProductDiscount::create(['product_id' => $shirt->id, 'customer_group_id' => $this->resellers->id, 'quantity' => 6, 'price_type' => 'fixed', 'value' => 900]);
+        ProductDiscount::create(['product_id' => $shirt->id, 'customer_group_id' => $this->resellers->id, 'quantity' => 12, 'price_type' => 'fixed', 'value' => 800]);
 
         $guest = $this->page('/product/linen-shirt');
         $guest->assertDontSee('data-tier="6"', false)->assertDontSee(money(900))->assertDontSee(money(800));
@@ -141,7 +142,7 @@ class XelgaProductPageTest extends TestCase
     public function test_a_tier_for_the_default_group_shows_to_guests_as_core_gives_it(): void
     {
         $shirt = $this->product('Linen Shirt');
-        ProductSpecial::create(['product_id' => $shirt->id, 'customer_group_id' => $this->retail->id, 'price' => 950, 'quantity' => 10, 'priority' => 1]);
+        ProductDiscount::create(['product_id' => $shirt->id, 'customer_group_id' => $this->retail->id, 'quantity' => 10, 'price_type' => 'fixed', 'value' => 950]);
 
         $this->page('/product/linen-shirt')->assertSee('data-tier="10"', false)->assertSee('10 or more pieces')->assertSee(money(950) . ' each');
     }
@@ -150,7 +151,7 @@ class XelgaProductPageTest extends TestCase
     {
         $shirt = $this->product('Linen Shirt');
         $end = now()->addDays(2)->startOfMinute();
-        ProductSpecial::create(['product_id' => $shirt->id, 'price' => 750, 'quantity' => 1, 'priority' => 1, 'display_mode' => 'sale', 'date_end' => $end]);
+        ProductSpecial::create(['product_id' => $shirt->id, 'price_type' => 'fixed', 'value' => 750, 'date_end' => $end]);
 
         $this->page('/product/linen-shirt')
             ->assertSee(money(750))->assertSee('<s class="price__was" data-price-was >' . money(1000) . '</s>', false)
@@ -161,7 +162,7 @@ class XelgaProductPageTest extends TestCase
     public function test_a_sale_kept_for_another_group_does_not_reach_a_guest(): void
     {
         $shirt = $this->product('Linen Shirt');
-        ProductSpecial::create(['product_id' => $shirt->id, 'customer_group_id' => $this->resellers->id, 'price' => 700, 'quantity' => 1, 'priority' => 1, 'display_mode' => 'sale']);
+        ProductDiscount::create(['product_id' => $shirt->id, 'customer_group_id' => $this->resellers->id, 'quantity' => 1, 'price_type' => 'fixed', 'value' => 700]);
 
         $this->page('/product/linen-shirt')->assertDontSee(money(700))->assertDontSee('data-sale-end', false)->assertSee(money(1000));
     }

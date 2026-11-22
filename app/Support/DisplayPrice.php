@@ -12,17 +12,18 @@ use Carbon\CarbonInterface;
 final class DisplayPrice
 {
     public function __construct(
-        /** What the cart charges for one unit, special included. */
+        /** What the cart charges for one unit, any special or discount included. */
         public readonly float $price,
-        /** The product's (or the variant's) own price, before any special. */
+        /** The product's (or the variant's) own price, before any special or discount. */
         public readonly float $regularPrice,
-        /** The special the cart applies, or null when none does. */
+        /** Which rule set the price: 'special', 'discount', or null for the regular price. */
+        public readonly ?string $source,
+        /** The special that set the price, or null when the price did not come from one. */
         public readonly ?ProductSpecial $special,
-        /** How the special asks to be shown: 'sale' (struck-through regular price), 'override' (a plain price), or null. */
-        public readonly ?string $displayMode,
         /**
-         * The last moment the special applies (inclusive, store time zone),
-         * or null when it has no end. Countdowns run to this moment.
+         * The last moment the winning special applies (inclusive, store
+         * time zone), or null when the price is not a special's.
+         * Countdowns run to this moment.
          */
         public readonly ?CarbonInterface $endsAt,
     ) {
@@ -37,10 +38,14 @@ final class DisplayPrice
         return $this->endsAt?->toIso8601String();
     }
 
-    /** True when the regular price should be shown struck through beside the price. */
+    /**
+     * True when the regular price should be shown struck through beside the
+     * price: whenever the buyer pays less than it, from a special or a
+     * discount alike.
+     */
     public function isSale(): bool
     {
-        return $this->displayMode === 'sale' && $this->price < $this->regularPrice;
+        return $this->price < $this->regularPrice;
     }
 
     /** The saving against the regular price, as a whole percentage; 0 when there is none. */
@@ -57,7 +62,7 @@ final class DisplayPrice
      * Plain values for JSON answers and script data. Amounts are in the
      * store's currency; format them with money().
      *
-     * @return array{price: float, regular_price: float, on_sale: bool, display_mode: ?string, saving_percent: int, ends_at: ?string}
+     * @return array{price: float, regular_price: float, on_sale: bool, source: ?string, saving_percent: int, ends_at: ?string}
      */
     public function toArray(): array
     {
@@ -65,7 +70,7 @@ final class DisplayPrice
             'price' => $this->price,
             'regular_price' => $this->regularPrice,
             'on_sale' => $this->isSale(),
-            'display_mode' => $this->displayMode,
+            'source' => $this->source,
             'saving_percent' => $this->savingPercent(),
             'ends_at' => $this->endsAtIso(),
         ];

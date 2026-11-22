@@ -268,7 +268,7 @@
 
                 {{-- Price --}}
                 <div class="mb-5">
-                    @if ($activeSpecial)
+                    @if ($displayPrice->isSale())
                     {{-- Variant + sale: show slashed regular variant price --}}
                     <div class="flex items-baseline gap-3"
                          x-show="hasVariants && activeVariant && activeVariant.regular_price > activeVariant.price">
@@ -286,7 +286,7 @@
 
                     {{-- Dynamic price: per-unit price (line total shown in the clarifier below) --}}
                     <span class="text-4xl" style="font-family: var(--font-price, var(--font-heading)); letter-spacing: 0.05em;"
-                          :style="(quantity > 1 || (hasVariants && activeVariant)) @if ($activeSpecial)&& !(hasVariants && activeVariant && activeVariant.regular_price > activeVariant.price)@endif ? '' : 'display:none'">
+                          :style="(quantity > 1 || (hasVariants && activeVariant)) @if ($displayPrice->isSale())&& !(hasVariants && activeVariant && activeVariant.regular_price > activeVariant.price)@endif ? '' : 'display:none'">
                         <span x-text="money(displayPrice)"></span>
                     </span>
 
@@ -299,22 +299,21 @@
                     </div>
 
                     <div x-show="quantity <= 1 && (!hasVariants || !activeVariant)">
-                        @if ($activeSpecial)
+                        @if ($displayPrice->isSale())
                             <div class="flex items-baseline gap-3">
                                 <span class="text-4xl" style="font-family: var(--font-price, var(--font-heading)); color: var(--color-primary); letter-spacing: 0.05em;">
-                                    {{ money($activeSpecial->price) }}
+                                    {{ money($displayPrice->price) }}
                                 </span>
                                 <span class="text-lg text-[var(--color-text)] line-through">
-                                    {{ money($product->price) }}
+                                    {{ money($displayPrice->regularPrice) }}
                                 </span>
-                                @php $pct = round((1 - $activeSpecial->price / $product->price) * 100); @endphp
                                 <span class="text-xs font-bold text-white px-2 py-0.5 rounded" style="background-color: var(--color-secondary); font-family: var(--font-heading); letter-spacing: 0.1em;">
-                                    -{{ $pct }}%
+                                    -{{ $displayPrice->savingPercent() }}%
                                 </span>
                             </div>
 
-                            @if ($activeSpecial->date_end && $activeSpecial->date_end->lt(now()->addYear()))
-                                <div class="mt-2" x-data="countdown({ endDate: '{{ $activeSpecial->date_end->toISOString() }}' })">
+                            @if ($displayPrice->endsAt && $displayPrice->endsAt->lt(now()->addYear()))
+                                <div class="mt-2" x-data="countdown({ endDate: '{{ $displayPrice->endsAt->toISOString() }}' })">
                                     <div class="countdown" x-show="!expired">
                                         <span class="unit" x-text="days"></span><span class="countdown-label">D</span>
                                         <span class="separator">:</span>
@@ -326,10 +325,6 @@
                                     </div>
                                 </div>
                             @endif
-                        @elseif ($overrideSpecial)
-                            <span class="text-4xl" style="font-family: var(--font-price, var(--font-heading)); letter-spacing: 0.05em;">
-                                {{ money($overrideSpecial->price) }}
-                            </span>
                         @else
                             <span class="text-4xl" style="font-family: var(--font-price, var(--font-heading)); letter-spacing: 0.05em;">
                                 {{ money($product->price) }}

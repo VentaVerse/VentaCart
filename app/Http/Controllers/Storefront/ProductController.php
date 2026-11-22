@@ -23,6 +23,7 @@ class ProductController extends Controller
             'categories',
             'tags',
             'specials',
+            'discounts',
             'variantTypes.values',
             // A switched-off variant is not for sale, so the page never hears of it.
             'variants' => fn ($query) => $query->where('is_active', true),
@@ -54,14 +55,13 @@ class ProductController extends Controller
             $product->setAttribute('quantity', (int) $product->variants->sum('quantity'));
         }
 
-        // The price the cart will charge for one unit, and the special behind
-        // it, chosen the way the cart chooses (the default customer group's
-        // for guests). A sale special shows the regular price struck
-        // through; any other special is a plain price.
+        // The price the cart will charge for one unit, worked out the way the
+        // cart does (the default customer group's for guests). Any price
+        // below the regular one shows the regular price struck through;
+        // $activeSpecial is the special behind it, when a special set it.
         $customerGroupId = CartService::customerGroupId();
         $displayPrice = \App\Support\Pricing::display($product);
         $activeSpecial = $displayPrice->isSale() ? $displayPrice->special : null;
-        $overrideSpecial = $activeSpecial === null ? $displayPrice->special : null;
 
         // Below-product modules from settings
         $settings = $theme->getGroup('product_page');
@@ -75,7 +75,7 @@ class ProductController extends Controller
             $relatedProducts = Product::where('is_active', true)
                 ->where('id', '!=', $product->id)
                 ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds))
-                ->with('images', 'specials', \App\Support\ProductAttributes::CARD_RELATION)
+                ->with('images', 'specials', 'discounts', \App\Support\ProductAttributes::CARD_RELATION)
                 ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
 
                     ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
@@ -90,7 +90,7 @@ class ProductController extends Controller
             $sameBrandProducts = Product::where('is_active', true)
                 ->where('id', '!=', $product->id)
                 ->where('brand_id', $product->brand_id)
-                ->with('images', 'specials', \App\Support\ProductAttributes::CARD_RELATION)
+                ->with('images', 'specials', 'discounts', \App\Support\ProductAttributes::CARD_RELATION)
                 ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
 
                     ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
@@ -137,11 +137,11 @@ class ProductController extends Controller
                 // Variant price = its own absolute (already includes the modifier).
                 $regularVariantPrice = (float) ($variant->price ?? $product->price);
 
-                // A product special ripples through the variant's modifier,
-                // exactly as the cart charges it:
-                //   effective_variant = special.price + (variant.price - product.price)
-                // So a 720 to 500 product sale on variants priced 720/1000/1280
-                // yields 500/780/1060, not a flat 500 across all variants.
+                // A fixed special or discount keeps the variant's difference
+                // from the product price, and a percentage comes off the
+                // variant's own price, exactly as the cart charges it: a 720
+                // to 500 sale on variants priced 720/1000/1280 yields
+                // 500/780/1060, not a flat 500 across all variants.
                 $variantPrice = CartService::resolvePrice($product, $regularVariantPrice, 1, $customerGroupId);
 
                 $variantMatrix[$key] = [
@@ -186,21 +186,10 @@ class ProductController extends Controller
         // The effective price for the addToCart component.
         $effectivePrice = $displayPrice->price;
 
-        // Quantity price tiers for the current customer group — one row per
-        // quantity threshold (matching CartService::resolvePrice tie-break),
-        // sorted ascending. Drives the tier table + reactive price on the page.
-        $priceTiers = $product->specials
-            ->filter(function ($s) use ($customerGroupId) {
-                if (! $s->isActiveAt()) return false;
-                if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                return true;
-            })
-            ->groupBy('quantity')
-            ->map(fn ($g) => $g->sortBy([['priority', 'asc'], ['price', 'asc']])->first())
-            ->sortBy('quantity')
-            ->map(fn ($s) => ['qty' => (int) $s->quantity, 'price' => (float) $s->price])
-            ->values()
-            ->all();
+        // The "buy more, pay less" steps for the current customer group:
+        // quantities above one where the unit price drops, ascending. The
+        // unit price itself is $displayPrice.
+        $priceTiers = \App\Services\PriceResolver::tiers($product, (float) $product->price, $customerGroupId);
 
         $hasFreeShipping = app(\App\Services\BadgeService::class)->getBadgesForProduct($product);
         $hasFreeShipping = collect($hasFreeShipping)->where('type', 'free_shipping')->isNotEmpty();
@@ -214,7 +203,7 @@ class ProductController extends Controller
 
         $page = compact(
             'attributeGroups',
-            'product', 'activeSpecial', 'overrideSpecial', 'displayPrice', 'settings',
+            'product', 'activeSpecial', 'displayPrice', 'settings',
             'relatedProducts', 'sameBrandProducts',
             'breadcrumbs', 'belowModules',
             'variantMatrix', 'variantTypes', 'effectivePrice', 'priceTiers',
@@ -278,7 +267,7 @@ class ProductController extends Controller
         abort_unless($product->is_active, 404);
         abort_unless(view()->exists('product.quick-view'), 404);
 
-        $product->load(['images', 'specials', 'brand']);
+        $product->load(['images', 'specials', 'discounts', 'brand']);
 
         return view('product.quick-view', ['product' => $product]);
     }

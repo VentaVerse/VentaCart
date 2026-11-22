@@ -194,7 +194,7 @@ class XelgaFiltersSectionTest extends TestCase
     public function test_filters_keep_the_sort_and_active_values(): void
     {
         $sale = Product::where('name', 'Demo Laptop 15')->first();
-        ProductSpecial::create(['product_id' => $sale->id, 'price' => 45000, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1]);
+        ProductSpecial::create(['product_id' => $sale->id, 'price_type' => 'fixed', 'value' => 45000, 'date_end' => now()->addWeek()]);
         $this->publishedDocument('category', $this->withLeft(['filters-1' => $this->filters()]));
 
         $html = $this->page('/category/laptops?sort=price_desc&on_sale=1&min_price=100')->getContent();

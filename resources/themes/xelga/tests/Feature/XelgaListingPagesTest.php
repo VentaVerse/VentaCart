@@ -144,7 +144,7 @@ class XelgaListingPagesTest extends TestCase
         $clothing = $this->category('Clothing');
         $sale = $this->product('Sale Trouser', ['price' => 3000]);
         $full = $this->product('Full Price Coat', ['price' => 5000]);
-        ProductSpecial::create(['product_id' => $sale->id, 'price' => 2400, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1]);
+        ProductSpecial::create(['product_id' => $sale->id, 'price_type' => 'fixed', 'value' => 2400, 'date_end' => now()->addWeek()]);
         $sale->categories()->attach($clothing->id);
         $full->categories()->attach($clothing->id);
 

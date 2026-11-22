@@ -11,10 +11,12 @@ use App\Models\CustomerGroup;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\Product;
+use App\Models\ProductDiscount;
 use App\Models\ProductSpecial;
 use App\Models\ProductVariant;
 use App\Models\Setting;
 use App\Models\Store;
+use App\Services\CartService;
 use App\Services\ExtensionManager;
 use App\Services\OrderTotals\OrderTotalProviderInterface;
 use App\Services\OrderTotals\OrderTotals;
@@ -143,7 +145,7 @@ class CheckoutRepricingTest extends TestCase
     public function test_a_special_that_ended_after_adding_refuses_the_order_and_updates_the_cart(): void
     {
         $special = ProductSpecial::create([
-            'product_id' => $this->product->id, 'price' => 400, 'quantity' => 1, 'priority' => 1,
+            'product_id' => $this->product->id, 'price_type' => 'fixed', 'value' => 400,
             'date_end' => now()->addHour(),
         ]);
 
@@ -163,6 +165,24 @@ class CheckoutRepricingTest extends TestCase
         $order = Order::sole();
         $this->assertSame(1000.0, (float) $order->subtotal);
         $this->assertSame(1150.0, (float) $order->total);
+    }
+
+    public function test_cart_reprices_when_special_ends(): void
+    {
+        $special = ProductSpecial::create([
+            'product_id' => $this->product->id, 'price_type' => 'percent', 'value' => 20,
+            'date_end' => now()->addHour(),
+        ]);
+
+        $this->actingAs($this->customer, 'customer');
+        $cart = app(CartService::class);
+        $cart->add($this->product->id, 1);
+        $this->assertSame(400.0, (float) CartItem::sole()->price, '20% off while the special runs.');
+
+        $special->update(['date_end' => now()->subMinute()]);
+
+        $this->assertSame(500.0, (float) $cart->getItems()->sole()->price, 'The cart page shows the regular price again.');
+        $this->assertSame(500.0, (float) CartItem::sole()->fresh()->price);
     }
 
     public function test_a_price_the_merchant_raised_refuses_the_order(): void
@@ -203,12 +223,12 @@ class CheckoutRepricingTest extends TestCase
     // Core's pricing rules, as the cart applies them
     // -----------------------------------------------------------------
 
-    private function resellerSpecial(): CustomerGroup
+    private function resellerDiscount(): CustomerGroup
     {
         $resellers = CustomerGroup::create(['store_id' => 1, 'name' => 'Resellers']);
-        ProductSpecial::create([
+        ProductDiscount::create([
             'product_id' => $this->product->id, 'customer_group_id' => $resellers->id,
-            'price' => 400, 'quantity' => 1, 'priority' => 1,
+            'quantity' => 1, 'price_type' => 'fixed', 'value' => 400,
         ]);
 
         return $resellers;
@@ -216,7 +236,7 @@ class CheckoutRepricingTest extends TestCase
 
     public function test_a_customer_group_price_is_kept_for_that_group(): void
     {
-        $this->customer->update(['customer_group_id' => $this->resellerSpecial()->id]);
+        $this->customer->update(['customer_group_id' => $this->resellerDiscount()->id]);
         $this->line(400);
 
         $this->place()->assertSessionHasNoErrors();
@@ -227,7 +247,7 @@ class CheckoutRepricingTest extends TestCase
     {
         // The line holds the reseller price, but the shopper is retail
         // (moved out of the group, say, after adding to the cart).
-        $this->resellerSpecial();
+        $this->resellerDiscount();
         $this->customer->update(['customer_group_id' => $this->retailGroupId]);
         $this->line(400);
 
@@ -237,7 +257,7 @@ class CheckoutRepricingTest extends TestCase
 
     public function test_a_volume_tier_follows_the_line_quantity(): void
     {
-        ProductSpecial::create(['product_id' => $this->product->id, 'price' => 450, 'quantity' => 2, 'priority' => 1]);
+        ProductDiscount::create(['product_id' => $this->product->id, 'customer_group_id' => null, 'quantity' => 2, 'price_type' => 'fixed', 'value' => 450]);
 
         // Two units reach the tier, but the line still holds the one-unit price.
         $this->line(500, 2);
@@ -257,7 +277,7 @@ class CheckoutRepricingTest extends TestCase
         ]);
         $this->line(700, 1, $variant);
 
-        ProductSpecial::create(['product_id' => $this->product->id, 'price' => 400, 'quantity' => 1, 'priority' => 1]);
+        ProductSpecial::create(['product_id' => $this->product->id, 'price_type' => 'fixed', 'value' => 400, 'date_end' => now()->addWeek()]);
 
         $this->assertRefusedForPrices($this->place(), 'Demo Cable (Long)');
         $this->assertSame(600.0, (float) CartItem::sole()->price, 'Special 400 plus the variant\'s 200.');

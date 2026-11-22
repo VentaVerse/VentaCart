@@ -82,7 +82,7 @@ class WishlistService
 
         $products = Product::where('is_active', true)
             ->whereIn('id', $ids)
-            ->with(['images', 'specials', \App\Support\ProductAttributes::CARD_RELATION])
+            ->with(['images', 'specials', 'discounts', \App\Support\ProductAttributes::CARD_RELATION])
             ->get()
             ->keyBy('id');
 

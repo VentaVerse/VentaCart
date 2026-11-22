@@ -171,7 +171,7 @@ class XelgaFeaturedLinkTest extends TestCase
     public function test_the_heading_link_follows_the_section_and_hides_for_a_hand_picked_list(): void
     {
         $product = $this->product('Demo Laptop');
-        ProductSpecial::create(['product_id' => $product->id, 'price' => 1000, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1]);
+        ProductSpecial::create(['product_id' => $product->id, 'price_type' => 'fixed', 'value' => 1000, 'date_end' => now()->addWeek()]);
 
         // A section that never set its link takes the new default.
         $this->publishHome(['source' => 'on-sale', 'link_label' => 'View all']);
@@ -192,7 +192,7 @@ class XelgaFeaturedLinkTest extends TestCase
         $second = $this->product('Sale Tablet Demo', ['views' => 5]);
         $this->product('Full Price Laptop Demo', ['views' => 9]);
         foreach ([$sale, $second] as $onSale) {
-            ProductSpecial::create(['product_id' => $onSale->id, 'price' => 1000, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1]);
+            ProductSpecial::create(['product_id' => $onSale->id, 'price_type' => 'fixed', 'value' => 1000, 'date_end' => now()->addWeek()]);
         }
         $category = Category::create(['store_id' => $this->store->id, 'name' => 'Laptops', 'slug' => 'laptops', 'is_active' => true]);
         Product::query()->get()->each(fn (Product $p) => $p->categories()->attach($category->id));
@@ -231,7 +231,7 @@ class XelgaFeaturedLinkTest extends TestCase
         app(\App\Services\ThemeService::class)->clearCache();
         $this->app->forgetInstance(\App\Services\ThemeService::class);
         $sale = $this->product('Sale Laptop Demo');
-        ProductSpecial::create(['product_id' => $sale->id, 'price' => 1000, 'quantity' => 1, 'display_mode' => 'sale', 'priority' => 1]);
+        ProductSpecial::create(['product_id' => $sale->id, 'price_type' => 'fixed', 'value' => 1000, 'date_end' => now()->addWeek()]);
         $this->product('Full Price Laptop Demo');
         $category = Category::create(['store_id' => $this->store->id, 'name' => 'Laptops', 'slug' => 'laptops', 'is_active' => true]);
         Product::query()->get()->each(fn (Product $p) => $p->categories()->attach($category->id));

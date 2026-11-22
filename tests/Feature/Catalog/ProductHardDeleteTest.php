@@ -354,10 +354,9 @@ class ProductHardDeleteTest extends TestCase
         $image = ProductImage::create(['product_id' => $product->id, 'path' => 'catalog/casc.jpg', 'sort_order' => 0]);
         $special = ProductSpecial::create([
             'product_id' => $product->id,
-            'price' => 800,
-            'quantity' => 1,
-            'display_mode' => 'sale',
-            'priority' => 0,
+            'price_type' => 'fixed',
+            'value' => 800,
+            'date_end' => now()->addWeek(),
         ]);
 
         $category = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals-' . $sku]);

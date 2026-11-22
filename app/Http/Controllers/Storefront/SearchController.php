@@ -28,7 +28,7 @@ class SearchController extends Controller
         ProductListing::applyOnSale($products, $request->query(ProductListing::ON_SALE));
         ProductListing::applySort($products, $sort);
 
-        $products = $products->with(['images', 'specials', 'brand', \App\Support\ProductAttributes::CARD_RELATION])
+        $products = $products->with(['images', 'specials', 'discounts', 'brand', \App\Support\ProductAttributes::CARD_RELATION])
             ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
 
                 ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
@@ -52,7 +52,7 @@ class SearchController extends Controller
                 $q->where('name', 'LIKE', "%{$query}%")
                   ->orWhere('sku', 'LIKE', "%{$query}%");
             })
-            ->with(['images', 'specials'])
+            ->with(['images', 'specials', 'discounts'])
             ->limit(6)
             ->get()
             ->map(function ($product) {
