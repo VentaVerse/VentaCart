@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin\Sales;
 
 use App\Http\Controllers\Controller;
+use App\Services\PriceResolver;
+use App\Models\CustomerGroup;
 use App\Models\Country;
 use App\Models\Customer;
 use App\Models\Order;
@@ -262,35 +264,28 @@ class OrderController extends Controller
             [$customerGroupId, $customerGroupName] = $old;
         }
 
-        $now = now();
-        $existingItems = $order->products->map(function ($item) use ($customerGroupId, $now) {
+        $existingItems = $order->products->map(function ($item) use ($customerGroupId) {
             $image = $item->image ? thumb_url($item->image) : null;
-            $groupPrice = null;
 
-            if ($customerGroupId && $item->product) {
-                // Customer-group pricing flows through product_specials
-                $item->product->loadMissing('specials');
-                $bestSpecial = $item->product->specials
-                    ->filter(function ($s) use ($now, $customerGroupId) {
-                        if (! $s->isActiveAt($now)) return false;
-                        if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                        return true;
-                    })
-                    ->sortBy([['priority', 'asc'], ['price', 'asc']])
-                    ->first();
-
-                if ($bestSpecial) {
-                    $groupPrice = (float) $bestSpecial->price;
-                }
-            }
-
-            // Resolve base price and display mode
+            // Resolve base price, then price the line as a guest of the
+            // customer's group would pay, at the line's own quantity.
             $basePrice = $item->product_variant_id
                 ? ((float) (\App\Models\ProductVariant::find($item->product_variant_id)?->price ?? $item->price))
                 : ((float) ($item->product?->price ?? $item->price));
 
-            $displayMode = $item->product ? $this->resolveDisplayMode($item->product, $customerGroupId) : null;
-            $groupPriceMode = ($groupPrice !== null && $groupPrice < $basePrice) ? ($displayMode ?? 'override') : 'regular';
+            $groupPrice = null;
+            $groupPriceMode = 'regular';
+            if ($item->product) {
+                $item->product->loadMissing(['specials', 'discounts']);
+                $resolved = PriceResolver::resolve(
+                    $item->product,
+                    $basePrice,
+                    max(1, (int) $item->quantity),
+                    $customerGroupId ?? CustomerGroup::defaultId()
+                );
+                $groupPrice = $resolved->price;
+                $groupPriceMode = ($resolved->source !== null && $resolved->price < $basePrice) ? 'sale' : 'regular';
+            }
 
             return [
                 'id' => $item->id,
@@ -548,6 +543,8 @@ class OrderController extends Controller
         $customerGroupId = $request->input('customer_group_id');
 
         $customerGroupId = $customerGroupId ? (int) $customerGroupId : null;
+        // No customer yet prices like a guest, who gets the default group's discounts.
+        $pickerGroupId = $customerGroupId ?? CustomerGroup::defaultId();
 
         $products = Product::where('store_id', $storeId)
             ->where('is_active', true)
@@ -557,7 +554,7 @@ class OrderController extends Controller
             })
             ->with(['variants' => function ($q) {
                 $q->where('is_active', true);
-            }, 'brand', 'specials'])
+            }, 'brand', 'specials', 'discounts'])
             ->limit(15)
             ->get();
 
@@ -573,11 +570,8 @@ class OrderController extends Controller
                     $variantImage = $variant->image ? storage_url($variant->image) : $image;
                     $basePrice = (float) $variant->price;
 
-                    // Resolve via CartService (handles specials + date + quantity + group)
-                    $resolvedPrice = \App\Services\CartService::resolvePrice($product, $basePrice, 1, $customerGroupId);
-
-                    // Determine display mode from the matching special
-                    $displayMode = $this->resolveDisplayMode($product, $customerGroupId);
+                    $resolved = PriceResolver::resolve($product, $basePrice, 1, $pickerGroupId);
+                    $resolvedPrice = $resolved->price;
 
                     $results[] = [
                         'product_id' => $product->id,
@@ -588,15 +582,15 @@ class OrderController extends Controller
                         'price' => $resolvedPrice,
                         'base_price' => $basePrice,
                         'group_price' => $resolvedPrice,
-                        'group_price_mode' => $resolvedPrice < $basePrice ? ($displayMode ?? 'override') : 'regular',
+                        'group_price_mode' => $resolved->source !== null && $resolvedPrice < $basePrice ? 'sale' : 'regular',
                         'stock' => $variant->quantity,
                         'image' => $variantImage,
                     ];
                 }
             } else {
                 $basePrice = (float) $product->price;
-                $resolvedPrice = \App\Services\CartService::resolvePrice($product, $basePrice, 1, $customerGroupId);
-                $displayMode = $this->resolveDisplayMode($product, $customerGroupId);
+                $resolved = PriceResolver::resolve($product, $basePrice, 1, $pickerGroupId);
+                $resolvedPrice = $resolved->price;
 
                 $results[] = [
                     'product_id' => $product->id,
@@ -607,7 +601,7 @@ class OrderController extends Controller
                     'price' => $resolvedPrice,
                     'base_price' => $basePrice,
                     'group_price' => $resolvedPrice,
-                    'group_price_mode' => $resolvedPrice < $basePrice ? ($displayMode ?? 'override') : 'regular',
+                    'group_price_mode' => $resolved->source !== null && $resolvedPrice < $basePrice ? 'sale' : 'regular',
                     'stock' => $product->quantity,
                     'image' => $image,
                 ];
@@ -855,21 +849,6 @@ class OrderController extends Controller
         }
 
         return false;
-    }
-
-    private function resolveDisplayMode(Product $product, ?int $customerGroupId): ?string
-    {
-        $now = now();
-        $best = $product->specials
-            ->filter(function ($s) use ($now, $customerGroupId) {
-                if (! $s->isActiveAt($now)) return false;
-                if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                return true;
-            })
-            ->sortBy([['priority', 'asc'], ['price', 'asc']])
-            ->first();
-
-        return $best?->display_mode;
     }
 
     protected function syncProducts(Order $order, Request $request): void

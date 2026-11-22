@@ -209,9 +209,6 @@
                                                                 <span class="v-tone-bad" x-text="parseFloat(item.group_price).toFixed(2)"></span>
                                                             </span>
                                                         </template>
-                                                        <template x-if="item.group_price_mode === 'override'">
-                                                            <span class="v-mono v-tone-act" x-text="parseFloat(item.group_price).toFixed(2)"></span>
-                                                        </template>
                                                         <template x-if="!item.group_price_mode || item.group_price_mode === 'regular'">
                                                             <span class="v-mono v-cell-quiet" x-text="parseFloat(item.group_price || item.base_price || 0).toFixed(2)"></span>
                                                         </template>
