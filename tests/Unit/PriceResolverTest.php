@@ -119,7 +119,7 @@ class PriceResolverTest extends TestCase
         $this->assertNull($r->source);
     }
 
-    public function test_discount_deepest_tier_reached(): void
+    public function test_discount_tier_applies_from_its_quantity(): void
     {
         $p = $this->product();
         $this->discount($p, $this->resellers, 4500);
@@ -167,6 +167,15 @@ class PriceResolverTest extends TestCase
         $this->assertSame('special', $this->price($p, 5000, 1, $this->resellers)->source);
     }
 
+    public function test_buying_more_never_costs_more_per_item(): void
+    {
+        $p = $this->product();
+        $this->discount($p, $this->resellers, 4500);
+        $this->discount($p, null, 4700, 5);
+        $this->assertSame(4500.0, $this->price($p, 5000, 1, $this->resellers)->price);
+        $this->assertSame(4500.0, $this->price($p, 5000, 5, $this->resellers)->price);
+    }
+
     public function test_tiers_lists_quantity_steps(): void
     {
         $p = $this->product();
@@ -176,12 +185,27 @@ class PriceResolverTest extends TestCase
         $this->discount($p, $this->default, 1000, 20);
 
         $this->assertSame(
-            [['qty' => 1, 'price' => 4500.0], ['qty' => 10, 'price' => 4250.0]],
+            [['qty' => 10, 'price' => 4250.0]],
             PriceResolver::tiers($p->fresh(), 5000, $this->resellers->id)
         );
         $this->assertSame(
             [['qty' => 5, 'price' => 4500.0], ['qty' => 20, 'price' => 1000.0]],
             PriceResolver::tiers($p->fresh(), 5000, $this->default->id)
         );
+    }
+
+    public function test_tiers_skip_quantity_one(): void
+    {
+        $p = $this->product();
+        $this->discount($p, $this->resellers, 4500);
+        $this->assertSame([], PriceResolver::tiers($p->fresh(), 5000, $this->resellers->id));
+    }
+
+    public function test_tiers_hidden_by_a_special_that_beats_them(): void
+    {
+        $p = $this->product();
+        $this->special($p, 'fixed', 3000);
+        $this->discount($p, null, 4500, 5);
+        $this->assertSame([], PriceResolver::tiers($p->fresh(), 5000, $this->default->id));
     }
 }

@@ -7,8 +7,8 @@ use App\Support\ResolvedPrice;
 
 /**
  * The one place that decides what a buyer pays. The price is the lowest of
- * the regular price, every active special price, and the buyer's group
- * discount at the deepest quantity tier the line reaches. A rule that is
+ * the regular price, every active special price, and the lowest discount the
+ * buyer qualifies for (their group's or all groups', quantity reached). A rule that is
  * not below the regular price never raises it.
  */
 final class PriceResolver
@@ -50,11 +50,9 @@ final class PriceResolver
                 continue;
             }
             $candidate = self::apply($row->price_type, (float) $row->value, $product, $regularPrice);
-            // The deepest tier reached wins even when a shallower one is
-            // cheaper; within a tier the lowest price wins.
-            if ($discount === null
-                || (int) $row->quantity > (int) $discount->quantity
-                || ((int) $row->quantity === (int) $discount->quantity && $candidate < $discountPrice)) {
+            // The lowest qualifying price wins, so buying more never costs
+            // more per item.
+            if ($discount === null || $candidate < $discountPrice) {
                 $discount = $row;
                 $discountPrice = $candidate;
             }
@@ -89,9 +87,11 @@ final class PriceResolver
     }
 
     /**
-     * The quantity steps a group sees: one row per discount quantity that
-     * applies to it, in ascending order, keeping only rows whose price
-     * differs from the row before.
+     * The product page's "buy more, pay less" table: one row per distinct
+     * discount quantity above 1 that applies to the group, ascending, kept
+     * only when its price is below the unit price (quantity 1) and below the
+     * row before. It uses resolve(), so a special that beats every tier
+     * hides them. The unit price is shown separately.
      *
      * @return array<int, array{qty:int, price:float}>
      */
@@ -102,15 +102,17 @@ final class PriceResolver
         $quantities = $product->discounts
             ->filter(fn ($d) => $d->customer_group_id === null
                 || ($customerGroupId !== null && (int) $d->customer_group_id === $customerGroupId))
-            ->pluck('quantity')->map(fn ($q) => (int) $q)->unique()->sort()->values();
+            ->pluck('quantity')->map(fn ($q) => (int) $q)
+            ->filter(fn ($q) => $q > 1)->unique()->sort()->values();
 
         $rows = [];
-        $previous = round($regularPrice, 2);
+        $floor = (int) round(self::resolve($product, $regularPrice, 1, $customerGroupId)->price * 100);
         foreach ($quantities as $qty) {
             $price = self::resolve($product, $regularPrice, $qty, $customerGroupId)->price;
-            if ($price !== $previous) {
+            $cents = (int) round($price * 100);
+            if ($cents < $floor) {
                 $rows[] = ['qty' => $qty, 'price' => $price];
-                $previous = $price;
+                $floor = $cents;
             }
         }
 
