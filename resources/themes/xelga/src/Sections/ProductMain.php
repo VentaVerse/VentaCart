@@ -4,6 +4,7 @@ namespace Themes\Xelga\Sections;
 
 use App\Models\Product;
 use App\Services\CartService;
+use App\Services\PriceResolver;
 use App\Services\WishlistService;
 use App\Support\DisplayPrice;
 use App\Support\LowStock;
@@ -18,10 +19,12 @@ use Themes\Xelga\Rendering\SectionData;
  * buy button, from the bundle core's ProductController hands the page.
  *
  * No price is worked out here. The page shows Pricing::display() for one
- * unit; for larger quantities and for each variant it shows what
- * CartService::resolvePrice() answers for this shopper's customer group at
- * each discount quantity step, which is the amount the cart will
- * charge. The browser only picks the row for the quantity typed.
+ * unit, and for the product and each variant what Pricing::display()
+ * answers at every discount quantity core lists for this shopper's
+ * customer group, which is the amount the cart will charge. Each price
+ * keeps only the quantities where it steps down, since a quantity that
+ * lowers one variant's price may not lower another's. The browser only
+ * picks the row for the quantity typed.
  */
 final class ProductMain implements SectionData
 {
@@ -43,8 +46,10 @@ final class ProductMain implements SectionData
         $groupId = CartService::customerGroupId();
         $images = self::images($product);
         $variantTypes = self::variantTypes($product);
-        $thresholds = self::thresholds($context->get('priceTiers', []));
-        $units = self::units($product, $groupId, $images, $thresholds);
+        $quantities = [1, ...PriceResolver::tierQuantities($product, $groupId)];
+        $points = self::steps(self::points($product, null, $quantities));
+        $units = self::units($product, $images, $quantities);
+        $tiers = self::tierRows($points);
         $trackStock = (bool) $product->track_stock;
         $quantity = (int) $product->quantity;
 
@@ -74,7 +79,9 @@ final class ProductMain implements SectionData
             'sold_out' => $soldOut,
             'stock' => self::stockNote($product, $trackStock, $quantity),
             'low_stock' => LowStock::threshold(),
-            'tiers' => self::tierRows(self::points($product, (float) $product->price, $thresholds, $groupId)),
+            'tiers' => $tiers,
+            // A variant can have volume prices the product's own price has not.
+            'any_tiers' => $tiers !== [] || collect($units)->contains(fn ($u) => $u['tiers'] !== []),
             'min_qty' => max(1, (int) ($product->minimum_quantity ?? 1)),
             'max_qty' => $trackStock && ! $product->has_variants ? max(1, $quantity) : null,
             'can_wish' => Route::has('wishlist.add'),
@@ -93,7 +100,8 @@ final class ProductMain implements SectionData
                 'saving' => $displayPrice->savingPercent(),
                 'price' => money($displayPrice->price),
                 'was' => money($displayPrice->regularPrice),
-                'points' => self::formatPoints(self::points($product, (float) $product->price, $thresholds, $groupId)),
+                'points' => self::formatPoints($points),
+                'tiers' => $tiers,
                 'units' => $units,
                 'types' => array_map(fn ($t) => ['id' => $t['id'], 'name' => $t['name']], $variantTypes),
             ],
@@ -174,13 +182,14 @@ final class ProductMain implements SectionData
     /**
      * Every switched-on variant the shopper can choose, keyed the way core's
      * page keys them (value ids in numeric order joined by "_"), with its
-     * stock, its photo and its price at each discount quantity step.
+     * stock, its photo, and its own price and volume rows at each quantity
+     * where its price steps down.
      *
      * @param  list<array{path: string}>  $images
-     * @param  list<int>  $thresholds
+     * @param  list<int>  $quantities
      * @return array<string, array<string, mixed>>
      */
-    private static function units(Product $product, ?int $groupId, array $images, array $thresholds): array
+    private static function units(Product $product, array $images, array $quantities): array
     {
         if (! $product->has_variants || ! $product->relationLoaded('variants')) {
             return [];
@@ -196,7 +205,7 @@ final class ProductMain implements SectionData
                 continue;
             }
             $regular = (float) ($variant->price ?? $product->price);
-            $points = self::points($product, $regular, $thresholds, $groupId);
+            $points = self::steps(self::points($product, (int) $variant->id, $quantities));
             $image = $variant->image ? array_search((string) $variant->image, $paths, true) : false;
 
             $out[implode('_', $ids)] = [
@@ -207,6 +216,7 @@ final class ProductMain implements SectionData
                 'image' => $image === false ? null : $image,
                 'was' => money($regular),
                 'points' => self::formatPoints($points),
+                'tiers' => self::tierRows($points),
             ];
         }
 
@@ -214,40 +224,38 @@ final class ProductMain implements SectionData
     }
 
     /**
-     * The quantities at which this shopper's price can change: one, and
-     * every minimum quantity of the group's discounts (and of the all-groups
-     * discounts), where the price can step down.
+     * What the cart charges this shopper for one unit of the product (or of
+     * one variant) at each quantity.
      *
-     * @param  iterable<array{qty: int}>  $tiers
-     * @return list<int>
-     */
-    private static function thresholds(iterable $tiers): array
-    {
-        $out = [1];
-        foreach ($tiers as $tier) {
-            $qty = (int) ($tier['qty'] ?? 0);
-            if ($qty > 1) {
-                $out[] = $qty;
-            }
-        }
-        $out = array_values(array_unique($out));
-        sort($out);
-
-        return $out;
-    }
-
-    /**
-     * What the cart charges for one unit at each threshold.
-     *
-     * @param  list<int>  $thresholds
+     * @param  list<int>  $quantities
      * @return list<array{qty: int, price: float}>
      */
-    private static function points(Product $product, float $regular, array $thresholds, ?int $groupId): array
+    private static function points(Product $product, ?int $variantId, array $quantities): array
     {
         return array_map(fn (int $qty) => [
             'qty' => $qty,
-            'price' => CartService::resolvePrice($product, $regular, $qty, $groupId),
-        ], $thresholds);
+            'price' => Pricing::display($product, $variantId, $qty)->price,
+        ], $quantities);
+    }
+
+    /**
+     * The first point, then each one whose price is below the point kept
+     * before it: the quantities where buying more lowers the price.
+     *
+     * @param  list<array{qty: int, price: float}>  $points
+     * @return list<array{qty: int, price: float}>
+     */
+    private static function steps(array $points): array
+    {
+        $out = [];
+        foreach ($points as $point) {
+            $last = $out[count($out) - 1] ?? null;
+            if ($last === null || $point['price'] < $last['price']) {
+                $out[] = $point;
+            }
+        }
+
+        return $out;
     }
 
     /** @param list<array{qty: int, price: float}> $points */

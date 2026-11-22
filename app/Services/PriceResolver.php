@@ -87,6 +87,26 @@ final class PriceResolver
     }
 
     /**
+     * Every distinct minimum quantity above 1 of the discounts that apply to
+     * the group (its own and all groups'), ascending, whether or not it
+     * lowers the price. A page that shows several regular prices, one per
+     * variant, prices each at these quantities: a quantity that is no step
+     * for one price can be a step for another.
+     *
+     * @return list<int>
+     */
+    public static function tierQuantities(Product $product, ?int $customerGroupId): array
+    {
+        $product->loadMissing(['specials', 'discounts']);
+
+        return $product->discounts
+            ->filter(fn ($d) => $d->customer_group_id === null
+                || ($customerGroupId !== null && (int) $d->customer_group_id === $customerGroupId))
+            ->pluck('quantity')->map(fn ($q) => (int) $q)
+            ->filter(fn ($q) => $q > 1)->unique()->sort()->values()->all();
+    }
+
+    /**
      * The product page's "buy more, pay less" table: one row per distinct
      * discount quantity above 1 that applies to the group, ascending, kept
      * only when its price is below the unit price (quantity 1) and below the
@@ -97,13 +117,7 @@ final class PriceResolver
      */
     public static function tiers(Product $product, float $regularPrice, ?int $customerGroupId): array
     {
-        $product->loadMissing(['specials', 'discounts']);
-
-        $quantities = $product->discounts
-            ->filter(fn ($d) => $d->customer_group_id === null
-                || ($customerGroupId !== null && (int) $d->customer_group_id === $customerGroupId))
-            ->pluck('quantity')->map(fn ($q) => (int) $q)
-            ->filter(fn ($q) => $q > 1)->unique()->sort()->values();
+        $quantities = self::tierQuantities($product, $customerGroupId);
 
         $rows = [];
         $floor = (int) round(self::resolve($product, $regularPrice, 1, $customerGroupId)->price * 100);

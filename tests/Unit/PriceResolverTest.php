@@ -208,4 +208,19 @@ class PriceResolverTest extends TestCase
         $this->discount($p, null, 4500, 5);
         $this->assertSame([], PriceResolver::tiers($p->fresh(), 5000, $this->default->id));
     }
+
+    public function test_tier_quantities_list_every_quantity_for_the_group_unpruned(): void
+    {
+        $p = $this->product();
+        $this->discount($p, $this->resellers, 4500);
+        $this->discount($p, null, 4500, 5);
+        $this->discount($p, $this->resellers, 15, 10, 'percent');
+        $this->discount($p, $this->resellers, 4900, 10);
+        $this->discount($p, $this->default, 1000, 20);
+
+        // Quantity 5 lowers no reseller price at the base price, and is still listed.
+        $this->assertSame([5, 10], PriceResolver::tierQuantities($p->fresh(), $this->resellers->id));
+        $this->assertSame([5, 20], PriceResolver::tierQuantities($p->fresh(), $this->default->id));
+        $this->assertSame([5], PriceResolver::tierQuantities($p->fresh(), null));
+    }
 }

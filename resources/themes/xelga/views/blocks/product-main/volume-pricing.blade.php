@@ -2,16 +2,17 @@
     Volume pricing: the price per piece at each quantity where a discount in
     core for this shopper's customer group (or for all groups) lowers the
     price. Shoppers with no such discount see nothing; the prices are what
-    the cart charges.
+    the cart charges. Each variant has its own rows, which the page script
+    puts in the table when that variant is chosen.
 --}}
-@if ($data['tiers'] !== [] || $context->preview)
-    <div class="tiers" data-block-id="{{ $block['id'] }}" data-block-type="volume-pricing" data-tiers @if ($block['disabled'] || $data['tiers'] === []) hidden @endif>
-        @if ($data['tiers'] === [])
+@if ($data['any_tiers'] || $context->preview)
+    <div class="tiers" data-block-id="{{ $block['id'] }}" data-block-type="volume-pricing" data-tiers @if ($block['disabled']) data-tiers-disabled @endif @if ($block['disabled'] || $data['tiers'] === []) hidden @endif>
+        @if (! $data['any_tiers'])
             @include('xelga::snippets.editor-note', ['note' => 'Shown only to shoppers whose customer group has volume prices for this product.'])
         @else
             <table class="tiers__table">
                 <caption>{{ $block['settings']['heading'] ?? 'Volume pricing' }}</caption>
-                <tbody>
+                <tbody data-tier-rows>
                     @foreach ($data['tiers'] as $tier)
                         <tr data-tier="{{ $tier['qty'] }}"><th scope="row">{{ $tier['label'] }} pieces</th><td data-tier-price>{{ $tier['price'] }} each</td></tr>
                     @endforeach

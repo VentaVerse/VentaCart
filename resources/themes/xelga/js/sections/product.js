@@ -523,6 +523,26 @@ function initBuying(section, data, gallery, signal) {
       each.hidden = !tiered;
       each.textContent = tiered ? `${atQty.price} each when you buy ${qty}` : '';
     }
+    // Each variant has its own volume rows: a quantity that lowers one
+    // variant's price may not lower another's.
+    const tiersBox = $('[data-tiers]', section);
+    const tierBody = tiersBox && $('[data-tier-rows]', tiersBox);
+    const tierRows = unit ? unit.tiers : data.tiers;
+    if (tierBody && Array.isArray(tierRows)) {
+      tierBody.replaceChildren(...tierRows.map((tier) => {
+        const row = document.createElement('tr');
+        row.dataset.tier = String(tier.qty);
+        const head = document.createElement('th');
+        head.scope = 'row';
+        head.textContent = `${tier.label} pieces`;
+        const cell = document.createElement('td');
+        cell.dataset.tierPrice = '';
+        cell.textContent = `${tier.price} each`;
+        row.append(head, cell);
+        return row;
+      }));
+      if (!tiersBox.hasAttribute('data-tiers-disabled')) tiersBox.hidden = tierRows.length === 0;
+    }
     $$('[data-tier]', section).forEach((row) => {
       const tierQty = Number(row.dataset.tier);
       const point = (points || []).find((p) => p.qty === tierQty);

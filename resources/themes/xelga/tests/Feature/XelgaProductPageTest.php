@@ -147,6 +147,36 @@ class XelgaProductPageTest extends TestCase
         $this->page('/product/linen-shirt')->assertSee('data-tier="10"', false)->assertSee('10 or more pieces')->assertSee(money(950) . ' each');
     }
 
+    public function test_each_variant_keeps_the_volume_steps_of_its_own_price(): void
+    {
+        $shirt = $this->product('Linen Shirt', ['price' => 100, 'has_variants' => true, 'quantity' => 0]);
+        $size = VariantType::create(['product_id' => $shirt->id, 'name' => 'Size', 'sort_order' => 0]);
+        $m = $size->values()->create(['value' => 'M', 'sort_order' => 0]);
+        $l = $size->values()->create(['value' => 'L', 'sort_order' => 1]);
+        ProductVariant::create(['product_id' => $shirt->id, 'sku' => 'DEMO-001-M', 'price' => 100, 'quantity' => 5, 'is_active' => true])->values()->attach([$m->id]);
+        $large = ProductVariant::create(['product_id' => $shirt->id, 'sku' => 'DEMO-001-L', 'price' => 200, 'quantity' => 5, 'is_active' => true]);
+        $large->values()->attach([$l->id]);
+        ProductDiscount::create(['product_id' => $shirt->id, 'customer_group_id' => null, 'quantity' => 5, 'price_type' => 'fixed', 'value' => 80]);
+        ProductDiscount::create(['product_id' => $shirt->id, 'customer_group_id' => null, 'quantity' => 10, 'price_type' => 'percent', 'value' => 15]);
+
+        $data = $this->productData($this->page('/product/linen-shirt'));
+
+        // At the product's own price, 10 lowers nothing (85 is above the 80 from 5).
+        $this->assertSame([['qty' => 1, 'price' => money(100)], ['qty' => 5, 'price' => money(80)]], $data['points']);
+        $this->assertSame([5], array_column($data['tiers'], 'qty'));
+
+        // The 200 variant: fixed 80 keeps its 100 difference (180); 15% off 200 is 170.
+        $unit = $data['units'][(string) $l->id];
+        $this->assertSame([
+            ['qty' => 1, 'price' => money(200)],
+            ['qty' => 5, 'price' => money(180)],
+            ['qty' => 10, 'price' => money(170)],
+        ], $unit['points']);
+        $this->assertSame(['5 to 9', '10 or more'], array_column($unit['tiers'], 'label'));
+        $this->assertSame(money(170), $unit['tiers'][1]['price']);
+        $this->assertSame(170.0, CartService::resolvePrice(Product::find($shirt->id), 200, 10, $this->retail->id));
+    }
+
     public function test_a_sale_shows_the_regular_price_struck_and_a_countdown_from_the_special(): void
     {
         $shirt = $this->product('Linen Shirt');
