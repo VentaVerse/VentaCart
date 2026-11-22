@@ -121,9 +121,13 @@ class DemoCatalogSeederTest extends TestCase
         foreach ($specials as $special) {
             $base = (float) $products->firstWhere('id', $special->product_id)->price;
 
-            $this->assertLessThan($base, (float) $special->price);
-            $this->assertGreaterThan($base * 0.8, (float) $special->price, 'a demo special is a modest discount');
-            $this->assertSame(9, (int) $special->price % 10);
+            $this->assertSame('fixed', $special->price_type);
+            $this->assertNull($special->date_start);
+            $this->assertNotNull($special->date_end);
+            $this->assertTrue(\Illuminate\Support\Carbon::parse($special->date_end)->isFuture(), 'a demo sale must still be running');
+            $this->assertLessThan($base, (float) $special->value);
+            $this->assertGreaterThan($base * 0.8, (float) $special->value, 'a demo special is a modest discount');
+            $this->assertSame(9, (int) $special->value % 10);
         }
     }
 
@@ -159,7 +163,7 @@ class DemoCatalogSeederTest extends TestCase
             $this->assertGreaterThan(0, $cost, "{$product->name} has no cost");
             $this->assertLessThan((float) $product->price, $cost, "{$product->name} costs more than its price");
             foreach ($product->specials as $special) {
-                $this->assertLessThan((float) $special->price, $cost, "{$product->name} costs more than its sale price");
+                $this->assertLessThan((float) $special->value, $cost, "{$product->name} costs more than its sale price");
             }
         }
 

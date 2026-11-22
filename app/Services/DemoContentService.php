@@ -174,13 +174,11 @@ class DemoContentService
         if (isset($definition['sale']) && (float) $definition['sale'] > 0) {
             ProductSpecial::create([
                 'product_id' => $product->id,
-                'customer_group_id' => null,
-                'price' => (float) $definition['sale'],
-                'quantity' => 1,
-                'display_mode' => 'sale',
-                'priority' => 1,
+                'price_type' => 'fixed',
+                'value' => (float) $definition['sale'],
                 'date_start' => null,
-                'date_end' => null,
+                // A sale needs an end date; a year keeps the demo sale visible.
+                'date_end' => now()->addYear()->format('Y-m-d H:i:s'),
             ]);
         }
 

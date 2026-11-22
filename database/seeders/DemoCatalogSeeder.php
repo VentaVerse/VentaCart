@@ -342,13 +342,11 @@ class DemoCatalogSeeder extends Seeder
             if (! empty($row['sale'])) {
                 DB::table('product_specials')->insert([
                     'product_id' => $product->id,
-                    'customer_group_id' => null,
-                    'price' => $row['sale'],
-                    'quantity' => 1,
-                    'display_mode' => 'sale',
-                    'priority' => 1,
+                    'price_type' => 'fixed',
+                    'value' => $row['sale'],
                     'date_start' => null,
-                    'date_end' => null,
+                    // A sale needs an end date; a year keeps the demo sale visible.
+                    'date_end' => now()->addYear()->format('Y-m-d H:i:s'),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
