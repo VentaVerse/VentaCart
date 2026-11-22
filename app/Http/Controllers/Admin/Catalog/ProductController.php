@@ -121,6 +121,8 @@ class ProductController extends Controller
             'existingTypes' => [],
             'existingVariants' => [],
             'existingSpecials' => [],
+            'existingDiscounts' => [],
+            'priceGroups' => $this->priceGroups($customerGroups),
             'existingImages' => [],
             'pimToken' => (string) Str::uuid(),
         ]);
@@ -178,7 +180,7 @@ class ProductController extends Controller
 
             $this->syncVariants($product, $request);
             $this->syncQuantityFromVariants($product);
-            $this->syncSpecials($product, $request);
+            $this->syncSpecialsAndDiscounts($product, $request);
             $this->syncImagesFromJson($product, $request);
             $this->syncAttributes($product, $request);
         });
@@ -189,7 +191,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $product->load(['brand', 'categories', 'customerGroups', 'tags', 'specials', 'images', 'variantTypes.values', 'variants.values']);
+        $product->load(['brand', 'categories', 'customerGroups', 'tags', 'specials', 'discounts', 'images', 'variantTypes.values', 'variants.values']);
         $categories = Category::where('store_id', $product->store_id)->orderBy('name')->get();
         $customerGroups = CustomerGroup::orderBy('name')->get();
         $tags = Tag::orderBy('name')->get();
@@ -253,23 +255,31 @@ class ProductController extends Controller
             // If $mainIdx === 0, it's already in the right position
         }
 
-        $existingSpecials = $product->specials->map(function ($s) {
+        $existingSpecials = $product->specials->sortBy('id')->map(function ($s) {
             return [
-                'customer_group_id' => $s->customer_group_id ?? '',
-                'price' => $s->price,
-                'quantity' => $s->quantity ?? 1,
-                'display_mode' => $s->display_mode,
-                'priority' => $s->priority,
+                'price_type' => $s->price_type,
+                'value' => $s->value,
                 ...$this->specialWindowFields($s),
             ];
-        })->toArray();
+        })->values()->toArray();
+
+        // Group ids as strings, because the form's select compares option
+        // values strictly and an option value is always a string.
+        $existingDiscounts = $product->discounts->sortBy('id')->map(fn ($d) => [
+            'customer_group_id' => $d->customer_group_id === null ? '' : (string) $d->customer_group_id,
+            'quantity' => $d->quantity,
+            'price_type' => $d->price_type,
+            'value' => $d->value,
+        ])->values()->toArray();
+
+        $priceGroups = $this->priceGroups($customerGroups);
 
         $pimToken = (string) Str::uuid();
 
         $attributeGroups = \App\Models\AttributeGroup::with('attributes')->orderBy('sort_order')->orderBy('name')->get();
         $attributeValues = $product->productAttributes()->pluck('value', 'attribute_id')->all();
 
-        return view('admin.catalog.products.form', compact('product', 'categories', 'customerGroups', 'tags', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken', 'attributeGroups', 'attributeValues'));
+        return view('admin.catalog.products.form', compact('product', 'categories', 'customerGroups', 'tags', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingDiscounts', 'priceGroups', 'existingImages', 'pimToken', 'attributeGroups', 'attributeValues'));
     }
 
     public function update(Request $request, Product $product)
@@ -304,7 +314,7 @@ class ProductController extends Controller
 
             $this->syncVariants($product, $request);
             $this->syncQuantityFromVariants($product);
-            $this->syncSpecials($product, $request);
+            $this->syncSpecialsAndDiscounts($product, $request);
             $this->syncImagesFromJson($product, $request);
             $this->syncAttributes($product, $request);
         });
@@ -459,31 +469,50 @@ class ProductController extends Controller
             'variants.*.image' => ['nullable', 'string', 'max:2048', new MediaImage($variantImages)],
             'variants.*.value_keys' => ['nullable', 'array'],
 
-            // Special pricing rows. A start or end is a date with an optional
-            // time; a date with no time covers the whole day.
+            // Special price rows: a sale for every buyer between a start
+            // and a required end. A start or end is a date with an optional
+            // time; a date with no time covers the whole day. The range of a
+            // percentage is checked in validatePriceRows().
             'specials' => ['nullable', 'array'],
-            'specials.*.customer_group_id' => ['nullable', 'exists:customer_groups,id'],
-            'specials.*.price' => ['nullable', 'numeric', 'min:0'],
-            'specials.*.quantity' => ['nullable', 'integer', 'min:1'],
-            'specials.*.display_mode' => ['nullable', 'in:sale,override'],
-            'specials.*.priority' => ['nullable', 'integer', 'min:0'],
+            'specials.*.price_type' => ['required', 'in:fixed,percent'],
+            'specials.*.value' => ['required', 'numeric', 'min:0'],
             'specials.*.date_start' => ['nullable', 'date_format:Y-m-d'],
             'specials.*.time_start' => ['nullable', 'regex:' . self::TIME_OF_DAY],
-            'specials.*.date_end' => ['nullable', 'date_format:Y-m-d'],
+            'specials.*.date_end' => ['required', 'date_format:Y-m-d'],
             'specials.*.time_end' => ['nullable', 'regex:' . self::TIME_OF_DAY],
+
+            // Discount rows: always on, for one customer group (empty means
+            // every group) from a minimum quantity.
+            'discounts' => ['nullable', 'array'],
+            'discounts.*.customer_group_id' => ['nullable', 'integer', 'exists:customer_groups,id'],
+            'discounts.*.quantity' => ['required', 'integer', 'min:1'],
+            'discounts.*.price_type' => ['required', 'in:fixed,percent'],
+            'discounts.*.value' => ['required', 'numeric', 'min:0'],
         ], [
             // Named by row, because the generic message points at the General
             // tab and leaves a merchant hunting thirty-six rows for the one
             // that is empty.
             'variants.*.sku.required' => 'Every variant needs its own SKU. Row :position has none.',
-            'specials.*.date_start.date_format' => 'Special pricing row :position: the start date is not a date.',
-            'specials.*.date_end.date_format' => 'Special pricing row :position: the end date is not a date.',
-            'specials.*.time_start.regex' => 'Special pricing row :position: the start time must be a time of day, such as 18:00.',
-            'specials.*.time_end.regex' => 'Special pricing row :position: the end time must be a time of day, such as 21:30.',
+            'specials.*.price_type.*' => 'Special price row :position: choose % off or Fixed price.',
+            'specials.*.value.required' => 'Special price row :position: enter a price.',
+            'specials.*.value.numeric' => 'Special price row :position: the price must be a number.',
+            'specials.*.value.min' => 'Special price row :position: the price cannot be below 0.',
+            'specials.*.date_start.date_format' => 'Special price row :position: the start date is not a date.',
+            'specials.*.date_end.required' => 'Special price row :position: choose when it ends.',
+            'specials.*.date_end.date_format' => 'Special price row :position: the end date is not a date.',
+            'specials.*.time_start.regex' => 'Special price row :position: the start time must be a time of day, such as 18:00.',
+            'specials.*.time_end.regex' => 'Special price row :position: the end time must be a time of day, such as 21:30.',
+            'discounts.*.customer_group_id.*' => 'Discount row :position: choose a customer group from the list.',
+            'discounts.*.quantity.*' => 'Discount row :position: the minimum quantity must be a whole number, 1 or more.',
+            'discounts.*.price_type.*' => 'Discount row :position: choose % off or Fixed price.',
+            'discounts.*.value.required' => 'Discount row :position: enter a price.',
+            'discounts.*.value.numeric' => 'Discount row :position: the price must be a number.',
+            'discounts.*.value.min' => 'Discount row :position: the price cannot be below 0.',
         ]);
 
         $this->validateGalleryImages($request, $current);
         $this->validateSpecialWindows($request);
+        $this->validatePriceRows($request);
 
         // Validate SKU uniqueness across products + variants in this store
         $this->validateSkuUniqueness($request, $storeId, $productId);
@@ -733,28 +762,90 @@ class ProductController extends Controller
         $product->syncStockFromVariants();
     }
 
-    protected function syncSpecials(Product $product, Request $request): void
+    /**
+     * The form holds every row of both lists, so a save replaces them.
+     * Validation has already refused any incomplete row.
+     */
+    protected function syncSpecialsAndDiscounts(Product $product, Request $request): void
     {
         $product->specials()->delete();
 
-        $specialsData = (array) $request->input('specials', []);
-        foreach ($specialsData as $data) {
-            if (!isset($data['price']) || $data['price'] === '') {
-                continue;
-            }
-
+        foreach ((array) $request->input('specials', []) as $data) {
             // A date with no time is passed as the date alone, which the
             // model reads as the start (00:00) or the end (23:59:59) of
             // that day.
             $product->specials()->create([
-                'customer_group_id' => ($data['customer_group_id'] ?? null) ?: null,
-                'price' => $data['price'],
-                'quantity' => max(1, (int) ($data['quantity'] ?? 1)),
-                'display_mode' => $data['display_mode'] ?? 'sale',
-                'priority' => (int) ($data['priority'] ?? 0),
+                'price_type' => $data['price_type'],
+                'value' => $data['value'],
                 'date_start' => DateWindow::combine($data['date_start'] ?? null, $data['time_start'] ?? null),
                 'date_end' => DateWindow::combine($data['date_end'] ?? null, $data['time_end'] ?? null),
             ]);
+        }
+
+        $product->discounts()->delete();
+
+        foreach ((array) $request->input('discounts', []) as $data) {
+            $product->discounts()->create([
+                'customer_group_id' => ($data['customer_group_id'] ?? null) ?: null,
+                'quantity' => (int) $data['quantity'],
+                'price_type' => $data['price_type'],
+                'value' => $data['value'],
+            ]);
+        }
+    }
+
+    /**
+     * The customer groups a discount can name, and the rows of the form's
+     * "What buyers pay now" summary. Ids are strings to match the select's
+     * option values.
+     *
+     * @return array<int, array{id: string, name: string}>
+     */
+    private function priceGroups(\Illuminate\Support\Collection $customerGroups): array
+    {
+        return $customerGroups
+            ->map(fn (CustomerGroup $g) => ['id' => (string) $g->id, 'name' => $g->name])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * What the field rules cannot say alone: a percentage off must leave
+     * something to pay and take something off, and two discount rows for
+     * the same group and quantity would leave the price to row order.
+     * Runs after the field rules, so every value here is already a number.
+     */
+    private function validatePriceRows(Request $request): void
+    {
+        $errors = [];
+
+        foreach (['specials' => 'Special price', 'discounts' => 'Discount'] as $list => $label) {
+            foreach ((array) $request->input($list, []) as $index => $row) {
+                if (is_array($row) && ($row['price_type'] ?? null) === 'percent') {
+                    $value = (float) $row['value'];
+                    if ($value <= 0 || $value >= 100) {
+                        $position = (int) $index + 1;
+                        $errors[$list . '.' . $index . '.value'] = "{$label} row {$position}: % off must be more than 0 and less than 100.";
+                    }
+                }
+            }
+        }
+
+        $seen = [];
+        foreach ((array) $request->input('discounts', []) as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $key = ((string) ($row['customer_group_id'] ?? '')) . '|' . (int) $row['quantity'];
+            if (isset($seen[$key])) {
+                $position = (int) $index + 1;
+                $errors['discounts.' . $index . '.quantity'] ??= "Discount row {$position}: another row already sets this group and quantity.";
+            }
+            $seen[$key] = true;
+        }
+
+        if ($errors !== []) {
+            throw \Illuminate\Validation\ValidationException::withMessages($errors);
         }
     }
 
@@ -800,7 +891,7 @@ class ProductController extends Controller
 
             foreach (['start', 'end'] as $side) {
                 if (! empty($row['time_' . $side]) && empty($row['date_' . $side])) {
-                    $errors['specials.' . $index . '.date_' . $side] = "Special pricing row {$position}: pick a {$side} date for the {$side} time.";
+                    $errors['specials.' . $index . '.date_' . $side] = "Special price row {$position}: pick a {$side} date for the {$side} time.";
                 }
             }
 
@@ -808,7 +899,7 @@ class ProductController extends Controller
             $end = DateWindow::end(DateWindow::combine($row['date_end'] ?? null, $row['time_end'] ?? null));
 
             if ($start !== null && $end !== null && $end->lessThan($start)) {
-                $errors['specials.' . $index . '.date_end'] = "Special pricing row {$position}: the end is before the start.";
+                $errors['specials.' . $index . '.date_end'] = "Special price row {$position}: the end is before the start.";
             }
         }
 

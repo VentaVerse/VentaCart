@@ -232,14 +232,14 @@ class SpecialDateWindowTest extends TestCase
         $this->put(route('admin.products.update', $product), [
             'store_id' => 1, 'name' => 'Demo Kettle', 'price' => 1000, 'is_active' => '1',
             'specials' => [
-                ['price' => '800', 'display_mode' => 'sale', 'priority' => '0', 'quantity' => '1',
+                ['price_type' => 'fixed', 'value' => '800',
                     'date_start' => '2026-10-25', 'time_start' => '18:00', 'date_end' => '2026-10-31', 'time_end' => '21:30'],
-                ['price' => '850', 'display_mode' => 'sale', 'priority' => '1', 'quantity' => '1',
+                ['price_type' => 'fixed', 'value' => '850',
                     'date_start' => '2026-10-25', 'time_start' => '', 'date_end' => '2026-10-31', 'time_end' => ''],
             ],
         ])->assertRedirect()->assertSessionHasNoErrors();
 
-        $rows = DB::table('product_specials')->where('product_id', $product->id)->orderBy('priority')->get(['date_start', 'date_end']);
+        $rows = DB::table('product_specials')->where('product_id', $product->id)->orderBy('id')->get(['date_start', 'date_end']);
         $this->assertSame(['2026-10-25 18:00:00', '2026-10-31 21:30:00'], [$rows[0]->date_start, $rows[0]->date_end]);
         $this->assertSame(['2026-10-25 00:00:00', '2026-10-31 23:59:59'], [$rows[1]->date_start, $rows[1]->date_end]);
 
@@ -259,20 +259,20 @@ class SpecialDateWindowTest extends TestCase
         $base = ['store_id' => 1, 'name' => 'Demo Kettle', 'price' => 1000, 'is_active' => '1'];
 
         $this->put(route('admin.products.update', $product), $base + ['specials' => [
-            ['price' => '800', 'date_start' => '2026-10-31', 'time_start' => '22:00', 'date_end' => '2026-10-31', 'time_end' => '21:30'],
+            ['price_type' => 'fixed', 'value' => '800', 'date_start' => '2026-10-31', 'time_start' => '22:00', 'date_end' => '2026-10-31', 'time_end' => '21:30'],
         ]])->assertSessionHasErrors('specials.0.date_end');
 
         $this->put(route('admin.products.update', $product), $base + ['specials' => [
-            ['price' => '800', 'date_end' => '2026-10-31', 'time_end' => '25:00'],
+            ['price_type' => 'fixed', 'value' => '800', 'date_end' => '2026-10-31', 'time_end' => '25:00'],
         ]])->assertSessionHasErrors('specials.0.time_end');
 
         $this->put(route('admin.products.update', $product), $base + ['specials' => [
-            ['price' => '800', 'time_end' => '21:30'],
+            ['price_type' => 'fixed', 'value' => '800', 'time_end' => '21:30'],
         ]])->assertSessionHasErrors('specials.0.date_end');
 
         // A sale on a single day, start and end dates the same, is fine.
         $this->put(route('admin.products.update', $product), $base + ['specials' => [
-            ['price' => '800', 'date_start' => '2026-10-31', 'date_end' => '2026-10-31'],
+            ['price_type' => 'fixed', 'value' => '800', 'date_start' => '2026-10-31', 'date_end' => '2026-10-31'],
         ]])->assertSessionHasNoErrors();
 
         $this->assertSame(1, ProductSpecial::where('product_id', $product->id)->count());

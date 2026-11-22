@@ -1,0 +1,103 @@
+/* The product form's Specials & Discounts tab: the special price and
+   discount rows, and the "What buyers pay now" summary. Everything else on
+   the tab is the admin's own panels, tables and controls. */
+
+#panel-pricing .v-price__num,
+#panel-pricing .v-table { font-variant-numeric: tabular-nums; }
+
+/* ---- A rule's price: the type dropdown beside the amount ---- */
+.v-price { display: flex; gap: 6px; align-items: center; min-width: 15rem; max-width: 21rem; }
+.v-price__type { flex: 0 0 8.25rem; width: 8.25rem; }
+.v-price__amt { position: relative; flex: 1 1 7rem; min-width: 0; display: block; }
+.v-price__amt .v-control { width: 100%; padding-right: 26px; }
+.v-price__unit {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--v-ink-3); pointer-events: none;
+}
+.v-price-warn { display: block; margin-top: 5px; font-size: 12px; color: var(--v-warn); max-width: 22rem; }
+.v-price-note { display: block; margin-top: 5px; font-size: 12.5px; color: var(--v-ink-3); }
+.v-price-qty { max-width: 7rem; }
+.v-price-table td { vertical-align: top; }
+.v-price-status .v-badge { min-height: var(--v-control-h); white-space: nowrap; }
+
+/* ---- What buyers pay now ----
+   The group column on the left at a fixed width, the variant columns
+   sharing the rest equally, each price centered under its variant. With
+   many variants each column keeps a minimum width and the table scrolls
+   inside its card, the group column staying in place. */
+.v-pays {
+    --group-w: 13rem;
+    --col-min: 7.5rem;
+    width: 100%;
+    min-width: calc(var(--group-w) + var(--cols, 1) * var(--col-min));
+    table-layout: fixed;
+}
+.v-pays th:first-child {
+    width: var(--group-w);
+    position: sticky; left: 0; z-index: 1; background: var(--v-surface);
+}
+.v-pays thead th:not(:first-child),
+.v-pays .v-pays__cell { text-align: center; }
+.v-pays tbody th {
+    font-size: 13.5px; font-weight: 500; color: var(--v-ink);
+    border-bottom: 1px solid var(--v-line); white-space: normal; vertical-align: top;
+}
+.v-pays tbody tr:last-child th { border-bottom: 0; }
+.v-pays td { vertical-align: top; }
+.v-pays th, .v-pays td { padding-top: 10px; padding-bottom: 10px; }
+.v-pays tbody tr:not(.v-pays__regular):hover th { background: var(--v-hover); }
+.v-pays__paid { display: block; font-weight: 620; color: var(--v-ink); }
+.v-pays__was { display: block; margin-top: 2px; font-size: 12px; color: var(--v-ink-3); white-space: nowrap; }
+.v-pays__tag { margin-left: 4px; }
+.v-pays__group { display: block; }
+.v-pays__rule { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--v-ink-3); }
+/* The regular price is the reference row, in quieter text. */
+.v-pays .v-pays__regular th,
+.v-pays .v-pays__regular td { color: var(--v-ink-2); }
+/* One price column sits beside the group instead of centered in a wide column. */
+.v-pays--single thead th:not(:first-child),
+.v-pays--single .v-pays__cell { text-align: left; }
+
+@media (max-width: 719px) {
+    .v-price { min-width: 0; max-width: none; }
+    .v-price-qty { max-width: none; }
+    .v-price-status .v-badge { min-height: 0; }
+    .v-price-table td.v-cell-act { grid-column: -2 / -1; align-self: end; }
+    /* Wide enough for a four-figure price; variant names wrap, and a
+       price's rule goes under the slashed price instead of beside it. */
+    .v-pays { --group-w: 6.25rem; --col-min: 6rem; }
+    .v-pays th, .v-pays td { padding-left: 8px; padding-right: 8px; }
+    .v-pays thead th { white-space: normal; }
+    .v-pays__tag { display: block; margin-left: 0; }
+    .v-pays th:first-child { padding-left: 0; }
+    .v-pays tbody th { font-size: 13px; }
+}
+
+/* ---- Rows become cards whenever the panel is too narrow for the table ----
+   The admin's own card rule switches on the viewport (below 720px). These
+   rows need more room than that, and the sidebar takes a share of the
+   screen on tablets, so they switch on the width of their panel instead. */
+#panel-pricing .v-panel__body { container-type: inline-size; }
+@container (max-width: 959px) {
+    .v-price-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .v-price-table, .v-price-table tbody { display: block; }
+    .v-price-table tr {
+        display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px;
+        padding: 14px; margin-bottom: 12px; border: 1px solid var(--v-line-2); border-radius: 10px; background: var(--v-canvas);
+    }
+    .v-price-table td { display: flex; flex-direction: column; gap: 4px; padding: 0; border: 0; min-width: 0; }
+    .v-price-table td[data-label]::before { content: attr(data-label); font-size: 12px; font-weight: 600; color: var(--v-ink-2); }
+    .v-price-table td.v-cell-wide { grid-column: 1 / -1; }
+    .v-price-table td.v-cell-act { grid-column: -2 / -1; align-items: flex-end; align-self: end; }
+    .v-price-table .v-control { width: 100%; max-width: none; }
+    .v-price-table .v-price { min-width: 0; max-width: 26rem; }
+    .v-price-table .v-price__type { width: 8.25rem; }
+    .v-price-table .v-price-qty { max-width: none; }
+    .v-price-table td.v-price-status { justify-content: flex-start; }
+    .v-price-status .v-badge { min-height: 0; }
+}
+/* Wide enough for Starts and Ends side by side, each with its time beside the date. */
+@container (min-width: 560px) and (max-width: 959px) {
+    .v-price-table td.v-price-date { grid-column: auto; }
+    .v-price-table .v-datetime { flex-direction: row; }
+}

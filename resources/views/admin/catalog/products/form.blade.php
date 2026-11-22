@@ -4,7 +4,7 @@
         $tabFields = [
             'general' => ['name', 'slug', 'sku', 'brand_id', 'description', 'date_available', 'price', 'quantity', 'weight', 'is_active', 'track_stock', 'minimum_quantity', 'attribute_values'],
             'images' => ['images_json'],
-            'pricing' => ['specials'],
+            'pricing' => ['specials', 'discounts'],
             'links' => ['category_ids', 'tag_ids', 'customer_group_ids'],
             'variants' => ['variants', 'variant_types'],
             'seo' => ['meta_title', 'meta_description', 'meta_keywords'],
@@ -26,16 +26,21 @@
         }
     }
 
-    // The special pricing rows as last submitted when the save was refused,
-    // so the merchant fixes their input instead of retyping it; otherwise
-    // the rows as stored.
+    // The special price and discount rows as last submitted when the save
+    // was refused, so the merchant fixes their input instead of retyping
+    // it; otherwise the rows as stored.
     $specialRows = is_array(old('specials')) ? array_values(old('specials')) : $existingSpecials;
+    $discountRows = is_array(old('discounts')) ? array_values(old('discounts')) : $existingDiscounts;
     $specialErrors = [];
+    $discountErrors = [];
     foreach ($errors->messages() as $key => $messages) {
         if (str_starts_with($key, 'specials.')) {
             $specialErrors[] = $messages[0];
+        } elseif (str_starts_with($key, 'discounts.')) {
+            $discountErrors[] = $messages[0];
         }
     }
+    $storeSymbol = (string) app(\App\Services\ThemeService::class)->getDefaultCurrency()?->symbol;
 
     // Which variant rows the server refused, so each one can say so where the
     // merchant is looking rather than as a string at the top of another tab.
@@ -121,7 +126,7 @@
                     <button type="button" class="v-tab" role="tab" id="tab-pricing" aria-controls="panel-pricing"
                             x-ref="tab_pricing" :tabindex="tab === 'pricing' ? 0 : -1"
                             :aria-selected="tab === 'pricing' ? 'true' : 'false'" @click="pick('pricing')">
-                        Pricing <span class="v-tab__count" x-show="specials.length > 0" x-text="specials.length"></span>
+                        Specials &amp; Discounts <span class="v-tab__count" x-show="specials.length + discounts.length > 0" x-text="specials.length + discounts.length"></span>
                     </button>
                     <button type="button" class="v-tab" role="tab" id="tab-seo" aria-controls="panel-seo"
                             x-ref="tab_seo" :tabindex="tab === 'seo' ? 0 : -1"
@@ -518,16 +523,17 @@
                                           @media:picked="assignVariantImage($event.detail.paths[0] ?? '')" />
                 </div>
 
-                {{-- ===================== PRICING ===================== --}}
+                {{-- ===================== SPECIALS & DISCOUNTS ===================== --}}
+                @php $storeZone = \App\Support\DateWindow::timezone(); @endphp
                 <div x-show="tab === 'pricing'" class="v-settle" role="tabpanel" id="panel-pricing" aria-labelledby="tab-pricing" tabindex="0">
-                    <x-admin.panel title="Special pricing"
-                        note="The lowest priority number wins when two rows both qualify. Times are store time; with no time, a special starts at the beginning of its start date and runs to the end of its end date.">
+                    <x-admin.panel title="Special price"
+                        note="A sale price for every buyer, for a set time. When it ends, the price goes back on its own.">
                         <x-slot:acts>
-                            <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="addSpecial(); touch()">Add special</button>
+                            <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="addSpecial(); touch()">Add special price</button>
                         </x-slot:acts>
 
                         <div x-show="specials.length === 0" class="v-empty">
-                            <p class="v-empty__title">No special pricing rules</p>
+                            <p class="v-empty__title">No special price</p>
                         </div>
 
                         @if ($specialErrors !== [])
@@ -539,55 +545,173 @@
                         @endif
 
                         <div x-show="specials.length > 0" class="v-tablewrap">
-                            <table class="v-table v-table--cards">
+                            <table class="v-table v-table--cards v-price-table">
                                 <thead>
                                     <tr>
-                                        <th>Customer group</th>
                                         <th>Price</th>
-                                        <th>Qty</th>
-                                        <th>Display</th>
-                                        <th>Priority</th>
-                                        <th>Start <span class="v-cell-quiet">({{ \App\Support\DateWindow::timezone() }})</span></th>
-                                        <th>End <span class="v-cell-quiet">({{ \App\Support\DateWindow::timezone() }})</span></th>
+                                        <th>Starts <span class="v-cell-quiet">({{ $storeZone }})</span>
+                                            <x-admin.help text="Empty: starts as soon as you save. Empty time: start of the day." />
+                                        </th>
+                                        <th>Ends <span class="v-cell-quiet">({{ $storeZone }})</span> <span class="v-req">Required</span>
+                                            <x-admin.help text="Empty time: end of the day." />
+                                        </th>
+                                        <th>Status</th>
                                         <th class="v-cell-act"><span class="v-sr">Actions</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <template x-for="(special, sIndex) in specials" :key="sIndex">
                                         <tr>
-                                            <td data-label="Customer group" class="v-cell-wide">
-                                                <select x-model="special.customer_group_id" :name="'specials['+sIndex+'][customer_group_id]'"
+                                            <td data-label="Price" class="v-cell-wide">
+                                                <div class="v-price">
+                                                    <select x-model="special.price_type" :name="'specials['+sIndex+'][price_type]'"
+                                                            aria-label="Price type" class="v-control v-control--sm v-price__type">
+                                                        <option value="percent">% off</option>
+                                                        <option value="fixed">Fixed price</option>
+                                                    </select>
+                                                    <span class="v-price__amt">
+                                                        <input type="number" x-model="special.value" :name="'specials['+sIndex+'][value]'"
+                                                               min="0" step="0.01" aria-label="Amount" class="v-control v-control--sm v-price__num">
+                                                        <span class="v-price__unit" x-show="special.price_type === 'percent'" aria-hidden="true">%</span>
+                                                    </span>
+                                                </div>
+                                                <span class="v-price-warn" x-show="notBelowRegular(special)" x-cloak>This is not below the regular price, so buyers will not see it.</span>
+                                            </td>
+                                            <td data-label="Starts ({{ $storeZone }})" class="v-cell-wide v-price-date">
+                                                <div class="v-datetime">
+                                                    <input type="date" x-model="special.date_start" :name="'specials['+sIndex+'][date_start]'" aria-label="Start date" class="v-control v-control--sm v-price__num">
+                                                    <input type="time" x-model="special.time_start" :name="'specials['+sIndex+'][time_start]'" aria-label="Start time (empty: start of the day)" title="Empty: start of the day" class="v-control v-control--sm v-price__num">
+                                                </div>
+                                                <span class="v-price-note" x-show="!special.date_start">Starts as soon as you save</span>
+                                            </td>
+                                            <td data-label="Ends ({{ $storeZone }})" class="v-cell-wide v-price-date">
+                                                <div class="v-datetime">
+                                                    <input type="date" x-model="special.date_end" :name="'specials['+sIndex+'][date_end]'" aria-label="End date" aria-required="true" class="v-control v-control--sm v-price__num">
+                                                    <input type="time" x-model="special.time_end" :name="'specials['+sIndex+'][time_end]'" aria-label="End time (empty: end of the day)" title="Empty: end of the day" class="v-control v-control--sm v-price__num">
+                                                </div>
+                                            </td>
+                                            <td data-label="Status" class="v-price-status">
+                                                <span class="v-badge" x-show="specialStatus(special)"
+                                                      :class="specialStatus(special) === 'On now' ? 'v-badge--good' : 'v-badge--quiet'"
+                                                      x-text="specialStatus(special)"></span>
+                                            </td>
+                                            <td class="v-cell-act">
+                                                <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="specials.splice(sIndex, 1); touch()" aria-label="Remove special price">Remove</button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-admin.panel>
+
+                    <x-admin.panel title="Discounts"
+                        note="Always-on prices for one customer group. A buyer gets the deepest tier their quantity reaches.">
+                        <x-slot:acts>
+                            <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="addDiscount(); touch()">Add discount</button>
+                        </x-slot:acts>
+
+                        <div x-show="discounts.length === 0" class="v-empty">
+                            <p class="v-empty__title">No discounts</p>
+                        </div>
+
+                        @if ($discountErrors !== [])
+                            <ul class="v-field__error v-special-errors" role="alert">
+                                @foreach ($discountErrors as $message)
+                                    <li>{{ $message }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        <div x-show="discounts.length > 0" class="v-tablewrap">
+                            <table class="v-table v-table--cards v-price-table">
+                                <thead>
+                                    <tr>
+                                        <th>Customer group</th>
+                                        <th>Minimum quantity</th>
+                                        <th>Price</th>
+                                        <th class="v-cell-act"><span class="v-sr">Actions</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(discount, dIndex) in discounts" :key="dIndex">
+                                        <tr>
+                                            <td data-label="Customer group">
+                                                <select x-model="discount.customer_group_id" :name="'discounts['+dIndex+'][customer_group_id]'"
                                                         aria-label="Customer group" class="v-control v-control--sm">
-                                                    <option value="">All groups</option>
-                                                    @foreach ($customerGroups as $group)
-                                                        <option value="{{ $group->id }}">{{ $group->name }}</option>
+                                                    <option value="">All customer groups</option>
+                                                    @foreach ($priceGroups as $group)
+                                                        <option value="{{ $group['id'] }}">{{ $group['name'] }}</option>
                                                     @endforeach
                                                 </select>
                                             </td>
-                                            <td data-label="Price"><input type="number" x-model="special.price" :name="'specials['+sIndex+'][price]'" step="0.01" min="0" required aria-label="Special price" class="v-control v-control--sm v-mono v-w-name"></td>
-                                            <td data-label="Minimum qty"><input type="number" x-model="special.quantity" :name="'specials['+sIndex+'][quantity]'" min="1" aria-label="Minimum quantity" class="v-control v-control--sm v-mono v-w-sort"></td>
-                                            <td data-label="Display">
-                                                <select x-model="special.display_mode" :name="'specials['+sIndex+'][display_mode]'" aria-label="Display mode" class="v-control v-control--sm">
-                                                    <option value="sale">Sale (slashed)</option>
-                                                    <option value="override">Override (clean)</option>
-                                                </select>
+                                            <td data-label="Minimum quantity">
+                                                <input type="number" x-model="discount.quantity" :name="'discounts['+dIndex+'][quantity]'"
+                                                       min="1" step="1" aria-label="Minimum quantity" class="v-control v-control--sm v-price__num v-price-qty">
                                             </td>
-                                            <td data-label="Priority"><input type="number" x-model="special.priority" :name="'specials['+sIndex+'][priority]'" min="0" aria-label="Priority" class="v-control v-control--sm v-mono v-w-sort"></td>
-                                            <td data-label="Start ({{ \App\Support\DateWindow::timezone() }})" class="v-cell-wide">
-                                                <div class="v-datetime">
-                                                    <input type="date" x-model="special.date_start" :name="'specials['+sIndex+'][date_start]'" aria-label="Start date" class="v-control v-control--sm v-mono">
-                                                    <input type="time" x-model="special.time_start" :name="'specials['+sIndex+'][time_start]'" aria-label="Start time (empty: start of the day)" title="Empty: start of the day" class="v-control v-control--sm v-mono">
+                                            <td data-label="Price" class="v-cell-wide">
+                                                <div class="v-price">
+                                                    <select x-model="discount.price_type" :name="'discounts['+dIndex+'][price_type]'"
+                                                            aria-label="Price type" class="v-control v-control--sm v-price__type">
+                                                        <option value="percent">% off</option>
+                                                        <option value="fixed">Fixed price</option>
+                                                    </select>
+                                                    <span class="v-price__amt">
+                                                        <input type="number" x-model="discount.value" :name="'discounts['+dIndex+'][value]'"
+                                                               min="0" step="0.01" aria-label="Amount" class="v-control v-control--sm v-price__num">
+                                                        <span class="v-price__unit" x-show="discount.price_type === 'percent'" aria-hidden="true">%</span>
+                                                    </span>
                                                 </div>
-                                            </td>
-                                            <td data-label="End ({{ \App\Support\DateWindow::timezone() }})" class="v-cell-wide">
-                                                <div class="v-datetime">
-                                                    <input type="date" x-model="special.date_end" :name="'specials['+sIndex+'][date_end]'" aria-label="End date" class="v-control v-control--sm v-mono">
-                                                    <input type="time" x-model="special.time_end" :name="'specials['+sIndex+'][time_end]'" aria-label="End time (empty: end of the day)" title="Empty: end of the day" class="v-control v-control--sm v-mono">
-                                                </div>
+                                                <span class="v-price-warn" x-show="notBelowRegular(discount)" x-cloak>This is not below the regular price, so buyers will not see it.</span>
                                             </td>
                                             <td class="v-cell-act">
-                                                <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="specials.splice(sIndex, 1); touch()" aria-label="Remove price rule">Remove</button>
+                                                <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="discounts.splice(dIndex, 1); touch()" aria-label="Remove discount">Remove</button>
                                             </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-admin.panel>
+
+                    <x-admin.panel title="What buyers pay now"
+                        note="The lowest of the regular price, a special price that is on now, and the buyer's group discount for one item. When that is below the regular price, the regular price shows slashed. Under each group, or under a price, is the rule that set it.">
+                        <x-slot:acts>
+                            <button type="button" class="v-btn v-btn--ghost v-btn--sm" x-show="variants.length > 0" x-cloak @click="jump('variants')">Edit variants</button>
+                        </x-slot:acts>
+
+                        <div class="v-tablewrap">
+                            <table class="v-table v-pays" :class="payColumns.length === 1 && 'v-pays--single'" :style="{ '--cols': payColumns.length }">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Customer group</th>
+                                        <template x-for="(col, cIndex) in payColumns" :key="cIndex">
+                                            <th scope="col" x-text="col.name"></th>
+                                        </template>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="v-pays__regular">
+                                        <th scope="row">Regular price</th>
+                                        <template x-for="(col, cIndex) in payColumns" :key="cIndex">
+                                            <td class="v-pays__cell" x-text="money(col.regular)"></td>
+                                        </template>
+                                    </tr>
+                                    <template x-for="row in payRows" :key="row.id">
+                                        <tr>
+                                            <th scope="row">
+                                                <span class="v-pays__group" x-text="row.name"></span>
+                                                <span class="v-pays__rule" x-show="row.rule" x-text="ruleName(row.rule)"></span>
+                                            </th>
+                                            <template x-for="(cell, cIndex) in row.cells" :key="cIndex">
+                                                <td class="v-pays__cell">
+                                                    <span class="v-pays__paid" x-text="money(cell.price)"></span>
+                                                    <span class="v-pays__was" x-show="cell.price < cell.regular">
+                                                        <s x-text="money(cell.regular)"></s>
+                                                        <span class="v-pays__tag" x-show="!row.rule" x-text="ruleName(cell.rule)"></span>
+                                                    </span>
+                                                </td>
+                                            </template>
                                         </tr>
                                     </template>
                                 </tbody>
@@ -724,16 +848,60 @@
             };
         }
 
+        /*
+         * What one special price or discount charges, by the same rule as
+         * App\Services\PriceResolver::apply(), so the "What buyers pay now"
+         * summary matches the storefront and the cart. A fixed price keeps
+         * the variant's difference from the product's own price; a
+         * percentage comes off the variant's own price. Never below zero.
+         */
+        function priceAfterRule(priceType, value, regularPrice, productPrice) {
+            const price = priceType === 'percent'
+                ? regularPrice * (1 - value / 100)
+                : value + (regularPrice - productPrice);
+            return Math.max(0, Math.round(price * 100) / 100);
+        }
+
+        /*
+         * The store's wall-clock time now, as "YYYY-MM-DD HH:MM:SS". Special
+         * dates are store time, so the status a row shows must not depend
+         * on the zone of the browser that is looking at it.
+         */
+        function storeClock(zone) {
+            const now = new Date();
+            try {
+                const parts = {};
+                new Intl.DateTimeFormat('en-CA', {
+                    timeZone: zone, hourCycle: 'h23',
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                }).formatToParts(now).forEach(p => { parts[p.type] = p.value; });
+                return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+            } catch (e) {
+                const pad = n => String(n).padStart(2, '0');
+                return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+            }
+        }
+
         function productForm() {
             const existingTypes = @json($existingTypes);
             const existingVariants = @json($existingVariants);
             const existingSpecials = @json($specialRows);
+            const existingDiscounts = @json($discountRows);
+            const storeZone = @json(\App\Support\DateWindow::timezone());
+            const storeSymbol = @json($storeSymbol);
 
             return {
                 variantTypes: existingTypes,
                 variants: existingVariants,
                 specials: existingSpecials,
+                discounts: existingDiscounts,
+                priceGroups: @json($priceGroups),
                 basePrice: parseFloat(@json(old('price', $product?->price ?? 0))) || 0,
+                // Refreshed every half minute, so a special that starts or
+                // ends while the form is open changes its status and the
+                // summary without a reload.
+                storeNow: storeClock(storeZone),
 
                 get hasVariants() {
                     return this.variants.length > 0;
@@ -745,15 +913,119 @@
 
                 addSpecial() {
                     this.specials.push({
-                        customer_group_id: '',
-                        price: '',
-                        quantity: 1,
-                        display_mode: 'sale',
-                        priority: this.specials.length,
+                        price_type: 'percent',
+                        value: '',
                         date_start: '',
                         time_start: '',
                         date_end: '',
                         time_end: '',
+                    });
+                },
+
+                addDiscount() {
+                    this.discounts.push({
+                        customer_group_id: '',
+                        quantity: 1,
+                        price_type: 'percent',
+                        value: '',
+                    });
+                },
+
+                /* ---- Specials & Discounts ---- */
+
+                money(amount) {
+                    return storeSymbol + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                },
+
+                // The amount as a number when the server would accept it,
+                // otherwise null; an unfinished row is left out of the summary.
+                ruleValue(row) {
+                    if (row.value === '' || row.value === null || row.value === undefined) return null;
+                    const value = parseFloat(row.value);
+                    if (isNaN(value)) return null;
+                    if (row.price_type === 'percent') return value > 0 && value < 100 ? value : null;
+                    return value >= 0 ? value : null;
+                },
+
+                // A rule that does not lower the price is saved but never
+                // applies, which is worth saying while the merchant types.
+                notBelowRegular(row) {
+                    const value = this.ruleValue(row);
+                    if (value === null) return false;
+                    const regular = this.basePrice || 0;
+                    return priceAfterRule(row.price_type, value, regular, regular) >= regular;
+                },
+
+                // Store-time moments compare as strings in this fixed format.
+                // An empty time is the start or the end of the day, as on save.
+                moment(date, time, endOfDay) {
+                    if (!date) return null;
+                    if (!time) return date + (endOfDay ? ' 23:59:59' : ' 00:00:00');
+                    return date + ' ' + (time.length === 5 ? time + ':00' : time);
+                },
+
+                // Scheduled, On now or Ended; empty while the dates are
+                // incomplete or the end comes before the start.
+                specialStatus(special) {
+                    const end = this.moment(special.date_end, special.time_end, true);
+                    if (!end) return '';
+                    const start = this.moment(special.date_start, special.time_start, false);
+                    if (start && end < start) return '';
+                    if (end < this.storeNow) return 'Ended';
+                    if (start && start > this.storeNow) return 'Scheduled';
+                    return 'On now';
+                },
+
+                ruleName(rule) {
+                    return rule === 'special' ? 'Special' : (rule === 'discount' ? 'Discount' : '');
+                },
+
+                isForSale(variant) {
+                    return variant.is_active !== false && variant.is_active !== 0 && variant.is_active !== '0';
+                },
+
+                // One column per variant on sale, or the product's own price.
+                get payColumns() {
+                    const live = this.variants.filter(v => this.isForSale(v));
+                    if (live.length === 0) {
+                        return [{ name: 'Base price', regular: Math.round((this.basePrice || 0) * 100) / 100 }];
+                    }
+                    return live.map(v => ({ name: v.label, regular: Math.round(this.variantTotalPrice(v) * 100) / 100 }));
+                },
+
+                // One row per customer group buying one item: the lowest of
+                // the regular price, every special that is on now, and the
+                // lowest discount for the group or for all groups. A special
+                // wins a tie, as in PriceResolver::resolve().
+                get payRows() {
+                    const product = this.basePrice || 0;
+                    const columns = this.payColumns;
+                    const specials = this.specials.filter(s => this.ruleValue(s) !== null && this.specialStatus(s) === 'On now');
+                    const discounts = this.discounts.filter(d => this.ruleValue(d) !== null && parseInt(d.quantity, 10) === 1);
+
+                    const lowest = (rows, regular) => rows.reduce((best, row) => {
+                        const price = priceAfterRule(row.price_type, this.ruleValue(row), regular, product);
+                        return best === null || price < best ? price : best;
+                    }, null);
+
+                    return this.priceGroups.map(group => {
+                        const mine = discounts.filter(d => String(d.customer_group_id ?? '') === '' || String(d.customer_group_id) === group.id);
+                        const cells = columns.map(col => {
+                            const special = lowest(specials, col.regular);
+                            const discount = lowest(mine, col.regular);
+                            if (special !== null && special < col.regular && (discount === null || special <= discount)) {
+                                return { price: special, regular: col.regular, rule: 'special' };
+                            }
+                            if (discount !== null && discount < col.regular) {
+                                return { price: discount, regular: col.regular, rule: 'discount' };
+                            }
+                            return { price: col.regular, regular: col.regular, rule: '' };
+                        });
+                        // The rule is named once under the group when one rule
+                        // lowered every price in the row, otherwise per price.
+                        const rules = [...new Set(cells.map(c => c.rule))];
+                        const rule = rules.length === 1 ? rules[0] : '';
+                        return { id: group.id, name: group.name, cells, rule };
                     });
                 },
 
@@ -912,6 +1184,7 @@
                 },
 
                 init() {
+                    setInterval(() => { this.storeNow = storeClock(storeZone); }, 30000);
                     if (this.variantTypes.length > 0) {
                         this.generateCombinations();
                     }
