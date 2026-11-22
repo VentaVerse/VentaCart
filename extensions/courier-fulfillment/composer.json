@@ -1,6 +1,6 @@
 {
     "name": "venta/courier-fulfillment",
-    "description": "Courier fulfillment: book confirmed orders with shipping couriers (QuadX, and future providers) from a dedicated admin page. Generic provider contract — checkout is never touched.",
+    "description": "Courier fulfillment: book confirmed orders with QuadX, SPX and LBC, print waybills and track parcels from one queue. Checkout is never touched.",
     "type": "library",
     "autoload": {
         "psr-4": {

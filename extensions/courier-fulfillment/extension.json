@@ -2,7 +2,7 @@
     "name": "courier-fulfillment",
     "title": "Fulfillment",
     "version": "1.0.0",
-    "description": "Book confirmed orders with shipping couriers (QuadX, and future providers) from a dedicated admin page.",
+    "description": "Book confirmed orders with QuadX, SPX and LBC, print waybills and track parcels from one queue.",
     "provider": "Extensions\\CourierFulfillment\\CourierFulfillmentServiceProvider",
     "icon": "fulfillment",
     "type": "courier",
