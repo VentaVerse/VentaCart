@@ -211,4 +211,52 @@ class ProductSpecialsDiscountsFormTest extends TestCase
         // The groups the summary and the dropdown list.
         $this->assertStringContainsString('{"id":"' . $this->resellers->id . '","name":"Resellers"}', $html);
     }
+
+    public function test_oversize_values_are_refused_with_a_row_message(): void
+    {
+        $product = $this->product();
+
+        $this->save($product, ['specials' => [$this->special(['price_type' => 'fixed', 'value' => '99999999999999'])]])
+            ->assertRedirect()
+            ->assertSessionHasErrors(['specials.0.value' => 'Special price row 1: the price is too large.']);
+        $this->save($product, ['discounts' => [$this->discount(['value' => '99999999999999'])]])
+            ->assertRedirect()
+            ->assertSessionHasErrors(['discounts.0.value' => 'Discount row 1: the price is too large.']);
+        $this->save($product, ['discounts' => [$this->discount(['quantity' => '4294967296'])]])
+            ->assertRedirect()
+            ->assertSessionHasErrors(['discounts.0.quantity' => 'Discount row 1: the minimum quantity is too large.']);
+
+        $this->assertSame(0, ProductSpecial::where('product_id', $product->id)->count());
+        $this->assertSame(0, ProductDiscount::where('product_id', $product->id)->count());
+    }
+
+    public function test_removed_rows_stay_removed_after_a_refused_save(): void
+    {
+        $product = $this->product();
+        ProductSpecial::create([
+            'product_id' => $product->id, 'price_type' => 'percent', 'value' => 20,
+            'date_start' => null, 'date_end' => '2026-12-31',
+        ]);
+        ProductDiscount::create([
+            'product_id' => $product->id, 'customer_group_id' => $this->resellers->id,
+            'quantity' => 1, 'price_type' => 'fixed', 'value' => 900,
+        ]);
+
+        // Every row removed, so the form sends neither list; another field
+        // is invalid, so the save is refused and the form comes back.
+        $html = $this->from(route('admin.products.edit', $product))
+            ->followingRedirects()
+            ->put(route('admin.products.update', $product), [
+                'store_id' => 1, 'name' => '', 'price' => 1000, 'is_active' => '1',
+            ])
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('const existingSpecials = [];', $html);
+        $this->assertStringContainsString('const existingDiscounts = [];', $html);
+
+        // Nothing was saved, so the stored rows are still there.
+        $this->assertSame(1, ProductSpecial::where('product_id', $product->id)->count());
+        $this->assertSame(1, ProductDiscount::where('product_id', $product->id)->count());
+    }
 }

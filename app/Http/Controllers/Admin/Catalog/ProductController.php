@@ -333,9 +333,9 @@ class ProductController extends Controller
      * product using it. Unlinking a product from an image is not a reason to
      * destroy the image.
      *
-     * Children (variants, variant types, images, specials, category and tag
-     * links, reviews, stock notifications, seo suggestions, cart items, low
-     * stock alerts) are removed by the ON DELETE CASCADE foreign keys.
+     * Children (variants, variant types, images, special prices, discounts,
+     * category and tag links, reviews, stock notifications, seo suggestions,
+     * cart items, low stock alerts) are removed by the ON DELETE CASCADE foreign keys.
      * order_products is ON DELETE SET NULL and carries its own snapshot of
      * name/sku/price, so order history survives intact.
      */
@@ -475,7 +475,7 @@ class ProductController extends Controller
             // percentage is checked in validatePriceRows().
             'specials' => ['nullable', 'array'],
             'specials.*.price_type' => ['required', 'in:fixed,percent'],
-            'specials.*.value' => ['required', 'numeric', 'min:0'],
+            'specials.*.value' => ['required', 'numeric', 'min:0', 'max:9999999999999.99'],
             'specials.*.date_start' => ['nullable', 'date_format:Y-m-d'],
             'specials.*.time_start' => ['nullable', 'regex:' . self::TIME_OF_DAY],
             'specials.*.date_end' => ['required', 'date_format:Y-m-d'],
@@ -485,9 +485,9 @@ class ProductController extends Controller
             // every group) from a minimum quantity.
             'discounts' => ['nullable', 'array'],
             'discounts.*.customer_group_id' => ['nullable', 'integer', 'exists:customer_groups,id'],
-            'discounts.*.quantity' => ['required', 'integer', 'min:1'],
+            'discounts.*.quantity' => ['required', 'integer', 'min:1', 'max:4294967295'],
             'discounts.*.price_type' => ['required', 'in:fixed,percent'],
-            'discounts.*.value' => ['required', 'numeric', 'min:0'],
+            'discounts.*.value' => ['required', 'numeric', 'min:0', 'max:9999999999999.99'],
         ], [
             // Named by row, because the generic message points at the General
             // tab and leaves a merchant hunting thirty-six rows for the one
@@ -497,17 +497,21 @@ class ProductController extends Controller
             'specials.*.value.required' => 'Special price row :position: enter a price.',
             'specials.*.value.numeric' => 'Special price row :position: the price must be a number.',
             'specials.*.value.min' => 'Special price row :position: the price cannot be below 0.',
+            'specials.*.value.max' => 'Special price row :position: the price is too large.',
             'specials.*.date_start.date_format' => 'Special price row :position: the start date is not a date.',
             'specials.*.date_end.required' => 'Special price row :position: choose when it ends.',
             'specials.*.date_end.date_format' => 'Special price row :position: the end date is not a date.',
             'specials.*.time_start.regex' => 'Special price row :position: the start time must be a time of day, such as 18:00.',
             'specials.*.time_end.regex' => 'Special price row :position: the end time must be a time of day, such as 21:30.',
             'discounts.*.customer_group_id.*' => 'Discount row :position: choose a customer group from the list.',
+            // Listed before the catch-all below, which would otherwise win.
+            'discounts.*.quantity.max' => 'Discount row :position: the minimum quantity is too large.',
             'discounts.*.quantity.*' => 'Discount row :position: the minimum quantity must be a whole number, 1 or more.',
             'discounts.*.price_type.*' => 'Discount row :position: choose % off or Fixed price.',
             'discounts.*.value.required' => 'Discount row :position: enter a price.',
             'discounts.*.value.numeric' => 'Discount row :position: the price must be a number.',
             'discounts.*.value.min' => 'Discount row :position: the price cannot be below 0.',
+            'discounts.*.value.max' => 'Discount row :position: the price is too large.',
         ]);
 
         $this->validateGalleryImages($request, $current);

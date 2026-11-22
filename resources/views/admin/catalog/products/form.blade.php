@@ -28,9 +28,11 @@
 
     // The special price and discount rows as last submitted when the save
     // was refused, so the merchant fixes their input instead of retyping
-    // it; otherwise the rows as stored.
-    $specialRows = is_array(old('specials')) ? array_values(old('specials')) : $existingSpecials;
-    $discountRows = is_array(old('discounts')) ? array_values(old('discounts')) : $existingDiscounts;
+    // it; otherwise the rows as stored. A submit with every row removed
+    // sends no key at all, so any old input means the rows were submitted:
+    // falling back to the stored rows would bring removed rows back.
+    $specialRows = session()->hasOldInput() ? array_values((array) old('specials', [])) : $existingSpecials;
+    $discountRows = session()->hasOldInput() ? array_values((array) old('discounts', [])) : $existingDiscounts;
     $specialErrors = [];
     $discountErrors = [];
     foreach ($errors->messages() as $key => $messages) {
@@ -606,7 +608,7 @@
                     </x-admin.panel>
 
                     <x-admin.panel title="Discounts"
-                        note="Always-on prices for one customer group. A buyer gets the deepest tier their quantity reaches.">
+                        note="Always-on prices for one customer group or all of them. A buyer pays the lowest discount their group and quantity reach.">
                         <x-slot:acts>
                             <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="addDiscount(); touch()">Add discount</button>
                         </x-slot:acts>
