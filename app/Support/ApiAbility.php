@@ -40,6 +40,10 @@ class ApiAbility
             ['PUT',    'api/v1/products/*/qty',      'catalogue',   'write'],
             ['POST',   'api/v1/products/*/variants', 'catalogue',   'write'],
             ['GET',    'api/v1/products/*/variants', 'catalogue',   'read'],
+            ['PUT',    'api/v1/products/*/specials', 'catalogue',   'write'],
+            ['GET',    'api/v1/products/*/specials', 'catalogue',   'read'],
+            ['PUT',    'api/v1/products/*/discounts', 'catalogue',   'write'],
+            ['GET',    'api/v1/products/*/discounts', 'catalogue',   'read'],
             ['POST',   'api/v1/products',            'catalogue',   'write'],
             ['PUT',    'api/v1/products/*',          'catalogue',   'write'],
             ['DELETE', 'api/v1/products/*',          'catalogue',   'write'],
@@ -49,6 +53,7 @@ class ApiAbility
             ['GET',    'api/v1/variants/*',          'catalogue',   'read'],
             ['GET',    'api/v1/categories',          'catalogue',   'read'],
             ['GET',    'api/v1/brands',              'catalogue',   'read'],
+            ['GET',    'api/v1/customer-groups',     'catalogue',   'read'],
 
             // Fulfillment, including the parts that live on the order path.
             ['POST',   'api/v1/orders/*/book-courier',   'fulfillment', 'write'],

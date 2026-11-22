@@ -76,7 +76,7 @@ class ErpProductController extends Controller
     public function show(Request $request, string $sku): JsonResponse
     {
         $product = Product::where('sku', $sku)
-            ->with(['brand:id,name,slug', 'categories:id,name,slug', 'images', 'variants.values', 'variantTypes.values'])
+            ->with(['brand:id,name,slug', 'categories:id,name,slug', 'images', 'variants.values', 'variantTypes.values', 'specials', 'discounts'])
             ->first();
 
         if (!$product) {
@@ -118,6 +118,8 @@ class ErpProductController extends Controller
                     return ['id' => $val->id, 'value' => $val->value];
                 }),
             ]),
+            'specials' => \Extensions\ErpSync\Http\PriceRows::specials($product),
+            'discounts' => \Extensions\ErpSync\Http\PriceRows::discounts($product),
             'status' => $product->is_active,
             'has_variants' => $product->has_variants,
             'meta_title' => $product->meta_title,

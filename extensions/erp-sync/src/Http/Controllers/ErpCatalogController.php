@@ -5,6 +5,7 @@ namespace Extensions\ErpSync\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\CustomerGroup;
 use App\Models\OrderStatus;
 use App\Models\ShippingCourier;
 use Illuminate\Http\JsonResponse;
@@ -55,6 +56,26 @@ class ErpCatalogController extends Controller
         });
 
         return $this->logAndRespond($request, $brands);
+    }
+
+    /**
+     * The store's customer groups, so a sync can map its own price lists to
+     * the customer_group_id a discount names.
+     */
+    public function customerGroups(Request $request): JsonResponse
+    {
+        $groups = CustomerGroup::query()
+            ->select(['id', 'name', 'is_default'])
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (CustomerGroup $g) => [
+                'id' => $g->id,
+                'name' => $g->name,
+                'is_default' => (bool) $g->is_default,
+            ]);
+
+        return $this->logAndRespond($request, $groups);
     }
 
     public function orderStatuses(Request $request): JsonResponse
