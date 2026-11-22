@@ -216,7 +216,7 @@ class Product extends Model
      *
      * The rule is written in SQL so a paginated listing can filter by it. A
      * fixed special is compared with the product's own price; a percentage
-     * off is below it whenever it takes anything off.
+     * off is below it whenever it takes anything off a price above zero.
      */
     public function scopeOnSaleFor(Builder $query, ?int $customerGroupId): Builder
     {
@@ -230,7 +230,8 @@ class Product extends Model
                     ->whereColumn($special->qualifyColumn('value'), '<', $regularPrice))
                 ->orWhere(fn (Builder $percent) => $percent
                     ->where($special->qualifyColumn('price_type'), 'percent')
-                    ->where($special->qualifyColumn('value'), '>', 0))));
+                    ->where($special->qualifyColumn('value'), '>', 0)
+                    ->where($regularPrice, '>', 0))));
     }
 
     /** Fields themes print as HTML (see App\Support\RichText). */

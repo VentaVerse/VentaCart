@@ -4,6 +4,8 @@ namespace Tests\Feature\Sales;
 
 use App\Models\Customer;
 use App\Models\CustomerGroup;
+use App\Models\Order;
+use App\Models\OrderProduct;
 use App\Models\Product;
 use App\Models\ProductDiscount;
 use App\Models\User;
@@ -41,5 +43,40 @@ class OrderGroupPricingTest extends TestCase
 
         $this->assertEquals(100, $guest['group_price']);
         $this->assertSame('regular', $guest['group_price_mode']);
+    }
+
+    public function test_order_edit_for_a_customer_with_no_group_uses_the_default_groups_discount(): void
+    {
+        $default = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
+        $product = Product::create([
+            'store_id' => 1, 'name' => 'Demo Widget', 'slug' => 'demo-widget', 'sku' => 'DEMO-001', 'price' => 100, 'is_active' => true,
+        ]);
+        ProductDiscount::create([
+            'product_id' => $product->id, 'customer_group_id' => $default->id,
+            'quantity' => 1, 'price_type' => 'fixed', 'value' => 90,
+        ]);
+        $customer = Customer::create([
+            'store_id' => 1, 'first_name' => 'Juan', 'last_name' => 'Dela Cruz',
+            'email' => 'juan@example.com', 'password' => bcrypt('secret-password'), 'customer_group_id' => null,
+        ]);
+        $order = Order::create([
+            'store_id' => 1, 'customer_id' => $customer->id,
+            'first_name' => 'Juan', 'last_name' => 'Dela Cruz', 'email' => 'juan@example.com',
+            'subtotal' => 100, 'total' => 100,
+        ]);
+        OrderProduct::create([
+            'order_id' => $order->id, 'product_id' => $product->id, 'name' => 'Demo Widget', 'sku' => 'DEMO-001',
+            'price' => 100, 'quantity' => 1, 'total' => 100,
+        ]);
+
+        $items = $this->actingAs(User::factory()->create())
+            ->get(route('admin.orders.edit', $order))
+            ->assertOk()
+            ->viewData('existingItems');
+
+        $this->assertCount(1, $items);
+        $this->assertEquals(90, $items[0]['group_price']);
+        $this->assertSame('sale', $items[0]['group_price_mode']);
+        $this->assertEquals(100, $items[0]['base_price']);
     }
 }

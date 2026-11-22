@@ -618,10 +618,10 @@ class ErpProductController extends Controller
 
         // Hard delete, so the SKU is free again for the next ERP push. Every
         // product-owned table (variants, variant types and their values,
-        // images, specials, category and tag links, reviews, stock
-        // notifications, seo suggestions) hangs off an ON DELETE CASCADE
-        // foreign key and is removed by the database. Image FILES stay on
-        // disk: catalog media is shared between products.
+        // images, special prices, discounts, category and tag links,
+        // reviews, stock notifications, seo suggestions) hangs off an ON
+        // DELETE CASCADE foreign key and is removed by the database. Image
+        // FILES stay on disk: catalog media is shared between products.
         DB::transaction(function () use ($product) {
             $product->delete();
         });

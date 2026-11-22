@@ -244,11 +244,15 @@ class ListingSortsAndOnSaleTest extends TestCase
             }
         }
 
+        // A percentage off a free product takes nothing off.
+        $free = $this->product('Percent Off Free Demo', ['price' => 0]);
+        ProductSpecial::create(['price_type' => 'percent', 'value' => 20] + $window + ['product_id' => $free->id]);
+
         // Listed exactly when the card shows the product as a sale.
         $listed = Product::query()->onSaleFor(CartService::customerGroupId())->pluck('id')->all();
         $shownAsSale = 0;
         foreach (Product::with('specials')->get() as $product) {
-            $sale = Pricing::display($product)->isSale();
+            $sale = Pricing::display($product)->isSpecial();
             $shownAsSale += (int) $sale;
             $this->assertSame($sale, in_array($product->id, $listed, true), $product->name);
         }

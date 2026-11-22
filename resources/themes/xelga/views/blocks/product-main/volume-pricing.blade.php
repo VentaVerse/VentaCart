@@ -1,7 +1,8 @@
 {{--
-    Volume pricing: the price per piece at each quantity where this
-    shopper's customer group has a special in core. Shoppers whose group has
-    none see nothing; the prices are what the cart charges.
+    Volume pricing: the price per piece at each quantity where a discount in
+    core for this shopper's customer group (or for all groups) lowers the
+    price. Shoppers with no such discount see nothing; the prices are what
+    the cart charges.
 --}}
 @if ($data['tiers'] !== [] || $context->preview)
     <div class="tiers" data-block-id="{{ $block['id'] }}" data-block-type="volume-pricing" data-tiers @if ($block['disabled'] || $data['tiers'] === []) hidden @endif>
